@@ -35,7 +35,7 @@ jobs:
       # Builds the Docker image.
       #
       - name: Build
-        run: 
+        run:  | 
           cd services/animals
           ./scripts/build_image.sh animals
 
@@ -43,7 +43,7 @@ jobs:
       # Publishes the Docker image to the container registry.
       #
       - name: Publish
-        run: 
+        run:  |
           cd services/animals
           ./scripts/push_image.sh animals
 
