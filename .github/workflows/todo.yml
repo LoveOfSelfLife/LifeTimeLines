@@ -35,11 +35,11 @@ jobs:
       # Builds the Docker image.
       #
       - name: Build
-        run: ./scripts/build-image.sh todo
+        run: ./scripts/build_image.sh todo
 
       #
       # Publishes the Docker image to the container registry.
       #
       - name: Publish
-        run: ./scripts/push-image.sh todo
+        run: ./scripts/push_image.sh todo
 
