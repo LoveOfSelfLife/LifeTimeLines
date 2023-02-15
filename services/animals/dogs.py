@@ -30,7 +30,7 @@ class DogList(Resource):
         if c:
             conn_str = c
         d = DOGS + [{'id': 'cn', 'name' : conn_str}]
-        return DOGS
+        return d
 
 @ns.route('/<id>')
 @ns.param('id', 'The dog identifier')
