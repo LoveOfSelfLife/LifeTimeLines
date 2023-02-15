@@ -1,5 +1,5 @@
 from flask_restx import Namespace, Resource, fields, Api
-
+import os
 # api = Api(
 #     etitle='The APIs',
 #     version='1.0',
@@ -25,6 +25,11 @@ class DogList(Resource):
     @ns.marshal_list_with(dog)
     def get(self):
         '''List all dogs'''
+        conn_str = '???'
+        c = os.getenv("AZURE_STORAGETABLE_CONNECTIONSTRING")
+        if c:
+            conn_str = c
+        d = DOGS + [{'id': 'cn', 'name' : conn_str}]
         return DOGS
 
 @ns.route('/<id>')
