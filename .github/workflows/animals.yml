@@ -50,10 +50,8 @@ jobs:
       - name: 'Az CLI login'
         uses: Azure/login@v1
         with:
-            client-id: ${{ secrets.CLIENT_ID }}
-            tenant-id: ${{ secrets.TENANT_ID }}
-            subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
-            
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
       - name: 'Deploy Container App'
         uses: Azure/cli@v1
         with:
