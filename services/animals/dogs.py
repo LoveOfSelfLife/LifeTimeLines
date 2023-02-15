@@ -29,7 +29,7 @@ class DogList(Resource):
         c = os.getenv("AZURE_STORAGETABLE_CONNECTIONSTRING")
         if c:
             conn_str = c
-        d = DOGS + [{'id': 'cn', 'name' : conn_str}]
+        d = DOGS + [{'id': 'cn', 'name' : conn_str}, {'id': 'cn2', 'name' : conn_str}]
         return d
 
 @ns.route('/<id>')
