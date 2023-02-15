@@ -47,7 +47,13 @@ jobs:
           cd services
           ../scripts/push_image.sh animals
 
-
+      - name: 'Az CLI login'
+        uses: Azure/login@v1
+        with:
+            client-id: ${{ secrets.CLIENT_ID }}
+            tenant-id: ${{ secrets.TENANT_ID }}
+            subscription-id: ${{ secrets.SUBSCRIPTION_ID }}
+            
       - name: 'Deploy Container App'
         uses: Azure/cli@v1
         with:
@@ -56,5 +62,5 @@ jobs:
             az extension add --source https://workerappscliextension.blob.core.windows.net/azure-cli-extension/containerapp-0.2.0-py2.py3-none-any.whl --yes
             echo "Deploy"
             az containerapp update -n animal-aca -g DefaultResourceGroup-EUS -i ${{ secrets.CONTAINER_REGISTRY }}/animals:${{ github.sha }} --registry-login-server ${{ secrets.CONTAINER_REGISTRY }} --registry-username  ${{ secrets.REGISTRY_UN }} --registry-password ${{ secrets.REGISTRY_PW }} --debug
-            
+
 
