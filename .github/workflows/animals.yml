@@ -59,4 +59,5 @@ jobs:
           containerAppName: animal-aca
           containerAppEnvironment: managedEnvironment-DefaultResource-b8bf
           resourceGroup: DefaultResourceGroup-EUS
+          acrName: richk
 
