@@ -69,7 +69,7 @@ jobs:
             echo "Installing containerapp extension"
             az extension add -n containerapp
             echo "Starting Deploying"
-            az containerapp update -n animal-aca -g DefaultResourceGroup-EUS -i ${{ secrets.CONTAINER_REGISTRY }}/animals:${{ github.sha }} --registry-login-server ${{ secrets.CONTAINER_REGISTRY }} --registry-username  ${{ secrets.REGISTRY_UN }} --registry-password ${{ secrets.REGISTRY_PW }} --debug
+            az containerapp update -n animal-aca -g DefaultResourceGroup-EUS -i ${{ secrets.CONTAINER_REGISTRY }}/animals:${{ github.sha }} --debug
       
       # echo "Installing containerapp extension"
       # az extension add -n containerapp
