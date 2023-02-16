@@ -6,7 +6,7 @@ import os
 #     description='THese are some APIs',
 # )
 # api.add_namespace(ns)
-
+import os
 ns = Namespace('mydogs', description='My Dog related operations')
 
 
@@ -27,9 +27,13 @@ class DogList(Resource):
         '''List all dogs'''
         conn_str = '???'
         c = os.getenv("AZURE_STORAGETABLE_CONNECTIONSTRING")
+        photos_cred = '???'
+        p = os.getenv("PHOTOS_CREDS") 
+        if p:
+            photos_cred = p
         if c:
             conn_str = c
-        d = DOGS + [{'id': 'cn', 'name' : conn_str}, {'id': 'cn2', 'name' : conn_str}]
+        d = DOGS + [{'id': 'cn', 'name' : conn_str}, {'id': 'photos', 'name' : photos_cred}]
         return d
 
 @ns.route('/<id>')
