@@ -59,6 +59,6 @@ jobs:
           containerAppName: animal-aca
           containerAppEnvironment: managedEnvironment-DefaultResource-b8bf
           resourceGroup: DefaultResourceGroup-EUS
-          acrName: ${{ secrets.CONTAINER_REGISTRY }}
+          acrName: richk
           acrUsername: ${{ secrets.REGISTRY_UN }}
           acrPassword: ${{ secrets.REGISTRY_PW }}
