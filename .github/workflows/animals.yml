@@ -67,8 +67,15 @@ jobs:
         with:
           inlineScript: |
             echo "Installing containerapp extension"
-            az extension add -n containerapp
-            echo "Deploy"
+            az extension add --source https://workerappscliextension.blob.core.windows.net/azure-cli-extension/containerapp-0.2.0-py2.py3-none-any.whl --yes
+            echo "Starting Deploying"
             az containerapp update -n animal-aca -g DefaultResourceGroup-EUS -i ${{ secrets.CONTAINER_REGISTRY }}/animals:${{ github.sha }} --registry-login-server ${{ secrets.CONTAINER_REGISTRY }} --registry-username  ${{ secrets.REGISTRY_UN }} --registry-password ${{ secrets.REGISTRY_PW }} --debug
+      
+      # echo "Installing containerapp extension"
+      # az extension add -n containerapp
+      # echo "Deploy"
+      # az containerapp update -n animal-aca -g DefaultResourceGroup-EUS -i ${{ secrets.CONTAINER_REGISTRY }}/animals:${{ github.sha }} --registry-login-server ${{ secrets.CONTAINER_REGISTRY }} --registry-username  ${{ secrets.REGISTRY_UN }} --registry-password ${{ secrets.REGISTRY_PW }} --debug
+
+
 
       # az extension add --source https://workerappscliextension.blob.core.windows.net/azure-cli-extension/containerapp-0.2.0-py2.py3-none-any.whl --yes
