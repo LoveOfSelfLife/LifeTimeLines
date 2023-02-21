@@ -1,0 +1,40 @@
+# 
+# GitHub Actions workflow.
+#
+# Automatically deploys meta data files to azure fileshare
+#
+
+name: Deploy Metadata files
+
+on:
+  push:
+    branches: 
+      - main
+    paths:
+      - 'storage/meta/**'
+  workflow_dispatch:
+
+jobs:
+
+  publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+      
+      # Checks-out your repository under $GITHUB_WORKSPACE.
+      - uses: actions/checkout@v2
+
+      - name: 'Az CLI login'
+        uses: Azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: 'upload files'
+        uses: Azure/cli@v1
+        with:
+          inlineScript: |
+            echo "upload files"
+            cd storage/meta
+            az storage file upload --source . --share-name richkhome --path meta --connection-string ${{ secrets.FILE_SHARE_CONNECTION }}
+
+      
