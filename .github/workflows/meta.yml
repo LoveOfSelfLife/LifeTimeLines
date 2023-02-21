@@ -35,6 +35,6 @@ jobs:
           inlineScript: |
             echo "upload files"
             cd storage/meta
-            az storage file upload --source . --share-name richkhome --path meta --connection-string ${{ secrets.FILE_SHARE_CONNECTION }}
+            az storage file upload --source . --share-name richkhome --path meta --account-name richkstorage --account-key ${{ secrets.STORAGE_ACCOUNT_KEY }}
 
       
