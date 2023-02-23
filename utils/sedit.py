@@ -27,12 +27,13 @@ def xform(s):
                 if 'maxReplicas:' in s:
                     lines.append(s.replace("10", "1"))
                 else:
-                    lines.append(s)
-
+                    if 'external:' in s:
+                        lines.append(s.replace("true", "false"))
+                    else:
+                        lines.append(s)
     return lines
 
 if __name__ == '__main__':
     for lin in sys.stdin:
         for lout in xform(lin):
             print(lout, end='')
-
