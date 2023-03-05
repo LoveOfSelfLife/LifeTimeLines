@@ -1,0 +1,63 @@
+# 
+# GitHub Actions workflow.
+#
+# Automatically deploys the "feapp" microservice on push.
+#
+
+name: Deploy photos App
+
+on:
+  push:
+    branches: 
+      - main
+    paths:
+      - 'services/photos/**'
+  workflow_dispatch:
+
+jobs:
+
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    env:
+      VERSION: ${{ github.sha }}
+      CONTAINER_REGISTRY: ${{ secrets.LTL_CONTAINER_REGISTRY }}
+      REGISTRY_UN: ${{ secrets.LTL_REGISTRY_UN }}
+      REGISTRY_PW: ${{ secrets.LTL_REGISTRY_PW  }}
+    
+    steps:
+      
+      # Checks-out your repository under $GITHUB_WORKSPACE.
+      - uses: actions/checkout@v2
+
+      #
+      # Builds the Docker image.
+      #
+      - name: Build
+        run:  | 
+          cd services
+          ../scripts/build_image.sh photos
+
+      #
+      # Publishes the Docker image to the container registry.
+      #
+      - name: Publish
+        run:  |
+          cd services
+          ../scripts/push_image.sh photos
+
+      - name: 'Az CLI login'
+        uses: Azure/login@v1
+        with:
+          creds: ${{ secrets.LTL_AZURE_CREDENTIALS }}
+
+      - name: 'Deploy Container App'
+        uses: Azure/cli@v1
+        with:
+          inlineScript: |
+            echo "Installing containerapp extension"
+            az extension add -n containerapp
+            echo "Starting Deployment"
+            az containerapp update -n photos -g ltl-aca-rg -i ${{ secrets.LTL_CONTAINER_REGISTRY }}/photos:${{ github.sha }} --debug 
+
