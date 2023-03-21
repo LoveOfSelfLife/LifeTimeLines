@@ -3,7 +3,7 @@ from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_restx import Api
 from feapp import ns as feapp_ns
-
+from flask_cors import CORS
 
 def create_app(test_config=None):
     app = Flask(__name__, static_url_path='', static_folder='static')
@@ -22,6 +22,13 @@ def create_app(test_config=None):
     fe_api.add_namespace(feapp_ns)
     fe_api.init_app(app)
     
+    CORS(
+        app,
+        resources={r"/*": {"origins": 'http://localhost:3000'}},
+        allow_headers=["Authorization", "Content-Type"],
+        methods=["GET"],
+        max_age=86400
+    )
     return app
 
 if __name__ == '__main__':
