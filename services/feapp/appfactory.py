@@ -25,8 +25,8 @@ def create_app(test_config=None):
     CORS(
         app,
         resources={r"/*": {"origins": 'http://localhost:3000'}},
-        allow_headers=["Authorization", "Content-Type"],
-        methods=["GET"],
+        allow_headers=["Authorization", "Access-Control-Allow-Headers", "Origin","Accept", "X-Requested-With", "Content-Type", "Access-Control-Request-Method", "Access-Control-Request-Headers"],
+        methods=["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"],
         max_age=86400,
         supports_credentials=True
     )
