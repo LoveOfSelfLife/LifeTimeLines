@@ -27,7 +27,8 @@ def create_app(test_config=None):
         resources={r"/*": {"origins": 'http://localhost:3000'}},
         allow_headers=["Authorization", "Content-Type"],
         methods=["GET"],
-        max_age=86400
+        max_age=86400,
+        supports_credentials=True
     )
     return app
 
