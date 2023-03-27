@@ -25,7 +25,7 @@ def create_app(test_config=None):
     CORS(
         app,
         resources={r"/*": {"origins": 'http://localhost:3000'}},
-        origins=['http://localhost:3000'],
+        origins=['http://localhost:3000', 'https://richk-aca-apim.azure-api.net'],
         allow_headers=["*"],
         methods=["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"],
         max_age=86400,

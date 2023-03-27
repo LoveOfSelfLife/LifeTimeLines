@@ -61,6 +61,6 @@ jobs:
             echo "Starting Deployment"
             az containerapp update -n feapp  -g ltl-aca-rg -i ${{ secrets.LTL_CONTAINER_REGISTRY }}/feapp:${{ github.sha }} --debug 
             az containerapp update -n feapp2 -g ltl-aca-rg -i ${{ secrets.LTL_CONTAINER_REGISTRY }}/feapp:${{ github.sha }} --debug             
-            
-
+            az containerapp update -n feapp3 -g ltl-aca-rg -i ${{ secrets.LTL_CONTAINER_REGISTRY }}/feapp:${{ github.sha }} --debug             
+            az containerapp update -n feapp4 -g ltl-aca-rg -i ${{ secrets.LTL_CONTAINER_REGISTRY }}/feapp:${{ github.sha }} --debug             
       
