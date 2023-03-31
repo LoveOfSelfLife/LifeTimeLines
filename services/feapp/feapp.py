@@ -2,13 +2,26 @@ from flask_restx import Namespace, Resource, fields
 from flask import request
 from werkzeug.utils import secure_filename
 import os
+from aztables import SampleTablesQuery
 
-ns = Namespace('feapp', description='Front-end app operations')
+ns = Namespace('feapp', description='Front-end app operations', path='/fe')
 
 todo = ns.model('fe', {
     'id': fields.Integer(readonly=True, description='The task unique identifier'),
     'task': fields.String(required=True, description='The task details')
 })
+
+stq = SampleTablesQuery()
+
+def test_tables():
+    try:
+        stq.insert_random_entities()
+        stq.sample_query_entities()
+    except Exception as e:
+        print(e)
+    finally:
+        pass
+        # stq.clean_up()
 
 
 class TodoDAO(object):
@@ -39,7 +52,7 @@ class TodoDAO(object):
 
 
 DAO = TodoDAO()
-DAO.create({'task': 'Build an API'})
+DAO.create({'task': 'This is the latest feapp, now up to feapp4'})
 DAO.create({'task': '?????'})
 DAO.create({'task': 'profit!'})
 
@@ -88,6 +101,7 @@ class Todo(Resource):
     @ns.marshal_with(todo)
     def get(self, id):
         '''Fetch a given resource'''
+        test_tables()
         return DAO.get(id)
 
     @ns.doc('delete_todo')

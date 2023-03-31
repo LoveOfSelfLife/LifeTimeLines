@@ -17,14 +17,54 @@ task_model = ns.model('sync', {
     'task': fields.String(required=True, description='The task details')
 })
 
-SCOPES = ['https://www.googleapis.com/auth/photoslibrary.readonly']
+SCOPES = ['https://www.googleapis.com/auth/photoslibrary.readonly','https://www.googleapis.com/auth/gmail.readonly','https://www.googleapis.com/auth/drive.readonly']
 
 def get_credentials():
-    if 'credentials' in session:
+    if 'credentials' in session and session['credentials'] is not None:
+        print('using credentials found in session')
         return google.oauth2.credentials.Credentials(**session['credentials'])
-    else:
-        print('credentials not found in session')
-        return None
+
+    elif refresh_token := get_refresh_token():
+        if client_config_str := os.getenv('GOOGLE_CLIENT_SECRETS', None):
+            client_config = json.loads(client_config_str)
+            cfg = client_config['web']
+            credentials = {
+                'token': None,
+                'refresh_token': refresh_token,
+                'token_uri': cfg['token_uri'],
+                'client_id': cfg['client_id'],
+                'client_secret': cfg['client_secret'],
+                'scopes': SCOPES
+            }
+            print('using refresh_token found in file system in order to refresh credentials')
+            return google.oauth2.credentials.Credentials(**credentials)
+
+    print('credentials not found in session or in file system')
+    return None
+
+def get_refresh_token():
+    if refresh_token_store := os.getenv('REFRESH_TOKEN_STORE', None):
+        try:
+            with open(refresh_token_store, 'r') as rtf:
+                refresh_token = rtf.readline()
+                return refresh_token
+        except OSError:
+            return None
+    return None
+
+def store_credentials(credentials):
+    session['credentials'] = {
+        'token': credentials.token,
+        'refresh_token': credentials.refresh_token,
+        'token_uri': credentials.token_uri,
+        'client_id': credentials.client_id,
+        'client_secret': credentials.client_secret,
+        'scopes': credentials.scopes}
+    if refresh_token_store := os.getenv('REFRESH_TOKEN_STORE', None):
+        print('storing refresh token to file system')
+        with open(refresh_token_store, 'w') as rtf:
+            rtf.write(credentials.refresh_token)
+
 
 @auth_ns.route('/doauth')
 class DoAuth(Resource):
@@ -87,18 +127,8 @@ class Auth(Resource):
         authorization_response = url
         flow.fetch_token(authorization_response=authorization_response)
 
-        # Store the credentials in the session.
-        # ACTION ITEM for developers:
-        #     Store user's access and refresh tokens in your data store if
-        #     incorporating this code into your real app.
-        credentials = flow.credentials
-        session['credentials'] = {
-            'token': credentials.token,
-            'refresh_token': credentials.refresh_token,
-            'token_uri': credentials.token_uri,
-            'client_id': credentials.client_id,
-            'client_secret': credentials.client_secret,
-            'scopes': credentials.scopes}
+        # Store the credentials in the session & store refresh token in storage
+        store_credentials(flow.credentials)
 
         return redirect(url_for('photos_sync_operations_list'))
 
@@ -125,6 +155,7 @@ class SyncOperationsList(Resource):
             print('variable not set')
         
         credentials = get_credentials()
+
         if not credentials:
             doauth_url = url_for('auth_do_auth')
             # doauth_url = self.api.url_for('auth_do_auth')
@@ -132,9 +163,10 @@ class SyncOperationsList(Resource):
 
         api = papi.PhotosApi()
         result_list = api.get_albums(credentials)
-        
+
         result = dict()
         result['album_list'] = result_list
+
         return result
             
         return [{"id": 101, "status": "processing"}, {"id": 102, "status": "success"}]
