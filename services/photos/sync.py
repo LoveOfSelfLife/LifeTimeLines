@@ -22,6 +22,7 @@ SCOPES = ['https://www.googleapis.com/auth/photoslibrary.readonly','https://www.
 def get_credentials():
     if 'credentials' in session and session['credentials'] is not None:
         print('using credentials found in session')
+        session['credentials']['scopes'] = SCOPES
         return google.oauth2.credentials.Credentials(**session['credentials'])
 
     elif refresh_token := get_refresh_token():
