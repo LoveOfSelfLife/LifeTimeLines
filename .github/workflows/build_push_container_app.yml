@@ -1,0 +1,68 @@
+# 
+# Build & push azure container app
+#
+
+name: Build Push Container App
+
+on:
+  workflow_call:
+    inputs:
+      app-name:
+        required: true
+        type: string
+    secrets:
+      LTL_CONTAINER_REGISTRY:
+        required: true
+      LTL_REGISTRY_UN:
+        required: true
+      LTL_REGISTRY_PW:
+        required: true
+      LTL_AZURE_CREDENTIALS:
+        required: true
+
+jobs:
+
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    env:
+      VERSION: ${{ github.sha }}
+      CONTAINER_REGISTRY: ${{ secrets.LTL_CONTAINER_REGISTRY }}
+      REGISTRY_UN: ${{ secrets.LTL_REGISTRY_UN }}
+      REGISTRY_PW: ${{ secrets.LTL_REGISTRY_PW  }}
+    
+    steps:
+      
+      # Checks-out your repository under $GITHUB_WORKSPACE.
+      - uses: actions/checkout@v2
+
+      #
+      # Builds the Docker image.
+      #
+      - name: Build
+        run:  | 
+          cd services
+          ../scripts/build_image.sh ${{ inputs.app-name }}
+
+      #
+      # Publishes the Docker image to the container registry.
+      #
+      - name: Publish
+        run:  |
+          cd services
+          ../scripts/push_image.sh ${{ inputs.app-name }}
+
+      - name: 'Az CLI login'
+        uses: Azure/login@v1
+        with:
+          creds: ${{ secrets.LTL_AZURE_CREDENTIALS }}
+
+      - name: 'Deploy Container App'
+        uses: Azure/cli@v1
+        with:
+          inlineScript: |
+            echo "Installing containerapp extension"
+            az extension add -n containerapp
+            echo "Starting Deployment"
+            az containerapp update -n ${{ inputs.app-name}} -g ltl-aca-rg -i ${{ secrets.LTL_CONTAINER_REGISTRY }}/${{ inputs.app-name }}:${{ github.sha }} --set-env-vars GOOGLE_CLIENT_SECRETS=secretref:googleclientsecrets --debug 

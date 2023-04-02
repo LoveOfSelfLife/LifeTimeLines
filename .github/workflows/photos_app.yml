@@ -1,0 +1,27 @@
+# 
+# GitHub Actions workflow.
+#
+# Automatically deploys the "feapp" microservice on push.
+#
+
+name: Deploy photos App
+
+on:
+  push:
+    branches: 
+      - main
+    paths:
+      - 'services/photos/**'
+  workflow_dispatch:
+
+jobs:
+
+  call-build-deploy-container-app:
+    uses: ./.github/workflows/build_push_container_app.yml
+    with:
+      app-name: photos
+    secrets:
+      LTL_CONTAINER_REGISTRY: ${{ secrets.LTL_CONTAINER_REGISTRY }}
+      LTL_REGISTRY_UN: ${{ secrets.LTL_REGISTRY_UN }}
+      LTL_REGISTRY_PW: ${{ secrets.LTL_REGISTRY_PW }}
+      LTL_AZURE_CREDENTIALS: ${{ secrets.LTL_AZURE_CREDENTIALS }}
