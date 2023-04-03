@@ -26,7 +26,7 @@ def get_credentials():
         return google.oauth2.credentials.Credentials(**session['credentials'])
 
     elif refresh_token := get_refresh_token():
-        if client_config_str := os.getenv('GOOGLE_CLIENT_SECRETS', None):
+        if client_config_str := os.getenv('GOOGLE_CLIENT_SECRET', None):
             client_config = json.loads(client_config_str)
             cfg = client_config['web']
             credentials = {
@@ -73,7 +73,7 @@ class DoAuth(Resource):
     def get(self):
         print('in /doauth')
 
-        client_config_str = os.getenv('GOOGLE_CLIENT_SECRETS', None)
+        client_config_str = os.getenv('GOOGLE_CLIENT_SECRET', None)
         if client_config_str:
             client_config = json.loads(client_config_str)
             flow = Flow.from_client_config(client_config=client_config, scopes=SCOPES)
@@ -109,7 +109,7 @@ class Auth(Resource):
         # verified in the authorization server response.
         state = session['state']
 
-        client_config_str = os.getenv('GOOGLE_CLIENT_SECRETS', None)
+        client_config_str = os.getenv('GOOGLE_CLIENT_SECRET', None)
         if client_config_str:
             client_config = json.loads(client_config_str)
             flow = Flow.from_client_config(client_config=client_config, scopes=SCOPES, state=state)
