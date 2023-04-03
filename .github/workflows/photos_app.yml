@@ -25,4 +25,3 @@ jobs:
       LTL_REGISTRY_UN: ${{ secrets.LTL_REGISTRY_UN }}
       LTL_REGISTRY_PW: ${{ secrets.LTL_REGISTRY_PW }}
       LTL_AZURE_CREDENTIALS: ${{ secrets.LTL_AZURE_CREDENTIALS }}
-      GOOGLE_CLIENT_SECRETS: ${{ secrets.GOOGLE_CLIENT_SECRETS }}
