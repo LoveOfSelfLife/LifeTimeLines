@@ -9,12 +9,15 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED=1
 
+ARG app
+
 # Install pip requirements
-COPY requirements.txt .
+COPY services/${app}/requirements.txt .
 RUN python -m pip install -r requirements.txt
 
 WORKDIR /app
-COPY . /app
+COPY services/${app} /app
+COPY common /app/common
 
 # Creates a non-root user with an explicit UID and adds permission to access the /app folder
 # For more info, please refer to https://aka.ms/vscode-docker-python-configure-containers

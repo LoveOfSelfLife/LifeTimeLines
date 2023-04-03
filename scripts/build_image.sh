@@ -24,5 +24,5 @@ set -u # or set -o nounset
 : "$CONTAINER_REGISTRY"
 : "$VERSION"
 
-export DIR=$1
-docker build -t $CONTAINER_REGISTRY/$DIR:$VERSION --file ./$DIR/Dockerfile ./$DIR
+export APP=$1
+docker build -t $CONTAINER_REGISTRY/$APP:$VERSION --file ./services/$APP/Dockerfile --build-arg app=$APP .

@@ -42,16 +42,14 @@ jobs:
       #
       - name: Build
         run:  | 
-          cd services
-          ../scripts/build_image.sh ${{ inputs.app-name }}
+          ./scripts/build_image.sh ${{ inputs.app-name }}
 
       #
       # Publishes the Docker image to the container registry.
       #
       - name: Publish
         run:  |
-          cd services
-          ../scripts/push_image.sh ${{ inputs.app-name }}
+          ./scripts/push_image.sh ${{ inputs.app-name }}
 
       - name: 'Az CLI login'
         uses: Azure/login@v1

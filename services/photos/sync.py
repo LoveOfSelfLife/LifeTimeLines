@@ -7,6 +7,7 @@ from google_auth_oauthlib.flow import Flow
 import google.oauth2.credentials
 from googleapiclient.discovery import build
 import json
+from common.credentials import get_credentials, store_credentials
 
 
 ns = Namespace('photos', description='services to sync with google photos')
@@ -19,52 +20,52 @@ task_model = ns.model('sync', {
 
 SCOPES = ['https://www.googleapis.com/auth/photoslibrary.readonly','https://www.googleapis.com/auth/gmail.readonly','https://www.googleapis.com/auth/drive.readonly']
 
-def get_credentials():
-    if 'credentials' in session and session['credentials'] is not None:
-        print('using credentials found in session')
-        session['credentials']['scopes'] = SCOPES
-        return google.oauth2.credentials.Credentials(**session['credentials'])
+# def get_credentials():
+#     if 'credentials' in session and session['credentials'] is not None:
+#         print('using credentials found in session')
+#         session['credentials']['scopes'] = SCOPES
+#         return google.oauth2.credentials.Credentials(**session['credentials'])
 
-    elif refresh_token := get_refresh_token():
-        if client_config_str := os.getenv('GOOGLE_CLIENT_SECRET', None):
-            client_config = json.loads(client_config_str)
-            cfg = client_config['web']
-            credentials = {
-                'token': None,
-                'refresh_token': refresh_token,
-                'token_uri': cfg['token_uri'],
-                'client_id': cfg['client_id'],
-                'client_secret': cfg['client_secret'],
-                'scopes': SCOPES
-            }
-            print('using refresh_token found in file system in order to refresh credentials')
-            return google.oauth2.credentials.Credentials(**credentials)
+#     elif refresh_token := get_refresh_token():
+#         if client_config_str := os.getenv('GOOGLE_CLIENT_SECRET', None):
+#             client_config = json.loads(client_config_str)
+#             cfg = client_config['web']
+#             credentials = {
+#                 'token': None,
+#                 'refresh_token': refresh_token,
+#                 'token_uri': cfg['token_uri'],
+#                 'client_id': cfg['client_id'],
+#                 'client_secret': cfg['client_secret'],
+#                 'scopes': SCOPES
+#             }
+#             print('using refresh_token found in file system in order to refresh credentials')
+#             return google.oauth2.credentials.Credentials(**credentials)
 
-    print('credentials not found in session or in file system')
-    return None
+#     print('credentials not found in session or in file system')
+#     return None
 
-def get_refresh_token():
-    if refresh_token_store := os.getenv('REFRESH_TOKEN_STORE', None):
-        try:
-            with open(refresh_token_store, 'r') as rtf:
-                refresh_token = rtf.readline()
-                return refresh_token
-        except OSError:
-            return None
-    return None
+# def get_refresh_token():
+#     if refresh_token_store := os.getenv('REFRESH_TOKEN_STORE', None):
+#         try:
+#             with open(refresh_token_store, 'r') as rtf:
+#                 refresh_token = rtf.readline()
+#                 return refresh_token
+#         except OSError:
+#             return None
+#     return None
 
-def store_credentials(credentials):
-    session['credentials'] = {
-        'token': credentials.token,
-        'refresh_token': credentials.refresh_token,
-        'token_uri': credentials.token_uri,
-        'client_id': credentials.client_id,
-        'client_secret': credentials.client_secret,
-        'scopes': credentials.scopes}
-    if refresh_token_store := os.getenv('REFRESH_TOKEN_STORE', None):
-        print('storing refresh token to file system')
-        with open(refresh_token_store, 'w') as rtf:
-            rtf.write(credentials.refresh_token)
+# def store_credentials(credentials):
+#     session['credentials'] = {
+#         'token': credentials.token,
+#         'refresh_token': credentials.refresh_token,
+#         'token_uri': credentials.token_uri,
+#         'client_id': credentials.client_id,
+#         'client_secret': credentials.client_secret,
+#         'scopes': credentials.scopes}
+#     if refresh_token_store := os.getenv('REFRESH_TOKEN_STORE', None):
+#         print('storing refresh token to file system')
+#         with open(refresh_token_store, 'w') as rtf:
+#             rtf.write(credentials.refresh_token)
 
 
 @auth_ns.route('/doauth')
@@ -136,7 +137,7 @@ class Auth(Resource):
 @auth_ns.route('/status')
 class Status(Resource):
     def get(self):
-        credentials = get_credentials()
+        credentials = get_credentials(SCOPES)
         if credentials:
             return "logged in"
         else:
@@ -155,7 +156,7 @@ class SyncOperationsList(Resource):
         except KeyError:
             print('variable not set')
         
-        credentials = get_credentials()
+        credentials = get_credentials(SCOPES)
 
         if not credentials:
             doauth_url = url_for('auth_do_auth')
