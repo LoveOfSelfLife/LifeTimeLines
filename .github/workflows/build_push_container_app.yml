@@ -19,7 +19,8 @@ on:
         required: true
       LTL_AZURE_CREDENTIALS:
         required: true
-
+      GOOGLE_CLIENT_SECRETS:
+        required: true
 jobs:
 
   publish:
@@ -65,4 +66,4 @@ jobs:
             echo "Installing containerapp extension"
             az extension add -n containerapp
             echo "Starting Deployment"
-            az containerapp update -n ${{ inputs.app-name}} -g ltl-aca-rg -i ${{ secrets.LTL_CONTAINER_REGISTRY }}/${{ inputs.app-name }}:${{ github.sha }} --set-env-vars GOOGLE_CLIENT_SECRETS=secretref:googleclientsecrets REFRESH_TOKEN_STORE=/share/.rt.txt --debug 
+            az containerapp update -n ${{ inputs.app-name}} -g ltl-aca-rg -i ${{ secrets.LTL_CONTAINER_REGISTRY }}/${{ inputs.app-name }}:${{ github.sha }} --set-env-vars GOOGLE_CLIENT_SECRETS=${{ secrets.GOOGLE_CLIENT_SECRETS }} REFRESH_TOKEN_STORE=/share/.rt.txt --debug 
