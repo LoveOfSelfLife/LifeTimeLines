@@ -1,4 +1,7 @@
 from flask_restx import Namespace, Resource, fields, Api
+from flask import request
+from werkzeug.utils import secure_filename
+
 import os
 # api = Api(
 #     etitle='The APIs',
@@ -36,6 +39,19 @@ class DogList(Resource):
         d = DOGS + [{'id': 'cn', 'name' : conn_str}, {'id': 'photos', 'name' : photos_cred}]
         return d
 
+    @ns.doc('list_dogs')
+    def post(self):
+        file = request.files['file']
+        #if file and allowed_file(file.filename):
+        if file:
+            filename = secure_filename(file.filename)
+            path = os.path.join('/share/stage', filename)
+            file.save(path)
+            return {f'saved to: {path}'}
+        else:
+            # return error
+            return {'False'}
+
 @ns.route('/<id>')
 @ns.param('id', 'The dog identifier')
 @ns.response(404, 'Dog not found')
@@ -48,3 +64,4 @@ class Dog(Resource):
             if d['id'] == id:
                 return d
         ns.abort(404)
+        
