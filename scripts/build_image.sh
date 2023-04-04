@@ -25,4 +25,4 @@ set -u # or set -o nounset
 : "$VERSION"
 
 export APP=$1
-docker build -t $CONTAINER_REGISTRY/$APP:$VERSION --file ./services/$APP/Dockerfile --build-arg app=$APP .
+docker build -t $CONTAINER_REGISTRY/$APP:$VERSION --file ./services/Dockerfile --build-arg app=$APP .
