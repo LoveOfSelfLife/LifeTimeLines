@@ -58,7 +58,6 @@ class SyncOperationsList(Resource):
         else:
             return {"id": 0, "task" : "False" }
 
-
 @ns.route('/<int:id>')
 @ns.response(404, 'Operation not found')
 @ns.param('id', 'The operation identifier')
