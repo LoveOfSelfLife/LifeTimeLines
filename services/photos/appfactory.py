@@ -25,17 +25,6 @@ def create_app(test_config=None):
     sync_api.add_namespace(common.credentials.auth_ns)
     sync_api.init_app(app)
 
-    # CORS(
-    #     app,
-    #     # resources={r"/*": {"origins": 'http://localhost:3000'}},
-    #     resources={r"/*": {"origins": '*'}},
-    #     # origins=['http://localhost:3000', 'https://richk-aca-apim.azure-api.net'],
-    #     origins=['*'],
-    #     allow_headers=["*"],
-    #     methods=["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"],
-    #     max_age=86400,
-    #     supports_credentials=False
-    # )  
     CORS(app)  
     return app
 
