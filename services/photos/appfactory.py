@@ -3,8 +3,10 @@ from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_restx import Api
 from sync import ns as sync_ns
-from sync import auth_ns as auth_ns
+# from common.credentials import auth_ns as auth_ns
+import common.credentials
 from dotenv import load_dotenv
+from flask_cors import CORS
 
 def create_app(test_config=None):
     load_dotenv()
@@ -20,9 +22,21 @@ def create_app(test_config=None):
         description='sync with google photos'
     )
     sync_api.add_namespace(sync_ns)
-    sync_api.add_namespace(auth_ns)
+    sync_api.add_namespace(common.credentials.auth_ns)
     sync_api.init_app(app)
-    
+
+    # CORS(
+    #     app,
+    #     # resources={r"/*": {"origins": 'http://localhost:3000'}},
+    #     resources={r"/*": {"origins": '*'}},
+    #     # origins=['http://localhost:3000', 'https://richk-aca-apim.azure-api.net'],
+    #     origins=['*'],
+    #     allow_headers=["*"],
+    #     methods=["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"],
+    #     max_age=86400,
+    #     supports_credentials=False
+    # )  
+    CORS(app)  
     return app
 
 if __name__ == '__main__':
