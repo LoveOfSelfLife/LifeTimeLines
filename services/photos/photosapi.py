@@ -38,7 +38,6 @@ class PhotosApi():
 
         return album_list
 
-    
 
     def get_album_items(self, album_id, timestamp=None):
         service = build(API_NAME, API_VERSION, credentials=self.credentials, static_discovery=False)
@@ -51,6 +50,46 @@ class PhotosApi():
             resp = service.mediaItems().search(body={'albumId': album_id, 
                                                      'pageSize': 100,
                                                     'pageToken': nextPageToken}).execute()
+            mitems = resp.get('mediaItems')
+            nextPageToken = resp.get('nextPageToken')
+
+            for mi in mitems:
+                if 'mediaMetadata' in mi and 'creationTime' in mi['mediaMetadata']:
+            
+                        if timestamp:
+                            ct = datetime.datetime.fromisoformat(mi['mediaMetadata']['creationTime'])
+                            cutoff = timestamp
+                            if ct <= cutoff:
+                                we_are_done = True
+                                break
+            
+                        item = {
+                            "id": mi['id'],
+                            "creationTime": mi['mediaMetadata']['creationTime']
+                        }
+                items_list.append(item)
+            print(f"items_list: {len(items_list)}")
+        
+            if nextPageToken is None or we_are_done:
+                break
+        return items_list
+
+    def get_category_items(self, category, timestamp=None):
+        service = build(API_NAME, API_VERSION, credentials=self.credentials, static_discovery=False)
+        items_list = []
+        nextPageToken=None
+        we_are_done = False
+
+        while True:
+            resp = service.mediaItems().search(body={'filters' : {
+                                                        'contentFilter': {
+                                                            'includedContentCategories' : [
+                                                                category
+                                                            ]
+                                                        }
+                                                    },
+                                                    'pageSize': 100,
+                                                'pageToken': nextPageToken}).execute()
             mitems = resp.get('mediaItems')
             nextPageToken = resp.get('nextPageToken')
 

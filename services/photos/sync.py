@@ -63,7 +63,6 @@ class SyncOperation(Resource):
         print(f'ns.payload: {ns.payload}')
         return '', 204
 
-
 @ns.route('/albums')
 class Albums(Resource):
     '''Show a single operation item and lets you delete them'''
@@ -100,6 +99,26 @@ class AlbumItems(Resource):
 
         return album_items
 
+@ns.route('/category/<category>')
+@ns.param('category', 'The category')
+class CategoryItems(Resource):
+    '''items in an albumm'''
+
+    def get(self, category):
+        ts = None
+
+        parser = reqparse.RequestParser()
+        parser.add_argument("end", type=str)
+        end = request.args.getlist("end")
+
+        if end:
+            ts = datetime.datetime.fromisoformat(end[0])
+        
+        api = papi.PhotosApi(get_credentials(SCOPES))
+
+        category_items = api.get_category_items(category, ts)
+
+        return category_items
 
 @ns.route('/items')
 class PhotosItems(Resource):
