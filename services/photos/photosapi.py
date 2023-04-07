@@ -1,6 +1,7 @@
 from googleapiclient.discovery import build
 import re
-
+import datetime 
+    
 API_NAME = 'photoslibrary'
 API_VERSION = 'v1'
 
@@ -37,10 +38,14 @@ class PhotosApi():
 
         return album_list
 
-    def get_album_items(self, album_id):
+    
+
+    def get_album_items(self, album_id, timestamp=None):
         service = build(API_NAME, API_VERSION, credentials=self.credentials, static_discovery=False)
         items_list = []
         nextPageToken=None
+        time_to_stop = lambda itemTime : False
+        we_are_done = False
 
         while True:
             resp = service.mediaItems().search(body={'albumId': album_id, 
@@ -51,6 +56,14 @@ class PhotosApi():
 
             for mi in mitems:
                 if 'mediaMetadata' in mi and 'creationTime' in mi['mediaMetadata']:
+            
+                        if timestamp:
+                            ct = datetime.datetime.fromisoformat(mi['mediaMetadata']['creationTime'])
+                            cutoff = timestamp
+                            if ct <= cutoff:
+                                we_are_done = True
+                                break
+            
                         item = {
                             "id": mi['id'],
                             "creationTime": mi['mediaMetadata']['creationTime']
@@ -58,7 +71,7 @@ class PhotosApi():
                 items_list.append(item)
             print(f"items_list: {len(items_list)}")
         
-            if nextPageToken is None:
+            if nextPageToken is None or we_are_done:
                 break
 
         return items_list

@@ -69,13 +69,8 @@ class Albums(Resource):
     '''Show a single operation item and lets you delete them'''
     # @ns.doc('get albums')
     def get(self):
-        credentials = get_credentials(SCOPES)
 
-        if not credentials:
-            doauth_url = url_for('auth_do_auth')
-            return redirect(doauth_url)
-
-        api = papi.PhotosApi(credentials)
+        api = papi.PhotosApi(get_credentials(SCOPES))
 
         album_list = api.get_entity_albums()
         
@@ -84,22 +79,24 @@ class Albums(Resource):
 
         return result
 
-@ns.route('/albums/<id>')
-@ns.param('id', 'The album id')
+@ns.route('/albums/<album_id>')
+@ns.param('album_id', 'The album id')
 class AlbumItems(Resource):
     '''items in an albumm'''
     # @ns.doc('get album items')
-    def get(self, id):
-        '''Fetch a given resource'''
-        credentials = get_credentials(SCOPES)
+    def get(self, album_id):
+        ts = None
 
-        if not credentials:
-            doauth_url = url_for('auth_do_auth')
-            return redirect(doauth_url)
+        parser = reqparse.RequestParser()
+        parser.add_argument("end", type=str)
+        end = request.args.getlist("end")
 
-        api = papi.PhotosApi(credentials)
+        if end:
+            ts = datetime.datetime.fromisoformat(end[0])
+        
+        api = papi.PhotosApi(get_credentials(SCOPES))
 
-        album_items = api.get_album_items(id)
+        album_items = api.get_album_items(album_id, ts)
 
         return album_items
 
@@ -113,21 +110,14 @@ class PhotosItems(Resource):
         parser.add_argument("start", type=str)
         parser.add_argument("end", type=str)
         start = request.args.getlist("start")
-        if start:
-            start=start[0]
         end = request.args.getlist("end")
-        if end:
-            end=end[0]
-        start_date = datetime.datetime(int(start[0:4]), int(start[4:6]), int(start[6:8]))
-        end_date = datetime.datetime(int(end[0:4]), int(end[4:6]), int(end[6:8]))
+        if not start or not end:
+            return []
+
+        start_date = datetime.datetime(int(start[0:4]), int(start[0][4:6]), int(start[0][6:8]))
+        end_date = datetime.datetime(int(end[0:4]), int(end[0][4:6]), int(end[0][6:8]))
                                      
-        credentials = get_credentials(SCOPES)
-
-        if not credentials:
-            doauth_url = url_for('auth_do_auth')
-            return redirect(doauth_url)
-
-        api = papi.PhotosApi(credentials)
+        api = papi.PhotosApi(get_credentials(SCOPES))
 
         album_items = api.get_media_items(start_date, end_date)
 
