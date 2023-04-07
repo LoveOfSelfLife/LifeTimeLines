@@ -1,10 +1,10 @@
-from flask_restx import Namespace, Resource, fields
+from flask_restx import Namespace, Resource, fields, reqparse
 from flask import request, url_for, redirect
 from werkzeug.utils import secure_filename
 import os
 import photosapi as papi
 from common.credentials import get_credentials, SCOPES
-
+import datetime
 ns = Namespace('photos', description='services to sync with google photos')
 
 task_model = ns.model('sync', {
@@ -19,28 +19,8 @@ class SyncOperationsList(Resource):
     @ns.doc('list sync operations')
     def get(self):
         '''List all tasks'''
-        try:
-            test_env_var = os.environ['TEST_ENV_VARIABLE']
-            print(f'test_env_var: {test_env_var}')
-        except KeyError:
-            print('variable not set')
-        
-        credentials = get_credentials(SCOPES)
+        return {'tasks': []}
 
-        if not credentials:
-            doauth_url = url_for('auth_do_auth')
-            # doauth_url = self.api.url_for('auth_do_auth')
-            return redirect(doauth_url)
-
-        api = papi.PhotosApi()
-        result_list = api.get_albums(credentials)
-
-        result = dict()
-        result['album_list'] = result_list
-
-        return result
-            
-        return [{"id": 101, "status": "processing"}, {"id": 102, "status": "success"}]
  
     @ns.doc('create operation by posting a file')
     def post(self):
@@ -82,3 +62,75 @@ class SyncOperation(Resource):
         # return DAO.update(id, ns.payload)
         print(f'ns.payload: {ns.payload}')
         return '', 204
+
+
+@ns.route('/albums')
+class Albums(Resource):
+    '''Show a single operation item and lets you delete them'''
+    # @ns.doc('get albums')
+    def get(self):
+        credentials = get_credentials(SCOPES)
+
+        if not credentials:
+            doauth_url = url_for('auth_do_auth')
+            return redirect(doauth_url)
+
+        api = papi.PhotosApi(credentials)
+
+        album_list = api.get_entity_albums()
+        
+        result = dict()
+        result['album_list'] = album_list
+
+        return result
+
+@ns.route('/albums/<id>')
+@ns.param('id', 'The album id')
+class AlbumItems(Resource):
+    '''items in an albumm'''
+    # @ns.doc('get album items')
+    def get(self, id):
+        '''Fetch a given resource'''
+        credentials = get_credentials(SCOPES)
+
+        if not credentials:
+            doauth_url = url_for('auth_do_auth')
+            return redirect(doauth_url)
+
+        api = papi.PhotosApi(credentials)
+
+        album_items = api.get_album_items(id)
+
+        return album_items
+
+
+@ns.route('/items')
+class PhotosItems(Resource):
+    '''all items'''
+    def get(self):
+        '''Fetch a given resource'''
+        parser = reqparse.RequestParser()
+        parser.add_argument("start", type=str)
+        parser.add_argument("end", type=str)
+        start = request.args.getlist("start")
+        if start:
+            start=start[0]
+        end = request.args.getlist("end")
+        if end:
+            end=end[0]
+        start_date = datetime.datetime(int(start[0:4]), int(start[4:6]), int(start[6:8]))
+        end_date = datetime.datetime(int(end[0:4]), int(end[4:6]), int(end[6:8]))
+                                     
+        credentials = get_credentials(SCOPES)
+
+        if not credentials:
+            doauth_url = url_for('auth_do_auth')
+            return redirect(doauth_url)
+
+        api = papi.PhotosApi(credentials)
+
+        album_items = api.get_media_items(start_date, end_date)
+
+
+        return album_items
+
