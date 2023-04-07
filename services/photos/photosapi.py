@@ -11,7 +11,7 @@ class PhotosApi():
         pass
 
     def get_entity_albums(self):
-        self.get_albums(filter="Photos_Album")
+        return self.get_albums(filter="Photos_Album")
 
     def get_albums(self, filter=""):
 
