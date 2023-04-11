@@ -2,7 +2,7 @@
 # GitHub Actions workflow.
 #
 
-name: Provision Azure Container App
+name: __Provision Azure Container App Infra
 on:
   workflow_call:
     inputs:

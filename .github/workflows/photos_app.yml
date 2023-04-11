@@ -4,7 +4,7 @@
 # Automatically deploys the "feapp" microservice on push.
 #
 
-name: Deploy photos App
+name: Build & Publish & Push Photos API to Container App Env
 
 on:
   push:

@@ -2,7 +2,7 @@
 # Build & push azure container app
 #
 
-name: Build Push Container App
+name: __Build & Publish & Push Container App
 
 on:
   workflow_call:
@@ -39,14 +39,14 @@ jobs:
       #
       # Builds the Docker image.
       #
-      - name: Build
+      - name: Build image
         run:  | 
           ./scripts/build_image.sh ${{ inputs.app-name }}
 
       #
       # Publishes the Docker image to the container registry.
       #
-      - name: Publish
+      - name: Publish image to container registry
         run:  |
           ./scripts/push_image.sh ${{ inputs.app-name }}
 
@@ -55,7 +55,7 @@ jobs:
         with:
           creds: ${{ secrets.azure_credentials }}
 
-      - name: 'Deploy Container App'
+      - name: 'Push image to container app environment'
         uses: Azure/cli@v1
         with:
           inlineScript: |
