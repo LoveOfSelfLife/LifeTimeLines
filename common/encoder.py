@@ -1,7 +1,7 @@
 import base64
 
-def uuencode(s):
+def encode(s):
     return base64.b64encode(s.encode()).decode()
 
-def uudecode(s):
+def decode(s):
     return base64.b64decode(s.encode()).decode()
