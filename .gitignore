@@ -2,6 +2,7 @@
 /ignore
 /utils/*.yaml
 /.vscode
+*.vsdx
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
