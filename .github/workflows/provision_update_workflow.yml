@@ -67,6 +67,7 @@ jobs:
             az deployment group create
             --resource-group ${{ inputs.containerapp_environment_rg }}
             --template-file ./provision_container_app.json 
+            --query "properties.provisioningState"
             --parameters 
             "containerapp-name"="${{ inputs.containerapp_name }}"
             "containerapp-environment-rg"="${{ inputs.containerapp_environment_rg }}"
