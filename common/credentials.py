@@ -5,13 +5,15 @@ import json
 from flask_restx import Namespace, Resource
 from flask import session, request, url_for, redirect
 from google_auth_oauthlib.flow import Flow
+import common.encoder
 
 GOOGLE_SCOPES = ['https://www.googleapis.com/auth/photoslibrary.readonly','https://www.googleapis.com/auth/gmail.readonly','https://www.googleapis.com/auth/drive.readonly']
 
 
-def get_config_from_secret(secret):
+def get_config_from_secret():
     config_js = None
-    if config_str := os.getenv(secret, None):
+    if config_str := os.getenv('GOOGLE_CLIENT_SECRET_BASE64', None):
+        config_str = common.encoder.decode(config_str)
         config_js = json.loads(config_str)
     return config_js
 
@@ -22,7 +24,7 @@ def get_credentials(scopes):
         return google.oauth2.credentials.Credentials(**session['credentials'])
 
     elif refresh_token := get_refresh_token():
-        if client_config := get_config_from_secret('GOOGLE_CLIENT_SECRET'):
+        if client_config := get_config_from_secret():
             cfg = client_config['web']
             credentials = {
                 'token': None,
@@ -70,7 +72,7 @@ class DoAuth(Resource):
     def get(self):
         print('in /doauth')
 
-        if client_config := get_config_from_secret('GOOGLE_CLIENT_SECRET'):
+        if client_config := get_config_from_secret():
             flow = Flow.from_client_config(client_config=client_config, scopes=GOOGLE_SCOPES)
         else:
             return "NO SECRET"
@@ -104,7 +106,7 @@ class Auth(Resource):
         # verified in the authorization server response.
         state = session['state']
 
-        if client_config := get_config_from_secret('GOOGLE_CLIENT_SECRET'):
+        if client_config := get_config_from_secret():
             flow = Flow.from_client_config(client_config=client_config, scopes=GOOGLE_SCOPES, state=state)
         else:
             return "NO SECRET"

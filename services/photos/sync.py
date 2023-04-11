@@ -3,7 +3,7 @@ from flask import request, url_for, redirect
 from werkzeug.utils import secure_filename
 import os
 import photosapi as papi
-from common.credentials import get_credentials, SCOPES
+from common.credentials import get_credentials, GOOGLE_SCOPES
 import datetime
 ns = Namespace('photos', description='services to sync with google photos')
 
@@ -69,7 +69,7 @@ class Albums(Resource):
     # @ns.doc('get albums')
     def get(self):
 
-        api = papi.PhotosApi(get_credentials(SCOPES))
+        api = papi.PhotosApi(get_credentials(GOOGLE_SCOPES))
 
         album_list = api.get_entity_albums()
         
@@ -93,7 +93,7 @@ class AlbumItems(Resource):
         if end:
             ts = datetime.datetime.fromisoformat(end[0])
         
-        api = papi.PhotosApi(get_credentials(SCOPES))
+        api = papi.PhotosApi(get_credentials(GOOGLE_SCOPES))
 
         album_items = api.get_album_items(album_id, ts)
 
@@ -114,7 +114,7 @@ class CategoryItems(Resource):
         if end:
             ts = datetime.datetime.fromisoformat(end[0])
         
-        api = papi.PhotosApi(get_credentials(SCOPES))
+        api = papi.PhotosApi(get_credentials(GOOGLE_SCOPES))
 
         category_items = api.get_category_items(category, ts)
 
@@ -136,10 +136,9 @@ class PhotosItems(Resource):
         start_date = datetime.datetime(int(start[0:4]), int(start[0][4:6]), int(start[0][6:8]))
         end_date = datetime.datetime(int(end[0:4]), int(end[0][4:6]), int(end[0][6:8]))
                                      
-        api = papi.PhotosApi(get_credentials(SCOPES))
+        api = papi.PhotosApi(get_credentials(GOOGLE_SCOPES))
 
         album_items = api.get_media_items(start_date, end_date)
-
 
         return album_items
 
