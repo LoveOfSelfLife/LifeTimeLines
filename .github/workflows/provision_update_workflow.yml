@@ -1,0 +1,84 @@
+# 
+# GitHub Actions workflow.
+#
+
+name: create update azure container app
+
+on:
+  workflow_call:
+    inputs:
+      containerapp_name:
+        required: true
+        type: string
+      containerapp_environment_rg:
+        required: true
+        type: string
+      containerapp_environment_name:
+        required: true
+        type: string
+      container_registry_image:
+        required: true
+        type: string
+
+    secrets:
+      container_registry:
+        required: true
+      container_registry_id:
+        required: true
+      container_registry_pw:
+        required: true
+      azure_credentials:
+        required: true
+      azure_storagetable_connectionstring:
+        required: true
+      aad_client_id:
+        required: true
+      aad_client_secret:
+        required: true
+      google_client_secret_base64:
+        required: true
+      tenant_id:
+        required: true
+      subscription_id:
+        required: true
+
+jobs:
+
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+      
+      # Checks-out your repository under $GITHUB_WORKSPACE.
+      - uses: actions/checkout@v2
+
+      - name: 'Az CLI login'
+        uses: Azure/login@v1
+        with:
+          creds: ${{ secrets.azure_credentials }}
+
+      - name: 'deploy new or updated container app'
+        uses: Azure/cli@v1
+        with:
+          inlineScript: >
+            echo "starting deployment";
+            cd arm;
+            az deployment group create
+            --resource-group ${{ inputs.containerapp_environment_rg }}
+            --template-file ./provision_container_app.json 
+            --parameters 
+                "containerapp-name"="${{ inputs.containerapp_name }}"
+                "containerapp-environment-rg"="${{ inputs.containerapp_environment_rg }}"
+                "containerapp-environment-name"="${{ inputs.containerapp_environment_name }}"
+                "container-registry-image"="${{ inputs.container_registry_image }}"
+                "container-registry"="${{ secrets.container_registry }}"
+                "container-registry-id"="${{ secrets.container_registry_id }}"
+                "container-registry-pw"="${{ secrets.container_registry_pw }}"
+                "azure-storagetable-connectionstring"="${{ secrets.azure_storagetable_connectionstring }}"
+                "aad-client-id"="${{ secrets.aad_client_id }}"
+                "aad-client-secret"="${{ secrets.aad_client_secret }}"
+                "google-client-secret-base64"="${{ secrets.google_client_secret_base64 }}"
+                "tenant-id"="${{ secrets.tenant_id }}"
+                "subscription-id"="${{ secrets.subscription_id }}"
+

@@ -1,0 +1,199 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "containerapp-name": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "containerapp-environment-rg": {
+            "type": "String"
+        },
+        "containerapp-environment-name": {
+            "type": "String"
+        },
+        "container-registry": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "container-registry-id": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "container-registry-pw": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "azure-storagetable-connectionstring": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "aad-client-id": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "aad-client-secret": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "google-client-secret-base64": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "container-registry-image": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "tenant-id": {
+            "type": "String"
+        },
+        "subscription-id": {
+            "type": "String"
+        }
+    },
+    "variables": {
+        "containerapp-environment-id" : "[concat('/subscriptions/', parameters('subscription-id'), '/resourceGroups/', parameters('containerapp-environment-rg'), '/providers/Microsoft.App/managedEnvironments/', parameters('containerapp-environment-name'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.App/containerapps",
+            "apiVersion": "2022-10-01",
+            "name": "[parameters('containerapp-name')]",
+            "location": "East US 2",
+            "identity": {
+                "type": "None"
+            },
+            "properties": {
+                "managedEnvironmentId": "[variables('containerapp-environment-id')]",
+                "environmentId": "[variables('containerapp-environment-id')]",
+                "configuration": {
+                    "secrets": [
+                        {
+                            "name": "azure-storagetable-connectionstring",
+                            "value": "[parameters('azure-storagetable-connectionstring')]"
+                        },
+                        {
+                            "name": "container-registry-pw",
+                            "value": "[parameters('container-registry-pw')]"
+
+                        },
+                        {
+                            "name": "aad-client-secret",
+                            "value": "[parameters('aad-client-secret')]"
+                        },
+                        {
+                            "name": "google-client-secret-base64",
+                            "value": "[parameters('google-client-secret-base64')]"
+                        }
+                    ],
+                    "activeRevisionsMode": "Single",
+                    "ingress": {
+                        "external": true,
+                        "targetPort": 5002,
+                        "exposedPort": 0,
+                        "transport": "Auto",
+                        "traffic": [
+                            {
+                                "weight": 100,
+                                "latestRevision": true
+                            }
+                        ],
+			"corsPolicy": {
+			    "allowedOrigins": [ "*" ],
+			    "allowedHeaders": [ "*" ],
+			    "allowedMethods": [ "*" ],
+			    "allowCredentials": false,
+                "exposeHeaders": [ "*" ]
+			},
+                        "allowInsecure": false
+                    },
+                    "registries": [
+                        {
+                            "server": "[parameters('container-registry')]",
+                            "username": "[parameters('container-registry-id')]",
+                            "passwordSecretRef": "container-registry-pw"
+                        }
+                    ]
+                },
+                "template": {
+                    "containers": [
+                        {
+                            "image": "[concat(parameters('container-registry'), '/', parameters('container-registry-image'))]",
+                            "name": "[parameters('containerapp-name')]",
+                            "env": [
+                                {
+                                    "name": "AZURE_STORAGETABLE_CONNECTIONSTRING",
+                                    "secretRef": "azure-storagetable-connectionstring"
+                                },
+                                {
+                                    "name": "REFRESH_TOKEN_STORE",
+                                    "value": "/share/.rt.txt"
+                                },
+                                {
+                                    "name": "GOOGLE_CLIENT_SECRET_BASE64",
+                                    "secretRef": "google-client-secret-base64"
+                                }
+                            ],
+                            "resources": {
+                                "cpu": 0.25,
+                                "memory": "0.5Gi"
+                            },
+                            "volumeMounts": [
+                                {
+                                    "volumeName": "azure-files-volume",
+                                    "mountPath": "/share"
+                                }
+                            ]
+                        }
+                    ],
+                    "scale": {
+                        "minReplicas": 0,
+                        "maxReplicas": 10
+                    },
+                    "volumes": [
+                        {
+                            "name": "azure-files-volume",
+                            "storageType": "AzureFile",
+                            "storageName": "acaenvstorage"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.App/containerApps/authConfigs",
+            "apiVersion": "2022-10-01",
+            "name": "[concat(parameters('containerapp-name'), '/current')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.App/containerApps', parameters('containerapp-name'))]"
+            ],
+            "properties": {
+                "platform": {
+                    "enabled": true
+                },
+                "globalValidation": {
+                    "unauthenticatedClientAction": "Return401"
+                },
+                "identityProviders": {
+                    "azureActiveDirectory": {
+                        "registration": {
+                            "openIdIssuer": "[concat('https://sts.windows.net/',parameters('tenant-id'),'/v2.0')]",
+                            "clientId": "[parameters('aad-client-id')]",
+                            "clientSecretSettingName": "aad-client-secret"
+                        },
+                        "validation": {
+                            "allowedAudiences": [
+                                "[concat('api://', parameters('aad-client-id'))]"
+                            ]
+                        },
+                        "isAutoProvisioned": true
+                    }
+                },
+                "login": {
+                    "preserveUrlFragmentsForLogins": false,
+                    "allowedExternalRedirectUrls": []
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,31 @@
+{
+"categories":
+[
+	{ "category" : "LANDSCAPES", "description" : "Media items containing landscapes."},
+	{ "category" : "RECEIPTS", "description" : "Media items containing receipts."},
+	{ "category" : "CITYSCAPES", "description" : "Media items containing cityscapes."},
+	{ "category" : "LANDMARKS", "description" : "Media items containing landmarks."},
+	{ "category" : "SELFIES", "description" : "Media items that are selfies."},
+	{ "category" : "PEOPLE", "description" : "Media items containing people."},
+	{ "category" : "PETS", "description" : "Media items containing pets."},
+	{ "category" : "WEDDINGS", "description" : "Media items from weddings."},
+	{ "category" : "BIRTHDAYS", "description" : "Media items from birthdays."},
+	{ "category" : "DOCUMENTS", "description" : "Media items containing documents."},
+	{ "category" : "TRAVEL", "description" : "Media items taken during travel."},
+	{ "category" : "ANIMALS", "description" : "Media items containing animals."},
+	{ "category" : "FOOD", "description" : "Media items containing food."},
+	{ "category" : "SPORT", "description" : "Media items from sporting events."},
+	{ "category" : "NIGHT", "description" : "Media items taken at night."},
+	{ "category" : "PERFORMANCES", "description" : "Media items from performances."},
+	{ "category" : "WHITEBOARDS", "description" : "Media items containing whiteboards."},
+	{ "category" : "SCREENSHOTS", "description" : "Media items that are screenshots."},
+	{ "category" : "UTILITY", "description" : "Media items that are considered to be utility. These include, but aren't limited to documents, screenshots, whiteboards etc."},
+	{ "category" : "ARTS", "description" : "Media items containing art."},
+	{ "category" : "CRAFTS", "description" : "Media items containing crafts."},
+	{ "category" : "FASHION", "description" : "Media items related to fashion."},
+	{ "category" : "HOUSES", "description" : "Media items containing houses."},
+	{ "category" : "GARDENS", "description" : "Media items containing gardens."},
+	{ "category" : "FLOWERS", "description" : "Media items containing flowers."},
+	{ "category" : "HOLIDAYS", "description" : "Media items taken of holidays.}]
+]
+}

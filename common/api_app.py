@@ -3,6 +3,11 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_restx import Api
 from flask_cors import CORS   
 
+import datetime
+import signal
+import sys
+from types import FrameType
+
 def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescription=''):
     app : Flask = Flask(__name__, static_url_path='', static_folder='static')
     app.wsgi_app = ProxyFix(app.wsgi_app)
@@ -19,5 +24,15 @@ def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescriptio
     api.init_app(app)
     
     CORS(app)  
+
+    signal.signal(signal.SIGTERM, shutdown_handler)
     return app
 
+# https://cloud.google.com/blog/topics/developers-practitioners/graceful-shutdowns-cloud-run-deep-dive
+# [START cloudrun_sigterm_handler]
+def shutdown_handler(signal: int, frame: FrameType) -> None:
+    # logger.info("Signal received, safely shutting down.")
+    # database.shutdown()
+    # middleware.logging_flush()
+    print("Exiting process.", flush=True)
+    # sys.exit(0)
