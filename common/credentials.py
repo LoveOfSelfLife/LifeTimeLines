@@ -7,7 +7,9 @@ from flask import session, request, url_for, redirect
 from google_auth_oauthlib.flow import Flow
 import common.encoder
 
-GOOGLE_SCOPES = ['https://www.googleapis.com/auth/photoslibrary.readonly','https://www.googleapis.com/auth/gmail.readonly','https://www.googleapis.com/auth/drive.readonly']
+GOOGLE_SCOPES = ['https://www.googleapis.com/auth/photoslibrary.readonly', \
+                 'https://www.googleapis.com/auth/gmail.readonly', \
+                 'https://www.googleapis.com/auth/drive.readonly']
 
 
 def get_config_from_secret():
