@@ -22,6 +22,6 @@ jobs:
       app-name: photos
     secrets:
       container_registry: ${{ secrets.container_registry }}
-      registry_id: ${{ secrets.registry_id }}
-      registry_pw: ${{ secrets.registry_pw }}
+      container_registry_id: ${{ secrets.container_registry_id }}
+      container_registry_pw: ${{ secrets.container_registry_pw }}
       azure_credentials: ${{ secrets.azure_credentials }}

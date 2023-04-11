@@ -13,9 +13,9 @@ on:
     secrets:
       container_registry:
         required: true
-      registry_id:
+      container_registry_id:
         required: true
-      registry_pw:
+      container_registry_pw:
         required: true
       azure_credentials:
 
@@ -28,8 +28,8 @@ jobs:
     env:
       VERSION: ${{ github.sha }}
       CONTAINER_REGISTRY: ${{ secrets.container_registry }}
-      REGISTRY_ID: ${{ secrets.container_registry_id }}
-      REGISTRY_PW: ${{ secrets.container_registry_pw }}
+      CONTAINER_REGISTRY_ID: ${{ secrets.container_registry_id }}
+      CONTAINER_REGISTRY_PW: ${{ secrets.container_registry_pw }}
     
     steps:
       

@@ -25,9 +25,9 @@ set -u # or set -o nounset
 : "$1"
 : "$CONTAINER_REGISTRY"
 : "$VERSION"
-: "$REGISTRY_ID"
-: "$REGISTRY_PW"
+: "$CONTAINER_REGISTRY_ID"
+: "$CONTAINER_REGISTRY_PW"
 
 export APP=$1
-echo $REGISTRY_PW | docker login $CONTAINER_REGISTRY --username $REGISTRY_ID --password-stdin
+echo $CONTAINER_REGISTRY_PW | docker login $CONTAINER_REGISTRY --username $CONTAINER_REGISTRY_ID --password-stdin
 docker push $CONTAINER_REGISTRY/$APP:$VERSION
