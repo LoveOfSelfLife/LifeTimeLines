@@ -2,8 +2,7 @@
 # GitHub Actions workflow.
 #
 
-name: create update azure container app
-
+name: Provision Azure Container App
 on:
   workflow_call:
     inputs:
@@ -58,11 +57,11 @@ jobs:
         with:
           creds: ${{ secrets.azure_credentials }}
 
-      - name: 'deploy new or updated container app'
+      - name: 'Provision / Update Container App'
         uses: Azure/cli@v1
         with:
           inlineScript: >
-            echo "starting deployment";
+            echo "Deploy Container App ${{ inputs.containerapp_name }} via ARM Template";
             cd arm;
             az deployment group create
             --resource-group ${{ inputs.containerapp_environment_rg }}

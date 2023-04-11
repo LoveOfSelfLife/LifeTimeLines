@@ -2,7 +2,7 @@
 # GitHub Actions workflow.
 #
 
-name: creae or update the photos container app
+name: Provision Photos Container App Infrastructure
 
 on:
   workflow_dispatch:
@@ -10,12 +10,13 @@ on:
 jobs:
 
   call-build-deploy-container-app:
-    uses: ./.github/workflows/provision_update_workflow.yml
+    uses: ./.github/workflows/provision_containerapp_infra.yml
     with:
-      containerapp_name: photostestworkflow
+      containerapp_name: photos
+      container_registry_image: photos:94f8993dc1d12c00b58004e0c1a3235edbc4cf51
       containerapp_environment_rg: ltl-aca-rg
       containerapp_environment_name: ltl-aca-env
-      container_registry_image: photos:94f8993dc1d12c00b58004e0c1a3235edbc4cf51
+
 
     secrets:
       container_registry: ${{ secrets.container_registry }}
