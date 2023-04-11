@@ -10,7 +10,7 @@ on:
 jobs:
 
   call-build-deploy-container-app:
-    uses: ./.github/workflows/provision_containerapp_infra.yml
+    uses: ./.github/workflows/_provision_containerapp_infra.yml
     with:
       containerapp_name: photos
       container_registry_image: photos:latest

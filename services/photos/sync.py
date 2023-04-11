@@ -142,3 +142,13 @@ class PhotosItems(Resource):
 
         return album_items
 
+@ns.route('/token')
+class TokenRefresh(Resource):
+    '''refresh token'''
+    def get(self):
+        '''refresh token'''
+        if get_credentials(GOOGLE_SCOPES) is None:
+            return redirect(url_for('auth_do_auth'))
+
+        return "seems we have a good token"
+    
