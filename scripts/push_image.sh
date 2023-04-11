@@ -31,3 +31,4 @@ set -u # or set -o nounset
 export APP=$1
 echo $CONTAINER_REGISTRY_PW | docker login $CONTAINER_REGISTRY --username $CONTAINER_REGISTRY_ID --password-stdin
 docker push $CONTAINER_REGISTRY/$APP:$VERSION
+docker push $CONTAINER_REGISTRY/$APP:latest
