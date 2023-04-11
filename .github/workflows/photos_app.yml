@@ -21,7 +21,7 @@ jobs:
     with:
       app-name: photos
     secrets:
-      LTL_CONTAINER_REGISTRY: ${{ secrets.LTL_CONTAINER_REGISTRY }}
-      LTL_REGISTRY_UN: ${{ secrets.LTL_REGISTRY_UN }}
-      LTL_REGISTRY_PW: ${{ secrets.LTL_REGISTRY_PW }}
-      LTL_AZURE_CREDENTIALS: ${{ secrets.LTL_AZURE_CREDENTIALS }}
+      container_registry: ${{ secrets.container_registry }}
+      registry_id: ${{ secrets.registry_id }}
+      registry_pw: ${{ secrets.registry_pw }}
+      azure_credentials: ${{ secrets.azure_credentials }}

@@ -11,14 +11,13 @@ on:
         required: true
         type: string
     secrets:
-      LTL_CONTAINER_REGISTRY:
+      container_registry:
         required: true
-      LTL_REGISTRY_UN:
+      registry_id:
         required: true
-      LTL_REGISTRY_PW:
+      registry_pw:
         required: true
-      LTL_AZURE_CREDENTIALS:
-        required: true
+      azure_credentials:
 
 jobs:
 
@@ -28,9 +27,9 @@ jobs:
     
     env:
       VERSION: ${{ github.sha }}
-      CONTAINER_REGISTRY: ${{ secrets.LTL_CONTAINER_REGISTRY }}
-      REGISTRY_UN: ${{ secrets.LTL_REGISTRY_UN }}
-      REGISTRY_PW: ${{ secrets.LTL_REGISTRY_PW  }}
+      CONTAINER_REGISTRY: ${{ secrets.container_registry }}
+      REGISTRY_ID: ${{ secrets.container_registry_id }}
+      REGISTRY_PW: ${{ secrets.container_registry_pw }}
     
     steps:
       
@@ -54,7 +53,7 @@ jobs:
       - name: 'Az CLI login'
         uses: Azure/login@v1
         with:
-          creds: ${{ secrets.LTL_AZURE_CREDENTIALS }}
+          creds: ${{ secrets.azure_credentials }}
 
       - name: 'Deploy Container App'
         uses: Azure/cli@v1
@@ -63,4 +62,4 @@ jobs:
             echo "Installing containerapp extension"
             az extension add -n containerapp
             echo "Starting Deployment"
-            az containerapp update -n ${{ inputs.app-name}} -g ltl-aca-rg -i ${{ secrets.LTL_CONTAINER_REGISTRY }}/${{ inputs.app-name }}:${{ github.sha }} --debug 
+            az containerapp update -n ${{ inputs.app-name}} -g ltl-aca-rg -i ${{ secrets.container_registry }}/${{ inputs.app-name }}:${{ github.sha }} --debug 
