@@ -12,3 +12,4 @@ google-auth>=1.25
 google-auth-oauthlib>=0.4
 google-auth-httplib2>=0.0.4
 pandas>=1.2
+Flask-Cors==3.0.10
