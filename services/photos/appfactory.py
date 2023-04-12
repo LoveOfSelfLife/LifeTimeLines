@@ -1,5 +1,5 @@
 import os
-from sync import ns as sync_ns
+from sync import photos_ns as photos_ns
 from common.credentials import auth_ns
 from common.api_app import create_api_app
 from dotenv import load_dotenv
@@ -9,7 +9,7 @@ def create_app():
     load_dotenv()
     EntityTable.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
                            
-    return create_api_app([sync_ns, auth_ns], "Photos API", "1.0")
+    return create_api_app([photos_ns, auth_ns], "Photos API", "1.0")
 
 if __name__ == '__main__':
     from argparse import ArgumentParser

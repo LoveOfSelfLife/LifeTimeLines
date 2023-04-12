@@ -160,3 +160,49 @@ class PhotosApi():
         resp = service.mediaItems().get(mediaItemId=photo_id).execute()
         return resp
 
+    def get_oldest_media_item(self):
+        return self.get_sorted_media_items(num_items=1, newest_first=False)
+    
+    def get_newest_media_item(self):
+         return self.get_sorted_media_items(num_items=1, newest_first=True)
+    
+    def get_sorted_media_items(self, num_items, newest_first):
+        service = build(API_NAME, API_VERSION, credentials=self.credentials,static_discovery=False)
+        BEGINNING_OF_TIME = {
+                            "year": 1958,
+                            "month": 1,
+                            "day": 1
+                            }
+        END_OF_TIME = {
+                    "year": 2099,
+                    "month": 12,
+                    "day": 31
+                    }
+        req = {
+            "pageSize": num_items,
+            "filters": {
+                "dateFilter": {
+                    "ranges": [
+                            {
+                            "startDate": BEGINNING_OF_TIME,
+                            "endDate": END_OF_TIME
+                            }
+                    ]
+                }
+            },
+            "orderBy": "MediaMetadata.creation_time" + (" desc" if newest_first else "")
+        }
+        resp = service.mediaItems().search(body=req).execute()
+        
+        return self.extract_id_and_time(resp)
+
+    def extract_id_and_time(self, resp):
+        if 'mediaItems' in resp:
+            mi = resp['mediaItems'][0]
+            return {
+                'id': mi['id'],
+                'url': mi['productUrl'],
+                'creationTime': mi['mediaMetadata']['creationTime']
+            }
+        return { "id": "", "creationTime": ""}
+    

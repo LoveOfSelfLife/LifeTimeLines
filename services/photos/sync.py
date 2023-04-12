@@ -1,28 +1,30 @@
-from flask_restx import Namespace, Resource, fields, reqparse
+from flask_restx import Namespace, Resource, reqparse
 from flask import request, url_for, redirect
 from werkzeug.utils import secure_filename
 import os
+import datetime
+
 import photosapi as papi
 from common.credentials import get_credentials, GOOGLE_SCOPES
-import datetime
-ns = Namespace('photos', description='services to sync with google photos')
 
-task_model = ns.model('sync', {
-    'id': fields.Integer(readonly=True, description='The task unique identifier'),
-    'task': fields.String(required=True, description='The task details')
-})
+photos_ns = Namespace('photos', description='services to sync with google photos')
 
-@ns.route('/')
+# task_model = ns.model('sync', {
+#     'id': fields.Integer(readonly=True, description='The task unique identifier'),
+#     'task': fields.String(required=True, description='The task details')
+# })
+
+@photos_ns.route('/')
 class SyncOperationsList(Resource):
 
     '''Shows all sync operations '''
-    @ns.doc('list sync operations')
+    @photos_ns.doc('list sync operations')
     def get(self):
         '''List all tasks'''
         return {'tasks': []}
 
  
-    @ns.doc('create operation by posting a file')
+    @photos_ns.doc('create operation by posting a file')
     def post(self):
         file = request.files['file']
         if file:
@@ -38,19 +40,19 @@ class SyncOperationsList(Resource):
         else:
             return {"id": 0, "task" : "False" }
 
-@ns.route('/<int:id>')
-@ns.response(404, 'Operation not found')
-@ns.param('id', 'The operation identifier')
+@photos_ns.route('/<int:id>')
+@photos_ns.response(404, 'Operation not found')
+@photos_ns.param('id', 'The operation identifier')
 class SyncOperation(Resource):
     '''Show a single operation item and lets you delete them'''
-    @ns.doc('get sync operation')
+    @photos_ns.doc('get sync operation')
     def get(self, id):
         '''Fetch a given resource'''
         # return DAO.get(id)
         return {"id": 101, "status": "processing"}
     
-    @ns.doc('delete sync operation')
-    @ns.response(204, 'Operation deleted')
+    @photos_ns.doc('delete sync operation')
+    @photos_ns.response(204, 'Operation deleted')
     def delete(self, id):
         '''Delete a task given its identifier'''
         # DAO.delete(id)
@@ -63,7 +65,7 @@ class SyncOperation(Resource):
         print(f'ns.payload: {ns.payload}')
         return '', 204
 
-@ns.route('/albums')
+@photos_ns.route('/albums')
 class Albums(Resource):
     '''Show a single operation item and lets you delete them'''
     # @ns.doc('get albums')
@@ -78,8 +80,8 @@ class Albums(Resource):
 
         return result
 
-@ns.route('/albums/<album_id>')
-@ns.param('album_id', 'The album id')
+@photos_ns.route('/albums/<album_id>')
+@photos_ns.param('album_id', 'The album id')
 class AlbumItems(Resource):
     '''items in an albumm'''
     # @ns.doc('get album items')
@@ -99,8 +101,8 @@ class AlbumItems(Resource):
 
         return album_items
 
-@ns.route('/category/<category>')
-@ns.param('category', 'The category')
+@photos_ns.route('/category/<category>')
+@photos_ns.param('category', 'The category')
 class CategoryItems(Resource):
     '''items in an albumm'''
 
@@ -120,7 +122,7 @@ class CategoryItems(Resource):
 
         return category_items
 
-@ns.route('/items')
+@photos_ns.route('/items')
 class PhotosItems(Resource):
     '''all items'''
     def get(self):
@@ -142,7 +144,17 @@ class PhotosItems(Resource):
 
         return album_items
 
-@ns.route('/token')
+@photos_ns.route('/daterange')
+class DateRange(Resource):
+    '''get date range'''
+    def get(self):
+        api = papi.PhotosApi(get_credentials(GOOGLE_SCOPES))
+
+        old = api.get_oldest_media_item()
+        new = api.get_newest_media_item()
+        return { "start": old , "end" : new }
+
+@photos_ns.route('/token')
 class TokenRefresh(Resource):
     '''refresh token'''
     def get(self):
@@ -151,4 +163,3 @@ class TokenRefresh(Resource):
             return redirect(url_for('auth_do_auth'))
 
         return "seems we have a good token"
-    
