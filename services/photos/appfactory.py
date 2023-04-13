@@ -1,5 +1,5 @@
 import os
-from sync import photos_ns as photos_ns
+from routes import photos_ns as photos_ns
 from common.credentials import auth_ns
 from common.api_app import create_api_app
 from dotenv import load_dotenv

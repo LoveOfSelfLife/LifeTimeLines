@@ -6,6 +6,7 @@ import datetime
 
 import photosapi as papi
 from common.credentials import get_credentials, GOOGLE_SCOPES
+import common.tables as tables
 
 photos_ns = Namespace('photos', description='services to sync with google photos')
 
@@ -14,31 +15,52 @@ photos_ns = Namespace('photos', description='services to sync with google photos
 #     'task': fields.String(required=True, description='The task details')
 # })
 
-@photos_ns.route('/')
+import random
+import hashlib
+import datetime
+def generate_id(table='', partition=''):
+    iso = datetime.datetime.now().isoformat()
+    t = f'{table}-{partition}-{iso}-{random.randint(0,5000)}'.encode()
+    return hashlib.sha1(t).hexdigest()
+
+
+@photos_ns.route('/sync-ops')
 class SyncOperationsList(Resource):
 
     '''Shows all sync operations '''
     @photos_ns.doc('list sync operations')
     def get(self):
         '''List all tasks'''
-        return {'tasks': []}
+        tbl = 'syncoperations'
+        et = tables.EntityTable(tbl)
+        results = et.query('photos')
+        return list(results)
 
  
-    @photos_ns.doc('create operation by posting a file')
+    @photos_ns.doc('create a sync operation')
     def post(self):
-        file = request.files['file']
-        if file:
-            filename = secure_filename(file.filename)
-            if os.path.isdir('/share/stage'):
-                path = os.path.join('/share/stage', filename)
-                file.save(path)
-                return {"id": 0, "task" : f'saved to: {path}'}
-            else:
-                path = os.path.join('./', f"{filename}2")
-                file.save(path)
-                return {"id": 0, "task" : f'saved to: {path}'}
-        else:
-            return {"id": 0, "task" : "False" }
+
+        tbl = 'syncoperations'
+        et = tables.EntityTable(tbl)
+        id = generate_id(tbl)
+        et.insert(id, 'photos', {"status" : "init"})
+        return { "operationid" : id }
+    
+    # @photos_ns.doc('create operation by posting a file')
+    # def post(self):
+    #     file = request.files['file']
+    #     if file:
+    #         filename = secure_filename(file.filename)
+    #         if os.path.isdir('/share/stage'):
+    #             path = os.path.join('/share/stage', filename)
+    #             file.save(path)
+    #             return {"id": 0, "task" : f'saved to: {path}'}
+    #         else:
+    #             path = os.path.join('./', f"{filename}2")
+    #             file.save(path)
+    #             return {"id": 0, "task" : f'saved to: {path}'}
+    #     else:
+    #         return {"id": 0, "task" : "False" }
 
 @photos_ns.route('/<int:id>')
 @photos_ns.response(404, 'Operation not found')
