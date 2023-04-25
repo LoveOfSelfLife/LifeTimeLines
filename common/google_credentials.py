@@ -19,13 +19,16 @@ def get_config_from_secret():
         config_js = json.loads(config_str)
     return config_js
 
-def get_credentials(scopes):
-    if 'credentials' in session and session['credentials'] is not None:
-        print('using credentials found in session')
-        session['credentials']['scopes'] = scopes
-        return google.oauth2.credentials.Credentials(**session['credentials'])
+def get_credentials(scopes=GOOGLE_SCOPES):
+    try:
+        if 'credentials' in session and session['credentials'] is not None:
+            print('using credentials found in session')
+            session['credentials']['scopes'] = scopes
+            return google.oauth2.credentials.Credentials(**session['credentials'])
+    except:
+        pass
 
-    elif refresh_token := get_refresh_token():
+    if refresh_token := get_refresh_token():
         if client_config := get_config_from_secret():
             cfg = client_config['web']
             credentials = {
@@ -96,7 +99,7 @@ class DoAuth(Resource):
 
         # Store the state so the callback can verify the auth server response.
         session['state'] = state
-
+        print(f"redirecting to URL: {authorization_url}")
         return redirect(authorization_url)
 
 @auth_ns.route('/auth')

@@ -5,7 +5,7 @@ import datetime
 API_NAME = 'photoslibrary'
 API_VERSION = 'v1'
 
-class PhotosApi():
+class GooglePhotosApi():
 
     def __init__(self, credentials=None):
         self.credentials = credentials
@@ -115,32 +115,42 @@ class PhotosApi():
 
         return items_list
 
-    def get_media_items(self, start_date, end_date):
+    def get_media_items_in_datetime_range(self, start_dt, end_dt, max_mitems=0):
+        start_date = {"year": start_dt.year, "month": start_dt.month, "day": start_dt.day}
+        end_date = {"year": end_dt.year, "month": end_dt.month, "day": end_dt.day}
+        return self.get_media_items(start_date, end_date, max_mitems=max_mitems)
+
+    def get_media_items(self, start_date, end_date, max_mitems=0):
         service = build(API_NAME, API_VERSION, credentials=self.credentials, static_discovery=False)
         items_list = []
         nextPageToken=None
-
+        stop_after_max_mitems = False
+        if max_mitems > 0:
+             stop_after_max_mitems = True
         while True:
-            resp = service.mediaItems().search(body={'filters': {
-                                                        'dateFilter': {
-                                                            'ranges': {
-                                                                'startDate': {
-                                                                    'year': start_date.year,
-                                                                    'month': start_date.month,
-                                                                    'day': start_date.day
-                                                                },
-                                                                'endDate': {
-                                                                    'year': end_date.year,
-                                                                    'month': end_date.month,
-                                                                    'day': end_date.day
-                                                                }
-                                                            }
-                                                        }
-                                                    },
-                                                     'pageSize': 100,
-                                                    'pageToken': nextPageToken}).execute()
+            body = {'filters': {
+                                'dateFilter': {
+                                    'ranges': {
+                                        'startDate': {
+                                            'year': start_date['year'],
+                                            'month': start_date['month'],
+                                            'day': start_date['day']
+                                        },
+                                        'endDate': {
+                                            'year': end_date['year'],
+                                            'month': end_date['month'],
+                                            'day': end_date['day']
+                                        }
+                                    }
+                                }
+                            },
+                            'pageSize': 100,
+                            'pageToken': nextPageToken}
+            resp = service.mediaItems().search(body=body).execute()
             mitems = resp.get('mediaItems')
             nextPageToken = resp.get('nextPageToken')
+            if mitems is None:
+                 break
             for mi in mitems:
                 if 'mediaMetadata' in mi and 'creationTime' in mi['mediaMetadata']:
                         item = {
@@ -148,17 +158,23 @@ class PhotosApi():
                             "creationTime": mi['mediaMetadata']['creationTime']
                         }
                 items_list.append(item)
+                max_mitems -= 1
             print(f"items_list: {len(items_list)}")
-        
             if nextPageToken is None:
                 break
-
+            if stop_after_max_mitems and max_mitems <= 0:
+                break
         return items_list
 
     def get_photo(self, photo_id, credentials):
         service = build(API_NAME, API_VERSION, credentials=credentials,static_discovery=False)
         resp = service.mediaItems().get(mediaItemId=photo_id).execute()
         return resp
+
+    def get_media_items_daterange(self):
+        oldest = self.get_oldest_media_item()
+        newest = self.get_newest_media_item()
+        return (oldest['creationTime'], newest['creationTime'])
 
     def get_oldest_media_item(self):
         return self.get_sorted_media_items(num_items=1, newest_first=False)

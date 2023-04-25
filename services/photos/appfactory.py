@@ -1,15 +1,20 @@
 import os
-from routes import photos_ns as photos_ns
-from common.credentials import auth_ns
-from common.api_app import create_api_app
 from dotenv import load_dotenv
-from common.tables import EntityTable
+from common.api_app import create_api_app
+from common.tables import EntityStore
+from common.google_credentials import auth_ns
+from photos_api_routes import photos_api_ns
+
+API_DEFINITION = {  "namespaces": [photos_api_ns, auth_ns], 
+                    "apiname": "Photos Operations API", 
+                    "apiversion": '1.0', 
+                    "apidescription": ''
+    }
 
 def create_app():
     load_dotenv()
-    EntityTable.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
-                           
-    return create_api_app([photos_ns, auth_ns], "Photos API", "1.0")
+    EntityStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
+    return create_api_app(**API_DEFINITION)
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
