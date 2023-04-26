@@ -1,4 +1,4 @@
-from flask_restx import Namespace, Resource, reqparse
+from flask_restx import Namespace, Resource, reqparse, api
 from flask import request, url_for, redirect
 from werkzeug.utils import secure_filename
 import os
@@ -7,7 +7,6 @@ import datetime
 from googlephotosapi import GooglePhotosApi
 from common.google_credentials import get_credentials, GOOGLE_SCOPES
 from photos_sync import PhotosSyncMgr
-from common.utils import generate_unique_id
 
 photos_api_ns = Namespace('photos', description='services to sync with google photos')
 
@@ -24,7 +23,11 @@ class PhotosSyncOperations(Resource):
     @photos_api_ns.doc('create a sync operation')
     def post(self):
         sm = PhotosSyncMgr()
-        return sm.create_sync_operation()
+        # request.data
+        op = request.get_json()
+        return sm.create_sync_operation(operation=op.get('operation','noop'), 
+                                        domain=op.get('domain',None), 
+                                        amount=op.get('amount',0))
     
 
 @photos_api_ns.route('/<int:id>')

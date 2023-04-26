@@ -28,7 +28,6 @@ def add_range(range, date_ranges):
     date_ranges_copy.append(range)
     return sorted(date_ranges_copy, key=lambda d: d.start_datetime,reverse=False)
 
-
 def save_date_ranges_to_storage(domain, date_ranges, ranges_store):
     ranges_store.delete(domain)
     entities = []
@@ -59,12 +58,23 @@ def merge_pairs(inp,p):
 
 def coaslesc_ranges(date_ranges):
     p = 0
-    while True:
-        inplen = len(date_ranges)        
-        if p+1 >= inplen:
-            break
+    while p+1 < len(date_ranges):
         date_ranges, p = merge_pairs(date_ranges, p)
     return date_ranges
 
+def break_up_date_range_into_chunks(start_dt, end_dt, num_days_per_chunk):
+    gap_dt = (end_dt - start_dt)
+    # handle the case for gaps of less than one day; this essential "rounds up"
+    if gap_dt.days == 0 and gap_dt.total_seconds() > 0:
+        gap = 1
+    else:
+        gap = gap_dt.days
+    for b,e in [(x,x+num_days_per_chunk) for x in range(0, gap, num_days_per_chunk)]:
+        b_days = datetime.timedelta(days=b)
+        e_days = datetime.timedelta(days=e)
+        all_days = datetime.timedelta(days=gap)
+        yield DateTimeRange(start_dt + b_days, start_dt + e_days if e < gap else start_dt + all_days)
+
 if __name__ == '__main__':
     print("in main")
+

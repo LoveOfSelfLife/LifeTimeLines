@@ -3,9 +3,7 @@ from googlephotosapi import GooglePhotosApi
 from common.google_credentials import get_credentials
 from common.tables import EntityStore
 from common.date_ranges_mgr import add_range, load_date_ranges_from_storage, get_unexplored_date_range, save_date_ranges_to_storage
-import datetime
-import datetimerange
-from common.utils import break_up_date_range_into_chunks
+from common.date_ranges_mgr import break_up_date_range_into_chunks
 from common.date_ranges_mgr import coaslesc_ranges
 
 SYNC_OPS_TBL = 'SyncOperationTable'
@@ -23,7 +21,7 @@ class PhotosSyncMgr ():
         results = sync_tbl.query('photos')
         return list(results)
 
-    def create_sync_operation(self):
+    def create_sync_operation(self, **operation_detail):
         sync_tbl = EntityStore(SYNC_OPS_TBL)
         id = generate_unique_id(SYNC_OPS_TBL)
         sync_tbl.insert(id, 'photos', {"status" : "init"})
@@ -50,7 +48,7 @@ class PhotosSyncMgr ():
         op = self.get_operation(id)
         if op['status'] == "init":
             sync_tbl.upsert(id, 'photos', {"status" : "processing"})
-            is_done, num_mitems, num_iterations = self.start_processing(id)
+            is_done, num_mitems, num_iterations = self.execute_photos_sync(id)
             ops_tbl = EntityStore(SYNC_OPS_TBL)
             if is_done:
                 ops_tbl.upsert(id, 'photos', {"status" : "finished"})
@@ -58,8 +56,12 @@ class PhotosSyncMgr ():
                 ops_tbl.upsert(id, 'photos', {"num_items_processed" : num_mitems })
         return f'{"num_items_processed" : {num_mitems}, "status": {"finished" if is_done else "processing"} })', 204
 
-    def start_processing(self, id, max_days_to_process=0):
-        print('start processing')
+
+    def _convert_mitems_to_entities(self, mitems):
+        return [ {"RowKey": e['id'], "PartitionKey": "media_item", "creationTime": e['creationTime']} for e in mitems]
+
+    def execute_photos_sync(self, id, max_days_to_process=0):
+        print('start photos synchronization')
 
         # find a range of dates that have not yet been pulled down from photos
         # use api to retrieve those photos, collect into a list
@@ -83,7 +85,7 @@ class PhotosSyncMgr ():
                 to_dt = range_to_explore.end_datetime
                 mitems = self.api.get_media_items_in_datetime_range(from_dt, to_dt) 
 
-                entities = self.convert_mitems_to_entities(mitems)
+                entities = self._convert_mitems_to_entities(mitems)
                 media_items_tbl.batch_insert(entities)
                 num_mitems_processed += len(entities)
                 explored_date_ranges = add_range(range_to_explore, explored_date_ranges)
@@ -105,8 +107,6 @@ class PhotosSyncMgr ():
         is_done = False if unexplored_date_range else True
         return is_done, num_mitems_processed, num_days_processed
 
-    def convert_mitems_to_entities(self, mitems):
-        return [ {"RowKey": e['id'], "PartitionKey": "media_item", "creationTime": e['creationTime']} for e in mitems]
 
 
 if __name__ == '__main__':
@@ -120,5 +120,5 @@ if __name__ == '__main__':
     print(ranges)
 
     psm = PhotosSyncMgr()
-    psm.start_processing(1)
+    psm.execute_photos_sync(1)
     
