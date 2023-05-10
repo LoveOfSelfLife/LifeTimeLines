@@ -171,6 +171,17 @@ class GooglePhotosApi():
         resp = service.mediaItems().get(mediaItemId=photo_id).execute()
         return resp
 
+    # get metadata for a set of media items in one call
+    def get_photos(self, mitem_ids, credentials):
+        """
+        batchGet method
+
+        media_ids = df_media_items['id'][107:112].to_list()
+        response = service.mediaItems().batchGet(mediaItemIds=media_ids).execute()
+        print(pd.DataFrame(response.get('mediaItemResults'))['mediaItem'].apply(pd.Series))
+        """ 
+        pass
+
     def get_media_items_daterange(self):
         oldest = self.get_oldest_media_item()
         newest = self.get_newest_media_item()

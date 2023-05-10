@@ -9,6 +9,7 @@ from common.date_ranges_mgr import coaslesc_ranges
 SYNC_OPS_TBL = 'SyncOperationTable'
 MEDIA_ITEMS_TBL = 'MediaItemsTable'
 DATE_RANGES_TBL = "DateRangesTable"
+ALBUM_LAST_ITEM_SYNCED_TBL = "AlbumLastItemSyncedTable"
 MAX_DAYS_TO_GET_PER_REQUEST=30
 
 class PhotosSyncMgr ():
@@ -22,9 +23,12 @@ class PhotosSyncMgr ():
         return list(results)
 
     def create_sync_operation(self, **operation_detail):
+        # create new unique task for the operation
+        # record the task along with the details
         sync_tbl = EntityStore(SYNC_OPS_TBL)
         id = generate_unique_id(SYNC_OPS_TBL)
         sync_tbl.insert(id, 'photos', {"status" : "init"})
+        # start processing a small the task
         return { "operationid" : id }
 
     def get_operation(self, id):
