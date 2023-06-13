@@ -100,7 +100,11 @@ class DoAuth(Resource):
         # Store the state so the callback can verify the auth server response.
         session['state'] = state
         print(f"redirecting to URL: {authorization_url}")
-        return redirect(authorization_url)
+        redirect_url = redirect(authorization_url)
+        # redirect_url.access_control_allow_origin = 'http://localhost:3000'
+        # redirect_url.access_control_allow_headers = 'Content-Type,Authorization'
+        # redirect_url.access_control_allow_methods = 'GET,PUT,POST,DELETE,OPTIONS'
+        return redirect_url
 
 @auth_ns.route('/auth')
 class Auth(Resource):

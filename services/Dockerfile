@@ -13,7 +13,8 @@ ARG app
 
 # Install pip requirements
 COPY services/${app}/requirements.txt .
-RUN python -m pip install -r requirements.txt
+COPY common/requirements.txt ./common_requirements.txt
+RUN python -m pip install -r requirements.txt -r common_requirements.txt
 
 WORKDIR /app
 COPY services/${app} /app
