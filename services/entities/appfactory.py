@@ -2,12 +2,10 @@ import os
 from dotenv import load_dotenv
 from common.api_app import create_api_app
 from common.tables import EntityStore
-from common.google_credentials import auth_ns
-from photos_api_routes import ns as photos_ns
-from photos_task_routes import ns as tasks_ns
+from entities_api_routes import ns as entities_ns
 
-API_DEFINITION = {  "namespaces": [tasks_ns, photos_ns, auth_ns], 
-                    "apiname": "Photos Operations API", 
+API_DEFINITION = {  "namespaces": [entities_ns], 
+                    "apiname": "Entities API", 
                     "apiversion": '1.0', 
                     "apidescription": ''
     }
