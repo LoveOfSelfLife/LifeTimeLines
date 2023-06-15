@@ -1,4 +1,4 @@
-from common.tables import EntityStore
+from common.tables import TableStore
 from datetimerange import DateTimeRange
 import datetime
 

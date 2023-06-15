@@ -1,7 +1,7 @@
 from common.utils import generate_unique_id
 from googlephotosapi import GooglePhotosApi
 from common.google_credentials import get_credentials
-from common.tables import EntityStore
+from common.tables import TableStore
 from common.date_ranges_mgr import add_range, load_date_ranges_from_storage, get_unexplored_date_range, save_date_ranges_to_storage
 from common.date_ranges_mgr import break_up_date_range_into_chunks
 from common.date_ranges_mgr import coaslesc_ranges
@@ -18,21 +18,21 @@ class PhotosSyncMgr ():
         pass
 
     def list_operations(self):
-        sync_tbl = EntityStore(SYNC_OPS_TBL)
+        sync_tbl = TableStore(SYNC_OPS_TBL)
         results = sync_tbl.query('photos')
         return list(results)
 
     def create_sync_operation(self, **operation_detail):
         # create new unique task for the operation
         # record the task along with the details
-        sync_tbl = EntityStore(SYNC_OPS_TBL)
+        sync_tbl = TableStore(SYNC_OPS_TBL)
         id = generate_unique_id(SYNC_OPS_TBL)
         sync_tbl.insert(id, 'photos', {"status" : "init"})
         # start processing a small the task
         return { "operationid" : id }
 
     def get_operation(self, id):
-        sync_tbl = EntityStore(SYNC_OPS_TBL)
+        sync_tbl = TableStore(SYNC_OPS_TBL)
         result = sync_tbl.query("photos", f"RowKey eq '{id}'")
         item = next(result)
         if item:
@@ -41,19 +41,19 @@ class PhotosSyncMgr ():
             return None
 
     def del_operation(self, id):
-        sync_tbl = EntityStore(SYNC_OPS_TBL)
+        sync_tbl = TableStore(SYNC_OPS_TBL)
         sync_tbl.delete("photos", f"RowKey eq '{id}'")
         return f'{id}', 204
 
     def update_operation(self, id, instr):
-        sync_tbl = EntityStore(SYNC_OPS_TBL)
+        sync_tbl = TableStore(SYNC_OPS_TBL)
         # num = psync.fetch_photos(id)
         # print(f'photos_api_ns.payload: {photos_api_ns.payload}')
         op = self.get_operation(id)
         if op['status'] == "init":
             sync_tbl.upsert(id, 'photos', {"status" : "processing"})
             is_done, num_mitems, num_iterations = self.execute_photos_sync(id)
-            ops_tbl = EntityStore(SYNC_OPS_TBL)
+            ops_tbl = TableStore(SYNC_OPS_TBL)
             if is_done:
                 ops_tbl.upsert(id, 'photos', {"status" : "finished"})
             else:
@@ -76,8 +76,8 @@ class PhotosSyncMgr ():
         num_days_processed = 0
         num_mitems_processed = 0 
         earliest_media_item_dt, latest_media_item_dt = self.api.get_media_items_daterange()
-        explored_date_ranges =  load_date_ranges_from_storage("photos", EntityStore(DATE_RANGES_TBL))
-        media_items_tbl = EntityStore(MEDIA_ITEMS_TBL)
+        explored_date_ranges =  load_date_ranges_from_storage("photos", TableStore(DATE_RANGES_TBL))
+        media_items_tbl = TableStore(MEDIA_ITEMS_TBL)
         unexplored_date_range = get_unexplored_date_range(explored_date_ranges,
                                                           earliest_media_item_dt, latest_media_item_dt)
         while unexplored_date_range:
@@ -106,7 +106,7 @@ class PhotosSyncMgr ():
                                                               earliest_media_item_dt, latest_media_item_dt)            
 
         coalesced_date_ranges = coaslesc_ranges(explored_date_ranges)
-        save_date_ranges_to_storage("photos", coalesced_date_ranges, EntityStore(DATE_RANGES_TBL))
+        save_date_ranges_to_storage("photos", coalesced_date_ranges, TableStore(DATE_RANGES_TBL))
 
         is_done = False if unexplored_date_range else True
         return is_done, num_mitems_processed, num_days_processed
@@ -117,9 +117,9 @@ if __name__ == '__main__':
     import os
     from dotenv import load_dotenv
     load_dotenv()
-    EntityStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
+    TableStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
 
-    es = EntityStore("DateRangesTable")
+    es = TableStore("DateRangesTable")
     ranges = load_date_ranges_from_storage('photos', es)
     print(ranges)
 

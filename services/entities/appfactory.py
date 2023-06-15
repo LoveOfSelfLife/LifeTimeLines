@@ -1,10 +1,11 @@
 import os
 from dotenv import load_dotenv
 from common.api_app import create_api_app
-from common.tables import EntityStore
-from entities_api_routes import ns as entities_ns
+from common.tables import TableStore
+from person_entity_api_routes import pns as person_entity_ns
+from other_entity_api_routes import lns as location_entity_ns
 
-API_DEFINITION = {  "namespaces": [entities_ns], 
+API_DEFINITION = {  "namespaces": [person_entity_ns, location_entity_ns], 
                     "apiname": "Entities API", 
                     "apiversion": '1.0', 
                     "apidescription": ''
@@ -12,7 +13,7 @@ API_DEFINITION = {  "namespaces": [entities_ns],
 
 def create_app():
     load_dotenv()
-    EntityStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
+    TableStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
     return create_api_app(**API_DEFINITION)
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 from dataclasses import dataclass, asdict
 import json
-from common.tables import EntityStore
+from common.tables import TableStore
 from common.utils import IDGenerator
 
 """
@@ -79,72 +79,55 @@ There may be composite key
 
 The JSON representation of an entity will have id & type
 The object representatio of an entity will be a dict, with "id" and "type" attributes
-
 """
-ENTITY_TBL="EntityTable"
-class PersonEntity (dict) :
-    config = {
-        "key" : "id",
-        "partition" : "persons",
-        "mappings" : ["sms", "email", "aliases", "photos_album"]
-    }
 
-    @staticmethod
-    def loads_from_storage_format(storage_format):
-        base = {}
-        base['type'] = PersonEntity.config["partition"]
-        base[ PersonEntity.config["key"] ] = storage_format[ 'RowKey' ]
-        for k,v in storage_format.items():
-            if k in PersonEntity.config["mappings"]:
-                base[k] = json.loads(v)
-        pe = PersonEntity(base)
-        return pe
+class PersonEntity (dict):
+    key="id"
+    partition="persons"
+    fields=["sms", "email", "aliases", "photos_album"]
+    key_generator=lambda : f"key_{IDGenerator.gen_id()}"
 
     def __init__(self, d):
         dict.__init__(d)
         for k,v in d.items():
             self[k] = v
 
-    def set_id(self, id):
-            self[ PersonEntity.config['key']] = str(id)
 
-    def get_row_key(self):
-        return self[ PersonEntity.config['key']]
 
-    def get_partition_key(self):
-        return PersonEntity.config['partition']
+class EntityStore :
 
-    def dumps_to_storage_format(self):
-        vals = {}
-        for k,v in self.items():
-            if k in PersonEntity.config["mappings"]:
-                vals[k] = json.dumps(v)
-        return vals            
+    ENTITY_TBL="EntityTable"
 
-class PersonEntityStore :
-
-    def __init__(self):
-        self.storage = EntityStore(ENTITY_TBL)
+    def __init__(self, entity_class):
+        self.storage = TableStore(EntityStore.ENTITY_TBL)
+        self.partition = entity_class.partition
+        self.key = entity_class.key
+        self.fields = entity_class.fields
+        self.entity_class = entity_class
 
     def get_list(self):
-        persons = self.storage.query("persons")
-        return [PersonEntity.loads_from_storage_format(p) for p in persons]
+        result = self.storage.query(self.partition)
+        return [self._loads_from_storage_format(p) for p in result]
 
     def get_item(self, key):
-        person = self.storage.query("persons", f"RowKey eq '{key}'")
-        pl = [PersonEntity.loads_from_storage_format(p) for p in person]
+        results = self.storage.query(self.partition, f"RowKey eq '{key}'")
+        pl = [self._loads_from_storage_format(p) for p in results]
         if len(pl) > 0:
             return pl[0] 
         else:
             return "notfound", 404
 
-    def upsert_item(self, pe:PersonEntity):
-        if PersonEntity.config['key'] not in pe.items():
-            id = IDGenerator.gen_id()
-            pe.set_id(id)            
-        self.storage.upsert(RowKey=pe.get_row_key(), 
-                            PartitionKey=pe.get_partition_key(), 
-                            vals=pe.dumps_to_storage_format())
+    def upsert_item(self, pe):
+        if type(pe) != self.entity_class:
+            raise Exception("cannot store objecta")
+
+        if self.key not in pe.items():
+            id = (type(pe).key_generator)()
+            pe[self.key] = str(id)
+
+        self.storage.upsert(RowKey=pe[self.key],
+                            PartitionKey=self.partition,
+                            vals=self._dumps_to_storage_format(pe))
         return "ok", 201
 
     def delete(self, items):
@@ -153,3 +136,20 @@ class PersonEntityStore :
     def upsert_list(self, items):
         pass
 
+    def _loads_from_storage_format(self, storage_format):
+        base = {}
+        base['type'] = self.partition
+        base[ self.key ] = storage_format[ 'RowKey' ]
+        for k,v in storage_format.items():
+            if k in self.fields:
+                base[k] = json.loads(v)
+        e = (self.entity_class)(base)
+        return e
+
+    def _dumps_to_storage_format(self, e):
+        vals = {}
+        for k,v in e.items():
+            if k in self.fields:
+                vals[k] = json.dumps(v)
+        return vals
+    

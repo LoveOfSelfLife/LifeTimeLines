@@ -11,17 +11,17 @@ def divide_range_into_chunks(start, end, chunksize):
     for b,e in [(x,x+chunksize) for x in range(0, total_len, chunksize)]:
         yield (start+b, start+e if e <= total_len else total_len)
 
-class EntityStore():
+class TableStore():
     connection_string = None
 
     @staticmethod
     def initialize(connection_string):
-        EntityStore.connection_string = connection_string
+        TableStore.connection_string = connection_string
 
     def __init__(self, table_name:str):
         if not self.connection_string:
             raise Exception("Table connection creds null")
-        self.table_client = TableClient.from_connection_string(conn_str=EntityStore.connection_string, table_name=table_name)
+        self.table_client = TableClient.from_connection_string(conn_str=TableStore.connection_string, table_name=table_name)
         try:
             self.table_client.create_table()
             print("Created table")
