@@ -4,9 +4,23 @@ import datetime
 import json
 
 from common.google_credentials import get_credentials
-from common.entities import PersonEntity, EntityStore
-pns = Namespace('persons', description='services manage entity metadata')
+from common.entities import EntityStore
+pns = Namespace('Persons', description='services manage Person Entity metadata')
 pmodel = pns.model('Person', {})
+
+
+class PersonEntity (dict):
+    key="id"
+    partition="persons"
+    fields=["sms", "email", "aliases", "photos_album"]
+    key_generator=lambda : f"{IDGenerator.gen_id()}"
+
+    def __init__(self, d):
+        dict.__init__(d)
+        for k,v in d.items():
+            self[k] = v
+
+
 
 @pns.route('/')
 class Persons(Resource):
@@ -27,10 +41,17 @@ class Persons(Resource):
         person_storage.upsert_item(pe)
         return { 'id': pe[pe.key] }, 201
 
-@pns.route('/<id>')
-@pns.param('id', 'The person id')
+@pns.route('/<ids>')
+@pns.param('ids', 'comma-separated list of person ids')
 class Person(Resource):
-    def get(self, id):
+    def get(self, ids):
         person_storage = EntityStore(PersonEntity)
-        return person_storage.get_item(id)
+        return [ person_storage.get_item(id) for id in ids.split(',') ]
 
+    @pns.doc('delete a person')
+    def delete(self, ids):
+        person_storage = EntityStore(PersonEntity)        
+        id_list = ids.split(',')
+        person_storage.delete(id_list)
+        return { 'result': id_list }, 204
+    

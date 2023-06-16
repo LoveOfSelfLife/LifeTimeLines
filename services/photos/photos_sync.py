@@ -27,7 +27,7 @@ class PhotosSyncMgr ():
         # record the task along with the details
         sync_tbl = TableStore(SYNC_OPS_TBL)
         id = generate_unique_id(SYNC_OPS_TBL)
-        sync_tbl.insert(id, 'photos', {"status" : "init"})
+        sync_tbl.insert('photos', id, {"status" : "init"})
         # start processing a small the task
         return { "operationid" : id }
 
@@ -51,13 +51,13 @@ class PhotosSyncMgr ():
         # print(f'photos_api_ns.payload: {photos_api_ns.payload}')
         op = self.get_operation(id)
         if op['status'] == "init":
-            sync_tbl.upsert(id, 'photos', {"status" : "processing"})
+            sync_tbl.upsert('photos', id, {"status" : "processing"})
             is_done, num_mitems, num_iterations = self.execute_photos_sync(id)
             ops_tbl = TableStore(SYNC_OPS_TBL)
             if is_done:
-                ops_tbl.upsert(id, 'photos', {"status" : "finished"})
+                ops_tbl.upsert('photos', id, {"status" : "finished"})
             else:
-                ops_tbl.upsert(id, 'photos', {"num_items_processed" : num_mitems })
+                ops_tbl.upsert('photos', id, {"num_items_processed" : num_mitems })
         return f'{"num_items_processed" : {num_mitems}, "status": {"finished" if is_done else "processing"} })', 204
 
 
@@ -90,7 +90,7 @@ class PhotosSyncMgr ():
                 mitems = self.api.get_media_items_in_datetime_range(from_dt, to_dt) 
 
                 entities = self._convert_mitems_to_entities(mitems)
-                media_items_tbl.batch_insert(entities)
+                media_items_tbl.batch_upsert(entities)
                 num_mitems_processed += len(entities)
                 explored_date_ranges = add_range(range_to_explore, explored_date_ranges)
                 # explored_date_ranges.append(range_to_explore)

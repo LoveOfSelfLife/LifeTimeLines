@@ -28,29 +28,32 @@ class TableStore():
         except ResourceExistsError:
             print("Table already exists")
 
-    def insert(self, RowKey, PartitionKey, vals):
-        keys = {"PartitionKey": PartitionKey, "RowKey": RowKey}
+    def insert(self, partition_key, row_key, vals):
+        keys = {"PartitionKey": partition_key, "RowKey": row_key}
         entity = {**keys, **vals}
         self.table_client.create_entity(entity)
 
-    def upsert(self, RowKey, PartitionKey, vals):
-        keys = {"PartitionKey": PartitionKey, "RowKey": RowKey}
+    def upsert(self, partition_key, row_key, vals):
+        keys = {"PartitionKey": partition_key, "RowKey": row_key}
         entity = {**keys, **vals}
         self.table_client.upsert_entity(entity)
 
-    def query(self, partition, filter=None):
+    def query(self, partition_key, filter=None):
         if filter:
-            result = self.table_client.query_entities(query_filter=f"PartitionKey eq @pk and {filter}", parameters={"pk": partition})
+            result = self.table_client.query_entities(query_filter=f"PartitionKey eq @pk and {filter}", parameters={"pk": partition_key})
         else:
-            result = self.table_client.query_entities(query_filter=f"PartitionKey eq @pk", parameters={"pk": partition})            
+            result = self.table_client.query_entities(query_filter=f"PartitionKey eq @pk", parameters={"pk": partition_key})            
         return result
-    
-    def delete(self, partition, filter=None):
-        results = self.query(partition, filter)
+
+    def delete_item(self, partition_key, row_key):
+            self.table_client.delete_entity(partition_key=partition_key, row_key=row_key)
+
+    def delete(self, partition_key, filter=None):
+        results = self.query(partition_key, filter)
         to_delete = []
         try:
             for item in results:
-                to_delete.append({"PartitionKey": partition, "RowKey": item['RowKey']})
+                to_delete.append({"PartitionKey": partition_key, "RowKey": item['RowKey']})
             self.batch_delete(to_delete)
             return '', 204
         except:
@@ -60,7 +63,7 @@ class TableStore():
     def batch_delete(self, entities):
         return self.batch_operation("delete", entities)
 
-    def batch_insert(self, entities):
+    def batch_upsert(self, entities):
         return self.batch_operation("upsert", entities)
     
     def batch_operation(self, op, entities):        
