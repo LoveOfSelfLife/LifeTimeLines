@@ -8,6 +8,7 @@ from common.entities import EntityStore
 from common.utils import IDGenerator
 
 class LocationEntity (dict):
+    table_name="EntityTable"    
     key="id"
     partition="locations"
     fields=["aliases", "name", "city"]
@@ -31,7 +32,7 @@ class Locations(Resource):
         location_storage = EntityStore(LocationEntity)
         # get_list() returns a list of PersonEntity instances, which are just Dicts
         # these will automatically be serialized to JSON by the flask framework
-        return location_storage.get_list()
+        return location_storage.list_items()
     
     @lns.doc('create or update a location entity')
     @lns.expect(lmodel)

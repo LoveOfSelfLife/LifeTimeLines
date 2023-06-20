@@ -1,11 +1,19 @@
-from common.tables import TableStore
+
 from datetimerange import DateTimeRange
 import datetime
+from common.entities import EntityObject
 
-def load_date_ranges_from_storage(domain, ranges_store):
-    ranges = []
-    for r in ranges_store.query("photos"):
-        ranges.append(DateTimeRange(r['Start'], r['End']))
+class PhotosDateRanges (EntityObject):
+    table_name="DateRangesTable"
+    partition="photos"
+    key="id"
+    fields=["Start", "End"]
+
+    def __init__(self, d):
+        super().__init__(d)
+
+def load_date_ranges_from_storage(domain, ranges_store_iterator):
+    ranges = [DateTimeRange(r['Start'], r['End']) for r in ranges_store_iterator]
     return sorted(ranges, key=lambda d: d.start_datetime,reverse=False)
 
 def get_unexplored_date_range(explored_date_ranges, min_date, max_date):
@@ -27,18 +35,6 @@ def add_range(range, date_ranges):
     date_ranges_copy = date_ranges.copy()
     date_ranges_copy.append(range)
     return sorted(date_ranges_copy, key=lambda d: d.start_datetime,reverse=False)
-
-def save_date_ranges_to_storage(domain, date_ranges, ranges_store):
-    ranges_store.delete(domain)
-    entities = []
-    for r in date_ranges:
-        entities.append({"RowKey": str(r.start_datetime), 
-                         "PartitionKey": domain,
-                         "Start": str(r.start_datetime), 
-                         "End": str(r.end_datetime) }
-                        )
-    ranges_store.batch_insert(entities)
-    return date_ranges
 
 def can_merge(a,b):
     gap = a.end_datetime - b.start_datetime
@@ -77,4 +73,3 @@ def break_up_date_range_into_chunks(start_dt, end_dt, num_days_per_chunk):
 
 if __name__ == '__main__':
     print("in main")
-

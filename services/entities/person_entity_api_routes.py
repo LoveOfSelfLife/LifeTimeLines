@@ -10,6 +10,7 @@ pmodel = pns.model('Person', {})
 
 
 class PersonEntity (dict):
+    table_name="EntityTable"
     key="id"
     partition="persons"
     fields=["sms", "email", "aliases", "photos_album"]
@@ -31,7 +32,7 @@ class Persons(Resource):
         person_storage = EntityStore(PersonEntity)
         # get_list() returns a list of PersonEntity instances, which are just Dicts
         # these will automatically be serialized to JSON by the flask framework
-        return person_storage.get_list()
+        return person_storage.list_items()
     
     @pns.doc('create or update a person entity')
     @pns.expect(pmodel)
