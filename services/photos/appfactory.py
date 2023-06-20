@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from common.api_app import create_api_app
-from common.tables import EntityStore
+from common.tables import TableStore
 from common.google_credentials import auth_ns
 from photos_api_routes import ns as photos_ns
 from photos_task_routes import ns as tasks_ns
@@ -14,7 +14,7 @@ API_DEFINITION = {  "namespaces": [tasks_ns, photos_ns, auth_ns],
 
 def create_app():
     load_dotenv()
-    EntityStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
+    TableStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
     return create_api_app(**API_DEFINITION)
 
 if __name__ == '__main__':

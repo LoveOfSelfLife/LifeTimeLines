@@ -14,7 +14,7 @@ def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescriptio
     app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RTxyz'
     
     api = Api(
-        etitle=apiname,
+        title=apiname,
         version=apiversion,
         description=apidescription
     )
