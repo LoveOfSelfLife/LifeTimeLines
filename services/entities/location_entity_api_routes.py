@@ -27,7 +27,7 @@ class Locations(Resource):
         location_storage = EntityStore(LocationEntity)
         pe = LocationEntity(request.get_json())
         location_storage.upsert_item(pe)
-        return { 'id': pe[LocationEntity.key] }, 201
+        return { 'id': pe[LocationEntity.key_field] }, 201
 
 @lns.route('/<id>')
 @lns.param('id', 'The location id')

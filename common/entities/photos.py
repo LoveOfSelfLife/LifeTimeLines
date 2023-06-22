@@ -3,9 +3,9 @@ from common.entities.entity import EntityObject
 
 class PhotosDateRanges (EntityObject):
     table_name="DateRangesTable"
-    partition="photos"
-    key="id"
-    fields=["Start", "End"]
+    partition_value="photos"
+    key_field="id"
+    fields=["id", "Start", "End"]
 
     def __init__(self, d):
         super().__init__(d)
@@ -13,9 +13,9 @@ class PhotosDateRanges (EntityObject):
 
 class MediaItem (EntityObject):
     table_name='MediaItemsTable'
-    partition="media_item"
-    key="id"
-    fields=["creationTime", "mimeType"]
+    partition_value="media_item"
+    key_field="id"
+    fields=["id", "creationTime", "mimeType"]
 
     def __init__(self, d):
         super().__init__(d)

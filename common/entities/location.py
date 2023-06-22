@@ -3,9 +3,9 @@ from common.utils import IDGenerator
 
 class LocationEntity (EntityObject):
     table_name="EntityTable"
-    key="id"
-    partition="locations"
-    fields=["aliases", "name", "city"]
+    key_field="id"
+    partition_value="locations"
+    fields=["id", "aliases", "name", "city"]
 
     def __init__(self, d):
         super().__init__(d)

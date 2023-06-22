@@ -40,7 +40,7 @@ class AlbumsSyncMgr ():
         
         # list of all album_ids that have been synced, along with the last sync time
         synced_albums = list(self.sync_times_tbl.list_items()) # has 'albumId' & 'lastSyncDateTime'
-        sync_map = { a['album_id'] : a['lastSyncDateTime'] for a in synced_albums }
+        sync_map = { a['albumId'] : a['lastSyncDateTime'] for a in synced_albums }
 
         # iterate through all personentities, get their album name and map to album id
         # then check if album id has already been synced
@@ -56,12 +56,15 @@ class AlbumsSyncMgr ():
                 last_sync_time = None
                 if album_id in sync_map.keys():
                     last_sync_time = sync_map[album_id]
-                new_sync_time = self.sync_album_until_time(album_id, last_sync_time)
+                    print(f"found album {e['photos_album']}")
+                else:
+                    print(f"new album {e['photos_album']}") 
+                new_sync_time = self.sync_album_until_time(album_id, e['photos_album'], last_sync_time)
                 
                 self.sync_times_tbl.upsert_item(SyncTime({"albumId": album_id, 
                                                           "lastSyncDateTime" : new_sync_time}))
 
-    def sync_album_until_time(self, album_id, last_sync_time):
+    def sync_album_until_time(self, album_id, album_title, last_sync_time):
         mitems_to_store = []
         last_sync_time_dt = datetime.datetime.fromisoformat(last_sync_time) if last_sync_time else None
         most_recent_item_time = None
@@ -70,16 +73,47 @@ class AlbumsSyncMgr ():
             # each item will have 'id' and 'creationTime'
             id = album_mitem['id']
             ct = album_mitem['creationTime']
-            mitems_to_store.append(AlbumItem({"mitemId":id, "albumId":album_id, "creationTime":ct}))
             # save the creation time of the most recent item in the album
             if not most_recent_item_time:
                 most_recent_item_time = ct
 
             ct_dt = datetime.datetime.fromisoformat(ct)
-            if last_sync_time_dt and ct_dt < last_sync_time_dt:
+            if last_sync_time_dt and ct_dt <= last_sync_time_dt:
                 break
+            mitems_to_store.append(AlbumItem({"mitemId":id, "albumId":album_id, "creationTime":ct}))
+            print(f"sync item {id} with creation time {ct} for album {album_title}")
+
         self.album_items_tbl.upsert_items(mitems_to_store)
         return most_recent_item_time
+
+    def _load_album_items(self, album_items):
+        album_items_map = {}
+
+        for ai in album_items:
+            # "mitemId", "albumId", "creationTime"
+            mitemId = ai["mitemId"]
+            albumId = ai["albumId"]
+            creationTime = ai["creationTime"]
+            creationTime_dt = datetime.datetime.fromisoformat(creationTime)
+
+            if not album_items_map.get(albumId, None):
+                album_items_map[albumId] = []
+            album_items_map[albumId].append((mitemId, creationTime_dt))
+            
+        for k in album_items_map.keys():
+            item_pair_list = sorted(album_items_map[k], key=lambda x : x[1], reverse=True)
+            album_items_map[k] = item_pair_list
+
+        return album_items_map
+    
+    def load_album_cache(self):
+        sync_times = self.sync_times_tbl.list_items()
+        album_items = self.album_items_tbl.list_items()
+        album_item_map = self._load_album_items(album_items)
+        return album_item_map
+    
+
+
 
 if __name__ == '__main__':
     import os
@@ -89,4 +123,8 @@ if __name__ == '__main__':
 
     asm = AlbumsSyncMgr()
     asm.execute_album_sync()
+    cache = asm.load_album_cache()
+    print(cache)
+
+
 

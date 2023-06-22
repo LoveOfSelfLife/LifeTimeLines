@@ -5,26 +5,34 @@ class EntityStore :
 
     def __init__(self, entity_class):
         self.storage = TableStore(entity_class.table_name)
-        self.partition = entity_class.partition
-        self.key = entity_class.key
+        self.partition_field = entity_class.partition_field
+        self.partition_value = entity_class.partition_value
+        self.key_field = entity_class.key_field
         self.fields = entity_class.fields
         self.entity_class = entity_class
 
     def list_items(self, filter=None):
-        for r in self.storage.query(self.partition, filter):
+        for r in self.storage.query(self.partition_value, filter):
             yield self._loads_from_storage_format(r)
 
-    @staticmethod
-    def _prep_for_storage(e):
-        if hasattr(e, 'key') and hasattr(e, 'fields') and hasattr(e, 'partition'):
-            keys = {"PartitionKey": e.partition, "RowKey": e[e.key]}
-            vals = { key: e[key] for key in e.fields}
+
+    def _get_partition(self, e):
+        if self.partition_value:
+            return self.partition_value
+        else:
+            return e[self.partition_field]
+        
+    # @staticmethod
+    def _prep_for_storage(self, e):
+        if hasattr(e, 'key_field') and hasattr(e, 'fields'):
+            keys = {"PartitionKey": self._get_partition(e), "RowKey": e[e.key_field]}
+            vals = { attr: e[attr] for attr in e.fields}
             return {**keys, **vals}
         else:
             return e
             
     def get_item(self, key):
-        results = self.storage.query(self.partition, f"RowKey eq '{key}'")
+        results = self.storage.query(self.partition_value, f"RowKey eq '{key}'")
         pl = [self._loads_from_storage_format(p) for p in results]
         if len(pl) > 0:
             return pl[0] 
@@ -35,33 +43,33 @@ class EntityStore :
         if type(pe) != self.entity_class:
             raise Exception("instance in wrong table")
 
-        if self.key not in pe.keys():
+        if self.key_field not in pe.keys():
             id = (type(pe).key_generator)()
-            pe[self.key] = str(id)
+            pe[self.key_field] = str(id)
 
-        self.storage.upsert(partition_key=self.partition,
-                            row_key=pe[self.key],
+        self.storage.upsert(partition_key=self._get_partition(pe),
+                            row_key=pe[self.key_field],
                             vals=self._dumps_to_storage_format(pe))
         return "ok", 201
     
     def upsert_items(self, entities):
-        self.storage.batch_upsert([EntityStore._prep_for_storage(e) for e in entities])
+        self.storage.batch_upsert([self._prep_for_storage(e) for e in entities])
 
     def delete(self, row_keys):
         for rk in row_keys:
-            self.storage.delete_item(partition_key=self.partition, row_key=rk)
+            self.storage.delete_item(partition_key=self.partition_value, row_key=rk)
 
     def delete_all(self):
-        self.storage.delete(self.partition, None)        
+        self.storage.delete(self.partition_value, None)        
 
     def delete_filtered(self, filter=None):
-        self.storage.delete(self.partition, filter)
+        self.storage.delete(self.partition_value, filter)
 
-    def _loads_from_storage_format(self, storage_format):
+    def _loads_from_storage_format(self, item_in_storage_format):
         base = {}
-        base['type'] = self.partition
-        base[ self.key ] = storage_format[ 'RowKey' ]
-        for k,v in storage_format.items():
+        base['type'] = self._get_partition(item_in_storage_format)
+        base[ self.key_field ] = item_in_storage_format[ 'RowKey' ]
+        for k,v in item_in_storage_format.items():
             if k in self.fields:
                 try:
                     base[k] = json.loads(v)

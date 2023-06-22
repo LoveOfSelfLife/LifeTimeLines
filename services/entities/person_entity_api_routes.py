@@ -26,7 +26,7 @@ class Persons(Resource):
         person_storage = EntityStore(PersonEntity)        
         pe = PersonEntity(request.get_json())
         person_storage.upsert_item(pe)
-        return { 'id': pe[pe.key] }, 201
+        return { 'id': pe[pe.key_field] }, 201
 
 @pns.route('/<ids>')
 @pns.param('ids', 'comma-separated list of person ids')

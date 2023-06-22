@@ -2,8 +2,8 @@ from common.entities.entity import EntityObject
 
 class SyncTime (EntityObject):
     table_name='SyncTimesTable'
-    partition="album"
-    key="albumId"
+    partition_value="album"
+    key_field="albumId"
     fields=["albumId", "lastSyncDateTime"]
 
     def __init__(self, d):
@@ -11,8 +11,8 @@ class SyncTime (EntityObject):
 
 class AlbumItem (EntityObject):
     table_name='AlbumItemsTable'
-    partition="album"
-    key="mitemId"
+    partition_field="albumId"
+    key_field="mitemId"
     fields=["mitemId", "albumId", "creationTime"]
 
     def __init__(self, d):
