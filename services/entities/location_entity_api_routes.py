@@ -4,21 +4,8 @@ import datetime
 import json
 
 from common.google_credentials import get_credentials
-from common.entities import EntityStore
-from common.utils import IDGenerator
-
-class LocationEntity (dict):
-    table_name="EntityTable"    
-    key="id"
-    partition="locations"
-    fields=["aliases", "name", "city"]
-    key_generator=lambda : f"{IDGenerator.gen_id()}"
-
-    def __init__(self, d):
-        dict.__init__(d)
-        for k,v in d.items():
-            self[k] = v
-
+from common.entity_store import EntityStore
+from common.entities.location import LocationEntity
 
 lns = Namespace('Locations', description='services to manage location entities')
 lmodel = lns.model('Location', {})
@@ -48,3 +35,4 @@ class Person(Resource):
     def get(self, id):
         location_storage = EntityStore(LocationEntity)
         return location_storage.get_item(id)
+

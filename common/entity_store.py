@@ -1,14 +1,5 @@
 import json
 from common.tables import TableStore
-from common.utils import IDGenerator
-
-class EntityObject (dict):
-    key_generator=IDGenerator.gen_id()
-
-    def __init__(self, d):
-        dict.__init__(d)
-        for k,v in d.items():
-            self[k] = v
 
 class EntityStore :
 
@@ -19,8 +10,8 @@ class EntityStore :
         self.fields = entity_class.fields
         self.entity_class = entity_class
 
-    def list_items(self):
-        for r in self.storage.query(self.partition):
+    def list_items(self, filter=None):
+        for r in self.storage.query(self.partition, filter):
             yield self._loads_from_storage_format(r)
 
     @staticmethod
