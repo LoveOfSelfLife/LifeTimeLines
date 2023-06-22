@@ -30,10 +30,11 @@ class AlbumsSyncMgr ():
         most_recent_item_time = None
         
         # list of all albums
-        all_albums:list = self.api.get_albums() # has 'title' of album & 'id' of album
+        all_albums:list = list(self.api.get_albums()) # has 'title' of album & 'id' of album
 
         # create a map of album title -> album id
-        album_map = { a['title']: a['id'] for a in all_albums }
+        self.album_map = { a['title']: a['id'] for a in all_albums }
+        self.album_inverse_map = { a['id']: a['title'] for a in all_albums }
         
         # list of all entities, some of which have photo albums
         person_entities = list(self.person_entity_tbl.list_items()) # has 'id' & 'photos_album'
@@ -52,7 +53,7 @@ class AlbumsSyncMgr ():
 
         for e in person_entities:
             if 'photos_album' in e and e['photos_album']:
-                album_id = album_map[e['photos_album']]
+                album_id = self.album_map[e['photos_album']]
                 last_sync_time = None
                 if album_id in sync_map.keys():
                     last_sync_time = sync_map[album_id]
@@ -88,6 +89,7 @@ class AlbumsSyncMgr ():
 
     def _load_album_items(self, album_items):
         album_items_map = {}
+        album_items_set = {}
 
         for ai in album_items:
             # "mitemId", "albumId", "creationTime"
@@ -97,23 +99,26 @@ class AlbumsSyncMgr ():
             creationTime_dt = datetime.datetime.fromisoformat(creationTime)
 
             if not album_items_map.get(albumId, None):
-                album_items_map[albumId] = []
+                album_items_map[albumId] = list()
+                album_items_set[albumId] = set()                
             album_items_map[albumId].append((mitemId, creationTime_dt))
+            album_items_set[albumId].add(mitemId)
             
         for k in album_items_map.keys():
             item_pair_list = sorted(album_items_map[k], key=lambda x : x[1], reverse=True)
             album_items_map[k] = item_pair_list
 
-        return album_items_map
+        return album_items_map, album_items_set
     
     def load_album_cache(self):
         sync_times = self.sync_times_tbl.list_items()
         album_items = self.album_items_tbl.list_items()
-        album_item_map = self._load_album_items(album_items)
-        return album_item_map
-    
+        (self.album_item_map, self.album_item_set) = self._load_album_items(album_items)
 
-
+    def find_albums_contanining_mitem(self, mitem):
+        for a in self.album_item_map.keys():
+            if mitem in self.album_item_set[a]:
+                yield self.album_inverse_map[a]
 
 if __name__ == '__main__':
     import os
@@ -123,8 +128,14 @@ if __name__ == '__main__':
 
     asm = AlbumsSyncMgr()
     asm.execute_album_sync()
-    cache = asm.load_album_cache()
-    print(cache)
+    asm.load_album_cache()
+    
 
-
+    api = GooglePhotosApi(get_credentials())
+    start = {"year": 2020, "month": 1, "day": 1}
+    end = {"year": 2021, "month": 1, "day": 1}
+    mitems = api.get_media_items(start, end, 1000)
+    for m in mitems:
+        mid = m['id']
+        print(f"found item {mid} in albums: {list(asm.find_albums_contanining_mitem(mid))}")
 
