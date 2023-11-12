@@ -1,7 +1,7 @@
 # 
 # GitHub Actions workflow.
 #
-# Automatically deploys the "feapp" microservice on push.
+# Automatically deploys the microservice on a push to the main branch
 #
 
 name: Build & Publish & Push Photos API to Container App Env

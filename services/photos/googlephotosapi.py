@@ -17,31 +17,29 @@ class GooglePhotosApi():
     def get_albums(self, filter=""):
 
         service = build(API_NAME, API_VERSION, credentials=self.credentials, static_discovery=False)
-        album_list = []
+        # album_list = []
         nextPageToken=None
 
         while True:
             resp = service.albums().list(pageToken=nextPageToken).execute()
-            ablums = resp.get('albums')
-            nextPageToken = resp.get('nextPageToken')
+            albums = resp.get('albums', [])
+            nextPageToken = resp.get('nextPageToken', None)
 
-            for a in ablums:
+            for a in albums:
+                # TODO: generalize the filter to a reg expression
                 if 'title' in a and a['title'].endswith(filter):
                         item = {
                             "title": a['title'],
                             "id": a['id']
                         }
-                        album_list.append(item)
+                        yield item
 
             if nextPageToken is None:
                 break
 
-        return album_list
-
-
     def get_album_items(self, album_id, timestamp=None):
         service = build(API_NAME, API_VERSION, credentials=self.credentials, static_discovery=False)
-        items_list = []
+        # items_list = []
         nextPageToken=None
         time_to_stop = lambda itemTime : False
         we_are_done = False
@@ -67,16 +65,17 @@ class GooglePhotosApi():
                             "id": mi['id'],
                             "creationTime": mi['mediaMetadata']['creationTime']
                         }
-                items_list.append(item)
-            print(f"items_list: {len(items_list)}")
+                # items_list.append(item)
+                yield item
+            # print(f"items_list: {len(items_list)}")
         
             if nextPageToken is None or we_are_done:
                 break
-        return items_list
+        # return items_list
 
     def get_category_items(self, category, timestamp=None):
         service = build(API_NAME, API_VERSION, credentials=self.credentials, static_discovery=False)
-        items_list = []
+        # items_list = []
         nextPageToken=None
         we_are_done = False
 
@@ -107,13 +106,14 @@ class GooglePhotosApi():
                             "id": mi['id'],
                             "creationTime": mi['mediaMetadata']['creationTime']
                         }
-                items_list.append(item)
-            print(f"items_list: {len(items_list)}")
+                # items_list.append(item)
+                yield item
+            # print(f"items_list: {len(items_list)}")
         
             if nextPageToken is None or we_are_done:
                 break
 
-        return items_list
+        # return items_list
 
     def get_media_items_in_datetime_range(self, start_dt, end_dt, max_mitems=0):
         start_date = {"year": start_dt.year, "month": start_dt.month, "day": start_dt.day}
@@ -122,7 +122,7 @@ class GooglePhotosApi():
 
     def get_media_items(self, start_date, end_date, max_mitems=0):
         service = build(API_NAME, API_VERSION, credentials=self.credentials, static_discovery=False)
-        items_list = []
+        # items_list = []
         nextPageToken=None
         stop_after_max_mitems = False
         if max_mitems > 0:
@@ -155,16 +155,19 @@ class GooglePhotosApi():
                 if 'mediaMetadata' in mi and 'creationTime' in mi['mediaMetadata']:
                         item = {
                             "id": mi['id'],
-                            "creationTime": mi['mediaMetadata']['creationTime']
+                            "creationTime": mi['mediaMetadata']['creationTime'],
+                            "mimeType": mi['mimeType']
                         }
-                items_list.append(item)
+
+                # items_list.append(item)
+                yield item
                 max_mitems -= 1
-            print(f"items_list: {len(items_list)}")
+            # print(f"items_list: {len(items_list)}")
             if nextPageToken is None:
                 break
             if stop_after_max_mitems and max_mitems <= 0:
                 break
-        return items_list
+        # return items_list
 
     def get_photo(self, photo_id, credentials):
         service = build(API_NAME, API_VERSION, credentials=credentials,static_discovery=False)
@@ -188,12 +191,12 @@ class GooglePhotosApi():
         return (oldest['creationTime'], newest['creationTime'])
 
     def get_oldest_media_item(self):
-        return self.get_sorted_media_items(num_items=1, newest_first=False)
+        return self._get_sorted_media_items(num_items=1, newest_first=False)
     
     def get_newest_media_item(self):
-         return self.get_sorted_media_items(num_items=1, newest_first=True)
+         return self._get_sorted_media_items(num_items=1, newest_first=True)
     
-    def get_sorted_media_items(self, num_items, newest_first):
+    def _get_sorted_media_items(self, num_items, newest_first):
         service = build(API_NAME, API_VERSION, credentials=self.credentials,static_discovery=False)
         BEGINNING_OF_TIME = {
                             "year": 1958,
@@ -221,9 +224,9 @@ class GooglePhotosApi():
         }
         resp = service.mediaItems().search(body=req).execute()
         
-        return self.extract_id_and_time(resp)
+        return self._extract_id_and_time(resp)
 
-    def extract_id_and_time(self, resp):
+    def _extract_id_and_time(self, resp):
         if 'mediaItems' in resp:
             mi = resp['mediaItems'][0]
             return {

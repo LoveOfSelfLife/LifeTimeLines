@@ -2,26 +2,12 @@ from flask_restx import Namespace, Resource, reqparse, fields
 from flask import request, url_for, redirect
 import datetime
 import json
+from common.entities.person import PersonEntity
 
 from common.google_credentials import get_credentials
-from common.entities import EntityStore
+from common.entity_store import EntityStore
 pns = Namespace('Persons', description='services manage Person Entity metadata')
 pmodel = pns.model('Person', {})
-
-
-class PersonEntity (dict):
-    table_name="EntityTable"
-    key="id"
-    partition="persons"
-    fields=["sms", "email", "aliases", "photos_album"]
-    key_generator=lambda : f"{IDGenerator.gen_id()}"
-
-    def __init__(self, d):
-        dict.__init__(d)
-        for k,v in d.items():
-            self[k] = v
-
-
 
 @pns.route('/')
 class Persons(Resource):
@@ -40,7 +26,7 @@ class Persons(Resource):
         person_storage = EntityStore(PersonEntity)        
         pe = PersonEntity(request.get_json())
         person_storage.upsert_item(pe)
-        return { 'id': pe[pe.key] }, 201
+        return { 'id': pe[pe.key_field] }, 201
 
 @pns.route('/<ids>')
 @pns.param('ids', 'comma-separated list of person ids')

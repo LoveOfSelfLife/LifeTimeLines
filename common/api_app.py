@@ -1,3 +1,4 @@
+import os
 from flask import Flask
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_restx import Api
@@ -8,10 +9,15 @@ import signal
 import sys
 from types import FrameType
 
+from common.table_store import TableStore
+from common.queue_store import QueueStore
+
 def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescription=''):
     app : Flask = Flask(__name__, static_url_path='', static_folder='static')
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RTxyz'
+    TableStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
+    QueueStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
     
     api = Api(
         title=apiname,

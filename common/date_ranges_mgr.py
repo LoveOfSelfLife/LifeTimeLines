@@ -1,16 +1,6 @@
 
 from datetimerange import DateTimeRange
 import datetime
-from common.entities import EntityObject
-
-class PhotosDateRanges (EntityObject):
-    table_name="DateRangesTable"
-    partition="photos"
-    key="id"
-    fields=["Start", "End"]
-
-    def __init__(self, d):
-        super().__init__(d)
 
 def load_date_ranges_from_storage(domain, ranges_store_iterator):
     ranges = [DateTimeRange(r['Start'], r['End']) for r in ranges_store_iterator]
@@ -54,7 +44,7 @@ def merge_pairs(inp,p):
 
 def coaslesc_ranges(date_ranges):
     p = 0
-    while p+1 < len(date_ranges):
+    while p < len(date_ranges) - 1:
         date_ranges, p = merge_pairs(date_ranges, p)
     return date_ranges
 
@@ -73,3 +63,4 @@ def break_up_date_range_into_chunks(start_dt, end_dt, num_days_per_chunk):
 
 if __name__ == '__main__':
     print("in main")
+

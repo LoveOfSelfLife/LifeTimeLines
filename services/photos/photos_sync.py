@@ -1,32 +1,15 @@
+from common.entities.syncoperation import SyncOperation
 from common.utils import generate_unique_id
 from googlephotosapi import GooglePhotosApi
 from common.google_credentials import get_credentials
-from common.tables import TableStore
+from common.table_store import TableStore
 from common.date_ranges_mgr import add_range, load_date_ranges_from_storage, get_unexplored_date_range
 from common.date_ranges_mgr import break_up_date_range_into_chunks
 from common.date_ranges_mgr import coaslesc_ranges
-from common.entities import EntityStore, EntityObject
-from common.date_ranges_mgr import PhotosDateRanges
+from common.entity_store import EntityStore
+from common.entities.photos import PhotosDateRanges, MediaItem
 
 MAX_DAYS_TO_GET_PER_REQUEST=30
-
-class SyncOperation (EntityObject):
-    table_name='SyncOperationTable'
-    partition="photos"
-    key="id"
-    fields=["status", "num_items_processed"]
-
-    def __init__(self, d):
-        super().__init__(d)
-
-class MediaItem (EntityObject):
-    table_name='MediaItemsTable'
-    partition="media_item"
-    key="id"
-    fields=["creationTime"]
-
-    def __init__(self, d):
-        super().__init__(d)
 
 class PhotosSyncMgr ():
     def __init__(self):
@@ -74,7 +57,10 @@ class PhotosSyncMgr ():
         return op, 204
 
     def _convert_mitems_to_entities(self, mitems):
-        return [ {"RowKey": e['id'], "PartitionKey": "media_item", "creationTime": e['creationTime']} for e in mitems]
+        return [ {"RowKey": e['id'], 
+                  "PartitionKey": "media_item", 
+                  "creationTime": e['creationTime'],
+                  "mimeType" : e['mimeType']} for e in mitems]
 
     def execute_photos_sync(self, max_days_to_process=0):
         print('start photos synchronization')
@@ -141,5 +127,4 @@ if __name__ == '__main__':
     print(ranges)
 
     psm = PhotosSyncMgr()
-    psm.execute_photos_sync(20)
-    
+    psm.execute_photos_sync()    
