@@ -1,46 +1,29 @@
 import os
-from flask import Flask
-from werkzeug.middleware.proxy_fix import ProxyFix
-from flask_restx import Api
-from feapp import ns as feapp_ns
-from flask_cors import CORS
+from dotenv import load_dotenv
+from common.api_app import create_api_app
+from feapp import ns as fe_ns
 
-def create_app(test_config=None):
-    app = Flask(__name__, static_url_path='', static_folder='static')
-    app.wsgi_app = ProxyFix(app.wsgi_app)
+API_DEFINITION = {  "namespaces": [fe_ns], 
+                    "apiname": "FE API", 
+                    "apiversion": '1.0', 
+                    "apidescription": 'front end apis'
+    }
 
-    try:
-        app.config["TEST_ENV_VARIABLE"] = os.environ['TEST_ENV_VARIABLE']
-    except KeyError:
-        print('variable not set')
-
-    fe_api = Api(
-        etitle='FE APIs',
-        version='1.0',
-        description='THese are some APIs for the front-end app',
-    )
-    fe_api.add_namespace(feapp_ns)
-    fe_api.init_app(app)
-    
-    CORS(
-        app,
-        resources={r"/*": {"origins": 'http://localhost:3000'}},
-        origins=['http://localhost:3000', 'https://richk-aca-apim.azure-api.net'],
-        allow_headers=["*"],
-        methods=["GET", "HEAD", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"],
-        max_age=86400,
-        supports_credentials=True
-    )
-    return app
+def create_app():
+    load_dotenv()
+    return create_api_app(**API_DEFINITION)
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
 
     parser = ArgumentParser()
-    parser.add_argument('-p', '--port', default=5000, type=int, help='port to listen on')
+    parser.add_argument('-p', '--port', default=8080, type=int, help='port to listen on')
     args = parser.parse_args()
     port = args.port
-
+    
+    # make sure to not set this in production
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+    
     app = create_app()
     app.run(port=port)
 

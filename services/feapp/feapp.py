@@ -3,6 +3,7 @@ from flask import request
 from werkzeug.utils import secure_filename
 import os
 # from aztables import SampleTablesQuery
+import requests
 
 ns = Namespace('feapp', description='Front-end app operations', path='/fe')
 
@@ -10,19 +11,6 @@ todo = ns.model('fe', {
     'id': fields.Integer(readonly=True, description='The task unique identifier'),
     'task': fields.String(required=True, description='The task details')
 })
-
-# stq = SampleTablesQuery()
-
-# def test_tables():
-#     try:
-#         stq.insert_random_entities()
-#         stq.sample_query_entities()
-#     except Exception as e:
-#         print(e)
-#     finally:
-#         pass
-#         # stq.clean_up()
-
 
 class TodoDAO(object):
     def __init__(self):
@@ -105,7 +93,6 @@ class Todo(Resource):
     @ns.marshal_with(todo)
     def get(self, id):
         '''Fetch a given resource'''
-        # test_tables()
         return DAO.get(id)
 
     @ns.doc('delete_todo')
@@ -121,3 +108,28 @@ class Todo(Resource):
         '''Update a task given its identifier'''
         return DAO.update(id, ns.payload)
 
+
+@ns.route('/solr')
+class Solr(Resource):
+    '''proxy requests to the back-end SOLR instance'''
+    @ns.doc('solr get')
+    def get(self):
+        SOLR_URL='http://wgt.ltl.richkempinski.com/solr/wgt_core/select?indent=true&q.op=OR&q=*%3A*&useParams='
+        resp = requests.get(SOLR_URL, verify=False)
+        return resp.json()
+        
+    @ns.doc('post to solr')
+    def post(self):
+        file = request.files['file']
+        if file:
+            filename = secure_filename(file.filename)
+            if os.path.isdir('/share/stage'):
+                path = os.path.join('/share/stage', filename)
+                file.save(path)
+                return {"id": 0, "task" : f'saved to: {path}'}
+            else:
+                path = os.path.join('./', f"{filename}2")
+                file.save(path)
+                return {"id": 0, "task" : f'saved to: {path}'}
+        else:
+            return {"id": 0, "task" : "False" }
