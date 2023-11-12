@@ -10,6 +10,9 @@ class SyncTime (EntityObject):
         super().__init__(d)
 
 class AlbumItem (EntityObject):
+    """this table has a separate partion for each album
+    the records within that partition represent each media item
+    """
     table_name='AlbumItemsTable'
     partition_field="albumId"
     key_field="mitemId"

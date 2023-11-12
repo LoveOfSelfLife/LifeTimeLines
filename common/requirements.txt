@@ -1,2 +1,3 @@
 # this is a common requirements file that is installed in each service
 sonyflake-py>=1.3.0
+azure-storage-queue>=12.6.0

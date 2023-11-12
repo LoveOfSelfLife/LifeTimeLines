@@ -1,9 +1,8 @@
-
 import datetime
 from common.utils import generate_unique_id
 from googlephotosapi import GooglePhotosApi
 from common.google_credentials import get_credentials
-from common.tables import TableStore
+from common.table_store import TableStore
 from common.date_ranges_mgr import add_range, load_date_ranges_from_storage, get_unexplored_date_range
 from common.date_ranges_mgr import break_up_date_range_into_chunks
 from common.date_ranges_mgr import coaslesc_ranges
@@ -111,7 +110,7 @@ class AlbumsSyncMgr ():
         return album_items_map, album_items_set
     
     def load_album_cache(self):
-        sync_times = self.sync_times_tbl.list_items()
+        # sync_times = self.sync_times_tbl.list_items()
         album_items = self.album_items_tbl.list_items()
         (self.album_item_map, self.album_item_set) = self._load_album_items(album_items)
 
@@ -138,4 +137,3 @@ if __name__ == '__main__':
     for m in mitems:
         mid = m['id']
         print(f"found item {mid} in albums: {list(asm.find_albums_contanining_mitem(mid))}")
-

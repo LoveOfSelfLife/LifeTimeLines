@@ -1,5 +1,5 @@
 import json
-from common.tables import TableStore
+from common.table_store import TableStore
 
 class EntityStore :
 
@@ -16,16 +16,22 @@ class EntityStore :
             yield self._loads_from_storage_format(r)
 
 
-    def _get_partition(self, e):
+    def _get_partition_key(self, e):
         if self.partition_value:
             return self.partition_value
         else:
             return e[self.partition_field]
-        
+    
+    def _get_row_key(self, e):
+        return e[self.key_field]
+
+    def _set_row_key(self, e, v):
+        e[self.key_field] = v
+    
     # @staticmethod
     def _prep_for_storage(self, e):
         if hasattr(e, 'key_field') and hasattr(e, 'fields'):
-            keys = {"PartitionKey": self._get_partition(e), "RowKey": e[e.key_field]}
+            keys = {"PartitionKey": self._get_partition_key(e), "RowKey": self._get_row_key(e)}
             vals = { attr: e[attr] for attr in e.fields}
             return {**keys, **vals}
         else:
@@ -45,10 +51,10 @@ class EntityStore :
 
         if self.key_field not in pe.keys():
             id = (type(pe).key_generator)()
-            pe[self.key_field] = str(id)
+            self._set_row_key(pe, str(id))
 
-        self.storage.upsert(partition_key=self._get_partition(pe),
-                            row_key=pe[self.key_field],
+        self.storage.upsert(partition_key=self._get_partition_key(pe),
+                            row_key=self._get_row_key(pe),
                             vals=self._dumps_to_storage_format(pe))
         return "ok", 201
     
@@ -67,8 +73,9 @@ class EntityStore :
 
     def _loads_from_storage_format(self, item_in_storage_format):
         base = {}
-        base['type'] = self._get_partition(item_in_storage_format)
-        base[ self.key_field ] = item_in_storage_format[ 'RowKey' ]
+        base['type'] = self._get_partition_key(item_in_storage_format)
+        self._set_row_key(base, item_in_storage_format[ 'RowKey' ])
+        # base[ self.key_field ] = item_in_storage_format[ 'RowKey' ]
         for k,v in item_in_storage_format.items():
             if k in self.fields:
                 try:

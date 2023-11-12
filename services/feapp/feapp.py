@@ -2,7 +2,7 @@ from flask_restx import Namespace, Resource, fields
 from flask import request
 from werkzeug.utils import secure_filename
 import os
-from aztables import SampleTablesQuery
+# from aztables import SampleTablesQuery
 
 ns = Namespace('feapp', description='Front-end app operations', path='/fe')
 
@@ -11,17 +11,17 @@ todo = ns.model('fe', {
     'task': fields.String(required=True, description='The task details')
 })
 
-stq = SampleTablesQuery()
+# stq = SampleTablesQuery()
 
-def test_tables():
-    try:
-        stq.insert_random_entities()
-        stq.sample_query_entities()
-    except Exception as e:
-        print(e)
-    finally:
-        pass
-        # stq.clean_up()
+# def test_tables():
+#     try:
+#         stq.insert_random_entities()
+#         stq.sample_query_entities()
+#     except Exception as e:
+#         print(e)
+#     finally:
+#         pass
+#         # stq.clean_up()
 
 
 class TodoDAO(object):
@@ -55,6 +55,10 @@ DAO = TodoDAO()
 DAO.create({'task': 'This is the latest feapp, now up to feapp4'})
 DAO.create({'task': '?????'})
 DAO.create({'task': 'profit!'})
+DAO.create({'task': 'this'})
+DAO.create({'task': 'is'})
+DAO.create({'task': 'new'})
+DAO.create({'task': 'to verify the push to azure'})
 
 
 @ns.route('/')
@@ -101,7 +105,7 @@ class Todo(Resource):
     @ns.marshal_with(todo)
     def get(self, id):
         '''Fetch a given resource'''
-        test_tables()
+        # test_tables()
         return DAO.get(id)
 
     @ns.doc('delete_todo')

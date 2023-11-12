@@ -26,6 +26,7 @@ class GooglePhotosApi():
             nextPageToken = resp.get('nextPageToken', None)
 
             for a in albums:
+                # TODO: generalize the filter to a reg expression
                 if 'title' in a and a['title'].endswith(filter):
                         item = {
                             "title": a['title'],

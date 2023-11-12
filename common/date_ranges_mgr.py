@@ -44,7 +44,7 @@ def merge_pairs(inp,p):
 
 def coaslesc_ranges(date_ranges):
     p = 0
-    while p+1 < len(date_ranges):
+    while p < len(date_ranges) - 1:
         date_ranges, p = merge_pairs(date_ranges, p)
     return date_ranges
 

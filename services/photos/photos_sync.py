@@ -2,7 +2,7 @@ from common.entities.syncoperation import SyncOperation
 from common.utils import generate_unique_id
 from googlephotosapi import GooglePhotosApi
 from common.google_credentials import get_credentials
-from common.tables import TableStore
+from common.table_store import TableStore
 from common.date_ranges_mgr import add_range, load_date_ranges_from_storage, get_unexplored_date_range
 from common.date_ranges_mgr import break_up_date_range_into_chunks
 from common.date_ranges_mgr import coaslesc_ranges

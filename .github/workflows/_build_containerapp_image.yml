@@ -1,0 +1,52 @@
+# 
+# Build & push azure container app
+#
+
+name: __Build & Publish & Push Container App
+
+on:
+  workflow_call:
+    inputs:
+      app-name:
+        required: true
+        type: string
+    secrets:
+      container_registry:
+        required: true
+      container_registry_id:
+        required: true
+      container_registry_pw:
+        required: true
+      azure_credentials:
+
+jobs:
+
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    env:
+      VERSION: ${{ github.sha }}
+      CONTAINER_REGISTRY: ${{ secrets.container_registry }}
+      CONTAINER_REGISTRY_ID: ${{ secrets.container_registry_id }}
+      CONTAINER_REGISTRY_PW: ${{ secrets.container_registry_pw }}
+    
+    steps:
+      
+      # Checks-out your repository under $GITHUB_WORKSPACE.
+      - uses: actions/checkout@v2
+
+      #
+      # Builds the Docker image.
+      #
+      - name: Build image
+        run:  | 
+          ./scripts/build_image.sh ${{ inputs.app-name }}
+
+      #
+      # Publishes the Docker image to the container registry.
+      #
+      - name: Publish image to container registry
+        run:  |
+          ./scripts/push_image.sh ${{ inputs.app-name }}
+
