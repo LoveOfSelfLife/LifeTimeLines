@@ -1,0 +1,27 @@
+# 
+# GitHub Actions workflow.
+#
+# Automatically deploys the microservice on a push to the main branch
+#
+
+name: Build & Publish & Push Photos API to Container App Env
+
+on:
+  push:
+    branches: 
+      - main
+    paths:
+      - 'services/feapp/**'
+  workflow_dispatch:
+
+jobs:
+
+  call-build-deploy-container-app:
+    uses: ./.github/workflows/_build_deploy_containerapp_code.yml
+    with:
+      app-name: feapp
+    secrets:
+      container_registry: ${{ secrets.container_registry }}
+      container_registry_id: ${{ secrets.container_registry_id }}
+      container_registry_pw: ${{ secrets.container_registry_pw }}
+      azure_credentials: ${{ secrets.azure_credentials }}
