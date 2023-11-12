@@ -3,7 +3,7 @@
 /utils/*.yaml
 /.vscode
 *.vsdx
-
+/local
 
 \#*\#
 ~*
