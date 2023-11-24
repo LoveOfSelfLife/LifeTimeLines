@@ -14,47 +14,47 @@ MAX_DAYS_TO_GET_PER_REQUEST=30
 class PhotosSyncMgr ():
     def __init__(self):
         self.api = GooglePhotosApi(get_credentials())
-        self.sync_ops_tbl = EntityStore(SyncOperation)
         self.media_items_tbl = EntityStore(MediaItem)
         self.date_ranges_tbl = EntityStore(PhotosDateRanges)
+        # self.sync_ops_tbl = EntityStore(SyncOperation)
 
-    def list_operations(self):
-        results = self.sync_ops_tbl.list_items()
-        return results
+    # def list_operations(self):
+    #     results = self.sync_ops_tbl.list_items()
+    #     return results
         
-    def create_sync_operation(self, **operation_detail):
-        # create new unique task for the operation
-        # record the task along with the details
+    # def create_sync_operation(self, **operation_detail):
+    #     # create new unique task for the operation
+    #     # record the task along with the details
 
-        so = SyncOperation({"status":"init"})
-        self.sync_ops_tbl.upsert_item(so)
+    #     so = SyncOperation({"status":"init"})
+    #     self.sync_ops_tbl.upsert_item(so)
 
-        # start processing a small the task
-        # return { "operationid" : id }
+    #     # start processing a small the task
+    #     # return { "operationid" : id }
 
 
-    def get_operation(self, id):
-        op = self.sync_ops_tbl.get_item(id)
-        return op
+    # def get_operation(self, id):
+    #     op = self.sync_ops_tbl.get_item(id)
+    #     return op
 
-    def del_operation(self, id):
-        self.sync_ops_tbl.delete([id])
-        return f'{id}', 204
+    # def del_operation(self, id):
+    #     self.sync_ops_tbl.delete([id])
+    #     return f'{id}', 204
 
-    def update_operation(self, id, instr):
+    # def update_operation(self, id, instr):
 
-        op = self.sync_ops_tbl.get_item(id)
-        if op['status'] == 'init':
-            op['status'] = 'processing'
-            self.sync_ops_tbl.upsert_item(op)
-            is_done, num_mitems, num_iterations = self.execute_photos_sync(id)
-            if is_done:
-                op['status'] = 'finished'
-                self.sync_ops_tbl.upsert_item(op)
-            else:
-                op['num_items_processed'] = num_mitems
-                self.sync_ops_tbl.upsert_item(op)
-        return op, 204
+    #     op = self.sync_ops_tbl.get_item(id)
+    #     if op['status'] == 'init':
+    #         op['status'] = 'processing'
+    #         self.sync_ops_tbl.upsert_item(op)
+    #         is_done, num_mitems, num_iterations = self.execute_photos_sync(id)
+    #         if is_done:
+    #             op['status'] = 'finished'
+    #             self.sync_ops_tbl.upsert_item(op)
+    #         else:
+    #             op['num_items_processed'] = num_mitems
+    #             self.sync_ops_tbl.upsert_item(op)
+    #     return op, 204
 
     def _convert_mitems_to_entities(self, mitems):
         return [ {"RowKey": e['id'], 

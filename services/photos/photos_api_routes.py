@@ -106,24 +106,24 @@ class TokenRefresh(Resource):
 
         return "seems we have a good token"
 
-@ns.route('/test')
-class Tests(Resource):
-    def get(self):
-        sm = PhotosSyncMgr()
-        ops = list(sm.list_operations())
-        print(f"operations: {ops}")
-        id = ops[0]['RowKey']
+# @ns.route('/test')
+# class Tests(Resource):
+#     def get(self):
+#         sm = PhotosSyncMgr()
+#         ops = list(sm.list_operations())
+#         print(f"operations: {ops}")
+#         id = ops[0]['RowKey']
 
-        op = sm.get_operation(id)
-        print(f"opeation:  {op}")
+#         op = sm.get_operation(id)
+#         print(f"opeation:  {op}")
 
-        op = sm.update_operation(id)
-        print(f"update opeation:  {id}")
+#         op = sm.update_operation(id)
+#         print(f"update opeation:  {id}")
 
-        # op = sm.del_operation(id)
-        # print(f"delete opeation:  {id}")
+#         # op = sm.del_operation(id)
+#         # print(f"delete opeation:  {id}")
 
-        return { "tests": True, "op": "get" }
+#         return { "tests": True, "op": "get" }
 
-    def post(self):
-        return { "tests": True, "op": "post" }
+#     def post(self):
+#         return { "tests": True, "op": "post" }
