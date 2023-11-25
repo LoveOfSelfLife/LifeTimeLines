@@ -4,14 +4,14 @@
 # Automatically deploys the microservice on a push to the main branch
 #
 
-name: Build & Publish & Push feapp API to Container App Env
+name: Build & Publish & Push the queue processor Container App 
 
 on:
   push:
     branches: 
       - main
     paths:
-      - 'services/feapp/**'
+      - 'services/queue_processor/**'
   workflow_dispatch:
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
   call-build-deploy-container-app:
     uses: ./.github/workflows/_build_deploy_containerapp_code.yml
     with:
-      app-name: feapp
+      app-name: queue_processor
     secrets:
       container_registry: ${{ secrets.container_registry }}
       container_registry_id: ${{ secrets.container_registry_id }}
