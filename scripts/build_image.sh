@@ -37,5 +37,5 @@ fi
 
 docker build -t $CONTAINER_REGISTRY/$APP:$VERSION  \
              -t $CONTAINER_REGISTRY/$APP:latest \
-             --file ${DF}
+             --file ${DF} \
              --build-arg app=${APP} .
