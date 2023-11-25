@@ -12,8 +12,8 @@ jobs:
   call-build-deploy-container-app:
     uses: ./.github/workflows/_provision_containerapp_infra.yml
     with:
-      containerapp_name: queue_processor
-      container_registry_image: queue_processor:latest
+      containerapp_name: queueprocessor
+      container_registry_image: queueprocessor:latest
       containerapp_environment_rg: ltl-aca-rg
       containerapp_environment_name: ltl-aca-env
       containerapp_template: ./provision_keda_scaled_container_app.json
