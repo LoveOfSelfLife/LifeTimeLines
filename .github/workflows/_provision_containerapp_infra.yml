@@ -18,7 +18,16 @@ on:
       container_registry_image:
         required: true
         type: string
-
+      containerapp_template:
+        required: true
+        type: string
+      containerapp_location:
+        required: true
+        type: string
+      queue_name:
+        required: true
+        type: string
+              
     secrets:
       container_registry:
         required: true
@@ -65,13 +74,15 @@ jobs:
             cd arm;
             az deployment group create
             --resource-group ${{ inputs.containerapp_environment_rg }}
-            --template-file ./provision_container_app.json 
+            --template-file ${{ inputs.containerapp_template }}
             --query "properties.provisioningState"
             --parameters 
             "containerapp-name"="${{ inputs.containerapp_name }}"
+            "containerapp-location"="${{ inputs.containerapp_location }}"
             "containerapp-environment-rg"="${{ inputs.containerapp_environment_rg }}"
             "containerapp-environment-name"="${{ inputs.containerapp_environment_name }}"
             "container-registry-image"="${{ inputs.container_registry_image }}"
+            "queue-name"="${{ inputs.queue_name }}"
             "container-registry"="${{ secrets.container_registry }}"
             "container-registry-id"="${{ secrets.container_registry_id }}"
             "container-registry-pw"="${{ secrets.container_registry_pw }}"
