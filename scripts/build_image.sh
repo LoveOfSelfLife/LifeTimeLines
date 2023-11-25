@@ -25,7 +25,17 @@ set -u # or set -o nounset
 : "$VERSION"
 
 export APP=$1
+# common Dockerfile used by all services
+DF=./services/Dockerfile
+
+# except if app folder has its own Dockerfile, then use it instead
+APPDF=./services/${APP}/Dockerfile
+if test -a ${APPDF}
+then
+    DF=${APPDF}
+fi
+
 docker build -t $CONTAINER_REGISTRY/$APP:$VERSION  \
              -t $CONTAINER_REGISTRY/$APP:latest \
-             --file ./services/Dockerfile \
-             --build-arg app=$APP .
+             --file ${DF}
+             --build-arg app=${APP} .

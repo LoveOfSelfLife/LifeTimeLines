@@ -15,7 +15,7 @@
         "containerapp_location": {
             "defaultValue": "East US 2",
             "type": "String"
-        },        
+        },
         "container-registry": {
             "defaultValue": "",
             "type": "String"
@@ -29,6 +29,10 @@
             "type": "String"
         },
         "azure-storagetable-connectionstring": {
+            "defaultValue": "",
+            "type": "String"
+        },
+        "queue-name": {
             "defaultValue": "",
             "type": "String"
         },
@@ -56,21 +60,20 @@
         }
     },
     "variables": {
-        "containerapp-environment-id" : "[concat('/subscriptions/', parameters('subscription-id'), '/resourceGroups/', parameters('containerapp-environment-rg'), '/providers/Microsoft.App/managedEnvironments/', parameters('containerapp-environment-name'))]"
+        "containerapp-environment-id": "[concat('/subscriptions/', parameters('subscription-id'), '/resourceGroups/', parameters('containerapp-environment-rg'), '/providers/Microsoft.App/managedEnvironments/', parameters('containerapp-environment-name'))]"
     },
     "resources": [
         {
+            "name": "[parameters('containerapp-name')]",
             "type": "Microsoft.App/containerapps",
             "apiVersion": "2022-10-01",
-            "name": "[parameters('containerapp-name')]",
+            "kind": "containerapp",
             "location": "[parameters('containerapp_location')]",
-            "identity": {
-                "type": "None"
-            },
             "properties": {
                 "managedEnvironmentId": "[variables('containerapp-environment-id')]",
                 "environmentId": "[variables('containerapp-environment-id')]",
                 "configuration": {
+                    "activeRevisionsMode": "Single",
                     "secrets": [
                         {
                             "name": "azure-storagetable-connectionstring",
@@ -80,37 +83,8 @@
                             "name": "container-registry-pw",
                             "value": "[parameters('container-registry-pw')]"
 
-                        },
-                        {
-                            "name": "aad-client-secret",
-                            "value": "[parameters('aad-client-secret')]"
-                        },
-                        {
-                            "name": "google-client-secret-base64",
-                            "value": "[parameters('google-client-secret-base64')]"
                         }
                     ],
-                    "activeRevisionsMode": "Single",
-                    "ingress": {
-                        "external": true,
-                        "targetPort": 5002,
-                        "exposedPort": 0,
-                        "transport": "Auto",
-                        "traffic": [
-                            {
-                                "weight": 100,
-                                "latestRevision": true
-                            }
-                        ],
-			"corsPolicy": {
-			    "allowedOrigins": [ "*" ],
-			    "allowedHeaders": [ "*" ],
-			    "allowedMethods": [ "*" ],
-			    "allowCredentials": false,
-                "exposeHeaders": [ "*" ]
-			},
-                        "allowInsecure": false
-                    },
                     "registries": [
                         {
                             "server": "[parameters('container-registry')]",
@@ -128,14 +102,6 @@
                                 {
                                     "name": "AZURE_STORAGETABLE_CONNECTIONSTRING",
                                     "secretRef": "azure-storagetable-connectionstring"
-                                },
-                                {
-                                    "name": "REFRESH_TOKEN_STORE",
-                                    "value": "/share/.rt.txt"
-                                },
-                                {
-                                    "name": "GOOGLE_CLIENT_SECRET_BASE64",
-                                    "secretRef": "google-client-secret-base64"
                                 }
                             ],
                             "resources": {
@@ -152,7 +118,22 @@
                     ],
                     "scale": {
                         "minReplicas": 0,
-                        "maxReplicas": 10
+                        "maxReplicas": 10,
+                        "rules": [
+                            {
+                                "name": "myqueuerule",
+                                "azureQueue": {
+                                    "queueName": "[parameters('queue-name')]",
+                                    "queueLength": 10,
+                                    "auth": [
+                                        {
+                                            "secretRef": "azure-storagetable-connectionstring",
+                                            "triggerParameter": "connection"
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
                     },
                     "volumes": [
                         {
@@ -161,41 +142,6 @@
                             "storageName": "acaenvstorage"
                         }
                     ]
-                }
-            }
-        },
-        {
-            "type": "Microsoft.App/containerApps/authConfigs",
-            "apiVersion": "2022-10-01",
-            "name": "[concat(parameters('containerapp-name'), '/current')]",
-            "dependsOn": [
-                "[resourceId('Microsoft.App/containerApps', parameters('containerapp-name'))]"
-            ],
-            "properties": {
-                "platform": {
-                    "enabled": true
-                },
-                "globalValidation": {
-                    "unauthenticatedClientAction": "Return401"
-                },
-                "identityProviders": {
-                    "azureActiveDirectory": {
-                        "registration": {
-                            "openIdIssuer": "[concat('https://sts.windows.net/',parameters('tenant-id'),'/v2.0')]",
-                            "clientId": "[parameters('aad-client-id')]",
-                            "clientSecretSettingName": "aad-client-secret"
-                        },
-                        "validation": {
-                            "allowedAudiences": [
-                                "[concat('api://', parameters('aad-client-id'))]"
-                            ]
-                        },
-                        "isAutoProvisioned": true
-                    }
-                },
-                "login": {
-                    "preserveUrlFragmentsForLogins": false,
-                    "allowedExternalRedirectUrls": []
                 }
             }
         }
