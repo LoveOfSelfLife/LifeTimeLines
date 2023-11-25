@@ -11,7 +11,7 @@ on:
     branches: 
       - main
     paths:
-      - 'services/queue_processor/**'
+      - 'services/queueprocessor/**'
   workflow_dispatch:
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
   call-build-deploy-container-app:
     uses: ./.github/workflows/_build_deploy_containerapp_code.yml
     with:
-      app-name: queue_processor
+      app-name: queueprocessor
     secrets:
       container_registry: ${{ secrets.container_registry }}
       container_registry_id: ${{ secrets.container_registry_id }}
