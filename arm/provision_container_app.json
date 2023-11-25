@@ -12,7 +12,7 @@
         "containerapp-environment-name": {
             "type": "String"
         },
-        "containerapp_location": {
+        "containerapp-location": {
             "defaultValue": "East US 2",
             "type": "String"
         },        
@@ -63,7 +63,7 @@
             "type": "Microsoft.App/containerapps",
             "apiVersion": "2022-10-01",
             "name": "[parameters('containerapp-name')]",
-            "location": "[parameters('containerapp_location')]",
+            "location": "[parameters('containerapp-location')]",
             "identity": {
                 "type": "None"
             },
