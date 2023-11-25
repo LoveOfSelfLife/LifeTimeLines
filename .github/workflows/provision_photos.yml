@@ -17,7 +17,7 @@ jobs:
       containerapp_environment_rg: ltl-aca-rg
       containerapp_environment_name: ltl-aca-env
       containerapp_template: ./provision_container_app.json
-      conatinerapp_location: East US 2
+      containerapp_location: East US 2
       queue_name: none
       
     secrets:
