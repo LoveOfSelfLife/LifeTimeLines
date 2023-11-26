@@ -31,6 +31,7 @@ def main() -> None:
         "path": "/create-something"
     }
     """
+    
     print(f'now going to iterate over each messages')
 
     for message in messages:
