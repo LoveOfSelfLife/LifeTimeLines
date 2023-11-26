@@ -9,7 +9,7 @@ name: Build & Publish & Push the queue processor Container App
 # on:
 #   push:
 #     branches: 
-#       - main
+#       - master
 #     paths:
 #       - 'services/queueprocessor/**'
 #   workflow_dispatch:
@@ -19,7 +19,7 @@ on:
     types:
       - closed
     branches:
-      - main
+      - master
     paths:
       - 'services/queueprocessor/**'      
 
