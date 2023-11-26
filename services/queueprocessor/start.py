@@ -40,7 +40,10 @@ def main() -> None:
             method_value = message_content_json['method']
             path_value = message_content_json['path']
             print(f'processing message: {service_value} - {method_value} - {path_value}')
-    
+            msgfile = f'/share/{service_value}'
+            msg = f'processing message: {service_value} - {method_value} - {path_value}'
+            with open(msgfile, 'w') as sf:
+                sf.write(msg)
     exit(0)
 
 if __name__ == '__main__':
