@@ -6,13 +6,23 @@
 
 name: Build & Publish & Push the queue processor Container App 
 
+# on:
+#   push:
+#     branches: 
+#       - main
+#     paths:
+#       - 'services/queueprocessor/**'
+#   workflow_dispatch:
+
 on:
-  push:
-    branches: 
+  pull_request:
+    types:
+      - closed
+    branches:
       - main
     paths:
-      - 'services/queueprocessor/**'
-  workflow_dispatch:
+      - 'services/queueprocessor/**'      
+
 
 jobs:
 
