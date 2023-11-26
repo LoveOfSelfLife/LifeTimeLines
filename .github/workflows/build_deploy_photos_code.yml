@@ -9,7 +9,7 @@ name: Build & Publish & Push Photos API to Container App Env
 on:
   push:
     branches: 
-      - main
+      - master
     paths:
       - 'services/photos/**'
   workflow_dispatch:
