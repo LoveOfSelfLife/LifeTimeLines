@@ -24,12 +24,15 @@ def main() -> None:
 
     messages = queue_client.receive_messages()
 
-    m = """{
+    m = """
+    {
         "service": "test",
         "method": "post",
         "path": "/create-something"
-    }"""
-    
+    }
+    """
+    print(f'now going to iterate over each messages')
+
     for message in messages:
         print(f'Dequeueing message: {message.content}')
         queue_client.delete_message(message.id, message.pop_receipt)
@@ -44,6 +47,11 @@ def main() -> None:
             msg = f'processing message: {service_value} - {method_value} - {path_value}'
             with open(msgfile, 'w') as sf:
                 sf.write(msg)
+        else:
+            print(f'no message to process (message.content is empty)')
+
+    print(f'finished iterating over messages', flush=True)
+
     exit(0)
 
 if __name__ == '__main__':
