@@ -41,7 +41,9 @@ def main() -> None:
         if message.content is not None:
             message_content_json = json.loads(message.content)
             task_result = execute_task(message_content_json)
-            result_str = json.dumps(task_result, indent=4)
+            print(f'received result from execute_task: {task_result}')
+            result_str = task_result
+            # result_str = json.dumps(task_result, indent=4)
             print(f'got message result: {result_str}')
 
             msgfile = f'/share/result.json'
