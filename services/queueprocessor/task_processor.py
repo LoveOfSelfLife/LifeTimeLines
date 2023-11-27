@@ -32,7 +32,9 @@ def execute_task(task_json):
     URL=f'https://{service}.ltl.richkempinski.com{path}'
     if method == 'get':
         resp = requests.get(URL, verify=False)
-        return resp.json()
+        # return resp.json()
+        return resp.text
     if method == 'post':
         resp = requests.post(URL, data=body, verify=False)
-        return resp.json()
+        # return resp.json()
+        return resp.text
