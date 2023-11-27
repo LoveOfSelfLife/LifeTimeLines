@@ -18,7 +18,8 @@ class Persons(Resource):
         person_storage = EntityStore(PersonEntity)
         # get_list() returns a list of PersonEntity instances, which are just Dicts
         # these will automatically be serialized to JSON by the flask framework
-        return person_storage.list_items()
+        people =  person_storage.list_items()
+        return list(people)
     
     @pns.doc('create or update a person entity')
     @pns.expect(pmodel)

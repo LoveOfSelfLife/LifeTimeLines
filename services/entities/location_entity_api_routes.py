@@ -19,7 +19,7 @@ class Locations(Resource):
         location_storage = EntityStore(LocationEntity)
         # get_list() returns a list of PersonEntity instances, which are just Dicts
         # these will automatically be serialized to JSON by the flask framework
-        return location_storage.list_items()
+        return list(location_storage.list_items())
     
     @lns.doc('create or update a location entity')
     @lns.expect(lmodel)
