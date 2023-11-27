@@ -41,15 +41,12 @@ def main() -> None:
         if message.content is not None:
             message_content_json = json.loads(message.content)
             task_result = execute_task(message_content_json)
+            result_str = json.dumps(task_result, indent=4)
+            print(f'got message result: {result_str}')
 
-            # service_value = message_content_json['service']
-            # method_value = message_content_json['method']
-            # path_value = message_content_json['path']
-            # print(f'processing message: {service_value} - {method_value} - {path_value}')
-            # msgfile = f'/share/{service_value}'
-            # msg = f'processing message: {service_value} - {method_value} - {path_value}'
-            # with open(msgfile, 'w') as sf:
-            #     sf.write(msg)
+            msgfile = f'/share/result.json'
+            with open(msgfile, 'w') as sf:
+                sf.write(result_str)
         else:
             print(f'no message to process (message.content is empty)')
 
