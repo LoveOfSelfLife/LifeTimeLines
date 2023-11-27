@@ -8,6 +8,14 @@ import requests
     "path": "/create-something"
     "body": "{ this is data }"
 }
+{
+    "service": "wgt",
+    "method": "get",
+    "path": "/solr/wgt_core/admin/ping",
+    "body": ""
+}
+
+
 """
 
 def execute_task(task_json):
