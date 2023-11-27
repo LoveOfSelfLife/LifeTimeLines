@@ -3,6 +3,7 @@ import os
 
 from azure.storage.queue import QueueClient
 from dotenv import load_dotenv
+from task_processor import execute_task
 
 load_dotenv()
 
@@ -31,7 +32,7 @@ def main() -> None:
         "path": "/create-something"
     }
     """
-    
+
     print(f'now going to iterate over each messages')
 
     for message in messages:
@@ -39,21 +40,23 @@ def main() -> None:
         queue_client.delete_message(message.id, message.pop_receipt)
         if message.content is not None:
             message_content_json = json.loads(message.content)
-    
-            service_value = message_content_json['service']
-            method_value = message_content_json['method']
-            path_value = message_content_json['path']
-            print(f'processing message: {service_value} - {method_value} - {path_value}')
-            msgfile = f'/share/{service_value}'
-            msg = f'processing message: {service_value} - {method_value} - {path_value}'
-            with open(msgfile, 'w') as sf:
-                sf.write(msg)
+            task_result = execute_task(message_content_json)
+
+            # service_value = message_content_json['service']
+            # method_value = message_content_json['method']
+            # path_value = message_content_json['path']
+            # print(f'processing message: {service_value} - {method_value} - {path_value}')
+            # msgfile = f'/share/{service_value}'
+            # msg = f'processing message: {service_value} - {method_value} - {path_value}'
+            # with open(msgfile, 'w') as sf:
+            #     sf.write(msg)
         else:
             print(f'no message to process (message.content is empty)')
 
     print(f'finished iterating over messages', flush=True)
 
     exit(0)
+
 
 if __name__ == '__main__':
     main()
