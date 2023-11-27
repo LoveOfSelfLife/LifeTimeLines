@@ -17,7 +17,26 @@ import requests
 {
     "service": "entities",
     "method": "get",
-    "path": "/persons",
+    "path": "/Persons",
+    "body": ""
+}
+{
+    "service": "entities",
+    "method": "get",
+    "path": "/locations",
+    "body": ""
+}
+{
+    "service": "feapp",
+    "method": "get",
+    "path": "/fe",
+    "body": ""
+}
+
+{
+    "service": "feapp",
+    "method": "get",
+    "path": "/fe/solr",
     "body": ""
 }
 
@@ -30,11 +49,16 @@ def execute_task(task_json):
     body = task_json.get('body', "")
 
     URL=f'https://{service}.ltl.richkempinski.com{path}'
+    print(f'URL:  {URL}')
     if method == 'get':
         resp = requests.get(URL, verify=False)
+        print(f'response status:  {resp.status_code}')
+        resp.encoding = 'utf-8'
         # return resp.json()
         return resp.text
     if method == 'post':
         resp = requests.post(URL, data=body, verify=False)
+        print(f'response status:  {resp.status_code}')        
+        resp.encoding = 'utf-8'        
         # return resp.json()
         return resp.text
