@@ -31,8 +31,8 @@ def execute_task(task_json):
 
     URL=f'https://{service}.ltl.richkempinski.com{path}'
     if method == 'get':
-        resp = requests.get(URL)
+        resp = requests.get(URL, verify=False)
         return resp.json()
     if method == 'post':
-        resp = requests.post(URL, data=body)
+        resp = requests.post(URL, data=body, verify=False)
         return resp.json()
