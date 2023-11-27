@@ -14,7 +14,12 @@ import requests
     "path": "/solr/wgt_core/admin/ping",
     "body": ""
 }
-
+{
+    "service": "entities",
+    "method": "get",
+    "path": "/persons",
+    "body": ""
+}
 
 """
 
@@ -24,7 +29,7 @@ def execute_task(task_json):
     path = task_json.get('path', '/')
     body = task_json.get('body', "")
 
-    URL=f'http://{service}.ltl.richkempinski.com{path}'
+    URL=f'https://{service}.ltl.richkempinski.com{path}'
     if method == 'get':
         resp = requests.get(URL)
         return resp.json()
