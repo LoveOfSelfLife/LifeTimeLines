@@ -53,6 +53,10 @@
         },
         "subscription-id": {
             "type": "String"
+        },
+        "queue-name": {
+            "defaultValue": "",
+            "type": "String"
         }
     },
     "variables": {
