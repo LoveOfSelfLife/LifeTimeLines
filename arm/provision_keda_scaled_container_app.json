@@ -90,6 +90,10 @@
                         {
                             "name": "aad-client-secret",
                             "value": "[parameters('aad-client-secret')]"
+                        },
+                        {
+                            "name": "tenant-id",
+                            "value": "[parameters('tenant-id')]"
                         }
                     ],
                     "registries": [
@@ -117,6 +121,10 @@
                                 {
                                     "name": "AZURE_CLIENT_SECRET",
                                     "secretRef": "aad-client-secret"
+                                },
+                                {
+                                    "name": "TENANT_ID",
+                                    "secretRef": "tenant-id"
                                 }
                             ],
                             "resources": {
