@@ -67,6 +67,7 @@ def main() -> None:
     if "access_token" in result:
         # Calling graph using the access token
         token = result['access_token']
+        print(f"access token acquired: {token[0:5]}...")
     else:
         print(result.get("error"))
         print(result.get("error_description"))
