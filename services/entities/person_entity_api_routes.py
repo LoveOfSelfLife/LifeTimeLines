@@ -14,6 +14,8 @@ class Persons(Resource):
     ''' '''
     @pns.doc('get person entities')
     def get(self):
+        headers_str = f"Headers: {request.headers}"
+        print(headers_str)
         # storage will return a list of PersonEntity objects
         person_storage = EntityStore(PersonEntity)
         # get_list() returns a list of PersonEntity instances, which are just Dicts

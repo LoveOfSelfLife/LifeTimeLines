@@ -1,9 +1,11 @@
 import json
 import os
+import time
 
 from azure.storage.queue import QueueClient
 from dotenv import load_dotenv
 from task_processor import execute_task
+from common.graceful_exit import GracefulExit
 
 load_dotenv()
 
@@ -23,36 +25,42 @@ def main() -> None:
     queue_client = QueueClient.from_connection_string(STORAGE_CONNECTION_STRING, STORAGE_QUEUE_NAME)
     print(f'Client created for: {STORAGE_QUEUE_NAME}')
 
-    messages = queue_client.receive_messages()
+    exitor = GracefulExit()
+    while not exitor.should_exit():
 
-    m = """
-    {
-        "service": "test",
-        "method": "post",
-        "path": "/create-something"
-    }
-    """
+        messages = queue_client.receive_messages()
 
-    print(f'now going to iterate over each messages')
+        """
+        {
+            "service": "test",
+            "method": "post",
+            "path": "/create-something"
+        }
+        """
 
-    for message in messages:
-        print(f'Dequeueing message: {message.content}')
-        queue_client.delete_message(message.id, message.pop_receipt)
-        if message.content is not None:
-            message_content_json = json.loads(message.content)
-            task_result = execute_task(message_content_json)
-            print(f'received result from execute_task: {task_result}')
-            result_str = task_result
-            # result_str = json.dumps(task_result, indent=4)
-            print(f'got message result: {result_str}')
+        print(f'now going to iterate over each messages')
 
-            msgfile = f'/share/result.json'
-            with open(msgfile, 'w') as sf:
-                sf.write(result_str)
-        else:
-            print(f'no message to process (message.content is empty)')
+        for message in messages:
+            print(f'Dequeueing message: {message.content}')
+            queue_client.delete_message(message.id, message.pop_receipt)
+            if message.content is not None:
+                message_content_json = json.loads(message.content)
+                task_result = execute_task(message_content_json)
+                print(f'received result from execute_task: {task_result}')
+                result_str = task_result
+                # result_str = json.dumps(task_result, indent=4)
+                print(f'got message result: {result_str}')
 
-    print(f'finished iterating over messages', flush=True)
+                msgfile = f'/share/result.json'
+                with open(msgfile, 'w') as sf:
+                    sf.write(result_str)
+            else:
+                print(f'no message to process (message.content is empty)')
+
+        print(f'finished iterating over messages, will sleep now', flush=True)
+        time.sleep(5)
+    
+    print(f'exiting container gracefully', flush=True)
 
     exit(0)
 
