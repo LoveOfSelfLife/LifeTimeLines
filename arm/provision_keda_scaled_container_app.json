@@ -82,7 +82,14 @@
                         {
                             "name": "container-registry-pw",
                             "value": "[parameters('container-registry-pw')]"
-
+                        },
+                        {
+                            "name": "aad-client-id",
+                            "value": "[parameters('aad-client-id')]"
+                        },
+                        {
+                            "name": "aad-client-secret",
+                            "value": "[parameters('aad-client-secret')]"
                         }
                     ],
                     "registries": [
@@ -102,6 +109,14 @@
                                 {
                                     "name": "AZURE_STORAGETABLE_CONNECTIONSTRING",
                                     "secretRef": "azure-storagetable-connectionstring"
+                                },
+                                {
+                                    "name": "AZURE_CLIENT_ID",
+                                    "secretRef": "azure-client-id"
+                                },
+                                {
+                                    "name": "AZURE_CLIENT_SECRET",
+                                    "secretRef": "azure-client-secret"
                                 }
                             ],
                             "resources": {
