@@ -50,7 +50,7 @@ def execute_task(task_json, token):
 
     URL=f'https://{service}.ltl.richkempinski.com{path}'
     headers={'Authorization': 'Bearer ' + token}
-
+    print(headers)
     print(f'URL:  {URL}')
     if method == 'get':
         resp = requests.get(URL, verify=False, headers=headers)
