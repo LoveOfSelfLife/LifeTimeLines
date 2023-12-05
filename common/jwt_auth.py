@@ -15,7 +15,7 @@ class AuthHandler():
         AuthHandler._jwks_url = f"https://login.microsoftonline.com/{tenant}/discovery/v2.0/keys"
         AuthHandler.app_id = app_id
 
-    @staticmethod()
+    @staticmethod
     def get_public_key_for_token(token_kid):
         if AuthHandler.public_key:
             return AuthHandler.public_key
@@ -35,7 +35,7 @@ class AuthHandler():
         
         return AuthHandler.public_key
 
-    @staticmethod()
+    @staticmethod
     def get_token_auth_header():
         """Obtains the Access Token from the Authorization Header
         """
