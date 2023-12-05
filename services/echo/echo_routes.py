@@ -3,41 +3,42 @@ from flask import request, url_for, redirect
 import datetime
 import json
 
-pns = Namespace('echos', description='echo api')
+ens = Namespace('echos', description='echo api')
 
-@pns.route('/')
-class Persons(Resource):
+class Cache():
+    cache_body = None
+    def __init__(self):
+        pass
+
+@ens.route('/')
+class Echo(Resource):
     ''' '''
-    @pns.doc('echo')
+    @ens.doc('echo')
     def get(self):
-        headers_str = f"Headers: {request.headers}"
-        print(headers_str)
-        # storage will return a list of PersonEntity objects
-        person_storage = EntityStore(PersonEntity)
-        # get_list() returns a list of PersonEntity instances, which are just Dicts
-        # these will automatically be serialized to JSON by the flask framework
-        people =  person_storage.list_items()
-        return list(people)
+        req = []
+        print(request.url)
+        req.append({"URL": request.url})
+        for n,v in request.headers:
+            req.append({ n : v })
+        # if Cache.cache_body:
+        #     req.append({ "PREV_POST_REQ" : Cache.cache_body})
+        return req
     
-    @pns.doc('create or update a person entity')
-    @pns.expect(pmodel)
+    @ens.doc('create data to be echoed')
     def post(self):
-        person_storage = EntityStore(PersonEntity)        
-        pe = PersonEntity(request.get_json())
-        person_storage.upsert_item(pe)
-        return { 'id': pe[pe.key_field] }, 201
+        req = []
+        print(request.url)
+        req.append({"URL": request.url})
+        for n,v in request.headers:
+            req.append({ n : v })
+        body = request.get_json(silent=True)
+        if body:
+            req.append({"BODY": body})
+        else:
+            req.append({"BODY": "no body"})
 
-@pns.route('/<ids>')
-@pns.param('ids', 'comma-separated list of person ids')
-class Person(Resource):
-    def get(self, ids):
-        person_storage = EntityStore(PersonEntity)
-        return [ person_storage.get_item(id) for id in ids.split(',') ]
+        Cache.cache_body = req
+            
+        return req, 201
 
-    @pns.doc('delete a person')
-    def delete(self, ids):
-        person_storage = EntityStore(PersonEntity)        
-        id_list = ids.split(',')
-        person_storage.delete(id_list)
-        return { 'result': id_list }, 204
-    
+
