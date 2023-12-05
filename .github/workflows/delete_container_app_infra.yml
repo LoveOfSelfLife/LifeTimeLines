@@ -1,0 +1,36 @@
+# 
+
+name: delete a Container App (prompt for name)
+
+on:
+  workflow_call:
+    inputs:
+      app-name:
+        required: true
+        type: string
+    secrets:
+      azure_credentials:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    env:
+      VERSION: ${{ github.sha }}
+    
+    steps:
+      
+      - name: 'Az CLI login'
+        uses: Azure/login@v1
+        with:
+          creds: ${{ secrets.azure_credentials }}
+
+      - name: 'delete container app'
+        uses: Azure/cli@v1
+        with:
+          inlineScript: |
+            echo "Installing containerapp extension"
+            az extension add -n containerapp
+            echo "delete"
+            az containerapp delete -n ${{ github.event.inputs.name }} -g ltl-aca-rg -y --debug 
