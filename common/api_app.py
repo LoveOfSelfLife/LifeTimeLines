@@ -11,6 +11,7 @@ from types import FrameType
 
 from common.table_store import TableStore
 from common.queue_store import QueueStore
+from common.jwt_auth import AuthHandler
 
 def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescription=''):
     app : Flask = Flask(__name__, static_url_path='', static_folder='static')
@@ -18,6 +19,8 @@ def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescriptio
     app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RTxyz'
     TableStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
     QueueStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
+    
+    AuthHandler(os.getenv('TENANT_ID', None), os.getenv('AZURE_CLIENT_ID', None))
     
     api = Api(
         title=apiname,
