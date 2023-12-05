@@ -1,17 +1,17 @@
 name: Build container app (prompts for app name)
 
 on:
-    workflow_dispatch:
-        inputs:
-            name:
-                type: choice
-                description: App to build
-                options: 
-                - photos
-                - fe
-                - echo
-                - entities
-                - queueprocessor
+  workflow_dispatch:
+      inputs:
+          name:
+              type: choice
+              description: App to build
+              options: 
+              - photos
+              - fe
+              - echo
+              - entities
+              - queueprocessor
 jobs:
   
     call-build-container-app:
