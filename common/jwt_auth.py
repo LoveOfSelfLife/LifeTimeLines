@@ -5,7 +5,6 @@ import json
 import jwt
 from functools import wraps
 
-
 class AuthHandler():
     public_key = None
     _jwks_url = None
@@ -64,49 +63,11 @@ class AuthHandler():
         token = parts[1]
         return token
 
-
 # Error handler
 class AuthError(Exception):
     def __init__(self, error, status_code):
         self.error = error
         self.status_code = status_code
-
-
-def validate_token(token, role):
-
-    unverified_token = jwt.decode(token, options={"verify_signature": False})
-    token_headers = jwt.get_unverified_header(token)
-    token_alg = token_headers['alg']
-    rsa_pem_key_bytes = AuthHandler.get_public_key_for_token(token_headers['kid'])
-
-    try:
-        decoded = jwt.decode(
-            token,
-            key=rsa_pem_key_bytes,
-            algorithms=[token_alg],
-            verify=True,
-            audience=unverified_token['aud'],
-            options={"verify_signature": True}
-        )
-        print(decoded)
-        if role in decoded['roles']:
-            print(f'role: "{role}" was found in the token')
-            return True
-        else:
-            print(f'role: "{role}" NOT found in the token')
-            return False
-        
-    except jwt.ExpiredSignatureError:
-        # The JWT token has expired
-        print('The JWT token has expired.')
-    except jwt.InvalidSignatureError:
-        # The JWT token is invalid
-        print('The JWT token is invalid.')
-    except jwt.DecodeError:
-        # The JWT token could not be decoded
-        print('The JWT token could not be decoded.')    
-    except Exception:
-        print("exception")
 
 def requires_auth(f):
     """Determines if the Access Token is valid
@@ -164,5 +125,4 @@ def requires_auth(f):
 
 
 if __name__ == '__main__':
-    validate_token(token, a_role)
-
+    pass
