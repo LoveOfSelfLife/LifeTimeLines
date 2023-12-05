@@ -10,6 +10,30 @@ from common.graceful_exit import GracefulExit
 
 load_dotenv()
 
+class AuthRequestor() :
+    def __init__(self, tenant, client_id, client_secret, scope):
+        # Create a preferably long-lived app instance which maintains a token cache.
+        self.app = msal.ConfidentialClientApplication(
+            client_id=client_id, 
+            authority=f"https://login.microsoftonline.com/{tenant}",
+            client_credential=client_secret
+            )
+        self.scope = scope
+
+    def get_auth_token(self):
+        result = self.app.acquire_token_silent(self.scope, account=None)
+        if not result:
+            result = self.app.acquire_token_for_client(scopes=self.scope)
+
+        if "access_token" in result:
+            token = result['access_token']
+            return token
+        else:
+            print(result.get("error"))
+            print(result.get("error_description"))
+            print(result.get("correlation_id"))  # You may need this when reporting a bug
+            raise Exception(f'cannot get auth token') 
+        
 def main() -> None:
     print(f'Validate environment variables...')
 
@@ -40,39 +64,8 @@ def main() -> None:
 
     exitor = GracefulExit()
 
-    config= {
-        "authority": f"https://login.microsoftonline.com/{TENANT_ID}",
-        "client_id": AZURE_CLIENT_ID,
-        "scope": ["api://5b6214a0-1564-4c7e-ad9f-21cb50f78a6a/.default"],
-            #  For more information about scopes for an app, refer:
-            #  https://docs.microsoft.com/en-us/azure/active-directory/develop/v2-oauth2-client-creds-grant-flow#second-case-access-token-request-with-a-certificate"
-        "secret": AZURE_CLIENT_SECRET
-            #  For information about generating client secret, refer:
-            #  https://github.com/AzureAD/microsoft-authentication-library-for-python/wiki/Client-Credentials#registering-client-secrets-using-the-application-registration-portal
-    }
-
-    # Create a preferably long-lived app instance which maintains a token cache.
-    app = msal.ConfidentialClientApplication(
-        config["client_id"], 
-        authority=config["authority"],
-        client_credential=config["secret"],
-        # token_cache=...  # Default cache is in memory only.
-        )
-
-    result = app.acquire_token_silent(config["scope"], account=None)
-    if not result:
-        print("No suitable token exists in cache. Let's get a new one from AAD.")
-        result = app.acquire_token_for_client(scopes=config["scope"])    
-
-    if "access_token" in result:
-        # Calling graph using the access token
-        token = result['access_token']
-        print(f"access token acquired: {token[0:5]}...")
-    else:
-        print(result.get("error"))
-        print(result.get("error_description"))
-        print(result.get("correlation_id"))  # You may need this when reporting a bug
-        raise Exception(f'cannot get auth token')
+    scope = ["api://5b6214a0-1564-4c7e-ad9f-21cb50f78a6a/.default"]
+    auth = AuthRequestor(TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, scope)
 
     while not exitor.should_exit():
 
@@ -93,7 +86,7 @@ def main() -> None:
             queue_client.delete_message(message.id, message.pop_receipt)
             if message.content is not None:
                 message_content_json = json.loads(message.content)
-                task_result = execute_task(message_content_json, token)
+                task_result = execute_task(message_content_json, auth.get_auth_token())
                 print(f'received result from execute_task: {task_result}')
                 result_str = task_result
                 # result_str = json.dumps(task_result, indent=4)

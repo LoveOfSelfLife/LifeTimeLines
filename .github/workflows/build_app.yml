@@ -1,0 +1,26 @@
+
+
+on:
+    workflow_dispatch:
+        inputs:
+            name:
+                type: choice
+                description: App to build
+                options: 
+                - photos
+                - fe
+                - echo
+                - entities
+                - queueprocessor
+jobs:
+  
+    call-build-container-app:
+      uses: ./.github/workflows/_build_containerapp_image.yml
+      with:
+        app-name: ${{ github.event.inputs.name }}
+      secrets:
+        container_registry: ${{ secrets.container_registry }}
+        container_registry_id: ${{ secrets.container_registry_id }}
+        container_registry_pw: ${{ secrets.container_registry_pw }}
+        azure_credentials: ${{ secrets.azure_credentials }}
+  
