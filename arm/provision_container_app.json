@@ -138,11 +138,11 @@
                                 },
                                 {
                                     "name": "AZURE_CLIENT_ID",
-                                    "secretRef": "azure-client-id"
+                                    "secretRef": "aad-client-id"
                                 },
                                 {
                                     "name": "AZURE_CLIENT_SECRET",
-                                    "secretRef": "azure-client-secret"
+                                    "secretRef": "aad-client-secret"
                                 },
                                 {
                                     "name": "REFRESH_TOKEN_STORE",
