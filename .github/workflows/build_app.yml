@@ -1,4 +1,4 @@
-
+name: Build container app (prompts for app name)
 
 on:
     workflow_dispatch:
