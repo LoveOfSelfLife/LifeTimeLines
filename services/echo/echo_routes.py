@@ -2,6 +2,7 @@ from flask_restx import Namespace, Resource, reqparse, fields
 from flask import request, url_for, redirect
 import datetime
 import json
+from common.jwt_auth import requires_auth
 
 ens = Namespace('echos', description='echo api')
 
@@ -43,6 +44,7 @@ class Echo(Resource):
 class EchoAbc(Resource):
     ''' '''
     @ens.doc('echo')
+    @requires_auth
     def get(self):
         req = []
         if Cache.cache_body:
