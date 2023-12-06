@@ -4,8 +4,8 @@
 # Automatically deploys the microservice on push.
 #
 
-name: Build & Publish & Push Entities API to Container App Env
 
+name: Build/Publish/Push entities to Container App Env
 on:
   push:
     branches: 
