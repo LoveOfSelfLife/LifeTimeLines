@@ -17,7 +17,7 @@ on:
               - entities
 jobs:
 
-  call-build-deploy-container-app:
+  call-provision-container-app:
     uses: ./.github/workflows/_provision_containerapp_infra.yml
     with:
       containerapp_name: ${{ github.event.inputs.name }}
