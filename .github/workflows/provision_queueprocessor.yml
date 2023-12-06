@@ -2,7 +2,7 @@
 # GitHub Actions workflow.
 #
 
-name: Provision Queue processor Container App Infra
+name: Provision queueprocessor Container App
 
 on:
   workflow_dispatch:

@@ -4,7 +4,7 @@
 # Automatically deploys the microservice on push.
 #
 
-name: Build & Publish & Push echo API to Container App Env
+name: Build/Publish/Push echo to Container App Env
 
 on:
   push:

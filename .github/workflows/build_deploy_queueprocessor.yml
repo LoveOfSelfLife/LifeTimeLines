@@ -1,18 +1,8 @@
 # 
 # GitHub Actions workflow.
 #
-# Automatically deploys the microservice on a push to the main branch
-#
 
-name: Build & Publish & Push the queue processor Container App 
-
-# on:
-#   push:
-#     branches: 
-#       - master
-#     paths:
-#       - 'services/queueprocessor/**'
-#   workflow_dispatch:
+name: Build/Publish/Push queueprocessor to Container App Env
 
 on:
   pull_request:

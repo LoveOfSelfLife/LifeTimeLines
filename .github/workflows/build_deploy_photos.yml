@@ -1,10 +1,8 @@
 # 
 # GitHub Actions workflow.
 #
-# Automatically deploys the microservice on a push to the main branch
-#
 
-name: Build & Publish & Push Photos API to Container App Env
+name: Build/Publish/Push photos to Container App Env
 
 on:
   push:

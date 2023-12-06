@@ -1,6 +1,5 @@
-# 
 
-name: delete a Container App (prompt for name)
+name: Delete Container App (prompts for name)
 
 on:
   workflow_dispatch:

@@ -2,7 +2,7 @@
 # GitHub Actions workflow.
 #
 
-name: Provision Container App Infrastrcuture (prompts for app name)
+name: Provision Container App (prompts for name)
 
 on:
   workflow_dispatch:

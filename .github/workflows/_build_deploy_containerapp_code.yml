@@ -2,7 +2,7 @@
 # Build & push azure container app
 #
 
-name: __Build & Publish & Push Container App
+name: __Build/Publish/Push Container App
 
 on:
   workflow_call:
