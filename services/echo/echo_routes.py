@@ -4,17 +4,17 @@ import datetime
 import json
 from common.jwt_auth import requires_auth
 
-ens = Namespace('echos', description='echo api')
+ns = Namespace('echos', description='echo api')
 
 class Cache():
     cache_body = None
     def __init__(self):
         pass
 
-@ens.route('/')
+@ns.route('/')
 class Echo(Resource):
     ''' '''
-    @ens.doc('echo')
+    @ns.doc('echo')
     def get(self):
         req = []
         print(request.url)
@@ -23,7 +23,7 @@ class Echo(Resource):
             req.append({ n : v })
         return req
     
-    @ens.doc('create data to be echoed')
+    @ns.doc('create data to be echoed')
     def post(self):
         req = []
         print(request.url)
@@ -40,10 +40,10 @@ class Echo(Resource):
             
         return req, 201
 
-@ens.route('/abc')
+@ns.route('/abc')
 class EchoAbc(Resource):
     ''' '''
-    @ens.doc('echo')
+    @ns.doc('echo')
     @requires_auth
     def get(self):
         req = []
@@ -51,7 +51,7 @@ class EchoAbc(Resource):
             req.append({ "PREV_POST" : Cache.cache_body})
         return req
     
-    @ens.doc('create data to be echoed')
+    @ns.doc('create data to be echoed')
     def post(self):
         req = []
         print(request.url)

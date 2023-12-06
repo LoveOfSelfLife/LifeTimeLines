@@ -6,13 +6,13 @@ from common.entities.person import PersonEntity
 
 from common.google_credentials import get_credentials
 from common.entity_store import EntityStore
-pns = Namespace('Persons', description='services manage Person Entity metadata')
-pmodel = pns.model('Person', {})
+ns = Namespace('Persons', description='services manage Person Entity metadata')
+pmodel = ns.model('Person', {})
 
-@pns.route('/')
+@ns.route('/')
 class Persons(Resource):
     ''' '''
-    @pns.doc('get person entities')
+    @ns.doc('get person entities')
     def get(self):
         headers_str = f"Headers: {request.headers}"
         print(headers_str)
@@ -23,22 +23,22 @@ class Persons(Resource):
         people =  person_storage.list_items()
         return list(people)
     
-    @pns.doc('create or update a person entity')
-    @pns.expect(pmodel)
+    @ns.doc('create or update a person entity')
+    @ns.expect(pmodel)
     def post(self):
         person_storage = EntityStore(PersonEntity)        
         pe = PersonEntity(request.get_json())
         person_storage.upsert_item(pe)
         return { 'id': pe[pe.key_field] }, 201
 
-@pns.route('/<ids>')
-@pns.param('ids', 'comma-separated list of person ids')
+@ns.route('/<ids>')
+@ns.param('ids', 'comma-separated list of person ids')
 class Person(Resource):
     def get(self, ids):
         person_storage = EntityStore(PersonEntity)
         return [ person_storage.get_item(id) for id in ids.split(',') ]
 
-    @pns.doc('delete a person')
+    @ns.doc('delete a person')
     def delete(self, ids):
         person_storage = EntityStore(PersonEntity)        
         id_list = ids.split(',')

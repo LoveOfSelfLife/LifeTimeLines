@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from common.api_app import create_api_app
-from echo_routes import ens as echo_ns
+from echo_routes import ns as echo_ns
 
 
 API_DEFINITION = {  "namespaces": [echo_ns], 

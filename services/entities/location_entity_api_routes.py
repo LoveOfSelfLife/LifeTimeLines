@@ -7,13 +7,13 @@ from common.google_credentials import get_credentials
 from common.entity_store import EntityStore
 from common.entities.location import LocationEntity
 
-lns = Namespace('Locations', description='services to manage location entities')
-lmodel = lns.model('Location', {})
+ns = Namespace('Locations', description='services to manage location entities')
+lmodel = ns.model('Location', {})
 
-@lns.route('/')
+@ns.route('/')
 class Locations(Resource):
     ''' '''
-    @lns.doc('get location entities')
+    @ns.doc('get location entities')
     def get(self):
         # storage will return a list of PersonEntity objects
         location_storage = EntityStore(LocationEntity)
@@ -21,16 +21,16 @@ class Locations(Resource):
         # these will automatically be serialized to JSON by the flask framework
         return list(location_storage.list_items())
     
-    @lns.doc('create or update a location entity')
-    @lns.expect(lmodel)
+    @ns.doc('create or update a location entity')
+    @ns.expect(lmodel)
     def post(self):
         location_storage = EntityStore(LocationEntity)
         pe = LocationEntity(request.get_json())
         location_storage.upsert_item(pe)
         return { 'id': pe[LocationEntity.key_field] }, 201
 
-@lns.route('/<id>')
-@lns.param('id', 'The location id')
+@ns.route('/<id>')
+@ns.param('id', 'The location id')
 class Person(Resource):
     def get(self, id):
         location_storage = EntityStore(LocationEntity)

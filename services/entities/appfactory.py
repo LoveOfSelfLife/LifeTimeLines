@@ -1,8 +1,8 @@
 import os
 from dotenv import load_dotenv
 from common.api_app import create_api_app
-from person_entity_api_routes import pns as person_entity_ns
-from location_entity_api_routes import lns as location_entity_ns
+from person_entity_api_routes import ns as person_entity_ns
+from location_entity_api_routes import ns as location_entity_ns
 
 API_DEFINITION = {  "namespaces": [person_entity_ns, location_entity_ns], 
                     "apiname": "Entities API", 
