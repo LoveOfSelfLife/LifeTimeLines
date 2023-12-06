@@ -10,7 +10,7 @@ on:
             description: App to delete
             options: 
             - photos
-            - fe
+            - feapp
             - echo
             - entities
             - queueprocessor
