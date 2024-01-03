@@ -19,7 +19,7 @@ class Albums(Resource):
         album_list = api.get_entity_albums()
         
         result = dict()
-        result['album_list'] = album_list
+        result['album_list'] = list(album_list)
 
         return result
 
@@ -42,7 +42,7 @@ class Album(Resource):
 
         album_items = api.get_album_items(album_id, ts)
 
-        return album_items
+        return list(album_items)
 
 @ns.route('/category/<category>')
 @ns.param('category', 'The category')
@@ -63,7 +63,7 @@ class Category(Resource):
 
         category_items = api.get_category_items(category, ts)
 
-        return category_items
+        return list(category_items)
 
 @ns.route('/items')
 class MediaItems(Resource):
@@ -85,7 +85,7 @@ class MediaItems(Resource):
 
         album_items = api.get_media_items(start_date, end_date)
 
-        return album_items
+        return list(album_items)
 
 @ns.route('/daterange')
 class MediaItemExtents(Resource):
