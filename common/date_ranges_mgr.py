@@ -2,12 +2,12 @@
 from datetimerange import DateTimeRange
 import datetime
 
-def load_date_ranges_from_storage(domain, ranges_store_iterator):
-    ranges = [DateTimeRange(r['Start'], r['End']) for r in ranges_store_iterator]
+def load_date_ranges(ranges_store_iterator):
+    ranges = [DateTimeRange(r['startDate'], r['endDate']) for r in ranges_store_iterator]
     return sorted(ranges, key=lambda d: d.start_datetime,reverse=False)
 
-def get_unexplored_date_range(explored_date_ranges, min_date, max_date):
-    min_date_dt = datetime.datetime.fromisoformat(min_date).replace(tzinfo=None)
+def get_first_unexplored_date_range(explored_date_ranges, min_date_iso, max_date_iso):
+    min_date_dt = datetime.datetime.fromisoformat(min_date_iso).replace(tzinfo=None)
     curr = min_date_dt
     for range in explored_date_ranges:
         gap = curr - range.start_datetime
@@ -15,7 +15,7 @@ def get_unexplored_date_range(explored_date_ranges, min_date, max_date):
             return DateTimeRange(curr, range.start_datetime)
         else:
             curr = range.end_datetime
-    max_date_dt = datetime.datetime.fromisoformat(max_date).replace(tzinfo=None)
+    max_date_dt = datetime.datetime.fromisoformat(max_date_iso).replace(tzinfo=None)
     gap = max_date_dt - curr
     if gap != 0:
         return DateTimeRange(curr, max_date_dt)

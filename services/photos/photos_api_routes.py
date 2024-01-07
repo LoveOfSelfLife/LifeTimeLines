@@ -92,8 +92,8 @@ class MediaItemExtents(Resource):
     '''get the min & max extents for all mediaitems '''
     def get(self):
         api = GooglePhotosApi(get_credentials())
-        oldest, newest = api.get_media_items_daterange()
-        return { "start": oldest , "end" : newest }
+        extent = api.get_media_items_daterange_extent()
+        return { "start": extent['earliest'] , "end" : extent['latest'] }
 
 @ns.route('/token')
 class TokenRefresh(Resource):

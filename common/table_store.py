@@ -51,9 +51,18 @@ class TableStore():
             result = self.table_client.query_entities(query_filter=f"{filter}")
             return result
 
+    def get_item(self, partition_key_value, row_key_value):
+            return self.table_client.get(partition_key=partition_key_value, row_key=row_key_value)
+
     def delete_item(self, partition_value, row_key):
             self.table_client.delete_entity(partition_key=partition_value, row_key=row_key)
 
+    def delete_all(self):
+            self.table_client.delete_table()
+            print("Deleted table")
+            self.table_client.create_table()
+            print("Created table")
+            
     def delete(self, partition_value, filter=None):
         results = self.query(partition_value, filter)
         to_delete = []
