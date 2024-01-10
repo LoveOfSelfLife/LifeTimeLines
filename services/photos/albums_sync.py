@@ -24,15 +24,15 @@ class AlbumsSyncMgr ():
         all_albums:list = list(self.api.get_albums()) # has 'title' of album & 'id' of album
 
         # create a map of album title -> album id
-        self.album_map = { a['title']: a['id'] for a in all_albums }
-        self.album_inverse_map = { a['id']: a['title'] for a in all_albums }
+        self.album_title_to_id_map = { a['title']: a['id'] for a in all_albums }
+        self.album_id_to_title_map = { a['id']: a['title'] for a in all_albums }
         
         # list of all entities, some of which have photo albums
         person_entities = list(self.person_entity_tbl.list_items()) # has 'id' & 'photos_album'
         
         # list of all album_ids that have been synced, along with the last sync time
         synced_albums = list(self.sync_times_tbl.list_items()) # has 'albumId' & 'lastSyncDateTime'
-        sync_map = { a['albumId'] : a['lastSyncDateTime'] for a in synced_albums }
+        albumId_to_syncTime_map = { a['albumId'] : a['lastSyncDateTime'] for a in synced_albums }
 
         # iterate through all personentities, get their album name and map to album id
         # then check if album id has already been synced
@@ -44,23 +44,22 @@ class AlbumsSyncMgr ():
 
         for e in person_entities:
             if 'photos_album' in e and e['photos_album']:
-                album_id = self.album_map[e['photos_album']]
-                # last_sync_time = None
-                last_sync_time_iso = sync_map.get(album_id, None)
-                # if album_id in sync_map.keys():
-                #     last_sync_time = sync_map[album_id]
-                if last_sync_time_iso:
+                album_id = self.album_title_to_id_map[e['photos_album']]
+
+                album_sync_time_iso = albumId_to_syncTime_map.get(album_id, None)
+
+                if album_sync_time_iso:
                     print(f"found album {e['photos_album']}")
                 else:
                     print(f"new album {e['photos_album']}") 
-                new_sync_time_iso = self.sync_album_until_time(album_id, e['photos_album'], last_sync_time_iso)
+                updated_album_sync_time_iso = self.sync_album_until_time(album_id, e['photos_album'], album_sync_time_iso)
                 
                 self.sync_times_tbl.upsert_item(AlbumSyncTime({"albumId": album_id,
-                                                               "latestPhotoInAlbumTime" : new_sync_time_iso}))
+                                                               "latestPhotoInAlbumTime" : updated_album_sync_time_iso}))
 
-    def sync_album_until_time(self, album_id, album_title, last_sync_time_iso):
+    def sync_album_until_time(self, album_id, album_title, album_sync_time_iso):
         mitems_to_store = []
-        last_sync_time_dt = datetime.datetime.fromisoformat(last_sync_time_iso) if last_sync_time_iso else None
+        last_sync_time_dt = datetime.datetime.fromisoformat(album_sync_time_iso) if album_sync_time_iso else None
         most_recent_item_time_iso = None
         for album_mitem in self.api.get_album_items(album_id):
 
@@ -87,7 +86,7 @@ class AlbumsSyncMgr ():
     def find_albums_contanining_mitem(self, mitem):
         for a in self.album_item_map.keys():
             if mitem in self.album_item_set[a]:
-                yield self.album_inverse_map[a]
+                yield self.album_id_to_title_map[a]
 
     def _load_album_items_cache(self, album_items):
         album_items_map = {}

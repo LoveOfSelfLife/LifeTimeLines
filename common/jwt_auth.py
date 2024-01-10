@@ -25,8 +25,12 @@ class AuthHandler():
         for key in keys:
             if key['kid'] == token_kid:
                 public_key = key
-
-        rsa_pem_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(public_key))
+        try:
+            rsa_pem_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(public_key))
+        except:
+            raise AuthError({"code": "invalid_token",
+                            "description": "Token is all screwed up"}, 401)
+        
         AuthHandler.public_key = rsa_pem_key.public_bytes(
             encoding=serialization.Encoding.PEM, 
             format=serialization.PublicFormat.SubjectPublicKeyInfo
@@ -96,11 +100,6 @@ def requires_auth(f):
             except jwt.ExpiredSignatureError:
                 raise AuthError({"code": "token_expired",
                                 "description": "token is expired"}, 401)
-            except jwt.JWTClaimsError:
-                raise AuthError({"code": "invalid_claims",
-                                "description":
-                                    "incorrect claims,"
-                                    "please check the audience and issuer"}, 401)
             except jwt.InvalidSignatureError:
                 # The JWT token is invalid
                 print('The JWT token is invalid.')
@@ -111,6 +110,42 @@ def requires_auth(f):
                 print('The JWT token could not be decoded.')             
                 raise AuthError({"code": "cannot decode",
                                 "description": "token could not be decoded"}, 401)                
+            except    jwt.ImmatureSignatureError:
+                raise AuthError( { "code" : "ImmatureSignatureError",
+                        "description" : "ImmatureSignatureError"}, 401)
+            except    jwt.InvalidAlgorithmError:
+                raise AuthError( { "code" : "InvalidAlgorithmError",
+                        "description" : "InvalidAlgorithmError"}, 401)
+            except    jwt.InvalidAudienceError:
+                raise AuthError( { "code" : "InvalidAudienceError",
+                        "description" : "InvalidAudienceError"}, 401)
+            except    jwt.InvalidIssuedAtError:
+                raise AuthError( { "code" : "InvalidIssuedAtError",
+                        "description" : "InvalidIssuedAtError"}, 401)
+            except    jwt.InvalidIssuerError:
+                raise AuthError( { "code" : "InvalidIssuerError",
+                        "description" : "InvalidIssuerError"}, 401)
+            except    jwt.InvalidKeyError:
+                raise AuthError( { "code" : "InvalidKeyError",
+                        "description" : "InvalidKeyError"}, 401)
+            except    jwt.InvalidTokenError:
+                raise AuthError( { "code" : "InvalidTokenError",
+                        "description" : "InvalidTokenError"}, 401)
+            except    jwt.PyJWKClientConnectionError:
+                raise AuthError( { "code" : "PyJWKClientConnectionError",
+                        "description" : "PyJWKClientConnectionError"}, 401)
+            except    jwt.PyJWKClientError:
+                raise AuthError( { "code" : "PyJWKClientError",
+                        "description" : "PyJWKClientError"}, 401)
+            except    jwt.PyJWKError:
+                raise AuthError( { "code" : "PyJWKError",
+                        "description" : "PyJWKError"}, 401)
+            except    jwt.PyJWKSetError:
+                raise AuthError( { "code" : "PyJWKSetError",
+                        "description" : "PyJWKSetError"}, 401)
+            except    jwt.PyJWTError:
+                raise AuthError( { "code" : "PyJWTError",
+                        "description" : "PyJWTError"}, 401)
             except Exception:
                 raise AuthError({"code": "invalid_header",
                                 "description":

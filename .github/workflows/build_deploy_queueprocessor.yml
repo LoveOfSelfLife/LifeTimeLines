@@ -17,7 +17,7 @@ on:
 jobs:
 
   call-build-deploy-container-app:
-    uses: ./.github/workflows/_build_deploy_containerapp_code.yml
+    uses: ./.github/workflows/_build_deploy_containerapp_image.yml
     with:
       app-name: queueprocessor
     secrets:
