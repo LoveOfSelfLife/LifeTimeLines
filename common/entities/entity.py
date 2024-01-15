@@ -7,6 +7,7 @@ class EntityObject (dict):
     key_field=None
     partition_field=None
     partition_value=None
+    items_list_field = None
 
     def __init__(self, d):
         dict.__init__(d)
@@ -17,9 +18,13 @@ class EntityObject (dict):
         self.partition_value = type(self).partition_value
         self.table_name = type(self).table_name
         self.fields = type(self).fields
+        self.items_list_field = type(self).items_list_field
 
     def get_key_value(self):
         return self[self.key_field]
+
+    def get_key_field(self):
+        return self.key_field
     
     def get_partition_value(self):
         if self.partition_value:
@@ -31,3 +36,9 @@ class EntityObject (dict):
 
     def get_fields(self):
         return self.fields
+    
+    def get_partition_field(self):
+        return self.partition_field
+    
+    def get_items_list_field(self):
+        return self.items_list_field

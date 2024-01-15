@@ -14,8 +14,7 @@ MAX_DAYS_TO_GET_PER_REQUEST=100
 class PhotosSyncMgr ():
     def __init__(self):
         self.api = GooglePhotosApi(get_credentials())
-        self.media_items_tbl = EntityStore(MediaItem)
-        self.date_ranges_tbl = EntityStore(PhotosDateRanges)
+        self.storage = EntityStore()
 
     def execute_photos_sync(self, max_days_to_process=0):
         print('start photos synchronization')
@@ -33,7 +32,7 @@ class PhotosSyncMgr ():
         earliest_media_item_iso = extent['earliest']
         latest_media_item_iso  = extent['latest']
         
-        explored_date_ranges =  load_date_ranges(self.date_ranges_tbl.list_items())
+        explored_date_ranges =  load_date_ranges(self.storage.list_items(PhotosDateRanges))
         
         unexplored_date_range = get_first_unexplored_date_range(explored_date_ranges,
                                                                 earliest_media_item_iso, 
@@ -52,7 +51,7 @@ class PhotosSyncMgr ():
                                         "creationTime": e['creationTime'],
                                         "mimeType" : e['mimeType']}) for e in mitems]
 
-                self.media_items_tbl.upsert_items(entities)
+                self.storage.upsert_items(entities)
                 num_mitems_processed += len(entities)
                 explored_date_ranges = add_range(range_to_explore, explored_date_ranges)
 
@@ -69,10 +68,10 @@ class PhotosSyncMgr ():
 
         coalesced_date_ranges = coaslesc_ranges(explored_date_ranges)
 
-        self.date_ranges_tbl.delete_all_in_partition("photos")
+        self.storage.delete_all_in_partition(PhotosDateRanges, "photos")
         coalesced_ranges_to_store = [PhotosDateRanges({"startDate": str(r.start_datetime),
                                                        "endDate": str(r.end_datetime) }) for r in coalesced_date_ranges]
-        self.date_ranges_tbl.upsert_items(coalesced_ranges_to_store)
+        self.storage.upsert_items(coalesced_ranges_to_store)
 
         is_done = False if unexplored_date_range else True
         return is_done, num_mitems_processed, num_days_processed
@@ -84,8 +83,8 @@ if __name__ == '__main__':
     load_dotenv()
     TableStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
 
-    es = EntityStore(PhotosDateRanges)
-    ranges = load_date_ranges(es.list_items())
+    es = EntityStore()
+    ranges = load_date_ranges(es.list_items(PhotosDateRanges))
     print(ranges)
     is_done = False
     
