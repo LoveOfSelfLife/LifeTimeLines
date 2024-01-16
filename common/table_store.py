@@ -29,12 +29,12 @@ class TableStore():
             print("Table already exists")
 
     def insert(self, partition_key, row_key, vals):
-        keys = {"PartitionKey": partition_key, "RowKey": row_key}
+        keys = {"PartitionKey": partition_key, "RowKey": str(row_key)}
         entity = {**keys, **vals}
         self.table_client.create_entity(entity)
 
     def upsert(self, partition_key, row_key, vals):
-        keys = {"PartitionKey": partition_key, "RowKey": row_key}
+        keys = {"PartitionKey": partition_key, "RowKey": str(row_key)}
         entity = {**keys, **vals}
         self.table_client.upsert_entity(entity)
 
@@ -51,15 +51,24 @@ class TableStore():
             result = self.table_client.query_entities(query_filter=f"{filter}")
             return result
 
-    def delete_item(self, partition_value, row_key):
-            self.table_client.delete_entity(partition_key=partition_value, row_key=row_key)
+    def get_item(self, partition_key_value, row_key_value):
+            return self.table_client.get_entity(partition_key=partition_key_value, row_key=str(row_key_value))
 
+    def delete_item(self, partition_key, row_key):
+            self.table_client.delete_entity(partition_key=partition_key, row_key=str(row_key))
+
+    def delete_all(self):
+            self.table_client.delete_table()
+            print("Deleted table")
+            self.table_client.create_table()
+            print("Created table")
+            
     def delete(self, partition_value, filter=None):
         results = self.query(partition_value, filter)
         to_delete = []
         try:
             for item in results:
-                to_delete.append({"PartitionKey": partition_value, "RowKey": item['RowKey']})
+                to_delete.append({"PartitionKey": partition_value, "RowKey": str(item['RowKey'])})
             self.batch_delete(to_delete)
             return '', 204
         except:

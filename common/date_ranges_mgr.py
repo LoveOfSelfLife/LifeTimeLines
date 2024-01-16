@@ -2,22 +2,24 @@
 from datetimerange import DateTimeRange
 import datetime
 
-def load_date_ranges_from_storage(domain, ranges_store_iterator):
-    ranges = [DateTimeRange(r['Start'], r['End']) for r in ranges_store_iterator]
+def load_date_ranges(ranges_store_iterator):
+    ranges = [DateTimeRange(r['startDate'], r['endDate']) for r in ranges_store_iterator]
     return sorted(ranges, key=lambda d: d.start_datetime,reverse=False)
 
-def get_unexplored_date_range(explored_date_ranges, min_date, max_date):
-    min_date_dt = datetime.datetime.fromisoformat(min_date).replace(tzinfo=None)
+def get_first_unexplored_date_range(explored_date_ranges, min_date_iso, max_date_iso):
+    min_date_dt = datetime.datetime.fromisoformat(min_date_iso).replace(tzinfo=None)
     curr = min_date_dt
     for range in explored_date_ranges:
         gap = curr - range.start_datetime
-        if gap.days != 0:
+        # if gap.days != 0:
+        if gap.total_seconds() > 0:
             return DateTimeRange(curr, range.start_datetime)
         else:
             curr = range.end_datetime
-    max_date_dt = datetime.datetime.fromisoformat(max_date).replace(tzinfo=None)
+    max_date_dt = datetime.datetime.fromisoformat(max_date_iso).replace(tzinfo=None)
     gap = max_date_dt - curr
-    if gap != 0:
+    # if gap != 0:
+    if gap.total_seconds() > 0:    
         return DateTimeRange(curr, max_date_dt)
     return None
 
@@ -49,17 +51,23 @@ def coaslesc_ranges(date_ranges):
     return date_ranges
 
 def break_up_date_range_into_chunks(start_dt, end_dt, num_days_per_chunk):
+    chunks = list()
     gap_dt = (end_dt - start_dt)
-    # handle the case for gaps of less than one day; this essential "rounds up"
-    if gap_dt.days == 0 and gap_dt.total_seconds() > 0:
-        gap = 1
+    # if the gap is less than the size of a chunk, then just return the existing range and be done with it
+    if gap_dt.days < num_days_per_chunk:
+        chunks.append( DateTimeRange(start_dt, end_dt) )
     else:
-        gap = gap_dt.days
-    for b,e in [(x,x+num_days_per_chunk) for x in range(0, gap, num_days_per_chunk)]:
-        b_days = datetime.timedelta(days=b)
-        e_days = datetime.timedelta(days=e)
-        all_days = datetime.timedelta(days=gap)
-        yield DateTimeRange(start_dt + b_days, start_dt + e_days if e < gap else start_dt + all_days)
+        # handle the case for gaps of less than one day; this essential "rounds up"
+        if gap_dt.days == 0 and gap_dt.total_seconds() > 0:
+            gap = 1
+        else:
+            gap = gap_dt.days
+        for b,e in [(x,x+num_days_per_chunk) for x in range(0, gap, num_days_per_chunk)]:
+            b_days = datetime.timedelta(days=b)
+            e_days = datetime.timedelta(days=e)
+            all_days = datetime.timedelta(days=gap)
+            chunks.append( DateTimeRange(start_dt + b_days, start_dt + e_days if e < gap else start_dt + all_days) )
+    return chunks
 
 if __name__ == '__main__':
     print("in main")

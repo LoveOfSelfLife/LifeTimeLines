@@ -19,7 +19,7 @@ class Albums(Resource):
         album_list = api.get_entity_albums()
         
         result = dict()
-        result['album_list'] = album_list
+        result['album_list'] = list(album_list)
 
         return result
 
@@ -42,7 +42,7 @@ class Album(Resource):
 
         album_items = api.get_album_items(album_id, ts)
 
-        return album_items
+        return list(album_items)
 
 @ns.route('/category/<category>')
 @ns.param('category', 'The category')
@@ -63,7 +63,7 @@ class Category(Resource):
 
         category_items = api.get_category_items(category, ts)
 
-        return category_items
+        return list(category_items)
 
 @ns.route('/items')
 class MediaItems(Resource):
@@ -85,15 +85,15 @@ class MediaItems(Resource):
 
         album_items = api.get_media_items(start_date, end_date)
 
-        return album_items
+        return list(album_items)
 
 @ns.route('/daterange')
 class MediaItemExtents(Resource):
     '''get the min & max extents for all mediaitems '''
     def get(self):
         api = GooglePhotosApi(get_credentials())
-        oldest, newest = api.get_media_items_daterange()
-        return { "start": oldest , "end" : newest }
+        extent = api.get_media_items_daterange_extent()
+        return { "start": extent['earliest'] , "end" : extent['latest'] }
 
 @ns.route('/token')
 class TokenRefresh(Resource):
@@ -106,24 +106,3 @@ class TokenRefresh(Resource):
 
         return "seems we have a good token"
 
-# @ns.route('/test')
-# class Tests(Resource):
-#     def get(self):
-#         sm = PhotosSyncMgr()
-#         ops = list(sm.list_operations())
-#         print(f"operations: {ops}")
-#         id = ops[0]['RowKey']
-
-#         op = sm.get_operation(id)
-#         print(f"opeation:  {op}")
-
-#         op = sm.update_operation(id)
-#         print(f"update opeation:  {id}")
-
-#         # op = sm.del_operation(id)
-#         # print(f"delete opeation:  {id}")
-
-#         return { "tests": True, "op": "get" }
-
-#     def post(self):
-#         return { "tests": True, "op": "post" }

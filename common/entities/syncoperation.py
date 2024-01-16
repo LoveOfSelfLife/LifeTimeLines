@@ -1,4 +1,4 @@
-from common.entities.entity import EntityObject
+from common.entity_store import EntityObject
 
 
 class SyncOperation (EntityObject):

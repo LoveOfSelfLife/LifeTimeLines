@@ -1,5 +1,4 @@
-from common.entities.entity import EntityObject
-from common.utils import IDGenerator
+from common.entity_store import EntityObject
 
 class LocationEntity (EntityObject):
     table_name="EntityTable"

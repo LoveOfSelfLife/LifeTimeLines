@@ -11,13 +11,23 @@ class GooglePhotosApi():
         self.credentials = credentials
         pass
 
-    def get_entity_albums(self):
-        return self.get_albums(filter="Photos_Album")
-
-    def get_albums(self, filter=""):
-
+    def _build_service(self):
         service = build(API_NAME, API_VERSION, credentials=self.credentials, static_discovery=False)
-        # album_list = []
+        return service
+    
+    def get_entity_albums(self):
+        return self.get_albums(ends_with_str_filter="Photos_Album")
+
+    def get_albums(self, ends_with_str_filter=""):
+        """ccnnects to google photos API to return albums
+
+        Args:
+            ends_with_str_filter (str, optional): returns only albums whose name ends with this string. Defaults to "".
+
+        Yields:
+            iterator: list of albums, each item includes album title and album id
+        """
+        service = self._build_service()
         nextPageToken=None
 
         while True:
@@ -27,7 +37,7 @@ class GooglePhotosApi():
 
             for a in albums:
                 # TODO: generalize the filter to a reg expression
-                if 'title' in a and a['title'].endswith(filter):
+                if 'title' in a and a['title'].endswith(ends_with_str_filter):
                         item = {
                             "title": a['title'],
                             "id": a['id']
@@ -37,45 +47,44 @@ class GooglePhotosApi():
             if nextPageToken is None:
                 break
 
-    def get_album_items(self, album_id, timestamp=None):
-        service = build(API_NAME, API_VERSION, credentials=self.credentials, static_discovery=False)
-        # items_list = []
+    def get_album_items(self, album_id, cutoff_dt=None):
+        """connects to google photos API to retrieve the media items in an album
+
+        Args:
+            album_id (str): ID of the album that we are retrieving 
+            cutoff_dt (datetime, optional): if provided, is is used to only retrieve media items created after this cutoff. Defaults to None.
+
+        Yields:
+            iterator: media items contained in the album.  items have media item id and creation date time of item
+        """
+        service = self._build_service()
         nextPageToken=None
-        time_to_stop = lambda itemTime : False
         we_are_done = False
 
         while True:
             resp = service.mediaItems().search(body={'albumId': album_id, 
                                                      'pageSize': 100,
-                                                    'pageToken': nextPageToken}).execute()
+                                                     'pageToken': nextPageToken}).execute()
             mitems = resp.get('mediaItems')
             nextPageToken = resp.get('nextPageToken')
-
             for mi in mitems:
                 if 'mediaMetadata' in mi and 'creationTime' in mi['mediaMetadata']:
-            
-                        if timestamp:
-                            ct = datetime.datetime.fromisoformat(mi['mediaMetadata']['creationTime'])
-                            cutoff = timestamp
-                            if ct <= cutoff:
-                                we_are_done = True
-                                break
-            
-                        item = {
-                            "id": mi['id'],
-                            "creationTime": mi['mediaMetadata']['creationTime']
-                        }
-                # items_list.append(item)
-                yield item
-            # print(f"items_list: {len(items_list)}")
+                    if cutoff_dt:
+                        ct_dt = datetime.datetime.fromisoformat(mi['mediaMetadata']['creationTime'])
+                        if ct_dt <= cutoff_dt:
+                            we_are_done = True
+                            break
+                    item = {
+                        "id": mi['id'],
+                        "creationTime": mi['mediaMetadata']['creationTime']
+                    }
+                    yield item
         
             if nextPageToken is None or we_are_done:
                 break
-        # return items_list
 
     def get_category_items(self, category, timestamp=None):
-        service = build(API_NAME, API_VERSION, credentials=self.credentials, static_discovery=False)
-        # items_list = []
+        service = self._build_service()        
         nextPageToken=None
         we_are_done = False
 
@@ -121,8 +130,7 @@ class GooglePhotosApi():
         return self.get_media_items(start_date, end_date, max_mitems=max_mitems)
 
     def get_media_items(self, start_date, end_date, max_mitems=0):
-        service = build(API_NAME, API_VERSION, credentials=self.credentials, static_discovery=False)
-        # items_list = []
+        service = self._build_service()
         nextPageToken=None
         stop_after_max_mitems = False
         if max_mitems > 0:
@@ -170,7 +178,7 @@ class GooglePhotosApi():
         # return items_list
 
     def get_photo(self, photo_id, credentials):
-        service = build(API_NAME, API_VERSION, credentials=credentials,static_discovery=False)
+        service = self._build_service()
         resp = service.mediaItems().get(mediaItemId=photo_id).execute()
         return resp
 
@@ -185,10 +193,10 @@ class GooglePhotosApi():
         """ 
         pass
 
-    def get_media_items_daterange(self):
+    def get_media_items_daterange_extent(self):
         oldest = self.get_oldest_media_item()
         newest = self.get_newest_media_item()
-        return (oldest['creationTime'], newest['creationTime'])
+        return { "earliest" : oldest['creationTime'], "latest" : newest['creationTime'] }
 
     def get_oldest_media_item(self):
         return self._get_sorted_media_items(num_items=1, newest_first=False)
@@ -196,8 +204,8 @@ class GooglePhotosApi():
     def get_newest_media_item(self):
          return self._get_sorted_media_items(num_items=1, newest_first=True)
     
-    def _get_sorted_media_items(self, num_items, newest_first):
-        service = build(API_NAME, API_VERSION, credentials=self.credentials,static_discovery=False)
+    def _get_sorted_media_items(self, num_items, newest_first:bool):
+        service = self._build_service()        
         BEGINNING_OF_TIME = {
                             "year": 1958,
                             "month": 1,
