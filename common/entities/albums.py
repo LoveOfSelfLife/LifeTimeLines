@@ -1,5 +1,4 @@
-from common.entities.entity import EntityObject
-
+from common.entity_store import EntityObject
 class AlbumSyncTime (EntityObject):
     """ this table has a record for each album
     where the record has the timestamp of the latest photo sync'ed from that album
