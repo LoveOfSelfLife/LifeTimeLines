@@ -7,5 +7,5 @@ class SyncOperation (EntityObject):
     key_field="id"
     fields=["id", "status", "num_items_processed"]
 
-    def __init__(self, d):
+    def __init__(self, d={}):
         super().__init__(d)

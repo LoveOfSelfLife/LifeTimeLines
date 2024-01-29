@@ -3,7 +3,8 @@ import os
 from dotenv import load_dotenv
 import unittest
 import json
-from common.entities.entity import EntityObject
+from common.entities.journal_day import JournalDay
+# from common.entities.entity import EntityObject
 from common.entities.location import LocationEntity
 from common.entities.person import PersonEntity
 from common.entity_store import EntityStore
@@ -34,7 +35,7 @@ class TestEntityStore(unittest.TestCase):
         storage = EntityStore()
         storage.upsert_items(jdlist)
 
-        retrieved_items = storage.list_items(JournalDay)
+        retrieved_items = storage.list_items(JournalDay())
         for r in retrieved_items:
             print(r)
 
@@ -44,9 +45,9 @@ class TestEntityStore(unittest.TestCase):
 
         storage = EntityStore()
 
-        locations = storage.list_items(LocationEntity)
-        print(list(storage.list_items(LocationEntity)))
-        persons = storage.list_items(PersonEntity)
+        locations = storage.list_items(LocationEntity())
+        print(list(storage.list_items(LocationEntity())))
+        persons = storage.list_items(PersonEntity())
         for p in persons:
             print(f"person: {p}")
 
@@ -55,12 +56,12 @@ class TestEntityStore(unittest.TestCase):
         p = {'id': '108', 'aliases': ['lynn', 'lynnie'], 'photos_album': 'Lynn_Photos_Album'}
         pe = PersonEntity(p)
         storage.upsert_item(pe)
-        pel = storage.list_items(PersonEntity)
+        pel = storage.list_items(PersonEntity())
         print(list(pel))
         pe_got = storage.get_item(PersonEntity({'id': '108'}))
         print(pe_got)
         storage.delete(['108'], PersonEntity)
-        pel2 = storage.list_items(PersonEntity)
+        pel2 = storage.list_items(PersonEntity())
         print(list(pel2))
         self.assertTrue(True)
 

@@ -87,7 +87,7 @@ class DoAuth(Resource):
         # value doesn't match an authorized URI, you will get a 'redirect_uri_mismatch'
         # error.
         flow.redirect_uri = url_for('auth_auth', _scheme='https', _external=True)
-        if 'localhost' in flow.redirect_uri:
+        if 'localhost' in flow.redirect_uri or '127.0.0' in flow.redirect_uri:
             flow.redirect_uri = url_for('auth_auth', _scheme='http', _external=True)
         
         authorization_url, state = flow.authorization_url(
@@ -121,11 +121,12 @@ class Auth(Resource):
             return "NO SECRET"
         
         flow.redirect_uri = url_for('auth_auth', _scheme='https', _external=True)
-        if 'localhost' in flow.redirect_uri:
+        if 'localhost' in flow.redirect_uri or '127.0.0' in flow.redirect_uri:
             flow.redirect_uri = url_for('auth_auth', _scheme='http', _external=True)
 
         url = request.url
-        if 'localhost' not in flow.redirect_uri:
+        if not ('localhost' in flow.redirect_uri or '127.0.0' in flow.redirect_uri):
+        # if 'localhost' not in flow.redirect_uri:
             if request.url.startswith('http://'):
                 url = request.url.replace('http://', 'https://', 1)
 
@@ -135,7 +136,7 @@ class Auth(Resource):
         # Store the credentials in the session & store refresh token in storage
         store_credentials(flow.credentials)
 
-        return redirect(url_for('photos_sync_operations_list'))
+        return redirect(url_for('auth_status'))
 
 @auth_ns.route('/status')
 class Status(Resource):

@@ -1,12 +1,67 @@
-from flask_restx import Namespace, Resource, reqparse
-from flask import request, url_for, redirect
+from flask_restx import Namespace, Resource, reqparse, fields
+from flask import request, url_for, redirect, jsonify
+
 import datetime
+from common.entities.journal_day import JournalDay
+from common.entity_store import EntityStore
 
 from googlephotosapi import GooglePhotosApi
 from common.google_credentials import get_credentials
 from photos_sync import PhotosSyncMgr
+from albums_sync import AlbumsSyncMgr
 
 ns = Namespace('photos', description='services to sync with google photos')
+
+
+
+@ns.route('/actor-entity-albums')
+class ActorEntityAlbums(Resource):
+    def get(self):
+        album_sync_mgr = AlbumsSyncMgr()
+
+        ae_albums = album_sync_mgr.get_actor_entity_albums()
+
+        return list(ae_albums)
+
+@ns.route('/album-sync-op/<album_id>')
+class ActorEntityAlbums(Resource):
+    def post(self, album_id):
+        album_sync_mgr = AlbumsSyncMgr()
+        sync_result = album_sync_mgr.sync_album(album_id)
+        return sync_result
+
+
+@ns.route('/unsynced-photos-ranges')
+class UnsyncedPhotoRanges(Resource):
+    def get(self):
+        photos_sync_mgr = PhotosSyncMgr()
+
+        unsynced_ranges = photos_sync_mgr.get_unexplored_date_ranges(30)
+
+        return list(unsynced_ranges)
+
+
+resource_fields = ns.model('Resource', {
+    'start': fields.String,
+    'end': fields.String
+})
+
+@ns.route('/sync-photos-op/')
+class SyncPhotosOp(Resource):
+    @ns.expect(resource_fields)
+    def post(self):
+        json_data = request.get_json(force=True)
+        startdate_iso = json_data['start']
+        enddate_iso = json_data['end']
+        try:
+            from_dt = datetime.datetime.fromisoformat(startdate_iso)
+            to_dt = datetime.datetime.fromisoformat(enddate_iso)      
+            photos_sync_mgr = PhotosSyncMgr()
+            result = photos_sync_mgr.sync_photos_in_date_range(from_dt, to_dt)  
+            return result
+            # return jsonify(s=str(from_dt), e=str(to_dt))
+        except ValueError:
+            return "bad date format", 400
     
 @ns.route('/albums')
 class Albums(Resource):
@@ -78,14 +133,16 @@ class MediaItems(Resource):
         if not start or not end:
             return []
 
-        start_date = datetime.datetime(int(start[0:4]), int(start[0][4:6]), int(start[0][6:8]))
-        end_date = datetime.datetime(int(end[0:4]), int(end[0][4:6]), int(end[0][6:8]))
+        start = start[0]
+        end = end[0]
+        start_dt = datetime.datetime(int(start[0:4]), int(start[4:6]), int(start[6:8]))
+        end_dt = datetime.datetime(int(end[0:4]), int(end[4:6]), int(end[6:8]))
                                      
         api = GooglePhotosApi(get_credentials())
 
-        album_items = api.get_media_items(start_date, end_date)
+        mitems = api.get_media_items_in_datetime_range(start_dt, end_dt)
 
-        return list(album_items)
+        return list(mitems)
 
 @ns.route('/daterange')
 class MediaItemExtents(Resource):
@@ -105,4 +162,20 @@ class TokenRefresh(Resource):
             return redirect(auth_url)
 
         return "seems we have a good token"
+
+@ns.route('/store')
+class TestStore(Resource):
+    '''get data from the entity store'''
+    def get(self):
+        '''get data'''
+        if get_credentials() is None:
+            auth_url = url_for('auth_do_auth')
+            return redirect(auth_url)
+        e = EntityStore()
+        jrnl_items = list(e.list_items(JournalDay()))
+        if jrnl_items and len(jrnl_items) > 0:    
+            return jrnl_items[0]
+        else:
+            return []
+
 

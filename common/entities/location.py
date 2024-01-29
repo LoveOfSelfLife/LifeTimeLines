@@ -6,5 +6,5 @@ class LocationEntity (EntityObject):
     partition_value="locations"
     fields=["id", "aliases", "name", "city"]
 
-    def __init__(self, d):
+    def __init__(self, d={}):
         super().__init__(d)

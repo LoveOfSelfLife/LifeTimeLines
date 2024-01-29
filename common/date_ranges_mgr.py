@@ -23,6 +23,21 @@ def get_first_unexplored_date_range(explored_date_ranges, min_date_iso, max_date
         return DateTimeRange(curr, max_date_dt)
     return None
 
+def get_unexplored_date_ranges(explored_date_ranges, min_date_iso, max_date_iso):
+    min_date_dt = datetime.datetime.fromisoformat(min_date_iso).replace(tzinfo=None)
+    curr = min_date_dt
+    for range in explored_date_ranges:
+        gap = curr - range.start_datetime
+        # if gap.days != 0:
+        if gap.total_seconds() > 0:
+            yield DateTimeRange(curr, range.start_datetime)
+        curr = range.end_datetime
+    max_date_dt = datetime.datetime.fromisoformat(max_date_iso).replace(tzinfo=None)
+    gap = max_date_dt - curr
+    # if gap != 0:
+    if gap.total_seconds() > 0:    
+        yield DateTimeRange(curr, max_date_dt)
+
 def add_range(range, date_ranges):
     date_ranges_copy = date_ranges.copy()
     date_ranges_copy.append(range)
@@ -50,6 +65,10 @@ def coaslesc_ranges(date_ranges):
         date_ranges, p = merge_pairs(date_ranges, p)
     return date_ranges
 
+def shift_date_and_round_to_day(date_dt, delta_days):
+    d = datetime.datetime(year = date_dt.year, month=date_dt.month, day=date_dt.day, tzinfo=date_dt.tzinfo)
+    return d + datetime.timedelta(days=delta_days)
+
 def break_up_date_range_into_chunks(start_dt, end_dt, num_days_per_chunk):
     chunks = list()
     gap_dt = (end_dt - start_dt)
@@ -68,6 +87,7 @@ def break_up_date_range_into_chunks(start_dt, end_dt, num_days_per_chunk):
             all_days = datetime.timedelta(days=gap)
             chunks.append( DateTimeRange(start_dt + b_days, start_dt + e_days if e < gap else start_dt + all_days) )
     return chunks
+
 
 if __name__ == '__main__':
     print("in main")

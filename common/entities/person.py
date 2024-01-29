@@ -7,5 +7,5 @@ class PersonEntity (EntityObject):
     key_field="id"
     partition_value="persons"
 
-    def __init__(self, d):
+    def __init__(self, d={}):
         super().__init__(d)

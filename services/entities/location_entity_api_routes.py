@@ -19,7 +19,7 @@ class Locations(Resource):
         location_storage = EntityStore()
         # get_list() returns a list of PersonEntity instances, which are just Dicts
         # these will automatically be serialized to JSON by the flask framework
-        return list(location_storage.list_items(LocationEntity))
+        return list(location_storage.list_items(LocationEntity()))
     
     @ns.doc('create or update a location entity')
     @ns.expect(lmodel)
@@ -27,12 +27,27 @@ class Locations(Resource):
         location_storage = EntityStore()
         pe = LocationEntity(request.get_json())
         location_storage.upsert_item(pe)
-        return { 'id': pe[LocationEntity.key_field] }, 201
+        return { 'id': pe[pe.key_field] }, 201
 
-@ns.route('/<id>')
-@ns.param('id', 'The location id')
-class Person(Resource):
-    def get(self, id):
+@ns.route('/<ids>')
+@ns.param('ids', 'comma separated list of IDs')
+class Location(Resource):
+    def get(self, ids):
         location_storage = EntityStore()
-        return location_storage.get_item(id, LocationEntity)
+        items = [] 
+        for id in ids.split(','):
+            it = location_storage.get_item(LocationEntity({"id": id})) 
+            if it:
+                items.append(it)
+        if items:
+            return items
+        else:
+            return 'not found', 404
+
+    @ns.doc('delete locations')
+    def delete(self, ids):
+        location_storage = EntityStore()
+        id_list = ids.split(',')
+        location_storage.delete(id_list, LocationEntity)
+        return { 'result': id_list }, 204
 
