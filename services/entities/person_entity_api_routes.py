@@ -20,7 +20,7 @@ class Persons(Resource):
         person_storage = EntityStore()
         # get_list() returns a list of PersonEntity instances, which are just Dicts
         # these will automatically be serialized to JSON by the flask framework
-        people =  person_storage.list_items(PersonEntity)
+        people =  person_storage.list_items(PersonEntity())
         return list(people)
     
     @ns.doc('create or update a person entity')
@@ -36,7 +36,16 @@ class Persons(Resource):
 class Person(Resource):
     def get(self, ids):
         person_storage = EntityStore()
-        return [ person_storage.get_item(id, PersonEntity) for id in ids.split(',') ]
+        items = [] 
+        for id in ids.split(','):
+            it = person_storage.get_item(PersonEntity({"id": id})) 
+            if it:
+                items.append(it)
+
+        if items:
+            return items
+        else:
+            return 'not found', 404
 
     @ns.doc('delete a person')
     def delete(self, ids):

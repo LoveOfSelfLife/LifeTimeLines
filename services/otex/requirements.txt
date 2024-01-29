@@ -1,0 +1,8 @@
+# To ensure app dependencies are ported from your virtual environment/host machine into your container, run 'pip freeze > requirements.txt' in the terminal to overwrite this file
+
+azure-data-tables==12.4.2
+python-dotenv==0.21.1
+jsonify>=0.5
+requests>=2.27
+pandas>=1.2
+datetimerange>=2.1.0

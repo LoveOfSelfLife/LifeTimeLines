@@ -7,5 +7,5 @@ class JournalDay (EntityObject):
     partition_value="jrnl"
     # items_list_field = "items"
 
-    def __init__(self, d):
+    def __init__(self, d={}):
         super().__init__(d)

@@ -8,7 +8,7 @@ class AlbumSyncTime (EntityObject):
     key_field="albumId"
     partition_value="album"
 
-    def __init__(self, d):
+    def __init__(self, d={}):
         super().__init__(d)
 
 class AlbumItem (EntityObject):
@@ -21,5 +21,5 @@ class AlbumItem (EntityObject):
     key_field="mitemId"
     partition_field="albumId"
 
-    def __init__(self, d):
+    def __init__(self, d={}):
         super().__init__(d)

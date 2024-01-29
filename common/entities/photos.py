@@ -6,7 +6,7 @@ class PhotosDateRanges (EntityObject):
     key_field="startDate"
     partition_value="photos"
 
-    def __init__(self, d):
+    def __init__(self, d={}):
         super().__init__(d)
 
 
@@ -16,5 +16,5 @@ class MediaItem (EntityObject):
     key_field="mitemId"
     partition_value="media_item"
 
-    def __init__(self, d):
+    def __init__(self, d={}):
         super().__init__(d)
