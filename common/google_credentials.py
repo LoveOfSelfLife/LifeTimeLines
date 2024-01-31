@@ -56,18 +56,24 @@ def get_refresh_token():
     return None
 
 def store_credentials(credentials):
-    print(f'store_credentials:  {str(credentials.refresh_token)}')
+    refresh_creds = credentials.refresh_token
+    print(f'store_credentials - refresh_token  {str(refresh_creds)}')
+    print(f'store_credentials - refresh_token  {str(credentials.token)}')
+
     session['credentials'] = {
         'token': credentials.token,
-        'refresh_token': credentials.refresh_token,
+        'refresh_token': refresh_creds,
         'token_uri': credentials.token_uri,
         'client_id': credentials.client_id,
         'client_secret': credentials.client_secret,
         'scopes': credentials.scopes}
-    if refresh_token_store := os.getenv('REFRESH_TOKEN_STORE', None):
-        print('storing refresh token to file system')
-        with open(refresh_token_store, 'w') as rtf:
-            rtf.write(credentials.refresh_token)
+    if not refresh_creds:
+        print('cannot store refresh creds')
+    else:
+        if refresh_token_store := os.getenv('REFRESH_TOKEN_STORE', None):
+            print('storing refresh token to file system')
+            with open(refresh_token_store, 'w') as rtf:
+                rtf.write(credentials.refresh_token)
 
 def google_doauth(url_auth_shorthand):
     print('in /doauth')
