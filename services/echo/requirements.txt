@@ -10,3 +10,7 @@ requests>=2.27
 pandas>=1.2
 Flask-Cors==3.0.10
 datetimerange>=2.1.0
+google-api-python-client>=1.12
+google-auth>=1.25
+google-auth-oauthlib>=0.4
+google-auth-httplib2>=0.0.4
