@@ -1,10 +1,11 @@
 from flask_restx import Namespace, Resource, reqparse, fields
-from flask import request, url_for, redirect
+from flask import make_response, request, url_for, redirect
 import datetime
 import json
 from common.jwt_auth import requires_auth
 from common.google_credentials import google_doauth, google_auth
 from flask import render_template
+import os
 
 ns = Namespace('echos', description='echo api')
 
@@ -19,7 +20,7 @@ class GoogleDoAuth(Resource):
     ''' '''
     @ns.doc('refresh')
     def get(self):
-        return render_template('refresh.html')
+        return make_response(render_template('refresh.html'))
 
 @ns.route('/doauth')
 class GoogleDoAuth(Resource):
