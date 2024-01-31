@@ -3,6 +3,8 @@ from flask import request, url_for, redirect
 import datetime
 import json
 from common.jwt_auth import requires_auth
+from common.google_credentials import google_doauth, google_auth
+from flask import render_template
 
 ns = Namespace('echos', description='echo api')
 
@@ -11,7 +13,29 @@ class Cache():
     def __init__(self):
         pass
 
-@ns.route('/')
+
+@ns.route('/refresh')
+class GoogleDoAuth(Resource):
+    ''' '''
+    @ns.doc('refresh')
+    def get(self):
+        return render_template('refresh.html')
+
+@ns.route('/doauth')
+class GoogleDoAuth(Resource):
+    ''' '''
+    @ns.doc('doauth')
+    def get(self):
+        return google_doauth()
+
+@ns.route('/auth')
+class GoogleAuth(Resource):
+    ''' '''
+    @ns.doc('auth')
+    def get(self):
+        return google_auth()
+
+@ns.route('/echo')
 class Echo(Resource):
     ''' '''
     @ns.doc('echo')
