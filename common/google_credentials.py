@@ -68,7 +68,7 @@ def store_credentials(credentials):
         with open(refresh_token_store, 'w') as rtf:
             rtf.write(credentials.refresh_token)
 
-def google_doauth():
+def google_doauth(url_auth_shorthand):
     print('in /doauth')
 
     if client_config := get_config_from_secret():
@@ -80,9 +80,9 @@ def google_doauth():
     # for the OAuth 2.0 client, which you configured in the API Console. If this
     # value doesn't match an authorized URI, you will get a 'redirect_uri_mismatch'
     # error.
-    flow.redirect_uri = url_for('auth_auth', _scheme='https', _external=True)
+    flow.redirect_uri = url_for(url_auth_shorthand, _scheme='https', _external=True)
     if 'localhost' in flow.redirect_uri or '127.0.0' in flow.redirect_uri:
-        flow.redirect_uri = url_for('auth_auth', _scheme='http', _external=True)
+        flow.redirect_uri = url_for(url_auth_shorthand, _scheme='http', _external=True)
     
     authorization_url, state = flow.authorization_url(
     # Enable offline access so that you can refresh an access token without
@@ -101,7 +101,7 @@ def google_doauth():
     return redirect_url
 
 
-def google_auth():
+def google_auth(url_auth_shorthand, url_whendone_shorthand):
     print('in /auth')
     # Specify the state when creating the flow in the callback so that it can
     # verified in the authorization server response.
@@ -112,9 +112,9 @@ def google_auth():
     else:
         return "NO SECRET"
     
-    flow.redirect_uri = url_for('auth_auth', _scheme='https', _external=True)
+    flow.redirect_uri = url_for(url_auth_shorthand, _scheme='https', _external=True)
     if 'localhost' in flow.redirect_uri or '127.0.0' in flow.redirect_uri:
-        flow.redirect_uri = url_for('auth_auth', _scheme='http', _external=True)
+        flow.redirect_uri = url_for(url_auth_shorthand, _scheme='http', _external=True)
 
     url = request.url
     if not ('localhost' in flow.redirect_uri or '127.0.0' in flow.redirect_uri):
@@ -128,7 +128,7 @@ def google_auth():
     # Store the credentials in the session & store refresh token in storage
     store_credentials(flow.credentials)
 
-    return redirect(url_for('auth_status'))
+    return redirect(url_for(url_whendone_shorthand))
 
 
 auth_ns = Namespace('auth', description='services to sync with google photos', path='/')

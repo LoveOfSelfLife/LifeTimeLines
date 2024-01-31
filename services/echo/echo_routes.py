@@ -27,14 +27,21 @@ class GoogleDoAuth(Resource):
     ''' '''
     @ns.doc('doauth')
     def get(self):
-        return google_doauth()
+        return google_doauth('echos_google_auth')
 
 @ns.route('/auth')
 class GoogleAuth(Resource):
     ''' '''
     @ns.doc('auth')
     def get(self):
-        return google_auth()
+        return google_auth('echos_google_auth', 'echos_google_done')
+
+@ns.route('/done')
+class GoogleDone(Resource):
+    ''' '''
+    @ns.doc('auth')
+    def get(self):
+        return "done"
 
 @ns.route('/echo')
 class Echo(Resource):
