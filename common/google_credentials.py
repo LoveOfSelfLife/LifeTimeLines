@@ -56,6 +56,7 @@ def get_refresh_token():
     return None
 
 def store_credentials(credentials):
+    print(f'store_credentials:  {str(credentials.refresh_token)}')
     session['credentials'] = {
         'token': credentials.token,
         'refresh_token': credentials.refresh_token,
