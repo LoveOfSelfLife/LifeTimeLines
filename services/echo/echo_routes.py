@@ -41,7 +41,7 @@ class GoogleDone(Resource):
     ''' '''
     @ns.doc('auth')
     def get(self):
-        return "done"
+        return make_response(render_template('done.html'))
 
 @ns.route('/echo')
 class Echo(Resource):

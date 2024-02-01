@@ -57,8 +57,6 @@ def get_refresh_token():
 
 def store_credentials(credentials):
     refresh_creds = credentials.refresh_token
-    print(f'store_credentials - refresh_token  {str(refresh_creds)}')
-    print(f'store_credentials - refresh_token  {str(credentials.token)}')
 
     session['credentials'] = {
         'token': credentials.token,
@@ -68,7 +66,7 @@ def store_credentials(credentials):
         'client_secret': credentials.client_secret,
         'scopes': credentials.scopes}
     if not refresh_creds:
-        print('cannot store refresh creds')
+        print('refresh token is None - cannot store refresh token')
     else:
         if refresh_token_store := os.getenv('REFRESH_TOKEN_STORE', None):
             print('storing refresh token to file system')
