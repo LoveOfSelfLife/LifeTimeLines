@@ -6,6 +6,7 @@ from common.jwt_auth import requires_auth
 from common.google_credentials import google_doauth, google_auth
 from flask import render_template
 import os
+from common.vault import Vault
 
 ns = Namespace('echos', description='echo api')
 
@@ -14,7 +15,26 @@ class Cache():
     def __init__(self):
         pass
 
+@ns.route('/set-key/<key>/<val>')
+class GoogleDoAuth(Resource):
+    ''' '''
+    @ns.doc('set-key')
+    def get(self, key, val):
+        kv = Vault()
+        kv.set_secret_to_vault(key, val)
+        return f"key: <{key}> set to value: <{val}>"
 
+@ns.route('/get-key/<key>')
+class GoogleDoAuth(Resource):
+    ''' '''
+    @ns.doc('get-key')
+    def get(self, key):
+        kv = Vault()
+        if val := kv.get_secret_from_vault(key):
+            return val
+        else:
+            return "not found", 404
+        
 @ns.route('/refresh')
 class GoogleDoAuth(Resource):
     ''' '''

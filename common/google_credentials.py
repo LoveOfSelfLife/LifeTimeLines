@@ -6,6 +6,7 @@ from flask_restx import Namespace, Resource
 from flask import session, request, url_for, redirect
 from google_auth_oauthlib.flow import Flow
 import common.encoder
+from common.vault import Vault
 
 GOOGLE_SCOPES = ['https://www.googleapis.com/auth/photoslibrary.readonly', \
                  'https://www.googleapis.com/auth/gmail.readonly', \
@@ -22,8 +23,10 @@ def get_config_from_secret():
 def get_credentials(scopes=GOOGLE_SCOPES):
     try:
         if 'credentials' in session and session['credentials'] is not None:
-            print('using credentials found in session')
+            print(f'using credentials found in session')
             session['credentials']['scopes'] = scopes
+            if refresh_token := session['credentials']['refresh_token']:
+                store_refresh_token(refresh_token)
             return google.oauth2.credentials.Credentials(**session['credentials'])
     except:
         pass
@@ -39,39 +42,26 @@ def get_credentials(scopes=GOOGLE_SCOPES):
                 'client_secret': cfg['client_secret'],
                 'scopes': scopes
             }
-            print('using refresh_token found in file system in order to refresh credentials')
+            print('using refresh_token found stored in order to refresh credentials')
             return google.oauth2.credentials.Credentials(**credentials)
 
     print('credentials not found in session or in file system')
     return None
 
 def get_refresh_token():
-    if refresh_token_store := os.getenv('REFRESH_TOKEN_STORE', None):
-        try:
-            with open(refresh_token_store, 'r') as rtf:
-                refresh_token = rtf.readline()
-                return refresh_token
-        except OSError:
-            return None
+    kv = Vault()
+    if refresh_token := kv.get_secret_from_vault("refreshtoken"):
+        print("found refresh_token in keyvault")
+        return refresh_token
     return None
 
-def store_credentials(credentials):
-    refresh_creds = credentials.refresh_token
-
-    session['credentials'] = {
-        'token': credentials.token,
-        'refresh_token': refresh_creds,
-        'token_uri': credentials.token_uri,
-        'client_id': credentials.client_id,
-        'client_secret': credentials.client_secret,
-        'scopes': credentials.scopes}
-    if not refresh_creds:
+def store_refresh_token(refresh_token):
+    if not refresh_token:
         print('refresh token is None - cannot store refresh token')
     else:
-        if refresh_token_store := os.getenv('REFRESH_TOKEN_STORE', None):
-            print('storing refresh token to file system')
-            with open(refresh_token_store, 'w') as rtf:
-                rtf.write(credentials.refresh_token)
+        print('storing refresh token to keyvault')
+        kv = Vault()
+        kv.set_secret_to_vault("refreshtoken", str(refresh_token))
 
 def google_doauth(url_auth_shorthand):
     print('in /doauth')
@@ -100,9 +90,6 @@ def google_doauth(url_auth_shorthand):
     session['state'] = state
     print(f"redirecting to URL: {authorization_url}")
     redirect_url = redirect(authorization_url)
-    # redirect_url.access_control_allow_origin = 'http://localhost:3000'
-    # redirect_url.access_control_allow_headers = 'Content-Type,Authorization'
-    # redirect_url.access_control_allow_methods = 'GET,PUT,POST,DELETE,OPTIONS'
     return redirect_url
 
 
@@ -131,7 +118,15 @@ def google_auth(url_auth_shorthand, url_whendone_shorthand):
     flow.fetch_token(authorization_response=authorization_response)
 
     # Store the credentials in the session & store refresh token in storage
-    store_credentials(flow.credentials)
+    session['credentials'] = {
+        'token': flow.credentials.token,
+        'refresh_token': flow.credentials.refresh_token,
+        'token_uri': flow.credentials.token_uri,
+        'client_id': flow.credentials.client_id,
+        'client_secret': flow.credentials.client_secret,
+        'scopes': flow.credentials.scopes}    
+    
+    store_refresh_token(flow.credentials.refresh_token)
 
     return redirect(url_for(url_whendone_shorthand))
 
