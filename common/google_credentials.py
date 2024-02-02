@@ -23,7 +23,7 @@ def get_config_from_secret():
 def get_credentials(scopes=GOOGLE_SCOPES):
     try:
         if 'credentials' in session and session['credentials'] is not None:
-            print(f'using credentials found in session: {session["credentials"]}')
+            print(f'using credentials found in session')
             session['credentials']['scopes'] = scopes
             if refresh_token := session['credentials']['refresh_token']:
                 store_refresh_token(refresh_token)
@@ -42,7 +42,7 @@ def get_credentials(scopes=GOOGLE_SCOPES):
                 'client_secret': cfg['client_secret'],
                 'scopes': scopes
             }
-            print('using refresh_token found in file system in order to refresh credentials')
+            print('using refresh_token found stored in order to refresh credentials')
             return google.oauth2.credentials.Credentials(**credentials)
 
     print('credentials not found in session or in file system')
@@ -53,15 +53,6 @@ def get_refresh_token():
     if refresh_token := kv.get_secret_from_vault("refreshtoken"):
         print("found refresh_token in keyvault")
         return refresh_token
-    
-    # if refresh_token_store := os.getenv('REFRESH_TOKEN_STORE', None):
-    #     try:
-    #         with open(refresh_token_store, 'r') as rtf:
-    #             refresh_token = rtf.readline()
-    #             return refresh_token
-    #     except OSError:
-    #         return None
-
     return None
 
 def store_refresh_token(refresh_token):
@@ -71,11 +62,6 @@ def store_refresh_token(refresh_token):
         print('storing refresh token to keyvault')
         kv = Vault()
         kv.set_secret_to_vault("refreshtoken", str(refresh_token))
-
-        # if refresh_token_store := os.getenv('REFRESH_TOKEN_STORE', None):
-        #     print('storing refresh token to file system')
-        #     with open(refresh_token_store, 'w') as rtf:
-        #         rtf.write(refresh_token)
 
 def google_doauth(url_auth_shorthand):
     print('in /doauth')
@@ -104,9 +90,6 @@ def google_doauth(url_auth_shorthand):
     session['state'] = state
     print(f"redirecting to URL: {authorization_url}")
     redirect_url = redirect(authorization_url)
-    # redirect_url.access_control_allow_origin = 'http://localhost:3000'
-    # redirect_url.access_control_allow_headers = 'Content-Type,Authorization'
-    # redirect_url.access_control_allow_methods = 'GET,PUT,POST,DELETE,OPTIONS'
     return redirect_url
 
 
