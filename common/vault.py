@@ -7,20 +7,16 @@ def get_creds_from_env():
     client_secret = os.getenv('AZURE_CLIENT_SECRET', None)
     tenant_id = os.getenv('TENANT_ID', None)
     if client_id and client_secret and tenant_id:
-        return { "tenant_id": tenant_id, "client_id" : client_id, "client_secret" : client_secret }
+        return ClientSecretCredential(tenant_id, client_id, client_secret)
     else:
-        return None
+        return DefaultAzureCredential()
 
 class Vault:
 
     def __init__(self, vault_name = "lifetimelines-secrets-1"):
         self.vault_name = vault_name
         self.key_vault_uri = f"https://{vault_name}.vault.azure.net"
-        creds = get_creds_from_env()
-        if creds:
-            self.credential = ClientSecretCredential(creds["tenant_id"], creds["client_id"], creds["client_secret"])
-        else:
-            self.credential = DefaultAzureCredential()
+        self.credential = get_creds_from_env()
         self.client = SecretClient(vault_url=self.key_vault_uri, credential=self.credential)
         
     def get_secret_from_vault(self, secret_name):
