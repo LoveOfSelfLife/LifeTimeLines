@@ -6,17 +6,35 @@ from common.orchestration.orchestration_utils import OrchestrationDefinition
 # from common.orchestration.orchestration_utils import call_api
 import common.orchestration.executors
 
-def advance_orchestration(orch_instance_id, steps_to_advance=1, token=None):
+def get_orchestration_instances(orch_instance_id):
+    es = EntityStore()
+    instances = list(es.list_items(OrchestrationTaskInstance({"parent_instance_id": orch_instance_id})))
+    instance = None
+    tasks = []
+    for inst in instances:
+        if inst.get('is_parent', None):
+            isntance = inst
+        else:
+            tasks.append(inst)
 
-    """this method will execute the indicated orchestration intance.
-    args: ID of the orchestration intance, 
+    definition_id = instance.get('definition_id', None)
+
+    if definition_id:
+        definition = es.get_item(OrchestrationDefinition({'id': definition_id}))
+
+    return definition, instance, tasks
+
+
+def advance_orchestration(orch_definition, orch_instance, task_instances, steps_to_advance=1, token=None):
+
+    """this method will execute the indicated orchestration intance, by running the indicated task_instances
+    the orch_definition defines the details of what needs to be done, the instances are just there to keep track of state
+    orch_definition: ID of the orchestration intance, 
     auth token,
     the number of steps to push the orchestration forward.  By default, the orchestration engine will execute the next task that is defined 
     in the orchestration definion, and then it will cede control and post a message for the next task to execute.
 
-    first step is to use the ID of the orchestration intance to hydrate the instance from storage, along with the list of task instances.
-    From that we can then hydrate the orchestration definition.
-    Each of the retrieved task instances will have a current status. 
+    Each of the task instances will have a current status. 
     We need to look at the orch definition along with the statuses of the tasks in order to identify the next task that needs to run. 
     
     find_next_task_to_run() can be implemented as follows:
@@ -24,7 +42,7 @@ def advance_orchestration(orch_instance_id, steps_to_advance=1, token=None):
         For each task that is not complete, add it and it's dependencies to a directed graph
         run a topological sort on the graph to identify the next task to run
 
-    we need to be careful that we don't fall into an infinite loop here.   One idea is the following:
+    we need to be careful about is to avoid falling into an infinite loop.   One idea is the following:
         each time we try to execute an orchestration instance, we increment a persistent counter on that instance
         then before attempting to execute the instance, we check the counter to verify it hasn't exceeded a threshold
 
@@ -50,17 +68,11 @@ def advance_orchestration(orch_instance_id, steps_to_advance=1, token=None):
         7.b. we should proceed to execute the next task, until the desired number of tasks is done
             
     """
-    
     es = EntityStore()
-    instances = es.list_items(OrchestrationTaskInstance({"parent_instance_id": orch_instance_id}))
-    definition_id = instances[0].get('definition_id')
-    definition = None
-    if definition_id:
-        definition = es.get_item(OrchestrationDefinition({'id': definition_id}))
-    next_task = find_next_task_to_exec(definition, instances)
-    context = instances['context']
-    tasks = instances['tasks']
     
+    next_task = find_next_task_to_exec(orch_definition, task_instances)
+    context = orch_instance.get('context', {})
+    next_task['status'] = 'started'
     call_api_fn = getattr(common.orchestration.executors, "call_api")
 
     service = 'myservice'
@@ -72,8 +84,8 @@ def advance_orchestration(orch_instance_id, steps_to_advance=1, token=None):
     return call_api_fn(service, method, path, body, token)
 
 
-def find_next_task_to_exec(definition, instances):
-    return None
+def find_next_task_to_exec(definition, tasks):
+    return tasks[0]
 
 
 if __name__ == '__main__':

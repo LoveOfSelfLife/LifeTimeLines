@@ -30,6 +30,11 @@ class EntityObject (dict):
             return type(self).partition_value
         return self[self.get_partition_field()]
 
+    def get_static_partition_value(self):
+        if type(self).partition_value:
+            return type(self).partition_value
+        return None
+
     def get_table_name(self):
         return type(self).table_name
 
@@ -98,8 +103,12 @@ class EntityStore :
             pass
             # filter = filter
             # TODO: complete this
-        for r in storage.query(eobj.get_partition_value()):
-            yield self._loads_from_storage_format(r, type(eobj))
+        if eobj.get_static_partition_value():
+            for r in storage.query(eobj.get_partition_value()):
+                yield self._loads_from_storage_format(r, type(eobj))
+        else:
+            for r in storage.query():
+                yield self._loads_from_storage_format(r, type(eobj))
 
     def get_item(self, eobj):
         try:

@@ -38,7 +38,7 @@ class TableStore():
         entity = {**keys, **vals}
         self.table_client.upsert_entity(entity)
 
-    def query(self, partition_value, filter=None):
+    def query(self, partition_value=None, filter=None):
         if partition_value:
             if filter:
                 result = self.table_client.query_entities(query_filter=f"PartitionKey eq @pk and {filter}", parameters={"pk": partition_value})

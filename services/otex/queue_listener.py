@@ -4,7 +4,9 @@ import time
 
 from azure.storage.queue import QueueClient
 from dotenv import load_dotenv
-from services.otex.orchestration_runner import advance_orchestration
+from common.queue_store import QueueStore
+from common.table_store import TableStore
+from services.otex.orchestration_runner import advance_orchestration, get_orchestration_instances
 from common.graceful_exit import GracefulExit
 from common.auth_requestor import AuthRequestor
 
@@ -33,7 +35,8 @@ def main() -> None:
     if STORAGE_QUEUE_NAME is None:
         raise Exception(f'You attempted to run the container without providing the STORAGE_QUEUE_NAME')
 
-    # assert STORAGE_QUEUE_NAME is not None
+    TableStore.initialize(STORAGE_CONNECTION_STRING)
+    QueueStore.initialize(STORAGE_CONNECTION_STRING)
 
     queue_client = QueueClient.from_connection_string(STORAGE_CONNECTION_STRING, STORAGE_QUEUE_NAME)
     print(f'Client created for: {STORAGE_QUEUE_NAME}')
@@ -56,7 +59,9 @@ def main() -> None:
                 message_content_json = json.loads(message.content)
                 orch_instance_id = message_content_json['instanceId']
                 steps_to_advance = message_content_json.get('steps_to_advance', 1)
-                result = advance_orchestration(orch_instance_id, steps_to_advance, auth.get_auth_token())
+                orch_definition, orch_instance, task_instances = get_orchestration_instances(orch_instance_id)
+                result = advance_orchestration(orch_definition, orch_instance, task_instances, steps_to_advance, auth.get_auth_token())
+
             else:
                 print(f'no message to process (message.content is empty)', flush=True)
 

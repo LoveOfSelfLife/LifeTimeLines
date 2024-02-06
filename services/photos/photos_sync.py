@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, tzinfo
 from common.entities.syncoperation import SyncOperation
 from common.utils import generate_unique_id
 from googlephotosapi import GooglePhotosApi
@@ -106,16 +106,27 @@ class PhotosSyncMgr ():
 
         return { "start_dt": str(from_dt), "end_dt": str(to_dt), "num_items_synced": num_mitems_processed }
     
-    def get_unexplored_date_ranges(self, max_range_length):
+    def get_unexplored_date_ranges(self, start_range_iso, end_range_iso, max_range_length):
         print('get_unexplored_date_ranges')
+
+        if not max_range_length:
+            max_range_length = 30
 
         extent = self.photos_api.get_media_items_daterange_extent()
         earliest_media_item_iso = extent['earliest']
         latest_media_item_iso  = extent['latest']
         
+        if not start_range_iso:
+            start_range_iso = earliest_media_item_iso
+
+        if not end_range_iso:
+            end_range_iso = latest_media_item_iso
+
+        start_range_dt = datetime.fromisoformat(start_range_iso).replace(tzinfo=None)
+        end_range_dt = datetime.fromisoformat(end_range_iso).replace(tzinfo=None)
+
         explored_date_ranges =  load_date_ranges(self.storage.list_items(PhotosDateRanges()))
         explored_date_ranges =  []
-        
         
         unexplored_date_ranges = get_unexplored_date_ranges(explored_date_ranges,
                                                             earliest_media_item_iso, 
@@ -129,6 +140,10 @@ class PhotosSyncMgr ():
                                                          max_range_length)
             for sr in sub_ranges:
                 sr:DateTimeRange = sr
+                if sr.end_datetime < start_range_dt:
+                    continue
+                if sr.start_datetime > end_range_dt:
+                    continue
                 yield { "start" : sr.get_start_time_str(), "end" : sr.get_end_time_str() }
 
 if __name__ == '__main__':

@@ -28,8 +28,8 @@ class Definitions(Resource):
     @ns.doc('create orchestration definition')
     @ns.expect(orch_def_resource_fields)
     def post(self):
-        json_data = request.get_json(force=True)
-        definition= json_data['definition']
+        definition = request.get_json(force=True)
+        # definition= json_data['definition']
 
         if def_id := definition.get('id', None):
             es = EntityStore()

@@ -1,6 +1,7 @@
 from flask_restx import Namespace, Resource, reqparse, fields
 from flask import request, url_for, redirect, jsonify
 
+
 import datetime
 from common.entities.journal_day import JournalDay
 from common.entity_store import EntityStore
@@ -11,8 +12,6 @@ from photos_sync import PhotosSyncMgr
 from albums_sync import AlbumsSyncMgr
 
 ns = Namespace('photos', description='services to sync with google photos')
-
-
 
 @ns.route('/actor-entity-albums')
 class ActorEntityAlbums(Resource):
@@ -31,12 +30,24 @@ class ActorEntityAlbums(Resource):
         return sync_result
 
 
+range_parser = reqparse.RequestParser()
+range_parser.add_argument("start_dt_iso", type=str)
+range_parser.add_argument("end_dt_iso", type=str)
+range_parser.add_argument("gap_days", type=int)
+
+
 @ns.route('/unsynced-photos-ranges')
 class UnsyncedPhotoRanges(Resource):
+    @ns.expect(range_parser)
     def get(self):
         photos_sync_mgr = PhotosSyncMgr()
+        args = range_parser.parse_args()
+        between_start = args['start_dt_iso']
+        between_end = args['end_dt_iso']
+        min_days = args['gap_days']
 
-        unsynced_ranges = photos_sync_mgr.get_unexplored_date_ranges(30)
+        # return { "args" : f"start: {args['start']} end: {args['end']}  gap: {args['gap']}" }
+        unsynced_ranges = photos_sync_mgr.get_unexplored_date_ranges(between_start, between_end, min_days)
 
         return list(unsynced_ranges)
 

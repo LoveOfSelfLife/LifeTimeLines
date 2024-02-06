@@ -1,0 +1,93 @@
+{
+    "def": {
+        "id": "sync-and-curate-mediaitems2",
+        "context": {
+            "start": null,
+            "end": null,
+            "gap": "30"
+        },
+        "flow": [
+            {
+                "step": "gather prelim details",
+                "tasks": [
+                    "task1"
+                ]
+            },
+            {
+                "step": "extract content",
+                "tasks": [
+                    "task2"
+                ]
+            }
+        ],
+        "tasks": [
+            {
+                "taskId": "task1",
+                "taskDescription": "retrieve-unsynced-media-item-dateranges",
+                "dependson": [],
+                "worker": {
+                    "pyfunc": "retrieve_unsynced_mediaitem_dateranges_fn"
+                },
+                "inputs": {
+                    "after": "$<context.start>",
+                    "before": "$<context.end>",
+                    "daysgap": "$<context.gap>"
+                }
+            },
+            {
+                "taskId": "task2",
+                "taskDescription": "sync-media-items-in-daterange",
+                "dependson": [],
+                "worker": {
+                    "pyfunc": "sync_mediaitems_in_daterange_fn"
+                },
+                "inputs": { "range" : "$<[tasks.task1.output]>",
+                            "gap" : "$<context.gap>" }
+            }
+        ],
+        "version": 1.0
+    },
+    "orch": {
+        "id": "1707171215",
+        "parent_instance_id": "1707171215",
+        "child_tasks": {
+            "task1": "1707171215-0",
+            "task2": "1707171215-1"
+        },
+        "context": {
+            "start": "20230101",
+            "end": "20230701",
+            "gap": "20"
+        },
+        "definition_id": "sync-and-curate-mediaitems2",
+        "is_parent": true,
+        "output": null,
+        "status": "not_started"
+    },
+    "tasks": [
+        {
+            "id": "1707171215-0",
+            "parent_instance_id": "1707171215",
+            "context": null,
+            "definition_id": "sync-and-curate-mediaitems2",
+            "execution_details": [],
+            "executions": [],
+            "is_parent": false,
+            "output": null,
+            "status": "not_started",
+            "task_id": "task1"
+        },
+        {
+            "id": "1707171215-1",
+            "parent_instance_id": "1707171215",
+            "context": null,
+            "definition_id": "sync-and-curate-mediaitems2",
+            "execution_details": [],
+            "executions": [],
+            "is_parent": false,
+            "output": null,
+            "status": "not_started",
+            "task_id": "task2"
+        }
+    ]
+}
