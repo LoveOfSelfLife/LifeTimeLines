@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import unittest
 import json
 from common.entity_store import EntityStore
-from common.orchestration.OrchestrationExecutor import OrchestrationExecutor
+from common.orchestration.orchestration_executor import OrchestrationExecutor
 from common.table_store import TableStore
 import sys
 
@@ -69,5 +69,34 @@ class TestOrchestrations(unittest.TestCase):
             print(inp)
 
 
+
+    def test_call_executor_function(self):
+        import common.orchestration.executors        
+        call_fn = getattr(common.orchestration.executors, "foo")
+        input = {"x": 23, "y":3}
+
+        result =  call_fn(**input)
+        
+        print(result)
+
+    def test_run_task1(self):
+        print(f"original task1 instance: {self.exec.get_task_instance('task1')}")
+        task1_instance = self.exec.get_task_instance('task1')
+        self.exec.run_task_instance(task1_instance)
+        after = self.exec.get_task_instance('task1')
+        print(f"after running task1: {json.dumps(after, indent=4)}")
+
+
+    def test_run_task1_task2(self):
+        print(f"original task1 instance: {self.exec.get_task_instance('task1')}")
+        task1_instance = self.exec.get_task_instance('task1')
+        self.exec.run_task_instance(task1_instance)
+        after1 = self.exec.get_task_instance('task1')
+        print(f"after running task1: {json.dumps(after1, indent=4)}")
+        task2_instance = self.exec.get_task_instance('task2')
+        self.exec.run_task_instance(task2_instance)
+        after2 = self.exec.get_task_instance('task2')
+        print(f"after running task2: {json.dumps(after2, indent=4)}")
+        
 if __name__ == '__main__':
     unittest.main()

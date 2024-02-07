@@ -118,7 +118,8 @@ def create_orch_instances(definition, context):
                                                         "is_parent": False,
                                                         "output" : None,
                                                         "execution_details" : [],
-                                                        "executions" : []
+                                                        "executions" : [],
+                                                        "exec_index" : 0
                                                         }))
         child_tasks[task_def['taskId']] = task_instance_id
         i += 1

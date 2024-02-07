@@ -1,3 +1,4 @@
+import copy
 import re
 
 
@@ -23,8 +24,8 @@ class OrchestrationExecutor:
     def extract_var(self, expression_str):
         var = None
         is_iterator = False
-        PAT_ITERATOR =  '\$<\[(.*)\]>'
-        PAT_SINGLE =  '\$<(.*)>'
+        PAT_ITERATOR =  r'\$<\[(.*)\]>'
+        PAT_SINGLE =  r'\$<(.*)>'
         m = re.match(PAT_ITERATOR, expression_str)
         if m:
             var = m.group(1)
@@ -99,33 +100,64 @@ class OrchestrationExecutor:
             if is_iterator['iterator']:
                 for item in self.resolve(is_iterator['val'], task_instance):
                     new_inputs[is_iterator['key']] = item
-                    yield new_inputs
+                    yield copy.deepcopy(new_inputs)
             else:
                 yield new_inputs
         else:
             raise Exception(f"support for {type(inputs)} value inputs not implememted")
         
     def invoke_function(self, func, input):
-        pass
-    def get_function(self, task_instance):
-        task_def = self.get_task_def(task_instance)
-        return task_def['worker']['pyfunc']
+        result = func(**input)
+        return result
 
+    def get_function(self, task_instance):
+        import common.orchestration.executors    
+        task_def = self.get_task_def(task_instance)
+        func_str = task_def['worker']['pyfunc']
+        func_callable = getattr(common.orchestration.executors, func_str)
+        return func_callable
+    
     def persist(self, instance):
         self.store.persist_instance(instance)
 
     def run_task_instance(self, task_instance):
+        from datetime import datetime
+
         task_instance['status'] = 'starting'
-        self.store.persist_instance(task_instance)
-        inputs, is_iterator = self.create_inputs_for_task(task_instance)
-
+        self.persist(task_instance)
+        
+        inputs = list(self.create_inputs_for_task(task_instance))
         the_function = self.get_function(task_instance)
-        try:
-            output = self.invoke_function(the_function, inputs)
-            task_instance['output'] = output
-            task_instance['status'] = 'success'
-            self.store.persist_instance(task_instance)
-        except:
-            task_instance['status'] = 'failed'
 
-        self.store.persist_instance(task_instance)
+        num_inputs = len(inputs)
+        task_instance_id = task_instance['id']
+
+        if num_inputs > 1:
+            task_instance['output'] = []
+
+        task_status = "success"
+        exec_index=task_instance['exec_index']
+        for input in inputs:
+            exec_id = f"{task_instance_id}-{exec_index}"
+            exec_index += 1
+            start_time = datetime.now().isoformat()
+            output = self.invoke_function(the_function, input)
+            try:
+                output = self.invoke_function(the_function, input)
+                if num_inputs == 1:
+                    task_instance['output'] = output
+                else:
+                    task_instance['output'].append(output)
+                exec_status = "success"
+            except:
+                task_status = "failed"
+                exec_status = "failed"
+
+            end_time = datetime.now().isoformat()
+            task_instance['execution_details'].append({"start": start_time, "end": end_time, "exec_id": exec_id, "status": exec_status})
+            task_instance['executions'].append(exec_id)
+            self.persist(task_instance)
+
+        task_instance['status'] = task_status
+        task_instance['exec_index'] = exec_index
+        self.persist(task_instance)
