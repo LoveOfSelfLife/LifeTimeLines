@@ -1,9 +1,7 @@
-import copy
 import time
 import requests
 from common.entity_store import EntityObject, EntityStore
 import common.orchestration.executors
-import json
 
 class OrchestrationDefinition (EntityObject):
     """ this table 
@@ -29,13 +27,13 @@ class OrchestrationTaskInstance (EntityObject):
     def __init__(self, d={}):
         super().__init__(d)
 
-class AbstratctOrchStore:
+class AbstratctOrchDataStore:
     def get_orch_data(self, id):
         pass
     def persist_instance(self, instance):
         pass
 
-class OrchTaskDefStore (AbstratctOrchStore):
+class OrchTaskDefDataStore (AbstratctOrchDataStore):
     def __init__(self):
         self.es = EntityStore()
 
@@ -58,38 +56,6 @@ class OrchTaskDefStore (AbstratctOrchStore):
 
     def persist_instance(self, instance):
         self.es.upsert_item(instance)
-
-class TestingStore (AbstratctOrchStore):
-    def __init__(self, definition, orch_instance, task_instances):
-        self.es = EntityStore()
-        self.definition = definition
-        self.orch_instance = [ orch_instance ]
-        self.task_instances = {}
-        for task in task_instances:
-            self.task_instances[task['task_id']] = [ task ]
-
-    def get_orch_data(self, orch_instance_id):
-        return self.definition, copy.deepcopy(self.orch_instance[-1]), [ copy.deepcopy(t[-1]) for t in self.task_instances.values()]
-    
-    def persist_instance(self, instance):
-        if instance['is_parent']:
-            self.orch_instance.append(instance)
-        else:
-            self.task_instances[instance['task_id']].append(instance)
-
-    def get_all_orch_data(self, orch_instance_id):
-        return self.definition, self.orch_instance, [ t for t in self.task_instances.values()]
-
-    def __str__(self):
-        d,o,t = self.get_orch_data(self, None)
-        d,o_all,t_all = self.get_all_orch_data(self, None)
-
-        return json.dumps({"latest" : { "instances" :  o,
-                                        "tasks" : t},
-                            "all": { "instances" :  o_all,
-                                    "tasks" : t_all},
-                }, indent=4)
-
 
 def create_orch_instances(definition, context):
     # need to create unique IDs for the parent instance, as well as for each of the child tasks
@@ -137,13 +103,21 @@ def create_orch_instances(definition, context):
     return instance_records
 
 
-def create_task_input_dict(task_instance_id, orch_def, orch_instance):
-    """analysze the fields defined in the input structure of the task instance,
-    replace all variables with values from the context & from the tasks
 
-    Args:
-        task_instance_id (_type_): _description_
-        orch_def (_type_): _description_
-        orch_instance (_type_): _description_
-    """
-    pass
+def get_orchestration_instances(orch_instance_id):
+    es = EntityStore()
+    instances = list(es.list_items(OrchestrationTaskInstance({"parent_instance_id": orch_instance_id})))
+    instance = None
+    tasks = []
+    for inst in instances:
+        if inst.get('is_parent', None):
+            isntance = inst
+        else:
+            tasks.append(inst)
+
+    definition_id = instance.get('definition_id', None)
+
+    if definition_id:
+        definition = es.get_item(OrchestrationDefinition({'id': definition_id}))
+
+    return definition, instance, tasks

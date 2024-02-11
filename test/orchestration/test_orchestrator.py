@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import unittest
 import json
 from common.entity_store import EntityStore
+from test_orch_datastore import TestOrchDataStore
 from common.orchestration.orchestration_executor import OrchestrationExecutor
 from common.table_store import TableStore
 import sys
@@ -11,9 +12,9 @@ import sys
 sys.path.append('../services')
 
 import common.orchestration.executors as ex
-from common.orchestration.orchestration_utils import OrchTaskDefStore, OrchestrationTaskInstance, TestingStore
+from common.orchestration.orchestration_utils import OrchTaskDefDataStore, OrchestrationTaskInstance
 from common.orchestration.orchestration_utils import OrchestrationDefinition
-from services.otex.orchestration_runner import find_next_task_to_exec, advance_orchestration
+#from services.otex.orchestration_runner import find_next_task_to_exec, execute_orchestration
 
 class TestOrchestrations(unittest.TestCase):
 
@@ -26,13 +27,13 @@ class TestOrchestrations(unittest.TestCase):
         with open('test/orchestration/test_def_orch_tasks.json', "r") as jfd:
             orch_data = json.load(jfd)
 
-        td = TestingStore(orch_data['def'], orch_data['orch'], orch_data['tasks']) 
+        td = TestOrchDataStore(orch_data['def'], orch_data['orch'], orch_data['tasks']) 
         self.exec = OrchestrationExecutor(td, '1707171215')
         return super().setUp()
 
     def test_TestingStore(self):
         print(f"test_TestingStore")
-        ostore = OrchTaskDefStore()
+        ostore = OrchTaskDefDataStore()
         d,o,t = ostore.get_orch_data("1707171215")
         s = json.dumps({"def" : d, "orch" : o, "tasks" : t}, indent=4)
         print(s)

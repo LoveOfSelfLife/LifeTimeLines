@@ -5,13 +5,13 @@ def foo(x,y):
     print(f"x: {x}, y: {y}, x+y: {x+y}, x*y: {x*y}")
     return { "x": x, "y": y, "x+y": x+y, "x*y": x*y }
 
-def sync_mediaitems_in_daterange_fn(range, gap):
+def sync_mediaitems_in_daterange_fn(range, gap, token=None):
     s = range['start']
     e = range['end']
     g = gap
     return f"GOT: {s}-{e}-{g}"
 
-def retrieve_unsynced_mediaitem_dateranges_fn(after, before, daysgap):
+def retrieve_unsynced_mediaitem_dateranges_fn(after, before, daysgap, token=None):
     result = [{ "start": "20200301", "end": "20200401"},
               { "start": "20200401", "end": "20200501"},
               { "start": "20200501", "end": "20200601"},
@@ -47,7 +47,7 @@ def retrieve_unsynced_mediaitem_dateranges_fn(after, before, daysgap):
 #     # return resp.json()
 #     return resp.text
 
-def call_api(service, method, path, body, token):
+def call_api(service, method, path, body, token=None):
     print(f"call_api({service}, {method}, {path}, {body}, TOKEN)")
     return json.dumps({"result": [1,2,3,4,5]})
 
