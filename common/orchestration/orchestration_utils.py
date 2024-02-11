@@ -1,7 +1,13 @@
+import json
+import os
 import time
 import requests
 from common.entity_store import EntityObject, EntityStore
+from azure.storage.queue import QueueClient
 import common.orchestration.executors
+
+
+STORAGE_QUEUE_NAME = 'request-queue'
 
 class OrchestrationDefinition (EntityObject):
     """ this table 
@@ -10,6 +16,18 @@ class OrchestrationDefinition (EntityObject):
     fields=["id", "version", "context", "tasks", "flow"]
     key_field="id"
     partition_value="orch_def"
+
+    def __init__(self, d={}):
+        super().__init__(d)
+
+class ExecutionInstance (EntityObject):
+    """ this table 
+    """
+    table_name='ExecutionInstanceTable'
+    fields=["exec_instance_id", "orch_instance_id", "num_task", "status"]
+
+    key_field="exec_instance_id"
+    partition_field="orch_instance_id"
 
     def __init__(self, d={}):
         super().__init__(d)
@@ -102,7 +120,25 @@ def create_orch_instances(definition, context):
                                                             }))
     return instance_records
 
+def create_and_post_execution_instances(orch_instance_id, num_task):
 
+    exec_instance_id = str(int(time.time())) # just use the current second since the beginning of unix time as the instance id
+
+    exec_instance = ExecutionInstance({"exec_instance_id": f"{exec_instance_id}", 
+                                        "orch_instance_id": f"{orch_instance_id}",
+                                        "num_task": num_task,
+                                        "status": "initial"})
+    post_exec_instance_to_queue(exec_instance)
+    return exec_instance
+
+def post_exec_instance_to_queue(exec_instance):
+    STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGETABLE_CONNECTIONSTRING")
+    if STORAGE_CONNECTION_STRING is None:
+        raise Exception(f'You attempted to run the container without providing the STORAGE_CONNECTION_STRING')
+    
+    queue_client = QueueClient.from_connection_string(STORAGE_CONNECTION_STRING, STORAGE_QUEUE_NAME)
+    exec_instance_str = json.dumps(exec_instance)
+    queue_client.send_message(exec_instance)
 
 def get_orchestration_instances(orch_instance_id):
     es = EntityStore()

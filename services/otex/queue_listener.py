@@ -9,13 +9,13 @@ from common.queue_store import QueueStore
 from common.table_store import TableStore
 from common.graceful_exit import GracefulExit
 from common.auth_requestor import AuthRequestor
+from common.orchestration.orchestration_utils import STORAGE_QUEUE_NAME
 
 load_dotenv()
 
 
 def execute_orchestration(orch_instance_id, steps_to_advance=1, token=None):
-    """this method will execute the indicated orchestration intance, by running the indicated task_instances
-    the orch_definition defines the details of what needs to be done, the instances are just there to keep track of state
+    """this method will execute the indicated orchestration intance
     orch_definition: ID of the orchestration intance, 
     auth token,
     the number of steps to push the orchestration forward.  By default, the orchestration engine will execute the next task that is defined 
@@ -47,10 +47,6 @@ def main() -> None:
     TENANT_ID = os.getenv("TENANT_ID")
     if TENANT_ID is None:
         raise Exception(f'You attempted to run the container without providing the TENANT_ID')
-
-    STORAGE_QUEUE_NAME = 'request-queue'
-    if STORAGE_QUEUE_NAME is None:
-        raise Exception(f'You attempted to run the container without providing the STORAGE_QUEUE_NAME')
 
     TableStore.initialize(STORAGE_CONNECTION_STRING)
     QueueStore.initialize(STORAGE_CONNECTION_STRING)

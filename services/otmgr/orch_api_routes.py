@@ -4,7 +4,7 @@ import datetime
 import json
 from common.entity_store import EntityStore
 from common.jwt_auth import requires_auth
-from common.orchestration.orchestration_utils import OrchestrationTaskInstance, OrchestrationDefinition, create_orch_instances
+from common.orchestration.orchestration_utils import ExecutionInstance, OrchestrationTaskInstance, OrchestrationDefinition, create_and_post_execution_instances, create_orch_instances
 
 ns = Namespace('orch', description='orchestration api')
 
@@ -101,4 +101,36 @@ class SingleInstances(Resource):
         else:
             return "not found", 404    
 
+exec_instance_resource_fields = ns.model('Resource', {
+    'num_steps': fields.Integer
+    })
 
+@ns.route('/instances/<orch_instance_id>/execution')
+class ExecutionInstanceApi(Resource):
+    ''' '''
+    @ns.doc('get orchestration instance executions')
+    # @requires_auth
+    def get(self, orch_instance_id):
+        es = EntityStore()
+        if oinst := es.list_items(ExecutionInstance({"orch_instance_id": orch_instance_id})):
+            return list(oinst)
+        else:
+            return "not found", 404    
+
+    @ns.doc('create execution instance')
+    @ns.expect(exec_instance_resource_fields)
+    # @requires_auth
+    def post(self, orch_instance_id):
+        import time
+        json_data = request.get_json(force=True)
+        num_steps =json_data['num_steps']
+        es = EntityStore()
+        # first make sure that the orchestration instance exists
+        if es.get_item(OrchestrationTaskInstance({"parent_instance_id": orch_instance_id, "id": orch_instance_id})):
+            
+            einst = create_and_post_execution_instances(orch_instance_id, num_steps)
+            es.upsert_item(einst)
+            return "created", 201
+ 
+        return "orch instance not found", 404
+    
