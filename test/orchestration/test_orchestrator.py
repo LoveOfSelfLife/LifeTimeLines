@@ -11,10 +11,9 @@ import sys
 # Add the path to the file to the Python path.
 sys.path.append('../services')
 
-import common.orchestration.executors as ex
+# import common.orchestration.executors
 from common.orchestration.orchestration_utils import OrchTaskDefDataStore, OrchestrationTaskInstance
 from common.orchestration.orchestration_utils import OrchestrationDefinition
-#from services.otex.orchestration_runner import find_next_task_to_exec, execute_orchestration
 
 class TestOrchestrations(unittest.TestCase):
 
@@ -69,15 +68,11 @@ class TestOrchestrations(unittest.TestCase):
         for inp in self.exec.create_inputs_for_task(self.exec.get_task_instance('task2')):
             print(inp)
 
-
-
     def test_call_executor_function(self):
         import common.orchestration.executors        
         call_fn = getattr(common.orchestration.executors, "foo")
         input = {"x": 23, "y":3}
-
         result =  call_fn(**input)
-        
         print(result)
 
     def test_run_task1(self):

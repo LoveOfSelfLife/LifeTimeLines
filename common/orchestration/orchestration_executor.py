@@ -239,7 +239,7 @@ hen before attempting to execute the instance, we check the counter to verify it
             task_instance['output'] = []
 
         task_status = "success"
-        exec_index=task_instance['exec_index']
+        exec_index=task_instance.get('exec_index',0)
         for input in inputs:
             exec_id = f"{task_instance_id}-{exec_index}"
             exec_index += 1
