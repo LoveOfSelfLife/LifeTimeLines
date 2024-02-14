@@ -83,12 +83,19 @@ class TableStore():
     
     def batch_operation(self, op, entities):        
         CHUNK_SIZE=50
+        first_item = None
+        last_item = None
+
         elen = len(entities)
         # break up the potentially long list of entities into chunks
         for start,end in divide_range_into_chunks(0, elen, CHUNK_SIZE):
             operations = [ (op, e) for e in entities[start:end] ]
             try:
-                self.table_client.submit_transaction(operations)
+                mapping_list = self.table_client.submit_transaction(operations)
+                first_item = mapping_list[0] if not first_item else first_item
+                last_item = mapping_list[-1]
             except TableTransactionError as e:
                 print("There was an error with the transaction operation")
                 print(e)
+        return first_item, last_item
+    

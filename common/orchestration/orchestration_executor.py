@@ -60,6 +60,44 @@ hen before attempting to execute the instance, we check the counter to verify it
         self.orch_definition, self.orch_instance, self.task_instances = self.store.get_orch_data(orch_instance_id)
         self.token = token
 
+    def get_steps(self):
+        return self.orch_definition['flow']
+    
+    def get_step_status(self, step_id):
+        step = next((s for s in self.orch_definition['flow'] if s['step_id'] == step_id), None)
+        task_statuses = [self.get_task_status(t) for t in step['tasks']]
+        if all(s == "not-started" for s in task_statuses):
+            return "not-started"
+        elif all(s == "completed" for s in task_statuses):
+            return "completed"
+        elif any(s == "failed" for s in task_statuses):
+            return "failed"
+        else:
+            return "in-progress"
+    
+    def run_all_tasks_in_step(self, step):
+        for task_id in step['tasks']:
+            task_inst = next((t for t in self.task_instances if t['task_id'] == task_id), None)
+            if task_inst:
+                self.run_task_instance(task_inst)
+
+    def run_all_unfinished_tasks_in_step(self, step):
+        for task_id in step['tasks']:
+            task_inst = next((t for t in self.task_instances if t['task_id'] == task_id), None)
+            if task_inst and task_inst['status'] != "completed":
+                self.run_task_instance(task_inst)   
+
+    def get_task_status(self, task_id):
+        task = next((t for t in self.task_instances if t['task_id'] == task_id), None)
+        return task['status']
+    
+    def find_next_step_to_run(self):
+        for step in self.get_steps():
+            step_status = self.get_step_status(step['step_id'])
+            if step_status == "not-started" or step_status == "in-progress":
+                return step
+        return None
+    
     def find_next_task_inst_to_run(self):
         flow = self.orch_definition['flow']
         task = None

@@ -90,7 +90,7 @@ class PhotosSyncMgr ():
                                 "creationTime": e['creationTime'],
                                 "mimeType" : e['mimeType']}) for e in mitems]
 
-        self.storage.upsert_items(entities)
+        first_item_dt, last_item_dt = self.storage.upsert_items(entities)
         num_mitems_processed += len(entities)
 
         explored_date_ranges =  load_date_ranges(self.storage.list_items(PhotosDateRanges()))
@@ -154,10 +154,11 @@ if __name__ == '__main__':
 
     if True:
         psm = PhotosSyncMgr()
-        rs =  psm.get_unexplored_date_ranges(60)
+        rs =  psm.get_unexplored_date_ranges('20240101', '20240213', 20)
         rsl = list(rs)
         print(rsl)
-
+        psm.sync_photos_in_date_range(datetime.fromisoformat('2024-02-01T00:00:00'), 
+                                      datetime.fromisoformat('2024-02-13T00:00:00'))
     else:
         es = EntityStore()
         ranges = load_date_ranges(es.list_items(PhotosDateRanges))
