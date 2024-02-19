@@ -4,7 +4,7 @@ import unittest
 import json
 from common.entity_store import EntityStore
 from test_orch_datastore import TestOrchDataStore
-from common.orchestration.orchestration_executor import OrchestrationExecutor
+from common.orchestration.orchestration_executor import OrchestrationExecutor, execute_orchestration
 from common.table_store import TableStore
 import sys
 
@@ -93,6 +93,16 @@ class TestOrchestrations(unittest.TestCase):
         self.exec.run_task_instance(task2_instance)
         after2 = self.exec.get_task_instance('task2')
         print(f"after running task2: {json.dumps(after2, indent=4)}")
+
+    def test_run_orchestration1(self):
+        print(f"test_run_orchestration1")
+        cmd = {
+            "command": "execute",
+            "orch_instance_id": "1707171215",
+            "arg" : None
+        }
+
+        execute_orchestration(cmd, orch_data=self.exec.store)
         
 if __name__ == '__main__':
     unittest.main()

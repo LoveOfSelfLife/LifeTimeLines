@@ -79,6 +79,7 @@ class Instances(Resource):
         es = EntityStore()
         if orch_def := es.get_item(OrchestrationDefinition({"id":orch_def_id})):
             # if it is a valid orch definition, then create an instance, then persist it
+            # there will be multiple instances, one for each task
             orch_instances = create_orch_instances(orch_def, context)
             es.upsert_items(orch_instances)
             #

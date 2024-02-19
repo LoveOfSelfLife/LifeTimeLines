@@ -25,8 +25,8 @@ class TestOrchDataStore (AbstratctOrchDataStore):
         return self.definition, self.orch_instance, [ t for t in self.task_instances.values()]
 
     def __str__(self):
-        d,o,t = self.get_orch_data(self, None)
-        d,o_all,t_all = self.get_all_orch_data(self, None)
+        d,o,t = self.get_orch_data(None)
+        d,o_all,t_all = self.get_all_orch_data(None)
 
         return json.dumps({"latest" : { "instances" :  o,
                                         "tasks" : t},

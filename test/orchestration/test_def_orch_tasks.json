@@ -1,6 +1,6 @@
 {
     "def": {
-        "id": "sync-and-curate-mediaitems",
+        "id": "sync-and-curate-mediaitems3",
         "context": {
             "start": null,
             "end": null,
@@ -16,9 +16,16 @@
             },
             {
                 "step_id": "step2",
-                "step": "extract content",
+                "step": "extract content & curate",
                 "tasks": [
-                    "task2"
+                    "task2", "task3"
+                ]
+            },
+            {
+                "step_id": "step3",
+                "step": "process",
+                "tasks": [
+                    "task4"
                 ]
             }
         ],
@@ -26,7 +33,7 @@
             {
                 "taskId": "task1",
                 "taskDescription": "retrieve-unsynced-media-item-dateranges",
-                "dependson": [],
+                "type" : "once",
                 "worker": {
                     "pyfunc": "retrieve_unsynced_mediaitem_dateranges_fn"
                 },
@@ -34,68 +41,119 @@
                     "after": "$<context.start>",
                     "before": "$<context.end>",
                     "daysgap": "$<context.gap>"
-                }
+                },
+                "output" : null
             },
             {
                 "taskId": "task2",
                 "taskDescription": "sync-media-items-in-daterange",
-                "dependson": [],
+                "type" : "iterator",
                 "worker": {
                     "pyfunc": "sync_mediaitems_in_daterange_fn"
                 },
                 "inputs": { "range" : "$<[tasks.task1.output]>",
-                            "gap" : "$<context.gap>" }
+                            "gap" : "$<context.gap>" },
+                "output" : null
+            },
+            {
+                "taskId": "task3",
+                "taskDescription": "get last timestamp when media items were processed",
+                "type" : "once",
+                "worker": {
+                    "pyfunc": "get_last_processed_timestamp_fn"
+                },
+                "inputs": {},
+                "output" : null
+            },
+            {
+                "taskId": "task4",
+                "taskDescription": "curate-media-items",
+                "type" : "repeat",
+                "worker": {
+                    "pyfunc": "curate_mediaitems_fn",
+                    "max_repetitions": 30
+                },
+                "inputs": { 
+                    "days" : "100",
+                    "timestamp": "$<tasks.task4.output>"
+                },
+                "output" : "$<tasks.task3.output.timestamp>"
             }
         ],
         "version": 1.0
     },
-    "orch": {
-        "id": "1707171215",
-        "parent_instance_id": "1707171215",
-        "child_tasks": {
-            "task1": "1707171215-0",
-            "task2": "1707171215-1"
-        },
+    "orch": 
+    {
+        "id": "1708285604",
+        "parent_instance_id": "1708285604",
+        "status": "not_started",
         "context": {
-            "start": "20230101",
-            "end": "20230701",
-            "gap": "20"
+            "start": "20210104",
+            "end": "20210401",
+            "daysgap": "30"
         },
-        "step_status": {
-            "step1": "not_started",
-            "step2": "not_started"
-        },  
-        "definition_id": "sync-and-curate-mediaitems2",
+        "definition_id": "sync-and-curate-mediaitems3",
+        "child_tasks": {
+            "task1": "1708285604-0",
+            "task2": "1708285604-1",
+            "task3": "1708285604-2",
+            "task4": "1708285604-3"
+        },
         "is_parent": true,
-        "output": null,
-        "status": "not_started"
+        "output": null
     },
     "tasks": [
         {
-            "id": "1707171215-0",
-            "parent_instance_id": "1707171215",
+            "id": "1708285604-0",
+            "parent_instance_id": "1708285604",
+            "status": "not_started",
+            "task_id": "task1",
+            "definition_id": "sync-and-curate-mediaitems3",
             "context": null,
-            "definition_id": "sync-and-curate-mediaitems2",
-            "execution_details": [],
-            "executions": [],
-            "exec_index": 0,
             "is_parent": false,
             "output": null,
-            "status": "not_started",
-            "task_id": "task1"
+            "execution_details": [],
+            "executions": [],
+            "exec_index": 0
         },
         {
-            "id": "1707171215-1",
-            "parent_instance_id": "1707171215",
+            "id": "1708285604-1",
+            "parent_instance_id": "1708285604",
+            "status": "not_started",
+            "task_id": "task2",
+            "definition_id": "sync-and-curate-mediaitems3",
             "context": null,
-            "definition_id": "sync-and-curate-mediaitems2",
-            "execution_details": [],
-            "executions": [],
-            "exec_index": 0,
             "is_parent": false,
             "output": null,
+            "execution_details": [],
+            "executions": [],
+            "exec_index": 0
+        },
+        {
+            "id": "1708285604-2",
+            "parent_instance_id": "1708285604",
             "status": "not_started",
-            "task_id": "task2"
+            "task_id": "task3",
+            "definition_id": "sync-and-curate-mediaitems3",
+            "context": null,
+            "is_parent": false,
+            "output": null,
+            "execution_details": [],
+            "executions": [],
+            "exec_index": 0
+        },
+        {
+            "id": "1708285604-3",
+            "parent_instance_id": "1708285604",
+            "status": "not_started",
+            "task_id": "task4",
+            "definition_id": "sync-and-curate-mediaitems3",
+            "context": null,
+            "is_parent": false,
+            "output": null,
+            "execution_details": [],
+            "executions": [],
+            "exec_index": 0
         }
     ]
 }
