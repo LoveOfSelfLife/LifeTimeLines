@@ -83,6 +83,39 @@ class GooglePhotosApi():
             if nextPageToken is None or we_are_done:
                 break
 
+    def get_album_items_incrementally(self, album_id, num_items, next_page_token=None, cutoff_dt=None):
+        """connects to google photos API to retrieve the media items in an album
+
+        Args:
+            album_id (str): ID of the album that we are retrieving 
+            cutoff_dt (datetime, optional): if provided, is is used to only retrieve media items created after this cutoff. Defaults to None.
+
+        Yields:
+            iterator: media items contained in the album.  items have media item id and creation date time of item
+        """
+        service = self._build_service()
+        nextPageToken=next_page_token
+        album_item_list = []
+
+        resp = service.mediaItems().search(body={'albumId': album_id, 
+                                                    'pageSize': int(num_items),
+                                                    'pageToken': nextPageToken}).execute()
+        mitems = resp.get('mediaItems')
+        nextPageToken = resp.get('nextPageToken')
+        for mi in mitems:
+            if 'mediaMetadata' in mi and 'creationTime' in mi['mediaMetadata']:
+                if cutoff_dt:
+                    ct_dt = datetime.datetime.fromisoformat(mi['mediaMetadata']['creationTime'])
+                    if ct_dt <= cutoff_dt:
+                        break
+                item = {
+                    "id": mi['id'],
+                    "creationTime": mi['mediaMetadata']['creationTime']
+                }
+                album_item_list.append(item)
+
+        return {"next_page_token": nextPageToken, "items": album_item_list}
+
     def get_category_items(self, category, timestamp=None):
         service = self._build_service()        
         nextPageToken=None

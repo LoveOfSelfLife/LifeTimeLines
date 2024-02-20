@@ -89,26 +89,33 @@ class Albums(Resource):
 
         return result
 
+
 @ns.route('/albums/<album_id>')
 @ns.param('album_id', 'The album id')
 class Album(Resource):
-    '''items in an albumm'''
-    # @ns.doc('get album items')
+    '''get items in an albumm'''
+    # query params here
+    @ns.doc(params={'end': {'description': 'iso datetime', 'in': 'query', 'type': 'str'},
+                    'next': {'description': 'next page token', 'in': 'query', 'type': 'str'},
+                    'num': {'description': 'number of items', 'in': 'query', 'type': 'int'}})
     def get(self, album_id):
         ts = None
+        end = request.args.get('end')
+        next_page = request.args.get('next')
+        num_items = request.args.get('num')
 
-        parser = reqparse.RequestParser()
-        parser.add_argument("end", type=str)
-        end = request.args.getlist("end")
+        if not num_items:
+            num_items = 100
 
         if end:
-            ts = datetime.datetime.fromisoformat(end[0])
+            ts = datetime.datetime.fromisoformat(end)
         
         api = GooglePhotosApi(get_credentials())
 
-        album_items = api.get_album_items(album_id, ts)
+        # returns {"next_page_token": nextPageToken, "items": album_item_list}
+        album_items = api.get_album_items_incrementally(album_id, num_items, next_page, ts)
 
-        return list(album_items)
+        return { "items" : album_items['items'], "next" : album_items['next_page_token'] }
 
 @ns.route('/category/<category>')
 @ns.param('category', 'The category')

@@ -90,11 +90,23 @@ class AlbumsSyncMgr ():
         for e in person_entities:
             if 'photos_album' in e and e['photos_album']:
                 albumName = e['photos_album']
-                album_id = self.album_title_to_id_map[e['photos_album']]
-                album_sync_time_iso = albumId_to_syncTime_map.get(album_id,None)
-                yield { "albumId": album_id, "albumName": albumName, "latestPhotoInAlbumTime": album_sync_time_iso}
+                if albumName in self.album_title_to_id_map:
+                    album_id = self.album_title_to_id_map[albumName]
+                    album_sync_time_iso = albumId_to_syncTime_map.get(album_id,None)
+                    yield { "albumId": album_id, "albumName": albumName, "latestPhotoInAlbumTime": album_sync_time_iso}
 
     def _sync_album_until_time(self, album_id, album_sync_time_iso, album_title=None):
+        """
+        Synchronizes the album until a specified time.
+
+        Args:
+            album_id (str): The ID of the album to synchronize.
+            album_sync_time_iso (str): The ISO-formatted timestamp until which to synchronize the album.
+            album_title (str, optional): The title of the album. Defaults to None.
+
+        Returns:
+            tuple: A tuple containing the most recent item's creation time in ISO format and the number of items stored.
+        """
         mitems_to_store = []
         last_sync_time_dt = datetime.datetime.fromisoformat(album_sync_time_iso) if album_sync_time_iso else None
         most_recent_item_time_iso = None
