@@ -246,50 +246,40 @@ hen before attempting to execute the instance, we check the counter to verify it
         return self.store.get_orch_data(orch_instance_id)
     
     def create_inputs_for_task(self, task_instance):
-        # TODO: this method will need to be updated to handle the case where
-        # the output of a task is an input to the same task when it is repeated
-        #
         task_def = self.get_task_def(task_instance)
         inputs = task_def['inputs']
         return self.resolve_variable_for_task(inputs, task_instance)
 
-    def resolve_variable_for_task(self, inputs, task_instance):
-        # TODO: this method will need to be updated to handle the case where
-        # the output of a task is an input to the same task when it is repeated
-        #
-        new_inputs = {} 
+    def resolve_variable_for_task(self, variable, task_instance):
+        updated_value = {} 
         is_iterator = { "iterator" : False, "key": None, "val" : None}
-        if isinstance(inputs, list):
+        if isinstance(variable, list):
             raise Exception("support for list value inputs not implememted")
-        elif isinstance(inputs, str):
-            # TODO: the code in this block is not correct.  
-            # It needs to be updated to handle the iterator case
-            # raise Exception("support for string value inputs not completely implememted yet")
-            item = self.resolve(inputs, task_instance)            
+        elif isinstance(variable, str):
+            item = self.resolve(variable, task_instance)            
             yield copy.deepcopy(item)
-
-        elif isinstance(inputs, dict):
+        elif isinstance(variable, dict):
             # first verify that if there is an iterator, that there is only *one* iterator, and capture the iterator key and value
-            for k,v in inputs.items():
+            for k,v in variable.items():
                 if self.test_if_iterator(v):
                     if is_iterator["iterator"]:
                         raise Exception('can only have one iterator')
                     else:
                         is_iterator = { "iterator": True, "key" : k, "val" : v }
             # then for each of the non-iterator items in the dictionary, resolve those items first
-            for k,v in inputs.items():
+            for k,v in variable.items():
                 if k != is_iterator["key"]:
                     new_val = self.resolve(v, task_instance)
-                    new_inputs[k] = new_val
+                    updated_value[k] = new_val
             # then for the iterator item, if it is present, resolve the iterator by yielding each item one at a time
             if is_iterator['iterator']:
                 for item in self.resolve(is_iterator['val'], task_instance):
-                    new_inputs[is_iterator['key']] = item
-                    yield copy.deepcopy(new_inputs)
+                    updated_value[is_iterator['key']] = item
+                    yield copy.deepcopy(updated_value)
             else:
-                yield new_inputs
+                yield updated_value
         else:
-            raise Exception(f"support for inputs: {inputs} with type: {type(inputs)} - not implememted")
+            raise Exception(f"support for variable: {variable} with type: {type(variable)} - not implememted")
         
     def invoke_function(self, func, input):
         input['token'] = self.token
@@ -302,7 +292,7 @@ hen before attempting to execute the instance, we check the counter to verify it
         task_def = self.get_task_def(task_instance)
         func_str = task_def['worker']['pyfunc']
         func_callable = getattr(common.orchestration.executors, func_str)
-        return func_callable, max_repititions
+        return func_callable
 
     def get_max_repititions(self, task_instance):
         task_def = self.get_task_def(task_instance)
