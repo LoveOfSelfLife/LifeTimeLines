@@ -302,7 +302,12 @@ hen before attempting to execute the instance, we check the counter to verify it
         task_def = self.get_task_def(task_instance)
         func_str = task_def['worker']['pyfunc']
         func_callable = getattr(common.orchestration.executors, func_str)
-        return func_callable
+        return func_callable, max_repititions
+
+    def get_max_repititions(self, task_instance):
+        task_def = self.get_task_def(task_instance)
+        max_repititions = task_def.get('max_repetitions', 100)
+        return max_repititions
     
     def persist(self, instance):
         self.store.persist_instance(instance)
@@ -371,11 +376,6 @@ hen before attempting to execute the instance, we check the counter to verify it
         task_instance['exec_index'] = exec_index
         self.persist(task_instance)
 
-        print(f"single execution task status: {task_instance['status']}")
-        print("store: *******************************************************************")
-        print(f"{self.store}")
-        print("end **********************************************************************")
-
     def run_iterator_task(self, task_instance):
         task_instance['status'] = 'starting'
         self.persist(task_instance)
@@ -413,11 +413,7 @@ hen before attempting to execute the instance, we check the counter to verify it
         task_instance['status'] = task_status
         task_instance['exec_index'] = exec_index
         self.persist(task_instance)
-        print(f"iterator execution task status: {task_instance['status']}")
-        print("store: *******************************************************************")
-        print(f"{self.store}")
-        print("end **********************************************************************")
-        
+
 
     def run_repeat_task(self, task_instance):
         # TODO: Implement logic for a repeated task
@@ -440,9 +436,15 @@ hen before attempting to execute the instance, we check the counter to verify it
         done = False
         outval = next(self.resolve_variable_for_task(output, task_instance))
         task_instance['output'] = outval
+        max_repititions = self.get_max_repititions(task_instance)
+        i = 0
 
         while not done:
-
+            i = i + 1
+            if max_repititions > 0 and i > max_repititions:
+                done = True
+                continue
+    
             input = next(self.create_inputs_for_task(task_instance))
 
             the_function = self.get_function(task_instance)
@@ -476,11 +478,3 @@ hen before attempting to execute the instance, we check the counter to verify it
         task_instance['status'] = task_status
         task_instance['exec_index'] = exec_index
         self.persist(task_instance)
-
-        print(f"repeat execution task status: {task_instance['status']}")
-        print("store: *******************************************************************")
-        with open('test/orchestration/outtrade.json', "w") as jfd:
-            print(f"{self.store}", file=jfd)
-        print("end **********************************************************************")
-
-
