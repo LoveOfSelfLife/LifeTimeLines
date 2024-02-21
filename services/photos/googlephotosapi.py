@@ -1,6 +1,5 @@
 from googleapiclient.discovery import build
-import re
-import datetime 
+import datetime
     
 API_NAME = 'photoslibrary'
 API_VERSION = 'v1'
@@ -83,30 +82,21 @@ class GooglePhotosApi():
             if nextPageToken is None or we_are_done:
                 break
 
-    def get_album_items_incrementally(self, album_id, num_items, next_page_token=None, cutoff_dt=None):
-        """connects to google photos API to retrieve the media items in an album
-
-        Args:
-            album_id (str): ID of the album that we are retrieving 
-            cutoff_dt (datetime, optional): if provided, is is used to only retrieve media items created after this cutoff. Defaults to None.
-
-        Yields:
-            iterator: media items contained in the album.  items have media item id and creation date time of item
-        """
+    def get_album_items_incrementally(self, album_id, num_items, next_page_token, cutoff_ts_dt):
         service = self._build_service()
-        nextPageToken=next_page_token
         album_item_list = []
-
+        max_creation_time = None
         resp = service.mediaItems().search(body={'albumId': album_id, 
-                                                    'pageSize': int(num_items),
-                                                    'pageToken': nextPageToken}).execute()
+                                                 'pageSize': int(num_items),
+                                                 'pageToken': next_page_token}).execute()
         mitems = resp.get('mediaItems')
-        nextPageToken = resp.get('nextPageToken')
+        next_page_token = resp.get('nextPageToken')
         for mi in mitems:
             if 'mediaMetadata' in mi and 'creationTime' in mi['mediaMetadata']:
-                if cutoff_dt:
+                if cutoff_ts_dt:
                     ct_dt = datetime.datetime.fromisoformat(mi['mediaMetadata']['creationTime'])
-                    if ct_dt <= cutoff_dt:
+                    if ct_dt <= cutoff_ts_dt:
+                        next_page_token = None
                         break
                 item = {
                     "id": mi['id'],
@@ -114,7 +104,11 @@ class GooglePhotosApi():
                 }
                 album_item_list.append(item)
 
-        return {"next_page_token": nextPageToken, "items": album_item_list}
+        if len(album_item_list) > 0:
+            max_creation_time = max([datetime.datetime.fromisoformat(mitem['creationTime']) for mitem in album_item_list])
+            max_creation_time_iso = max_creation_time.isoformat()
+
+        return { "items": album_item_list, "next_page_token": next_page_token, "max_creation_time": max_creation_time_iso }
 
     def get_category_items(self, category, timestamp=None):
         service = self._build_service()        
