@@ -4,7 +4,7 @@ from common.orchestration.orchestration_utils import AbstratctOrchDataStore
 import copy
 import json
 
-class TestOrchDataStore (AbstratctOrchDataStore):
+class MockOrchDataStore (AbstratctOrchDataStore):
     def __init__(self, definition, orch_instance, task_instances):
         self.definition = definition
         self.orch_instance = [ orch_instance ]
@@ -17,9 +17,9 @@ class TestOrchDataStore (AbstratctOrchDataStore):
 
     def persist_instance(self, instance):
         if instance['is_parent']:
-            self.orch_instance.append(instance)
+            self.orch_instance.append(copy.deepcopy(instance))
         else:
-            self.task_instances[instance['task_id']].append(instance)
+            self.task_instances[instance['task_id']].append(copy.deepcopy(instance))
 
     def get_all_orch_data(self, orch_instance_id):
         return self.definition, self.orch_instance, [ t for t in self.task_instances.values()]

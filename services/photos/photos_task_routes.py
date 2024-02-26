@@ -34,7 +34,7 @@ class PhotosTasksOperations(Resource):
         # elif is_task(task):
 
         if is_task(task):
-            return [ { "task": f"{task}", "id": 101, "status" : "success"}, 
+            return [ { "task": f"{task}", "id": 101, "status" : "completed"}, 
                      { "task": f"{task}", "id": 102, "status" : "processing"}
                     ]
         else:
@@ -59,7 +59,7 @@ class PhotosTaskInstances(Resource):
     @ns.doc('get list of task instances')
     def get(self, task, id):
         if is_task(task):
-            return [ { "task": f"{task}", "id": f"{id}", "status" : "success"}]
+            return [ { "task": f"{task}", "id": f"{id}", "status" : "commpleted"}]
         else:
             return 'unknown task', 404
     

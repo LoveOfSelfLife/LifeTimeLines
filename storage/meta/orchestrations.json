@@ -1,0 +1,88 @@
+{
+    "orchestrations": [
+        {
+            "id": "sync-and-curate-mediaitems3",
+            "description": "sync and curate media items from google photos",
+            "context": {
+                "start": null,
+                "end": null,
+                "gap": "30"
+            },
+            "flow": [
+                {
+                    "step_id": "step1",
+                    "description": "gather prelim details",
+                    "tasks": [
+                        "task1"
+                    ]
+                },
+                {
+                    "step_id": "step2",
+                    "description": "extract content & curate",
+                    "tasks": [
+                        "task2",
+                        "task3"
+                    ]
+                },
+                {
+                    "step_id": "step3",
+                    "description": "process",
+                    "tasks": [
+                        "task4"
+                    ]
+                }
+            ],
+            "tasks": [
+                {
+                    "taskId": "task1",
+                    "description": "retrieve-unsynced-media-item-dateranges",
+                    "type": "once",
+                    "worker": {
+                        "pyfunc": "retrieve_unsynced_mediaitem_dateranges_fn"
+                    },
+                    "inputs": {
+                        "after": "$<context.start>",
+                        "before": "$<context.end>",
+                        "daysgap": "$<context.gap>"
+                    }
+                },
+                {
+                    "taskId": "task2",
+                    "description": "sync-media-items-in-daterange",
+                    "type": "iterator",
+                    "worker": {
+                        "pyfunc": "sync_mediaitems_in_daterange_fn"
+                    },
+                    "inputs": {
+                        "range": "$<[tasks.task1.output]>",
+                        "gap": "$<context.gap>"
+                    }
+                },
+                {
+                    "taskId": "task3",
+                    "description": "get last timestamp when media items were processed",
+                    "type": "once",
+                    "worker": {
+                        "pyfunc": "get_last_processed_timestamp_fn"
+                    },
+                    "inputs": {}
+                },
+                {
+                    "taskId": "task4",
+                    "description": "curate-media-items",
+                    "type": "repeat",
+                    "worker": {
+                        "pyfunc": "curate_mediaitems_fn",
+                        "max_repetitions": 30
+                    },
+                    "inputs": {
+                        "days": "100",
+                        "timestamp": "$<tasks.task4.output>"
+                    },
+                    "output": "$<tasks.task3.output.timestamp>"
+                }
+            ],
+            "version": 1.0
+        }
+    ]
+}

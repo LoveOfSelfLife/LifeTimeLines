@@ -22,19 +22,10 @@ class ActorEntityAlbums(Resource):
 
         return list(ae_albums)
 
-@ns.route('/album-sync-op/<album_id>')
-class ActorEntityAlbums(Resource):
-    def post(self, album_id):
-        album_sync_mgr = AlbumsSyncMgr()
-        sync_result = album_sync_mgr.sync_album(album_id)
-        return sync_result
-
-
 range_parser = reqparse.RequestParser()
 range_parser.add_argument("start_dt_iso", type=str)
 range_parser.add_argument("end_dt_iso", type=str)
 range_parser.add_argument("gap_days", type=int)
-
 
 @ns.route('/unsynced-photos-ranges')
 class UnsyncedPhotoRanges(Resource):
@@ -50,7 +41,6 @@ class UnsyncedPhotoRanges(Resource):
         unsynced_ranges = photos_sync_mgr.get_unexplored_date_ranges(between_start, between_end, min_days)
 
         return list(unsynced_ranges)
-
 
 resource_fields = ns.model('Resource', {
     'start': fields.String,
@@ -89,26 +79,59 @@ class Albums(Resource):
 
         return result
 
+
+@ns.route('/incremental-album-sync-op/<album_id>')
+@ns.param('album_id', 'Album id')
+class AlbumSyncOp(Resource):
+    '''used to synchonize an album items incrementally. 
+    By synchonize, we mean to fetch the items for an album from google photos and store them in the entity store.
+    The process is incremental in that the items are fetched in pages, and the next page token is used to fetch the next page of items.
+
+    The first time the client calls this endpoing, they provide just the album id and the number of items to sync in that call.  The next page token should be None.
+    The response back to the client will be the number of items sync, as well as am encoded token that the client will use in subsequent calls to sync the next batch of items.
+    If the encoded token is None, then the client knows that all items have been synced.
+    In that series of calls, the number of items should always be the same as the first call.
+    '''
+    @ns.doc(params={'next': {'description': 'opaque next page token', 'in': 'query', 'type': 'str'},
+                    'num': {'description': 'number of items to sync', 'in': 'query', 'type': 'int'}})
+    def get(self, album_id):
+        continuation_token = request.args.get('next')
+        num_items = request.args.get('num')
+
+        if not num_items:
+            num_items = 100
+
+        album_sync_mgr = AlbumsSyncMgr()
+        sync = album_sync_mgr.sync_album_items_incrementally(album_id, num_items, continuation_token)
+
+        return { "num_items" : len(sync['items']), "next" : sync['continuation_token'] }
+
 @ns.route('/albums/<album_id>')
 @ns.param('album_id', 'The album id')
 class Album(Resource):
-    '''items in an albumm'''
-    # @ns.doc('get album items')
+    '''get items in an albumm'''
+    # query params here
+    @ns.doc(params={'end': {'description': 'iso datetime', 'in': 'query', 'type': 'str'},
+                    'next': {'description': 'next page token', 'in': 'query', 'type': 'str'},
+                    'num': {'description': 'number of items', 'in': 'query', 'type': 'int'}})
     def get(self, album_id):
         ts = None
+        end = request.args.get('end')
+        next_page = request.args.get('next')
+        num_items = request.args.get('num')
 
-        parser = reqparse.RequestParser()
-        parser.add_argument("end", type=str)
-        end = request.args.getlist("end")
+        if not num_items:
+            num_items = 100
 
         if end:
-            ts = datetime.datetime.fromisoformat(end[0])
+            ts = datetime.datetime.fromisoformat(end)
         
         api = GooglePhotosApi(get_credentials())
 
-        album_items = api.get_album_items(album_id, ts)
+        # returns {"next_page_token": nextPageToken, "items": album_item_list}
+        album_items = api.sync_album_items_incrementally(album_id, num_items, next_page, ts)
 
-        return list(album_items)
+        return { "items" : album_items['items'], "next" : album_items['next_page_token'] }
 
 @ns.route('/category/<category>')
 @ns.param('category', 'The category')

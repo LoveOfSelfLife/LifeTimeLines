@@ -3,18 +3,18 @@ from dotenv import load_dotenv
 import unittest
 import json
 from common.entity_store import EntityStore
-from test_orch_datastore import TestOrchDataStore
-from common.orchestration.orchestration_executor import OrchestrationExecutor
+# from test.orchestration.mock_orch_datastore import MockOrchDataStore
+from mock_orch_datastore import MockOrchDataStore
+from common.orchestration.orchestration_executor import OrchestrationExecutor, execute_orchestration
 from common.table_store import TableStore
 import sys
 
 # Add the path to the file to the Python path.
 sys.path.append('../services')
 
-import common.orchestration.executors as ex
+# import common.orchestration.executors
 from common.orchestration.orchestration_utils import OrchTaskDefDataStore, OrchestrationTaskInstance
 from common.orchestration.orchestration_utils import OrchestrationDefinition
-#from services.otex.orchestration_runner import find_next_task_to_exec, execute_orchestration
 
 class TestOrchestrations(unittest.TestCase):
 
@@ -27,7 +27,7 @@ class TestOrchestrations(unittest.TestCase):
         with open('test/orchestration/test_def_orch_tasks.json', "r") as jfd:
             orch_data = json.load(jfd)
 
-        td = TestOrchDataStore(orch_data['def'], orch_data['orch'], orch_data['tasks']) 
+        td = MockOrchDataStore(orch_data['def'], orch_data['orch'], orch_data['tasks']) 
         self.exec = OrchestrationExecutor(td, '1707171215')
         return super().setUp()
 
@@ -54,7 +54,7 @@ class TestOrchestrations(unittest.TestCase):
 
     def test_create_root_dict(self):
         task1_instance = self.exec.get_task_instance('task1')
-        root = self.exec.create_root_dict(task1_instance)
+        root = self.exec.create_root_context(task1_instance)
         print(root)
 
     def test_create_inputs_dict(self):
@@ -69,15 +69,11 @@ class TestOrchestrations(unittest.TestCase):
         for inp in self.exec.create_inputs_for_task(self.exec.get_task_instance('task2')):
             print(inp)
 
-
-
     def test_call_executor_function(self):
         import common.orchestration.executors        
         call_fn = getattr(common.orchestration.executors, "foo")
         input = {"x": 23, "y":3}
-
         result =  call_fn(**input)
-        
         print(result)
 
     def test_run_task1(self):
@@ -98,6 +94,16 @@ class TestOrchestrations(unittest.TestCase):
         self.exec.run_task_instance(task2_instance)
         after2 = self.exec.get_task_instance('task2')
         print(f"after running task2: {json.dumps(after2, indent=4)}")
+
+    def test_run_orchestration1(self):
+        print(f"test_run_orchestration1")
+        cmd = {
+            "command": "execute",
+            "orch_instance_id": "1707171215",
+            "arg" : None
+        }
+
+        execute_orchestration(cmd, orch_data=self.exec.store)
         
 if __name__ == '__main__':
     unittest.main()

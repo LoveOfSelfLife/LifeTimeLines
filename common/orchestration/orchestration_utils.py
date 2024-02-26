@@ -6,9 +6,28 @@ from common.entity_store import EntityObject, EntityStore
 from azure.storage.queue import QueueClient
 import common.orchestration.executors
 
+class OrchestrationQueue:
+    STORAGE_QUEUE_NAME = 'request-queue'
+    TESTING_STORAGE_QUEUE_NAME = 'testing-queue'
+    queue_client = None
+    queue_name = STORAGE_QUEUE_NAME
 
-STORAGE_QUEUE_NAME = 'request-queue'
+    @staticmethod
+    def get_queue_client():
+        if OrchestrationQueue.queue_client:
+            return OrchestrationQueue.queue_client
+        else:
+            OrchestrationQueue.queue_client = QueueClient.from_connection_string(os.getenv("AZURE_STORAGETABLE_CONNECTIONSTRING"), OrchestrationQueue.queue_name)
+            return OrchestrationQueue.queue_client
+    
+    @staticmethod
+    def set_testing_mode(testing_mode=False):
+        if testing_mode:
+            OrchestrationQueue.queue_name = OrchestrationQueue.TESTING_STORAGE_QUEUE_NAME
+        else:
+            OrchestrationQueue.queue_name = OrchestrationQueue.STORAGE_QUEUE_NAME
 
+    
 class OrchestrationDefinition (EntityObject):
     """ this table 
     """
@@ -20,13 +39,13 @@ class OrchestrationDefinition (EntityObject):
     def __init__(self, d={}):
         super().__init__(d)
 
-class ExecutionInstance (EntityObject):
+class OrchestrationCommand (EntityObject):
     """ this table 
     """
-    table_name='ExecutionInstanceTable'
-    fields=["exec_instance_id", "orch_instance_id", "num_task", "status"]
+    table_name='OrchestrationCommandTable'
+    fields=["id", "command", "orch_instance_id", "arg", "status"]
 
-    key_field="exec_instance_id"
+    key_field="id"
     partition_field="orch_instance_id"
 
     def __init__(self, d={}):
@@ -38,7 +57,7 @@ class OrchestrationTaskInstance (EntityObject):
     table_name='OrchestrationInstanceTable'
     fields=["id", "parent_instance_id", "status", "child_tasks", 
             "task_id", "execution_details", "executions", "definition_id", 
-            "context", "task", "is_parent", "output"]
+            "context", "task", "is_parent", "output", "step_status", "exec_index"]
     key_field="id"
     partition_field="parent_instance_id"
 
@@ -120,25 +139,25 @@ def create_orch_instances(definition, context):
                                                             }))
     return instance_records
 
-def create_and_post_execution_instances(orch_instance_id, num_task):
+def check_if_orch_instance_exists(orch_instance_id):
+    es =EntityStore()
+    return es.get_item(OrchestrationTaskInstance({"parent_instance_id": orch_instance_id, "id": orch_instance_id}))
 
-    exec_instance_id = str(int(time.time())) # just use the current second since the beginning of unix time as the instance id
+def create_orch_command_instance(command, orch_instance_id, arg):
 
-    exec_instance = ExecutionInstance({"exec_instance_id": f"{exec_instance_id}", 
+    cmd_instance_id = str(int(time.time())) # just use the current second since the beginning of unix time as the instance id
+
+    cmd_instance = OrchestrationCommand({"id": f"{cmd_instance_id}", 
                                         "orch_instance_id": f"{orch_instance_id}",
-                                        "num_task": num_task,
+                                        "command": command,
+                                        "arg": arg,
                                         "status": "initial"})
-    post_exec_instance_to_queue(exec_instance)
-    return exec_instance
+    return cmd_instance
 
-def post_exec_instance_to_queue(exec_instance):
-    STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGETABLE_CONNECTIONSTRING")
-    if STORAGE_CONNECTION_STRING is None:
-        raise Exception(f'You attempted to run the container without providing the STORAGE_CONNECTION_STRING')
-    
-    queue_client = QueueClient.from_connection_string(STORAGE_CONNECTION_STRING, STORAGE_QUEUE_NAME)
-    exec_instance_str = json.dumps(exec_instance)
-    queue_client.send_message(exec_instance)
+def post_orch_command_instance_to_queue(orch_cmd_inst:OrchestrationCommand):
+    queue_client = OrchestrationQueue.get_queue_client()
+    exec_instance_str = json.dumps(orch_cmd_inst)
+    queue_client.send_message(exec_instance_str)
 
 def get_orchestration_instances(orch_instance_id):
     es = EntityStore()

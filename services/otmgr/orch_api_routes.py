@@ -4,7 +4,8 @@ import datetime
 import json
 from common.entity_store import EntityStore
 from common.jwt_auth import requires_auth
-from common.orchestration.orchestration_utils import ExecutionInstance, OrchestrationTaskInstance, OrchestrationDefinition, create_and_post_execution_instances, create_orch_instances
+from common.orchestration.orchestration_utils import OrchestrationCommand, OrchestrationQueue, OrchestrationTaskInstance, OrchestrationDefinition
+from common.orchestration.orchestration_utils import  check_if_orch_instance_exists, create_orch_command_instance, create_orch_instances, post_orch_command_instance_to_queue
 
 ns = Namespace('orch', description='orchestration api')
 
@@ -78,6 +79,7 @@ class Instances(Resource):
         es = EntityStore()
         if orch_def := es.get_item(OrchestrationDefinition({"id":orch_def_id})):
             # if it is a valid orch definition, then create an instance, then persist it
+            # there will be multiple instances, one for each task
             orch_instances = create_orch_instances(orch_def, context)
             es.upsert_items(orch_instances)
             #
@@ -104,33 +106,39 @@ class SingleInstances(Resource):
 exec_instance_resource_fields = ns.model('Resource', {
     'num_steps': fields.Integer
     })
+orch_cmd_resource_fields = ns.model('Resource', {
+    'command': fields.String,
+    'id': fields.String,
+    'arg': fields.Raw
+    })
 
-@ns.route('/instances/<orch_instance_id>/execution')
-class ExecutionInstanceApi(Resource):
+@ns.route('/commands')
+class OrchCommandsApi(Resource):
     ''' '''
-    @ns.doc('get orchestration instance executions')
+    @ns.doc('get orchestration command instances')
     # @requires_auth
-    def get(self, orch_instance_id):
+    def get(self):
         es = EntityStore()
-        if oinst := es.list_items(ExecutionInstance({"orch_instance_id": orch_instance_id})):
-            return list(oinst)
+        if cmd_inst := es.list_items(OrchestrationCommand({"orch_instance_id": orch_instance_id})):
+            return list(cmd_inst)
         else:
             return "not found", 404    
 
     @ns.doc('create execution instance')
-    @ns.expect(exec_instance_resource_fields)
+    @ns.expect(orch_cmd_resource_fields)
     # @requires_auth
-    def post(self, orch_instance_id):
-        import time
+    def post(self):
+        OrchestrationQueue.set_testing_mode(True)
         json_data = request.get_json(force=True)
-        num_steps =json_data['num_steps']
-        es = EntityStore()
-        # first make sure that the orchestration instance exists
-        if es.get_item(OrchestrationTaskInstance({"parent_instance_id": orch_instance_id, "id": orch_instance_id})):
-            
-            einst = create_and_post_execution_instances(orch_instance_id, num_steps)
+        command =json_data['command']
+        orch_instance_id = json_data['id']
+        arg = json_data['arg']
+
+        if check_if_orch_instance_exists(orch_instance_id):
+            es = EntityStore()
+            einst = create_orch_command_instance(command, orch_instance_id, arg)
             es.upsert_item(einst)
+            post_orch_command_instance_to_queue(einst)
             return "created", 201
  
         return "orch instance not found", 404
-    
