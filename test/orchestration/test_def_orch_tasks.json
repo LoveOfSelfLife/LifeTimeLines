@@ -11,27 +11,27 @@
                 "step_id": "step1",
                 "step": "gather prelim details",
                 "tasks": [
-                    "task1"
+                    "task_get_unsynced_mitem_dateranges", "task_get_albums"
                 ]
             },
             {
                 "step_id": "step2",
-                "step": "extract content & curate",
+                "step": "synchronize media items & albums",
                 "tasks": [
-                    "task2", "task3"
+                    "task_sync_mi_ranges", "task_sync_albums"
                 ]
             },
             {
                 "step_id": "step3",
                 "step": "process",
                 "tasks": [
-                    "task4"
+                    
                 ]
             }
         ],
         "tasks": [
             {
-                "taskId": "task1",
+                "taskId": "task_get_unsynced_mitem_dateranges",
                 "taskDescription": "retrieve-unsynced-media-item-dateranges",
                 "type" : "once",
                 "worker": {
@@ -45,16 +45,41 @@
                 "output" : null
             },
             {
-                "taskId": "task2",
+                "taskId": "task_get_albums",
+                "taskDescription": "retrieve list of entity albums",
+                "type" : "once",
+                "worker": {
+                    "pyfunc": "retrieve_entity_album_list_fn"
+                },
+                "inputs": { },
+                "output" : null
+            },
+            {
+                "taskId": "task_sync_mi_ranges",
                 "taskDescription": "sync-media-items-in-daterange",
                 "type" : "iterator",
                 "worker": {
                     "pyfunc": "sync_mediaitems_in_daterange_fn"
                 },
-                "inputs": { "range" : "$<[tasks.task1.output]>",
+                "inputs": { "range" : "$<[tasks.task_get_unsynced_mitem_dateranges.output]>",
                             "gap" : "$<context.gap>" },
                 "output" : null
             },
+            {
+                "taskId": "task_sync_albums",
+                "taskDescription": "synchronize albums, incrementally, one album at a time",
+                "type" : "iterate_repeat",
+                "worker": {
+                    "pyfunc": "curate_mediaitems_fn",
+                    "max_repetitions": 30
+                },
+                "inputs": { 
+                    "day_to_process_each_sync" : "100",
+                    "album": "$<[tasks.task_get_albums.output]>",
+                    "next" : "$<tasks.task_sync_albums.output.next>"
+                },
+                "output" : { "next" : null }
+            },            
             {
                 "taskId": "task3",
                 "taskDescription": "get last timestamp when media items were processed",
@@ -94,10 +119,10 @@
         },
         "definition_id": "sync-and-curate-mediaitems3",
         "child_tasks": {
-            "task1": "1708285604-0",
-            "task2": "1708285604-1",
-            "task3": "1708285604-2",
-            "task4": "1708285604-3"
+            "task_get_unsynced_mitem_dateranges": "1708285604-0",
+            "task_get_albums": "1708285604-1",
+            "task_sync_mi_ranges": "1708285604-2",
+            "task_sync_albums": "1708285604-3"
         },
         "is_parent": true,
         "output": null
@@ -107,7 +132,7 @@
             "id": "1708285604-0",
             "parent_instance_id": "1708285604",
             "status": "not_started",
-            "task_id": "task1",
+            "task_id": "task_get_unsynced_mitem_dateranges",
             "definition_id": "sync-and-curate-mediaitems3",
             "context": null,
             "is_parent": false,
@@ -120,7 +145,7 @@
             "id": "1708285604-1",
             "parent_instance_id": "1708285604",
             "status": "not_started",
-            "task_id": "task2",
+            "task_id": "task_get_albums",
             "definition_id": "sync-and-curate-mediaitems3",
             "context": null,
             "is_parent": false,
@@ -133,7 +158,7 @@
             "id": "1708285604-2",
             "parent_instance_id": "1708285604",
             "status": "not_started",
-            "task_id": "task3",
+            "task_id": "task_sync_mi_ranges",
             "definition_id": "sync-and-curate-mediaitems3",
             "context": null,
             "is_parent": false,
@@ -146,7 +171,7 @@
             "id": "1708285604-3",
             "parent_instance_id": "1708285604",
             "status": "not_started",
-            "task_id": "task4",
+            "task_id": "task_sync_albums",
             "definition_id": "sync-and-curate-mediaitems3",
             "context": null,
             "is_parent": false,

@@ -57,7 +57,7 @@ class OrchestrationTaskInstance (EntityObject):
     table_name='OrchestrationInstanceTable'
     fields=["id", "parent_instance_id", "status", "child_tasks", 
             "task_id", "execution_details", "executions", "definition_id", 
-            "context", "task", "is_parent", "output"]
+            "context", "task", "is_parent", "output", "step_status", "exec_index"]
     key_field="id"
     partition_field="parent_instance_id"
 

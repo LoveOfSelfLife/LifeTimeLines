@@ -1,0 +1,223 @@
+{
+    "def": {
+        "id": "simple-orchestration",
+        "context": {
+            "x": null,
+            "y": null,
+            "z": null
+        },
+        "flow": [
+            {
+                "step_id": "step_once",
+                "step": "step_once",
+                "tasks": [
+                    "task_once1",
+                    "task_once2"
+                ]
+            },
+            {
+                "step_id": "step_iterate",
+                "step": "step_iterate",
+                "tasks": [
+                    "task_iterate",
+                    "task_iterate_iterate"
+                ]
+            },
+            {
+                "step_id": "step_repeat",
+                "step": "step_repeat",
+                "tasks": [
+                    "task_repeat",
+                    "task_iterate_repeat",
+                    "task_iterate_iterate_repeat"
+                ]
+            }
+        ],
+        "tasks": [
+            {
+                "taskId": "task_once1",
+                "taskDescription": "run first task once",
+                "func": "task_once1_fn",
+                "inputs": {
+                    "x": "$<context.x>"
+                }
+            },
+            {
+                "taskId": "task_once2",
+                "taskDescription": "run second task once",
+                "func": "task_once2_fn",
+                "inputs": {
+                    "y": "$<context.y>"
+                }
+            },
+            {
+                "taskId": "task_iterate",
+                "taskDescription": "run this task a single time for each item from output iterator of task_once1",
+                "func": "task_iterate_fn",
+                "inputs": {
+                    "in1": "$<[tasks.task_once1.output]>",
+                    "in2": "$<tasks.task_once2.output>"
+                },
+                "output": null
+            },
+            {
+                "taskId": "task_iterate_iterate",
+                "taskDescription": "run this task a single time for the cross-product of the output iterators of task_once1 and task_once2",
+                "func": "task_iterate_iterate_fn",
+                "inputs": {
+                    "in1": "$<[tasks.task_once1.output]>",
+                    "in2": "$<[tasks.task_once2.output]>"
+                },
+                "output": null
+            },
+            {
+                "taskId": "task_repeat",
+                "taskDescription": "run this task multiple times for the provided input",
+                "type": "repeat",
+                "func": "task_repeat_fn",
+                "max_repetitions": 5,
+                "inputs": {
+                    "n": "foobar"
+                },
+                "output": { "num_times" : "$<context.y>" }
+            },
+            {
+                "taskId": "task_iterate_repeat",
+                "taskDescription": "run this task multiple times for each item from output iterator of task_once1",
+                "func": "task_iterate_repeat_fn",
+                "type": "repeat",
+                "inputs": {
+                    "in1": "$<[tasks.task_once1.output]>"
+                },
+                "output": null
+            },
+            {
+                "taskId": "task_iterate_iterate_repeat",
+                "taskDescription": "run this task multiple times for the cross-product of the output iterators of task_once1 and task_once2",
+                "func": "task_iterate_iterate_repeat_fn",
+                "type": "repeat",
+                "inputs": {
+                    "in1": "$<[tasks.task_once1.output]>",
+                    "in2": "$<[tasks.task_once2.output]>"
+                },
+                "output": null                
+            }
+        ],
+        "version": 1.0
+    },
+    "orch": {
+        "id": "1708656115",
+        "parent_instance_id": "1708656115",
+        "status": "not_started",
+        "context": {
+            "x": 2,
+            "y": 3,
+            "z": 4
+        },
+        "definition_id": "simple-orchestration",
+        "child_tasks": {
+            "task_once1": "1708656115-0",
+            "task_once2": "1708656115-1",
+            "task_iterate": "1708656115-2",
+            "task_iterate_iterate": "1708656115-3",
+            "task_repeat": "1708656115-4",
+            "task_iterate_repeat": "1708656115-5",
+            "task_iterate_iterate_repeat": "1708656115-6"
+        },
+        "is_parent": true,
+        "output": null
+    },
+    "tasks": [
+        {
+            "id": "1708656115-0",
+            "parent_instance_id": "1708656115",
+            "status": "not_started",
+            "task_id": "task_once1",
+            "definition_id": "simple-orchestration",
+            "context": null,
+            "is_parent": false,
+            "output": null,
+            "execution_details": [],
+            "executions": [],
+            "exec_index": 0
+        },
+        {
+            "id": "1708656115-1",
+            "parent_instance_id": "1708656115",
+            "status": "not_started",
+            "task_id": "task_once2",
+            "definition_id": "simple-orchestration",
+            "context": null,
+            "is_parent": false,
+            "output": null,
+            "execution_details": [],
+            "executions": [],
+            "exec_index": 0
+        },
+        {
+            "id": "1708656115-2",
+            "parent_instance_id": "1708656115",
+            "status": "not_started",
+            "task_id": "task_iterate",
+            "definition_id": "simple-orchestration",
+            "context": null,
+            "is_parent": false,
+            "output": null,
+            "execution_details": [],
+            "executions": [],
+            "exec_index": 0
+        },
+        {
+            "id": "1708656115-3",
+            "parent_instance_id": "1708656115",
+            "status": "not_started",
+            "task_id": "task_iterate_iterate",
+            "definition_id": "simple-orchestration",
+            "context": null,
+            "is_parent": false,
+            "output": null,
+            "execution_details": [],
+            "executions": [],
+            "exec_index": 0
+        },
+        {
+            "id": "1708656115-4",
+            "parent_instance_id": "1708656115",
+            "status": "not_started",
+            "task_id": "task_repeat",
+            "definition_id": "simple-orchestration",
+            "context": null,
+            "is_parent": false,
+            "output": null,
+            "execution_details": [],
+            "executions": [],
+            "exec_index": 0
+        },
+        {
+            "id": "1708656115-5",
+            "parent_instance_id": "1708656115",
+            "status": "not_started",
+            "task_id": "task_iterate_repeat",
+            "definition_id": "simple-orchestration",
+            "context": null,
+            "is_parent": false,
+            "output": null,
+            "execution_details": [],
+            "executions": [],
+            "exec_index": 0
+        },
+        {
+            "id": "1708656115-6",
+            "parent_instance_id": "1708656115",
+            "status": "not_started",
+            "task_id": "task_iterate_iterate_repeat",
+            "definition_id": "simple-orchestration",
+            "context": null,
+            "is_parent": false,
+            "output": null,
+            "execution_details": [],
+            "executions": [],
+            "exec_index": 0
+        }
+    ]
+}

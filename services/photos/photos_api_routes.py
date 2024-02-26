@@ -22,19 +22,10 @@ class ActorEntityAlbums(Resource):
 
         return list(ae_albums)
 
-# @ns.route('/album-sync-op/<album_id>')
-# class ActorEntityAlbums(Resource):
-#     def post(self, album_id):
-#         album_sync_mgr = AlbumsSyncMgr()
-#         sync_result = album_sync_mgr.sync_album(album_id)
-#         return sync_result
-
-
 range_parser = reqparse.RequestParser()
 range_parser.add_argument("start_dt_iso", type=str)
 range_parser.add_argument("end_dt_iso", type=str)
 range_parser.add_argument("gap_days", type=int)
-
 
 @ns.route('/unsynced-photos-ranges')
 class UnsyncedPhotoRanges(Resource):
@@ -50,7 +41,6 @@ class UnsyncedPhotoRanges(Resource):
         unsynced_ranges = photos_sync_mgr.get_unexplored_date_ranges(between_start, between_end, min_days)
 
         return list(unsynced_ranges)
-
 
 resource_fields = ns.model('Resource', {
     'start': fields.String,

@@ -34,6 +34,55 @@ def curate_mediaitems_fn(timestamp, days=365, token=None):
     else:
         return (ts.isoformat(), 200)
 
+def task_once1_fn(x, token=None):
+    print(f"task_once1_fn(x={x})")
+    return ([f"#1-task_once1_fn(x={x})", f"#2-task_once1_fn(x={x})"], 200)
+
+def task_once2_fn(y, token=None):
+    print(f"task_once2_fn(y={y})")
+    return ([f"#1-task_once2_fn(y={y})", f"#2-task_once2_fn(y={y})"], 200)
+
+def task_iterate_fn(in1, in2, token=None):
+    print(f"task_iterate_fn(in1={in1}, in2={in2})") 
+    return (f"task_iterate_fn(in1={in1}, in2={in2})", 200)
+
+def task_iterate_iterate_fn(in1, in2, token=None):
+    print(f"task_iterate_iterate_fn(in1={in1}, in2={in2})")
+    return (f"task_iterate_iterate_fn(in1={in1}, in2={in2})", 200)
+    
+def task_repeat_fn(n, output=None, token=None):
+    print(f"task_repeat_fn(n={n}, output={output})")
+    print(f"task_repeat_fn(n={n})")
+    if output is None:
+        num_left = 4
+    else:
+        num_left = int(output.get("num_times",1)) - 1
+    if num_left <= 0:
+        return ({ "num_times" : 0 }, 404)
+    return ({ "num_times" : num_left }, 200)
+
+def task_iterate_repeat_fn(in1, output=None, token=None):
+    print(f"task_iterate_repeat_fn(in1={in1}, output={output})")
+    # return (f"task_iterate_repeat_fn(in1={in1}, output={output})", 200)
+    if output is None:
+        num_left = 3
+    else:
+        num_left = int(output.get("num_times",1)) - 1
+    if num_left <= 0:
+        return ({ "num_times" : 0 }, 404)
+    return ({ "num_times" : num_left }, 200)
+    
+def task_iterate_iterate_repeat_fn(in1, in2, output=None, token=None):
+    print(f"task_iterate_iterate_repeat_fn(in1={in1}, in2={in2},  output={output})")    
+    # return (f"task_iterate_iterate_repeat_fn(in1={in1}, in2={in2}, output={output})", 200)
+    if output is None:
+        num_left = 2
+    else:
+        num_left = int(output.get("num_times",1)) - 1
+    if num_left <= 0:
+        return ({ "num_times" : 0 }, 404)
+    return ({ "num_times" : num_left }, 200)
+
     # service = 'photos'
     # path = '/photos/unsynced-photos-ranges'
 

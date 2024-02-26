@@ -3,7 +3,8 @@ from dotenv import load_dotenv
 import unittest
 import json
 from common.entity_store import EntityStore
-from test_orch_datastore import TestOrchDataStore
+# from test.orchestration.mock_orch_datastore import MockOrchDataStore
+from mock_orch_datastore import MockOrchDataStore
 from common.orchestration.orchestration_executor import OrchestrationExecutor, execute_orchestration
 from common.table_store import TableStore
 import sys
@@ -26,7 +27,7 @@ class TestOrchestrations(unittest.TestCase):
         with open('test/orchestration/test_def_orch_tasks.json', "r") as jfd:
             orch_data = json.load(jfd)
 
-        td = TestOrchDataStore(orch_data['def'], orch_data['orch'], orch_data['tasks']) 
+        td = MockOrchDataStore(orch_data['def'], orch_data['orch'], orch_data['tasks']) 
         self.exec = OrchestrationExecutor(td, '1707171215')
         return super().setUp()
 
@@ -53,7 +54,7 @@ class TestOrchestrations(unittest.TestCase):
 
     def test_create_root_dict(self):
         task1_instance = self.exec.get_task_instance('task1')
-        root = self.exec.create_root_dict(task1_instance)
+        root = self.exec.create_root_context(task1_instance)
         print(root)
 
     def test_create_inputs_dict(self):
