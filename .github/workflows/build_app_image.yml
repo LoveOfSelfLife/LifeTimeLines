@@ -11,7 +11,8 @@ on:
               - fe
               - echo
               - entities
-              - queueprocessor
+              - otex
+              - otmgr
 jobs:
   
     call-build-container-app:
