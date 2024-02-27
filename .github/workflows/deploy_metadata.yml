@@ -37,8 +37,3 @@ jobs:
               az storage file upload --source $f --share-name richkhome --path meta --account-name richkstorage --account-key ${{ secrets.STORAGE_ACCOUNT_KEY }}
             done
           
-          # inlineScript: |
-          #   echo "upload files"
-          #   cd storage/meta
-          #   az storage file upload --source cores.json --share-name richkhome --path meta --account-name richkstorage --account-key ${{ secrets.STORAGE_ACCOUNT_KEY }}
-          #   az storage file upload --source categories.json --share-name richkhome --path meta --account-name richkstorage --account-key ${{ secrets.STORAGE_ACCOUNT_KEY }}
