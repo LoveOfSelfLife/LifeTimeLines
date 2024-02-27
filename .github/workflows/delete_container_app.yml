@@ -12,7 +12,8 @@ on:
             - feapp
             - echo
             - entities
-            - queueprocessor
+            - otex
+            - otmgr
 
 jobs:
   publish:

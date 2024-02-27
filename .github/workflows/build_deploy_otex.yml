@@ -2,7 +2,7 @@
 # GitHub Actions workflow.
 #
 
-name: Build/Publish/Push queueprocessor to Container App Env
+name: Build/Publish/Push otex to Container App Env
 
 on:
   pull_request:
@@ -11,7 +11,7 @@ on:
     branches:
       - master
     paths:
-      - 'services/queueprocessor/**'      
+      - 'services/otex/**'      
   workflow_dispatch:
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
   call-build-deploy-container-app:
     uses: ./.github/workflows/_build_deploy_containerapp_image.yml
     with:
-      app-name: queueprocessor
+      app-name: otex
     secrets:
       container_registry: ${{ secrets.container_registry }}
       container_registry_id: ${{ secrets.container_registry_id }}
