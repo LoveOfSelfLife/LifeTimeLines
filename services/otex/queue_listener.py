@@ -4,11 +4,26 @@ import time
 
 from azure.storage.queue import QueueClient
 from dotenv import load_dotenv
-from services.otex.orchestration_runner import advance_orchestration
+from common.queue_store import QueueStore
+from common.table_store import TableStore
 from common.graceful_exit import GracefulExit
 from common.auth_requestor import AuthRequestor
+from common.orchestration.orchestration_utils import OrchestrationCommand, OrchestrationQueue
+from common.orchestration.orchestration_executor import execute_orchestration
 
 load_dotenv()
+
+    # steps_to_advance = int(arg) if arg else 1
+    # while steps_to_advance > 0:
+    #     executor = OrchestrationExecutor(orch_data, orch_instance_id, token)
+    #     task_instance = executor.find_next_task_inst_to_run()
+    #     if task_instance is None:
+    #         return False
+    #     executor.run_task_instance(task_instance)
+    #     steps_to_advance -= 1
+    # return True
+
+
         
 def main() -> None:
     print(f'Validate environment variables...')
@@ -29,14 +44,11 @@ def main() -> None:
     if TENANT_ID is None:
         raise Exception(f'You attempted to run the container without providing the TENANT_ID')
 
-    STORAGE_QUEUE_NAME = 'request-queue'
-    if STORAGE_QUEUE_NAME is None:
-        raise Exception(f'You attempted to run the container without providing the STORAGE_QUEUE_NAME')
-
-    # assert STORAGE_QUEUE_NAME is not None
-
-    queue_client = QueueClient.from_connection_string(STORAGE_CONNECTION_STRING, STORAGE_QUEUE_NAME)
-    print(f'Client created for: {STORAGE_QUEUE_NAME}')
+    TableStore.initialize(STORAGE_CONNECTION_STRING)
+    QueueStore.initialize(STORAGE_CONNECTION_STRING)
+    OrchestrationQueue.set_testing_mode(True)
+    queue_client = OrchestrationQueue.get_queue_client()
+    print(f'Client created for: {OrchestrationQueue.queue_name}')
 
     exitor = GracefulExit()
 
@@ -53,10 +65,11 @@ def main() -> None:
             print(f'Dequeueing: {message.content}', flush=True)
             queue_client.delete_message(message.id, message.pop_receipt)
             if message.content is not None:
-                message_content_json = json.loads(message.content)
-                orch_instance_id = message_content_json['instanceId']
-                steps_to_advance = message_content_json.get('steps_to_advance', 1)
-                result = advance_orchestration(orch_instance_id, steps_to_advance, auth.get_auth_token())
+                message_content_obj = json.loads(message.content)
+                orch_cmd = OrchestrationCommand(message_content_obj)
+
+                result = execute_orchestration(orch_cmd, auth.get_auth_token())
+
             else:
                 print(f'no message to process (message.content is empty)', flush=True)
 
