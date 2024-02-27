@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import MagicMock
 from common.orchestration.orchestration_executor import OrchestrationExecutor, execute_orchestration
+from common.table_store import TableStore
 from mock_orch_datastore import MockOrchDataStore
 import json
 import unittest
@@ -8,10 +9,19 @@ from unittest.mock import MagicMock
 from common.orchestration.orchestration_executor import OrchestrationExecutor
 from mock_orch_datastore import MockOrchDataStore
 import json
+import os
+from dotenv import load_dotenv
+
 
 class TestOrchestrationExecutor(unittest.TestCase):
 
     def setUp(self):
+        print(f"setUp()")
+        load_dotenv('test/.env')
+        print(f"{os.getcwd()}")
+        print( f"{os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING')}")
+        TableStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
+
         with open('test/orchestration/test_def_orch_tasks_simple.json', "r") as jfd:
             orch_data = json.load(jfd)
 
@@ -91,17 +101,22 @@ class TestOrchestrationExecutor(unittest.TestCase):
         output = self.orchestration_executor._resolve_vars_with_respect_to_context(inputs, context)
         self.assertEqual(list(output), expected_output)
 
+
+
     def test_run_orchestration1(self):
         print(f"test_run_orchestration1")
         cmd = {
             "command": "execute",
-            "orch_instance_id": "1707171215",
+            # "orch_instance_id": "1707171215",
+            "orch_instance_id": "1709007082",
             "arg" : None
         }
 
-        execute_orchestration(cmd, orch_data=self.orchestration_executor.store)
-        with open('test/orchestration/test_def_orch_tasks_simple_output.json', "w") as jfd:
-            print(str(self.orchestration_executor.store), file=jfd)
+        # execute_orchestration(cmd, orch_data=self.orchestration_executor.store)
+        execute_orchestration(cmd)
+        # with open('test/orchestration/test_def_orch_tasks_simple_output.json', "w") as jfd:
+        # with open('test/orchestration/test_def_orch_tasks_simple_ts_output.json', "w") as jfd:
+            # print(str(self.orchestration_executor.store), file=jfd)
 
 if __name__ == '__main__':
     unittest.main()
