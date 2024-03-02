@@ -68,7 +68,7 @@ def main() -> None:
                 message_content_obj = json.loads(message.content)
                 orch_cmd = OrchestrationCommand(message_content_obj)
 
-                result = execute_orchestration(orch_cmd, auth.get_auth_token())
+                result = execute_orchestration(orch_cmd=orch_cmd, token=auth.get_auth_token())
 
             else:
                 print(f'no message to process (message.content is empty)', flush=True)
