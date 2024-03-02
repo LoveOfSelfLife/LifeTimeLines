@@ -92,6 +92,7 @@ class AlbumSyncOp(Resource):
     If the encoded token is None, then the client knows that all items have been synced.
     In that series of calls, the number of items should always be the same as the first call.
     '''
+    # TODO: this really should be a POST, but I'm using GET for now to make it easier to test
     @ns.doc(params={'next': {'description': 'opaque next page token', 'in': 'query', 'type': 'str'},
                     'num': {'description': 'number of items to sync', 'in': 'query', 'type': 'int'}})
     def get(self, album_id):
@@ -106,32 +107,32 @@ class AlbumSyncOp(Resource):
 
         return { "num_items" : len(sync['items']), "next" : sync['continuation_token'] }
 
-@ns.route('/albums/<album_id>')
-@ns.param('album_id', 'The album id')
-class Album(Resource):
-    '''get items in an albumm'''
-    # query params here
-    @ns.doc(params={'end': {'description': 'iso datetime', 'in': 'query', 'type': 'str'},
-                    'next': {'description': 'next page token', 'in': 'query', 'type': 'str'},
-                    'num': {'description': 'number of items', 'in': 'query', 'type': 'int'}})
-    def get(self, album_id):
-        ts = None
-        end = request.args.get('end')
-        next_page = request.args.get('next')
-        num_items = request.args.get('num')
+# @ns.route('/albums/<album_id>')
+# @ns.param('album_id', 'The album id')
+# class Album(Resource):
+#     '''get items in an albumm'''
+#     # query params here
+#     @ns.doc(params={'end': {'description': 'iso datetime', 'in': 'query', 'type': 'str'},
+#                     'next': {'description': 'next page token', 'in': 'query', 'type': 'str'},
+#                     'num': {'description': 'number of items', 'in': 'query', 'type': 'int'}})
+#     def get(self, album_id):
+#         ts = None
+#         end = request.args.get('end')
+#         next_page = request.args.get('next')
+#         num_items = request.args.get('num')
 
-        if not num_items:
-            num_items = 100
+#         if not num_items:
+#             num_items = 100
 
-        if end:
-            ts = datetime.datetime.fromisoformat(end)
+#         if end:
+#             ts = datetime.datetime.fromisoformat(end)
         
-        api = GooglePhotosApi(get_credentials())
+#         api = GooglePhotosApi(get_credentials())
 
-        # returns {"next_page_token": nextPageToken, "items": album_item_list}
-        album_items = api.sync_album_items_incrementally(album_id, num_items, next_page, ts)
+#         # returns {"next_page_token": nextPageToken, "items": album_item_list}
+#         album_items = api.sync_album_items_incrementally(album_id, num_items, next_page, ts)
 
-        return { "items" : album_items['items'], "next" : album_items['next_page_token'] }
+#         return { "items" : album_items['items'], "next" : album_items['next_page_token'] }
 
 @ns.route('/category/<category>')
 @ns.param('category', 'The category')

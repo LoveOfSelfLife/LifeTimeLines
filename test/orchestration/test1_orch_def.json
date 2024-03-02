@@ -1,0 +1,36 @@
+{
+    "id": "test1_orch_def",
+    "context": {
+        "start": null,
+        "end": null,
+        "gap": "30"
+    },
+    "flow": [
+        {
+            "step_id": "step1",
+            "step": "gather prelim details",
+            "tasks": [
+                "task_get_unsynced_mitem_dateranges", 
+                "task_get_albums"
+            ]
+        }
+    ],
+    "tasks": [
+        {
+            "taskId": "task_get_unsynced_mitem_dateranges",
+            "taskDescription": "retrieve unsynced mediaitem date ranges",
+            "function": "retrieve_unsynced_mediaitem_dateranges_fn",
+            "inputs": {
+                "after": "$<context.start>",
+                "before": "$<context.end>",
+                "daysgap": "$<context.gap>"
+            }
+        },
+        {
+            "taskId": "task_get_albums",
+            "taskDescription": "retrieve list of entity albums",
+            "function": "retrieve_entity_album_list_fn",
+            "inputs": { }
+        }
+    ]
+}
