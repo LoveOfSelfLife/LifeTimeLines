@@ -46,7 +46,7 @@ def main() -> None:
 
     TableStore.initialize(STORAGE_CONNECTION_STRING)
     QueueStore.initialize(STORAGE_CONNECTION_STRING)
-    OrchestrationQueue.set_testing_mode(True)
+
     queue_client = OrchestrationQueue.get_queue_client()
     print(f'Client created for: {OrchestrationQueue.queue_name}')
 
