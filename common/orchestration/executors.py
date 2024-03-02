@@ -11,14 +11,48 @@ def sync_mediaitems_in_daterange_fn(range, gap, token=None):
     g = gap
     return (f"GOT: {s}-{e}-{g}", 200)
 
+# def retrieve_unsynced_mediaitem_dateranges_fn(after, before, daysgap, token=None):
+#     result = [{ "start": "20200301", "end": "20200401"},
+#               { "start": "20200401", "end": "20200501"},
+#               { "start": "20200501", "end": "20200601"},
+#               { "start": "20200601", "end": "20200701"},
+#               { "start": "20200701", "end": "20200801"}
+#     ]
+#     return (result, 200)
+
 def retrieve_unsynced_mediaitem_dateranges_fn(after, before, daysgap, token=None):
-    result = [{ "start": "20200301", "end": "20200401"},
-              { "start": "20200401", "end": "20200501"},
-              { "start": "20200501", "end": "20200601"},
-              { "start": "20200601", "end": "20200701"},
-              { "start": "20200701", "end": "20200801"}
-    ]
-    return (result, 200)
+    # http://127.0.0.1:8080/photos/unsynced-photos-ranges?start_dt_iso=2023-01-01&end_dt_iso=2024-04-01&gap_days=30'
+    result = []
+    service = 'photos'
+    path = '/photos/unsynced-photos-ranges'
+
+    path=f"/photos/unsynced-photos-ranges?start_dt_iso={after}&end_dt_iso={before}&gap_days={daysgap}"
+    URL=f'https://{service}.ltl.richkempinski.com{path}'
+    headers={'Authorization': 'Bearer ' + token}
+
+    resp = requests.get(URL, verify=False, headers=headers)
+    print(f'response status:  {resp.status_code}')
+
+    return resp.json(), resp.status_code    
+
+    # return (result, 200)
+
+
+def retrieve_entity_album_list_fn(token=None):
+    service = 'photos'
+    path = '/photos/actor-entity-albums'
+
+    URL=f'https://{service}.ltl.richkempinski.com{path}'
+    headers={'Authorization': 'Bearer ' + token}
+
+    resp = requests.get(URL, verify=False, headers=headers)
+    print(f'response status:  {resp.status_code}')
+    resp.encoding = 'utf-8'
+    return resp.json(), resp.status_code
+    
+
+
+
 
 def get_last_processed_timestamp_fn(token=None):
         result = { "timestamp": "20190301" }
