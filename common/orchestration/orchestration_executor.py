@@ -545,9 +545,10 @@ hen before attempting to execute the instance, we check the counter to verify it
         exec_index += 1
         start_time = datetime.now().isoformat()
         task_instance['exec_index'] = exec_index
-        return {"start": start_time, "exec_id": exec_id, "input": input }
+        sanitized_input = copy.deepcopy(input)
+        sanitized_input['token'] = '************'
+        return {"start": start_time, "exec_id": exec_id, "input": sanitized_input }
     
-
 if __name__ == "__main__":
     import itertools
     input = [ { "x" : [1]} , {"y" : [2,3,4] }, {"z" : [6,7,8]} ]
