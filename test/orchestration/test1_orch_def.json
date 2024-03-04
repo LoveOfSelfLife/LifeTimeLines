@@ -19,7 +19,7 @@
         {
             "taskId": "task_get_unsynced_mitem_dateranges",
             "taskDescription": "retrieve unsynced mediaitem date ranges",
-            "function": "retrieve_unsynced_mediaitem_dateranges_fn",
+            "func": "retrieve_unsynced_mediaitem_dateranges_fn",
             "inputs": {
                 "after": "$<context.start>",
                 "before": "$<context.end>",
@@ -29,7 +29,7 @@
         {
             "taskId": "task_get_albums",
             "taskDescription": "retrieve list of entity albums",
-            "function": "retrieve_entity_album_list_fn",
+            "func": "retrieve_entity_album_list_fn",
             "inputs": { }
         }
     ]
