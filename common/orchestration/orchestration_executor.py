@@ -4,7 +4,7 @@ from datetime import datetime
 import itertools
 from common.orchestration.orchestration_utils import OrchTaskDefDataStore
 import logging
-
+import importlib
 
 def execute_orchestration(orch_cmd, orch_data=None, token=None):
     """this method will execute the indicated orchestration intance
@@ -389,10 +389,12 @@ hen before attempting to execute the instance, we check the counter to verify it
         return (result, status)
 
     def get_function(self, task_instance):
-        import common.orchestration.executors    
         task_def = self.get_task_def(task_instance)
+        module = task_def.get('module', 'executors')
+        base_pkg = 'common.orchestration'
+        imported_module = importlib.import_module(f"{base_pkg}.{module}")
         func_str = task_def['func']
-        func_callable = getattr(common.orchestration.executors, func_str)
+        func_callable = getattr(imported_module, func_str)
         return func_callable
 
     def get_max_repititions(self, task_instance):
