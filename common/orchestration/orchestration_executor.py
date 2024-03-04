@@ -3,7 +3,7 @@ import re
 from datetime import datetime
 import itertools
 from common.orchestration.orchestration_utils import OrchTaskDefDataStore
-
+import logging
 
 
 def execute_orchestration(orch_cmd, orch_data=None, token=None):
@@ -375,6 +375,7 @@ hen before attempting to execute the instance, we check the counter to verify it
     #     return self.get_combinations(vl)
 
     def invoke_function(self, func, input):
+        logging.info(f"invoking function: {func} with input: {input}")
         input['token'] = self.token
         result_tuple = func(**input)
         (result, status) = result_tuple
@@ -439,14 +440,16 @@ hen before attempting to execute the instance, we check the counter to verify it
         Args:
             task_instance (_type_): _description_
         """
+        logging.info(f"running task: {task_instance['task_id']}")
         task_instance['status'] = 'starting'
         self.persist(task_instance)
 
         the_function = self.get_function(task_instance)
+        logging.info(f"function: {the_function}")
 
         # this will return a generator that will yield the resolved inputs one at a time
         inputs = list(self._resolve_inputs_for_task_as_generator(task_instance))
-
+        logging.info(f"inputs: {inputs}")
         for input in inputs:
 
             execution_details = self.capture_execution_details(task_instance, input)
@@ -454,12 +457,14 @@ hen before attempting to execute the instance, we check the counter to verify it
             task_status = "completed"
             try:
                 output, function_status = self.invoke_function(the_function, input)
+                logging.info(f"function completed, output: {output}")
                 task_instance['output'] = output
                 execution_details["output"] = output
                 execution_details["status"] = "completed"
             except:
                 task_status = "failed"
                 execution_details["status"] = "failed"
+                logging.info(f"function failed")
 
             execution_details["end"] = datetime.now().isoformat()
 
