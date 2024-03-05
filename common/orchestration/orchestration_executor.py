@@ -177,7 +177,7 @@ hen before attempting to execute the instance, we check the counter to verify it
         return None
     
     def refresh_orch_instance_from_storage(self):
-        self.orch_instance = self.store.get_orch_data(self.orch_instance['id'])
+        self.orch_definition, self.orch_instance, self.task_instances = self.store.get_orch_data(self.orch_instance['id'])
         return self.orch_instance
 
     def refresh_orch_instance_statuses(self):
