@@ -17,24 +17,56 @@ def execute_orchestration(orch_cmd, orch_data=None, token=None):
     # and if they are all completed, then we need to mark the orchestration instance as completed
     command = orch_cmd['command']
     orch_instance_id = orch_cmd['orch_instance_id']
-    arg = orch_cmd['arg']
+    # arg = orch_cmd['arg']
 
     orch_data = OrchTaskDefDataStore() if orch_data is None else orch_data
     executor = OrchestrationExecutor(orch_data, orch_instance_id, token)
     if command == "execute":
-
         for step_id in executor.get_steps():
             step_status = executor.get_step_status(step_id)
-            print(f'step_id: {step_id}, step_status: {step_status}')
+            # print(f'step_id: {step_id}, step_status: {step_status}')
+
             if step_status == "not_started" or step_status == "in_progress":
+                logging.info(f'step_id: {step_id} with step_status: {step_status} has not started or is in progress, so we will run all unfinished tasks in the step')
                 run_tasks_in_step_status = executor.run_all_unfinished_tasks_in_step(step_id)
             elif step_status == "completed":
+                logging.info(f'step_id: {step_id} with step_status: {step_status} has completed, so we will move to the next step')
                 continue
             else:
-                print(f'step_id: {step_id} has failed tasks, so cannot finish the step')
+                logging.info(f'step_id: {step_id} with step_status: {step_status} has failed tasks, so cannot finish the step')
+                # print(f'step_id: {step_id} has failed tasks, so cannot finish the step')
                 return False
-
-            
+    elif command == "rerun_all_in_step":
+        step_id = orch_cmd.get("step_id", None)
+        if step_id:
+            logging.info(f'command: {command}, step_id: {step_id}')
+            executor.refresh_orch_instance_from_storage()
+            executor.run_all_tasks_in_step(step_id)
+        else:
+            logging.info(f'command: {command}, step_id: {step_id} not recognized')
+            return False
+    elif command == "rerun_unfinished_in_step":
+        step_id = orch_cmd.get("step_id", None)
+        if step_id:
+            logging.info(f'command: {command}, step_id: {step_id}')
+            executor.refresh_orch_instance_from_storage()
+            executor.run_all_unfinished_tasks_in_step(step_id)
+        else:
+            logging.info(f'command: {command}, step_id: {step_id} not recognized')
+            return False
+    elif command == "run_task_in_step":
+        step_id = orch_cmd.get("step_id", None)
+        task_id = orch_cmd.get("task_id", None)
+        if step_id and task_id:
+            logging.info(f'command: {command}, step_id: {step_id}, task_id: {task_id} ')
+            executor.refresh_orch_instance_from_storage()
+            executor.run_task_in_step(step_id, task_id)
+        else:
+            logging.info(f'command: {command}, step_id: {step_id}, task_id: {task_id} not recognized')
+            return False
+    else:
+        logging.info(f'command: {command} not recognized')
+        return False
     return True
 
 
@@ -119,6 +151,17 @@ hen before attempting to execute the instance, we check the counter to verify it
             if task_inst and task_inst['status'] != "completed":
                 self.run_task_instance(task_inst)   
 
+    def run_task_in_step(self, step_id, task_id):
+        step = next((s for s in self.orch_definition['flow'] if s['step_id'] == step_id), None)
+        if task_id in step['tasks']:
+            task_inst = next((t for t in self.task_instances if t['task_id'] == task_id), None)
+            if task_inst:
+                logging.info(f"running task: {task_id} in step: {step_id}")
+                self.run_task_instance(task_inst)
+        else:
+            logging.info(f"task: {task_id} not found in step: {step_id} - raising exception")
+            raise Exception(f"task: {task_id} not found in step: {step_id}")
+        
     def validate_definition(self):
         pass
 
