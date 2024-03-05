@@ -325,6 +325,10 @@ hen before attempting to execute the instance, we check the counter to verify it
         context2 = self.orch_instance.get('context', {})
         context3 = task_instance.get('context', {})
 
+        context1 = {} if context1 is None else context1
+        context2 = {} if context2 is None else context2
+        context3 = {} if context3 is None else context3
+
         context = context1 | context2 | context3
         root = {
             "context": context,
