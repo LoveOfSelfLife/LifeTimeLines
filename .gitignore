@@ -5,6 +5,7 @@
 *.vsdx
 /local
 *.ipynb
+local/
 
 \#*\#
 ~*
