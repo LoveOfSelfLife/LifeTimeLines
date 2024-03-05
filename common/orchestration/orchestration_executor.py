@@ -321,9 +321,9 @@ hen before attempting to execute the instance, we check the counter to verify it
         Returns:
             dict: The root dictionary containing the context, tasks, and orchestration instance.
         """
-        context1 = self.orch_definition['context'] if self.orch_definition['context'] else {}
-        context2 = self.orch_instance['context'] if self.orch_instance['context'] else {}
-        context3 = task_instance['context'] if task_instance['context'] else {}
+        context1 = self.orch_definition.get('context', {})
+        context2 = self.orch_instance.get('context', {})
+        context3 = task_instance.get('context', {})
 
         context = context1 | context2 | context3
         root = {
