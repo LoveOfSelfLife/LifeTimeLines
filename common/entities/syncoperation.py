@@ -10,11 +10,21 @@ class SyncOperation (EntityObject):
     def __init__(self, d={}):
         super().__init__(d)
 
-class LastSyncTimeTracker (EntityObject):
-    table_name='SyncTimesTable'
+
+class ConsumedItemsTimeTracker (EntityObject):
+    table_name='ConsumedItemsTrackerTable'
     partition_field="consumer_id"
     key_field="table_name"
-    fields=["consumer_id", "table_name", "last_sync_time", "last_sync_status", "last_sync_error", "last_sync_items_processed"]
+    fields=["consumer_id", "table_name", "latest_item_consumed_iso"]
+
+    def __init__(self, d={}):
+        super().__init__(d)
+
+class LatestItemUpdatedTimeTracker (EntityObject):
+    table_name='LatestItemsUpdatedTrackerTable'
+    partition_value="all"
+    key_field="table_name"
+    fields=["table_name", "latest_item_updated_iso"]
 
     def __init__(self, d={}):
         super().__init__(d)

@@ -1,6 +1,8 @@
 import json
 from common.table_store import TableStore
 from common.utils import IDGenerator
+import re
+import urllib.parse
 
 class EntityObject (dict):
     key_generator=IDGenerator.gen_id()
@@ -62,33 +64,13 @@ class EntityStore :
             EntityStore.storage_map[table_name] = storage
         return storage
 
-    # def list_items_orig(self, entity_class, filter=None):
-    #     """return a iterator of objects of class entity_class from the underlying Table store
-
-    #     Args:
-    #         entity_class (_type_): _description_
-    #         filter (_type_, optional): _description_. Defaults to None.
-
-    #     Yields:
-    #         _type_: _description_
-    #     """
-    #     # if entity_class has a value for the "items_list_field" attribute, then any entity
-    #     # may possily be spread out across multiple Table storage rows.   In that case, we only 
-    #     # want to retrieve the base entity objects, which can be identified as have a Null value
-    #     # in the underlying row's _Parent attribute.  To make sure this occurs, we add a filter
-
-    #     storage = EntityStore._get_storage_by_table_name(entity_class.table_name)
-    #     if entity_class.items_list_field is not None:
-    #         filter = filter
-    #         # TODO: complete this
-    #     for r in storage.query(entity_class.partition_value, filter):
-    #         yield self._loads_from_storage_format(r, entity_class)
-
-    def list_items(self, eobj:EntityObject):
+    def list_items(self, eobj:EntityObject, filter=None, newer_than_cutoff_ts_iso=None):
         """return a iterator of objects from the underlying Table store
 
         Args:
-            entity_class (_type_): _description_
+            entity_class (EntityObject instance): used to determine the table name that this method will query
+            filter (string, optional): used to filter the results to only include items that satisfy the filter. Defaults to None.
+            newer_than_cutoff_ts_iso (ios formatter string, optional): used to return only those items that were updated in the table after the cutoff time. Defaults to None.
 
         Yields:
             EntityObject : an iterator of entity objects of the desiried type
@@ -104,10 +86,10 @@ class EntityStore :
             # filter = filter
             # TODO: complete this
         if eobj.get_static_partition_value():
-            for r in storage.query(eobj.get_partition_value()):
+            for r in storage.query(eobj.get_partition_value(), filter=filter, newer_than_cutoff_ts_iso=newer_than_cutoff_ts_iso):
                 yield self._loads_from_storage_format(r, type(eobj))
         else:
-            for r in storage.query():
+            for r in storage.query(filter=filter, newer_than_cutoff_ts_iso=newer_than_cutoff_ts_iso):
                 yield self._loads_from_storage_format(r, type(eobj))
 
     def get_item(self, eobj):
@@ -145,7 +127,22 @@ class EntityStore :
         if len(entities) > 0:
             eobj = entities[0]
             storage = EntityStore._get_storage_by_table_name(eobj.get_table_name())
-            storage.batch_upsert([self._dumps_to_storage_format(e) for e in entities])
+            first_item, last_item = storage.batch_upsert([self._dumps_to_storage_format(e) for e in entities])
+            first_item_time_iso = self.get_ts_from_metadata_etag(first_item)
+            last_item_time_iso = self.get_ts_from_metadata_etag(last_item)
+            return first_item_time_iso, last_item_time_iso
+        
+    def get_ts_from_metadata_etag(self, item):
+        # item is a dict like this: {'etag': 'W/"datetime\'2024-03-06T14%3A09%3A41.3067052Z\'"'}
+        ts = None
+        etag = item.get('etag', None)
+        if etag:
+            pat = re.compile(r"W/\"datetime'(.*)'\"")
+            ts_url_encoded = re.match(pat, etag).group(1)
+            
+            ts = urllib.parse.unquote(ts_url_encoded)
+        return ts
+
 
     def delete(self, row_keys, entity_class):
         if entity_class.partition_value is None:
