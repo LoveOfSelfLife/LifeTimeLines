@@ -6,7 +6,7 @@ import json
 from common.entities.journal_day import JournalDay
 # from common.entities.entity import EntityObject
 from common.entities.location import LocationEntity
-from common.entities.person import PersonEntity
+from common.entities.person import GenericEntity, PersonEntity
 from common.entity_store import EntityStore
 from common.table_store import TableStore
 
@@ -65,6 +65,35 @@ class TestEntityStore(unittest.TestCase):
         print(list(pel2))
         self.assertTrue(True)
 
+    def test_filters(self):
+        storage = EntityStore()
+
+        ge = GenericEntity({ "type" : "persons" })
+        gel = storage.list_items(ge)
+        
+        import json
+        for g in gel:
+            print(json.dumps(g, indent=4))
+        # print(list(gel))
+        print("Filtering")
+                                                             
+        # gel = storage.list_items(ge, filter="photos_album eq 'Someones_Photo_Album'")
+        gel = storage.list_items(ge, filter="city eq 'pocono pines'")
+        # gel = storage.list_items(ge, filter="photos_album eq '""John_Masons_Photo_Album""'")
+        for g in gel:
+            print(json.dumps(g, indent=4))
+                                               
+        gel = storage.list_items(ge, filter="city eq 'pocono pines'", newer_than_cutoff_ts_iso='2024-03-06T18:24:23Z')
+
+        print("Filtering by timestamp")
+        for g in gel:
+            print(json.dumps(g, indent=4))
+
+        gel = storage.list_items(ge, newer_than_cutoff_ts_iso='2024-03-06T18:24:23Z')
+
+        print("Filtering by just timestamp")
+        for g in gel:
+            print(json.dumps(g, indent=4))
 
 if __name__ == '__main__':
     unittest.main()

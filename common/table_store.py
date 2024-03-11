@@ -38,16 +38,25 @@ class TableStore():
         entity = {**keys, **vals}
         self.table_client.upsert_entity(entity)
 
-    def query(self, partition_value=None, filter=None):
+    def query(self, partition_value=None, filter=None, newer_than_cutoff_ts_iso=None):
+        ts_filter = f" and (Timestamp gt datetime'{newer_than_cutoff_ts_iso}')" if newer_than_cutoff_ts_iso else ""
         if partition_value:
             if filter:
-                result = self.table_client.query_entities(query_filter=f"PartitionKey eq @pk and {filter}", parameters={"pk": partition_value})
+                result = self.table_client.query_entities(query_filter=f"PartitionKey eq @pk and {filter} {ts_filter}", parameters={"pk": partition_value})
             else:
-                result = self.table_client.query_entities(query_filter=f"PartitionKey eq @pk", parameters={"pk": partition_value})            
+                qfilter = f"PartitionKey eq @pk{ts_filter}"
+                result = self.table_client.query_entities(query_filter=qfilter, parameters={"pk": partition_value})            
             return result
         else:
             # TODO: fix this to be DRY, this is just temporary
-            filter = filter if filter else ""
+            if filter and ts_filter:
+                filter = f"({filter}){ts_filter}"
+            elif filter:
+                filter = filter
+            elif ts_filter:
+                filter = f"true{ts_filter}"
+            else:
+                filter = ""
             result = self.table_client.query_entities(query_filter=f"{filter}")
             return result
 
@@ -64,7 +73,7 @@ class TableStore():
             print("Created table")
             
     def delete(self, partition_value, filter=None):
-        results = self.query(partition_value, filter)
+        results = self.query(partition_value, filter=filter)
         to_delete = []
         try:
             for item in results:
