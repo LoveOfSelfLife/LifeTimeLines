@@ -31,12 +31,12 @@ class TableStore():
     def insert(self, partition_key, row_key, vals):
         keys = {"PartitionKey": partition_key, "RowKey": str(row_key)}
         entity = {**keys, **vals}
-        self.table_client.create_entity(entity)
+        return self.table_client.create_entity(entity)
 
     def upsert(self, partition_key, row_key, vals):
         keys = {"PartitionKey": partition_key, "RowKey": str(row_key)}
         entity = {**keys, **vals}
-        self.table_client.upsert_entity(entity)
+        return self.table_client.upsert_entity(entity)
 
     def query(self, partition_value=None, filter=None, newer_than_cutoff_ts_iso=None):
         ts_filter = f" and (Timestamp gt datetime'{newer_than_cutoff_ts_iso}')" if newer_than_cutoff_ts_iso else ""

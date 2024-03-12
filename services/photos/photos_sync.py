@@ -28,9 +28,7 @@ class PhotosSyncMgr ():
                                 "creationTime": e['creationTime'],
                                 "mimeType" : e['mimeType']}) for e in mitems]
 
-        _, last_item_iso = self.storage.upsert_items(entities)
-        latest_item_record = LatestItemUpdatedTimeTracker({"table_name": MediaItem.get_table_name(), "latest_item_updated_iso": last_item_iso})
-        self.storage.upsert_item(latest_item_record)
+        self.storage.upsert_items(entities)
 
         num_mitems_processed += len(entities)
 

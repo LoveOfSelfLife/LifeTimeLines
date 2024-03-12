@@ -1,6 +1,4 @@
-from common.entity_store import EntityObject
-
-
+from common.entity_object import EntityObject
 class SyncOperation (EntityObject):
     table_name='SyncOperationTable'
     partition_value="photos"
