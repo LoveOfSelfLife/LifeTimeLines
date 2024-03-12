@@ -119,8 +119,10 @@ class AlbumsSyncMgr ():
 
         # store the album items in the entity store, regareless of how we got here
         if album_items_list:
-            latest_item_iso = self.store_album_items(album_id, album_items_list)
-            self.storage.upsert_item(LatestItemUpdatedTimeTracker({"table_name": "AlbumItem", "latest_item_updated_iso": latest_item_iso}))
+            album_item_entities = [ AlbumItem({"mitemId": e['id'], 
+                                               "albumId": album_id,
+                                               "creationTime": e['creationTime']}) for e in album_items_list]
+            self.storage.upsert_items(album_item_entities)            
 
         if next_page_token:
             # here we know there are more items to retrieve
@@ -133,15 +135,6 @@ class AlbumsSyncMgr ():
                 self.storage.upsert_item(AlbumSyncTime({"albumId": album_id,"latestPhotoInAlbumTime" : max_creation_time_iso}))
             return { "items": album_items_list , "continuation_token": None }
 
-
-    def store_album_items(self, album_id, album_items):
-        album_item_entities = [ AlbumItem({"mitemId": e['id'], 
-                                          "albumId": album_id,
-                                          "creationTime": e['creationTime']}) for e in album_items]
-        _, last_item_iso = self.storage.upsert_items(album_item_entities)
-        latest_item_record = LatestItemUpdatedTimeTracker({"table_name": AlbumItem.get_table_name(), "latest_item_updated_iso": last_item_iso})
-        self.storage.upsert_item(latest_item_record)
-        return last_item_iso
 
     @staticmethod
     def pack(num_items, max_creation_time, next_page_token):

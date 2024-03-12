@@ -1,4 +1,4 @@
-from common.entity_store import EntityObject
+from common.entity_object import EntityObject
 
 class LocationEntity (EntityObject):
     table_name="EntityTable"

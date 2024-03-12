@@ -1,54 +1,9 @@
 import json
+from common.entity_object import EntityObject
+from common.entities.syncoperation import LatestItemUpdatedTimeTracker
 from common.table_store import TableStore
-from common.utils import IDGenerator
 import re
 import urllib.parse
-
-class EntityObject (dict):
-    key_generator=IDGenerator.gen_id()
-    table_name = None
-    fields = None
-    key_field=None
-    partition_field=None
-    partition_value=None
-    items_list_field = None
-
-    def __init__(self, d={}):
-        dict.__init__(d)
-        for k,v in d.items():
-            self[k] = v
-
-    def get_key_field(self):
-        return type(self).key_field
-    
-    def get_key_value(self):
-        return self[self.get_key_field()]
-
-    def get_partition_field(self):
-        return type(self).partition_field
-
-    def get_partition_value(self):
-        if type(self).partition_value:
-            return type(self).partition_value
-        return self[self.get_partition_field()]
-
-    def get_static_partition_value(self):
-        if type(self).partition_value:
-            return type(self).partition_value
-        return None
-
-    def get_table_name(self):
-        return type(self).table_name
-
-    def get_fields(self):
-        return type(self).fields
-    
-    def get_items_list_field(self):
-        return type(self).items_list_field
-
-    def key_generator(self):
-        return type(self).key_generator
-
 
 class EntityStore :
     storage_map = {}
@@ -98,7 +53,7 @@ class EntityStore :
             base_item = storage.get_item(partition_key_value=eobj.get_partition_value(), 
                                     row_key_value=eobj.get_key_value())
             if eobj.get_items_list_field() is not None:
-                # TPDP" this whole block is untested, it is also just a draft
+                # TODO: this whole block is untested, it is also just a draft
                 additonal_list_items = []
                 next_id = base_item.get("_Next", None)
                 while next_id:
@@ -112,27 +67,47 @@ class EntityStore :
         except Exception:
             return None
     
-    def upsert_item(self, eobj):
+    def get_iso_timestamp_of_latest_stored_item(self, eobj):
+        return self.get_iso_timestamp_of_latest_stored_item_in_table(eobj.get_table_name())
+
+    def get_iso_timestamp_of_latest_stored_item_in_table(self, table):
+        latest = LatestItemUpdatedTimeTracker({"table_name": table})
+        rec = self.get_item(latest)
+        if rec is None:
+            return rec.get("latest_item_updated_iso", None)
+        return None
+
+    def upsert_item(self, eobj, track_last_updated_item=True):
         storage = EntityStore._get_storage_by_table_name(eobj.get_table_name())
         if eobj.get_key_field() not in eobj.keys():
             id = (eobj.get_key_generator())()
             eobj[eobj.get_key_field()] = str(id)
+        last_item_meta = storage.upsert(partition_key=eobj.get_partition_value(),
+                                        row_key=eobj.get_key_value(),
+                                        vals=self._dumps_to_storage_format(eobj))
+        if track_last_updated_item:
+            self._update_timestamp_of_latest_stored_item(eobj, last_item_meta)
+        return 1
 
-        storage.upsert(partition_key=eobj.get_partition_value(),
-                       row_key=eobj.get_key_value(),
-                       vals=self._dumps_to_storage_format(eobj))
-        return "ok", 201
+    def upsert_items(self, entities, track_last_updated_item=True):
+        if hasattr(entities, "__iter__"):
+            if len(entities) > 0:
+                eobj = entities[0]
+                storage = EntityStore._get_storage_by_table_name(eobj.get_table_name())
+                _, last_item_meta = storage.batch_upsert([self._dumps_to_storage_format(e) for e in entities])
+                if track_last_updated_item:
+                    self._update_timestamp_of_latest_stored_item(eobj, last_item_meta)
+                return len(entities)
+            return 0
+        else:
+            raise Exception("entities must be a list of EntityObject instances")
     
-    def upsert_items(self, entities):
-        if len(entities) > 0:
-            eobj = entities[0]
-            storage = EntityStore._get_storage_by_table_name(eobj.get_table_name())
-            first_item, last_item = storage.batch_upsert([self._dumps_to_storage_format(e) for e in entities])
-            first_item_time_iso = self.get_ts_from_metadata_etag(first_item)
-            last_item_time_iso = self.get_ts_from_metadata_etag(last_item)
-            return first_item_time_iso, last_item_time_iso
-        
-    def get_ts_from_metadata_etag(self, item):
+    def _update_timestamp_of_latest_stored_item(self, eobj, last_item):
+        last_item_time_iso = self._get_ts_from_metadata_etag(last_item)
+        latest_item_record = LatestItemUpdatedTimeTracker({"table_name": eobj.get_table_name(), "latest_item_updated_iso": last_item_time_iso})
+        self.upsert_item(latest_item_record, track_last_updated_item=False)
+                
+    def _get_ts_from_metadata_etag(self, item):
         # item is a dict like this: {'etag': 'W/"datetime\'2024-03-06T14%3A09%3A41.3067052Z\'"'}
         ts = None
         etag = item.get('etag', None)

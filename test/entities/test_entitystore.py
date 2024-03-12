@@ -25,7 +25,7 @@ class TestEntityStore(unittest.TestCase):
     def test_day_store(self):
         print(f"test1")
         jdlist = []
-        jfile = 'test/entities/sample_journal_days.json'
+        jfile = 'local/sample_journal_days.json'
         with open(jfile, "r") as jfd:
             je_list = json.load(jfd)
             for j in je_list:
