@@ -6,21 +6,24 @@ from common.orchestration.orchestration_utils import OrchTaskDefDataStore
 import logging
 import importlib
 
-def execute_orchestration(orch_cmd, orch_data=None, token=None):
+def execute_orchestration(orch_cmd, orch_data=None, token=None, executors=None):
     """this method will execute the indicated orchestration intance
     orch_definition: ID of the orchestration intance, 
     auth token,
     arg will be the number of steps to push the orchestration forward.  By default, the orchestration engine will execute the next task that is defined 
     in the orchestration definion, and then it will cede control and post a message for the next task to execute.
     """
-    # somewhere in this code or in the calling code, we need to check the status of all the task instances, 
-    # and if they are all completed, then we need to mark the orchestration instance as completed
-    command = orch_cmd['command']
-    orch_instance_id = orch_cmd['orch_instance_id']
-    # arg = orch_cmd['arg']
 
-    orch_data = OrchTaskDefDataStore() if orch_data is None else orch_data
-    executor = OrchestrationExecutor(orch_data, orch_instance_id, token)
+    command = orch_cmd.get('command', 'execute')
+    orch_instance_id = orch_cmd.get('orch_instance_id', None)
+
+    if orch_data is None:
+        orch_data_store = OrchTaskDefDataStore()
+    else:
+        orch_data_store = orch_data
+
+    executor = OrchestrationExecutor(data_store=orch_data_store, orch_instance_id=orch_instance_id, token=token, executors=executors)
+
     if command == "execute":
         for step_id in executor.get_steps():
             step_status = executor.get_step_status(step_id)
@@ -123,10 +126,11 @@ hen before attempting to execute the instance, we check the counter to verify it
         persist: Persists an instance.
         run_task_instance: Runs a task instance.
     """
-    def __init__(self, data_store, orch_instance_id, token=None):
+    def __init__(self, data_store, orch_instance_id, token=None, executors=None):
         self.store = data_store
         self.orch_definition, self.orch_instance, self.task_instances = self.store.get_orch_data(orch_instance_id)
         self.token = token
+        self.executors=executors
 
     def get_steps(self):
         for step in self.orch_definition['flow']:
@@ -436,10 +440,13 @@ hen before attempting to execute the instance, we check the counter to verify it
         return (result, status)
 
     def get_function(self, task_instance):
-        task_def = self.get_task_def(task_instance)
-        module = task_def.get('module', 'executors')
-        base_pkg = 'common.orchestration'
-        imported_module = importlib.import_module(f"{base_pkg}.{module}")
+        if self.executors:
+            imported_module = importlib.import_module(f"{self.executors}")
+        else:
+            task_def = self.get_task_def(task_instance)
+            module = task_def.get('module', 'executors')
+            base_pkg = 'common.orchestration.modules'
+            imported_module = importlib.import_module(f"{base_pkg}.{module}")
         func_str = task_def['func']
         func_callable = getattr(imported_module, func_str)
         return func_callable
