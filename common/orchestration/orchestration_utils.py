@@ -4,7 +4,7 @@ import time
 import requests
 from common.entity_store import EntityObject, EntityStore
 from azure.storage.queue import QueueClient
-import common.orchestration.executors
+import common.orchestration.modules.executors
 
 class OrchestrationQueue:
     STORAGE_QUEUE_NAME = 'request-queue'

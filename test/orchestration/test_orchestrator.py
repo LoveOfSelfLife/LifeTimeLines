@@ -70,8 +70,8 @@ class TestOrchestrations(unittest.TestCase):
             print(inp)
 
     def test_call_executor_function(self):
-        import common.orchestration.executors        
-        call_fn = getattr(common.orchestration.executors, "foo")
+        import common.orchestration.modules.executors        
+        call_fn = getattr(common.orchestration.modules.executors, "foo")
         input = {"x": 23, "y":3}
         result =  call_fn(**input)
         print(result)
