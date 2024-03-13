@@ -38,14 +38,20 @@ class TableStore():
         entity = {**keys, **vals}
         return self.table_client.upsert_entity(entity)
 
-    def query(self, partition_value=None, filter=None, newer_than_cutoff_ts_iso=None):
+    def query(self, partition_value=None, filter=None, select=None, newer_than_cutoff_ts_iso=None):
         ts_filter = f" and (Timestamp gt datetime'{newer_than_cutoff_ts_iso}')" if newer_than_cutoff_ts_iso else ""
         if partition_value:
             if filter:
-                result = self.table_client.query_entities(query_filter=f"PartitionKey eq @pk and {filter} {ts_filter}", parameters={"pk": partition_value})
+                if select:
+                    result = self.table_client.query_entities(query_filter=f"PartitionKey eq @pk and {filter} {ts_filter}", parameters={"pk": partition_value}, select=select)
+                else:
+                    result = self.table_client.query_entities(query_filter=f"PartitionKey eq @pk and {filter} {ts_filter}", parameters={"pk": partition_value})
             else:
                 qfilter = f"PartitionKey eq @pk{ts_filter}"
-                result = self.table_client.query_entities(query_filter=qfilter, parameters={"pk": partition_value})            
+                if select:
+                    result = self.table_client.query_entities(query_filter=qfilter, parameters={"pk": partition_value}, select=select)
+                else:
+                    result = self.table_client.query_entities(query_filter=qfilter, parameters={"pk": partition_value})            
             return result
         else:
             # TODO: fix this to be DRY, this is just temporary
@@ -57,7 +63,10 @@ class TableStore():
                 filter = f"true{ts_filter}"
             else:
                 filter = ""
-            result = self.table_client.query_entities(query_filter=f"{filter}")
+            if select:
+                result = self.table_client.query_entities(query_filter=f"{filter}", select=select)
+            else:
+                result = self.table_client.query_entities(query_filter=f"{filter}")
             return result
 
     def get_item(self, partition_key_value, row_key_value):

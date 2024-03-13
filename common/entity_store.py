@@ -1,9 +1,81 @@
+from datetime import datetime
 import json
-from common.entity_object import EntityObject
-from common.entities.syncoperation import LatestItemUpdatedTimeTracker
-from common.table_store import TableStore
 import re
-import urllib.parse
+import urllib
+from common.table_store import TableStore
+from common.utils import IDGenerator
+
+class EntityObject (dict):
+    key_generator=IDGenerator.gen_id()
+    table_name = None
+    fields = None
+    key_field=None
+    partition_field=None
+    partition_value=None
+    items_list_field = None
+
+    def __init__(self, d={}):
+        dict.__init__(d)
+        for k,v in d.items():
+            self[k] = v
+
+    def get_key_field(self):
+        return type(self).key_field
+    
+    def get_key_value(self):
+        return self[self.get_key_field()]
+
+    def get_partition_field(self):
+        return type(self).partition_field
+
+    def get_partition_value(self):
+        if type(self).partition_value:
+            return type(self).partition_value
+        return self[self.get_partition_field()]
+
+    def get_static_partition_value(self):
+        if type(self).partition_value:
+            return type(self).partition_value
+        return None
+
+    def get_table_name(self):
+        return type(self).table_name
+
+    def get_fields(self):
+        return type(self).fields
+    
+    def get_items_list_field(self):
+        return type(self).items_list_field
+
+    def key_generator(self):
+        return type(self).key_generator
+
+class LatestItemUpdatedTimeTracker (EntityObject):
+    table_name='LatestItemsUpdatedTrackerTable'
+    partition_value="all"
+    key_field="table_name"
+    fields=["table_name", "latest_item_updated_iso"]
+
+    def __init__(self, d={}):
+        super().__init__(d)
+
+def update_timestamp_of_latest_stored_item(eobj, last_item):
+    es = EntityStore()    
+    last_item_time_iso = _get_ts_from_metadata_etag(last_item)
+    latest_item_record = LatestItemUpdatedTimeTracker({"table_name": eobj.get_table_name(), "latest_item_updated_iso": last_item_time_iso})
+    es.upsert_item(latest_item_record, track_last_updated_item=False)
+            
+def _get_ts_from_metadata_etag(item):
+    # item is a dict like this: {'etag': 'W/"datetime\'2024-03-06T14%3A09%3A41.3067052Z\'"'}
+    ts = None
+    etag = item.get('etag', None)
+    if etag:
+        pat = re.compile(r"W/\"datetime'(.*)'\"")
+        ts_url_encoded = re.match(pat, etag).group(1)
+        
+        ts = urllib.parse.unquote(ts_url_encoded)
+        
+    return ts
 
 class EntityStore :
     storage_map = {}
@@ -19,7 +91,7 @@ class EntityStore :
             EntityStore.storage_map[table_name] = storage
         return storage
 
-    def list_items(self, eobj:EntityObject, filter=None, newer_than_cutoff_ts_iso=None):
+    def list_items(self, eobj:EntityObject, filter=None, select=None, newer_than_cutoff_ts_iso=None):
         """return a iterator of objects from the underlying Table store
 
         Args:
@@ -41,10 +113,10 @@ class EntityStore :
             # filter = filter
             # TODO: complete this
         if eobj.get_static_partition_value():
-            for r in storage.query(eobj.get_partition_value(), filter=filter, newer_than_cutoff_ts_iso=newer_than_cutoff_ts_iso):
+            for r in storage.query(eobj.get_partition_value(), filter=filter, select=select, newer_than_cutoff_ts_iso=newer_than_cutoff_ts_iso):
                 yield self._loads_from_storage_format(r, type(eobj))
         else:
-            for r in storage.query(filter=filter, newer_than_cutoff_ts_iso=newer_than_cutoff_ts_iso):
+            for r in storage.query(filter=filter, select=select, newer_than_cutoff_ts_iso=newer_than_cutoff_ts_iso):
                 yield self._loads_from_storage_format(r, type(eobj))
 
     def get_item(self, eobj):
@@ -66,16 +138,6 @@ class EntityStore :
             return self._loads_from_storage_format(base_item, type(eobj))
         except Exception:
             return None
-    
-    def get_iso_timestamp_of_latest_stored_item(self, eobj):
-        return self.get_iso_timestamp_of_latest_stored_item_in_table(eobj.get_table_name())
-
-    def get_iso_timestamp_of_latest_stored_item_in_table(self, table):
-        latest = LatestItemUpdatedTimeTracker({"table_name": table})
-        rec = self.get_item(latest)
-        if rec is None:
-            return rec.get("latest_item_updated_iso", None)
-        return None
 
     def upsert_item(self, eobj, track_last_updated_item=True):
         storage = EntityStore._get_storage_by_table_name(eobj.get_table_name())
@@ -86,7 +148,7 @@ class EntityStore :
                                         row_key=eobj.get_key_value(),
                                         vals=self._dumps_to_storage_format(eobj))
         if track_last_updated_item:
-            self._update_timestamp_of_latest_stored_item(eobj, last_item_meta)
+            update_timestamp_of_latest_stored_item(eobj, last_item_meta)
         return 1
 
     def upsert_items(self, entities, track_last_updated_item=True):
@@ -96,28 +158,11 @@ class EntityStore :
                 storage = EntityStore._get_storage_by_table_name(eobj.get_table_name())
                 _, last_item_meta = storage.batch_upsert([self._dumps_to_storage_format(e) for e in entities])
                 if track_last_updated_item:
-                    self._update_timestamp_of_latest_stored_item(eobj, last_item_meta)
+                    update_timestamp_of_latest_stored_item(eobj, last_item_meta)
                 return len(entities)
             return 0
         else:
             raise Exception("entities must be a list of EntityObject instances")
-    
-    def _update_timestamp_of_latest_stored_item(self, eobj, last_item):
-        last_item_time_iso = self._get_ts_from_metadata_etag(last_item)
-        latest_item_record = LatestItemUpdatedTimeTracker({"table_name": eobj.get_table_name(), "latest_item_updated_iso": last_item_time_iso})
-        self.upsert_item(latest_item_record, track_last_updated_item=False)
-                
-    def _get_ts_from_metadata_etag(self, item):
-        # item is a dict like this: {'etag': 'W/"datetime\'2024-03-06T14%3A09%3A41.3067052Z\'"'}
-        ts = None
-        etag = item.get('etag', None)
-        if etag:
-            pat = re.compile(r"W/\"datetime'(.*)'\"")
-            ts_url_encoded = re.match(pat, etag).group(1)
-            
-            ts = urllib.parse.unquote(ts_url_encoded)
-        return ts
-
 
     def delete(self, row_keys, entity_class):
         if entity_class.partition_value is None:
