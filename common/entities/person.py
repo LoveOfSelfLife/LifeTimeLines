@@ -1,4 +1,4 @@
-from common.entity_object import EntityObject
+from common.entity_store import EntityObject
 from common.utils import IDGenerator
 
 class PersonEntity (EntityObject):

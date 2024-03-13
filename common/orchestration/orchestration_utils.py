@@ -1,9 +1,8 @@
 import json
 import os
 import time
-import requests
-from common.entity_object import EntityObject
-from common.entity_store import  EntityStore
+
+from common.entity_store import  EntityStore, EntityObject
 from azure.storage.queue import QueueClient
 
 class OrchestrationQueue:

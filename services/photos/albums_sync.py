@@ -1,5 +1,4 @@
 import datetime
-from common.entities.syncoperation import LatestItemUpdatedTimeTracker
 from googlephotosapi import GooglePhotosApi
 from common.google_credentials import get_credentials
 from common.table_store import TableStore

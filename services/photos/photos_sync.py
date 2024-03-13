@@ -1,5 +1,4 @@
 from datetime import datetime, tzinfo
-from common.entities.syncoperation import LatestItemUpdatedTimeTracker, SyncOperation
 from common.utils import generate_unique_id
 from googlephotosapi import GooglePhotosApi
 from common.google_credentials import get_credentials
