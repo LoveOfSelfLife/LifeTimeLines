@@ -7,6 +7,9 @@
 *.ipynb
 local/
 .tmp.driveupload/
+ux/node_modules/
+ux/.next/
+package-lock.json
 
 \#*\#
 ~*
