@@ -3,10 +3,9 @@ import json
 import re
 import urllib
 from common.table_store import TableStore
-from common.utils import IDGenerator
+from common.id_generator import IDGenerator
 
 class EntityObject (dict):
-    key_generator=IDGenerator.gen_id()
     table_name = None
     fields = None
     key_field=None
@@ -47,8 +46,13 @@ class EntityObject (dict):
     def get_items_list_field(self):
         return type(self).items_list_field
 
-    def key_generator(self):
-        return type(self).key_generator
+    def get_key_generator(self):
+        tbl = type(self).table_name
+        if len(tbl) > 3:
+            tbl3 = tbl[:3]
+        else:
+            tbl3 = tbl
+        return lambda: f"{tbl3}_{IDGenerator.get_unique_id(tbl)}"
 
 class LatestItemUpdatedTimeTracker (EntityObject):
     table_name='LatestItemsUpdatedTrackerTable'
