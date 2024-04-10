@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  basePath: '/ux',
   reactStrictMode: true,
   swcMinify: true,
   modularizeImports: {

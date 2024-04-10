@@ -151,6 +151,12 @@ def requires_auth(f):
                                 "description":
                                     "Unable to parse authentication"
                                     " token."}, 401)
+            
+            roles = unverified_token_claims.get('roles', [])
+            scp = unverified_token_claims.get('scp', "no-scp")
+            if 'LifeTimeLinesApi.caller' not in roles and 'lifetimelines.read' not in scp:
+                raise AuthError({"code": "not_authorized",
+                                "description": "User or app does not have required roles"}, 401)
 
             _request_ctx_stack.top.current_user = payload
             return f(*args, **kwargs)

@@ -16,10 +16,10 @@ export default function HomePage() {
     <Box sx={{ display: 'flex' }}>
       <div>
         <Alert severity="info" sx={{ mt: 2, mb: 5 }}>
-          <AlertTitle>Hello 👋</AlertTitle>
-          This app uses the Next.js App Router and Material UI v5.
+          <AlertTitle>Hold on to your hats 👋</AlertTitle>
+          This is a life
         </Alert>
-        <Grid container rowSpacing={3} columnSpacing={3}>
+        {/* <Grid container rowSpacing={3} columnSpacing={3}>
           <Grid xs={6}>
             <MediaCard
               heading="CMYK"
@@ -44,7 +44,7 @@ export default function HomePage() {
               text="The CIELAB color space, also referred to as L*a*b*, was intended as a perceptually uniform space, where a given numerical change corresponds to a similar perceived change in color."
             />
           </Grid>
-        </Grid>
+        </Grid> */}
       </div>
       <Drawer
         sx={{

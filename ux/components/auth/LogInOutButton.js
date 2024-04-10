@@ -12,7 +12,7 @@ export function LogInOutButton()
 {
     const { instance } = useMsal();
     const handleLogin = () => {
-        console.log("in handleLogin");
+        console.log("in handleLogin: " + JSON.stringify(loginRequest));
         instance.loginPopup(loginRequest).catch(e => {
             console.log('exception during login: ' + e);
         });

@@ -37,7 +37,7 @@ function EditToolbar(props) {
   );
 };
 
-export default function PersonsList3({ persons, onSelectPerson, onDeletePerson }) {
+export default function PersonsList({ persons, onSelectPerson, onDeletePerson }) {
   const [rows, setRows] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [rowModesModel, setRowModesModel] = React.useState({});

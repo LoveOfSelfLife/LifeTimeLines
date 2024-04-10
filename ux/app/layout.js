@@ -1,3 +1,4 @@
+// 'use client';
 import * as React from 'react';
 import Link from 'next/link';
 import AppBar from '@mui/material/AppBar';
@@ -16,12 +17,14 @@ import HomeIcon from '@mui/icons-material/Home';
 import StarIcon from '@mui/icons-material/Star';
 import ChecklistIcon from '@mui/icons-material/Checklist';
 import SettingsIcon from '@mui/icons-material/Settings';
-
+import { PiChartLineBold } from "react-icons/pi";
+import { IconButton } from '@mui/material';
 // import ThemeRegistry from '@/components/ThemeRegistry/ThemeRegistry';
 
 import { AuthProvider } from '../components/auth/auth';
 import { LogInOutButton } from '@/components/auth/LogInOutButton';
 import { LoggedInName } from '@/components/auth/LoggedInName';
+import { Menu } from '@mui/icons-material';
 
 export const metadata = {
   title: 'LifeTimeLines',
@@ -33,6 +36,7 @@ const DRAWER_WIDTH = 240;
 const LINKS = [
   { text: 'Home', href: '/', icon: HomeIcon },
   { text: 'Entities', href: '/entities', icon: ChecklistIcon },
+  { text: 'Albums', href: '/photo-albums', icon: ChecklistIcon },
 ];
 
 const PLACEHOLDER_LINKS = [
@@ -40,6 +44,12 @@ const PLACEHOLDER_LINKS = [
 ];
 
 export default function RootLayout({ children }) {
+  // const [open, setOpen] = React.useState(false);
+
+  // const toggleDrawer = (newOpen) => () => {
+  //   setOpen(newOpen);
+  // };
+
   return (
     <html lang="en">
       <head>
@@ -51,16 +61,22 @@ export default function RootLayout({ children }) {
             {/* <ThemeRegistry> */}
               <AppBar position="fixed" sx={{ zIndex: 2000 }}>
                 <Toolbar sx={{ backgroundColor: 'background.paper' }}>
-                  <DashboardIcon sx={{ color: '#444', mr: 2, transform: 'translateY(-2px)' }} />
+                  <IconButton edge="start" color="black" aria-label="menu" href='/'>
+                  <PiChartLineBold />
+                  </IconButton>
+                  
+                  {/* <DashboardIcon sx={{ color: '#444', mr: 2, transform: 'translateY(-2px)' }} /> */}
                   <Typography variant="h6" noWrap component="div" color="black">
-                    Next.js App Router
+                    LifeTimeLines
                   </Typography>
                   <Typography variant="h10" noWrap component="div" color="black" paddingLeft={5}>
                     <LoggedInName/>
                   </Typography>
                 </Toolbar>
               </AppBar>
-              <Drawer
+              {/* <Button onClick={toggleDrawer(true)}>Open drawer</Button> */}
+              <Drawer 
+                // open={open} onClose={toggleDrawer(false)}
                 sx={{
                   width: DRAWER_WIDTH,
                   flexShrink: 0,

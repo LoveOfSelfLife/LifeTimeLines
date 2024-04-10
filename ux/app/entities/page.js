@@ -3,9 +3,7 @@
 import * as React from 'react';
 
 import { useState, useEffect } from 'react';
-
-import PersonsList3 from './PersonsList3';
-import PersonForm from './PersonForm';
+import PersonsList from './PersonsList';
 
 export function EntityPage() {
   const [persons, setPersons] = useState([]);
@@ -52,8 +50,7 @@ export function EntityPage() {
 
   return (
     <div>
-      <PersonsList3 persons={persons} onSelectPerson={setSelectedPerson} onDeletePerson={deletePerson} />
-      {/* <PersonForm person={selectedPerson} onSavePerson={savePerson} onClearPerson={clearSelectedPerson} /> */}
+      <PersonsList persons={persons} onSelectPerson={setSelectedPerson} onDeletePerson={deletePerson} />
     </div>
   );
 }
