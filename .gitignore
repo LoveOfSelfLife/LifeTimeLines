@@ -9,6 +9,7 @@ local/
 .tmp.driveupload/
 ux/node_modules/
 ux/.next/
+ux/.vercel/
 package-lock.json
 
 \#*\#
@@ -140,6 +141,7 @@ celerybeat.pid
 
 # Environments
 .env
+.env.local
 .venv
 env/
 venv/
