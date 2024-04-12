@@ -2,6 +2,7 @@ from flask_restx import Namespace, Resource, reqparse, fields
 from flask import make_response, request, url_for, redirect
 import datetime
 import json
+from common.auth_requestor import AuthRequestor
 from common.jwt_auth import requires_auth
 from common.google_credentials import google_doauth, google_auth
 from flask import render_template
@@ -14,6 +15,22 @@ class Cache():
     cache_body = None
     def __init__(self):
         pass
+
+@ns.route('/token')
+class Health(Resource):
+    ''' '''
+    @ns.doc('token')
+    @requires_auth    
+    def get(self):
+        AZURE_CLIENT_ID = os.getenv("AZURE_CLIENT_ID")
+        AZURE_CLIENT_SECRET = os.getenv("AZURE_CLIENT_SECRET")
+        TENANT_ID = os.getenv("TENANT_ID")
+
+        scope = [f"api://{AZURE_CLIENT_ID}/.default"]
+        auth = AuthRequestor(TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, scope)
+        token = auth.get_auth_token()
+        return {"token": token}
+    
 
 @ns.route('/set-key/<key>/<val>')
 class GoogleDoAuth(Resource):
