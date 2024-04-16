@@ -18,6 +18,9 @@ on:
 jobs:
     Deploy-vercel-Production:
         runs-on: ubuntu-latest
+        defaults:
+            run:
+                working-directory: ./ux
         steps:
           - uses: actions/checkout@v2
 
