@@ -7,12 +7,10 @@ import logging
 import importlib
 
 def execute_orchestration(orch_cmd, orch_data=None, token=None, executors=None):
-    """this method will execute the indicated orchestration intance
-    orch_definition: ID of the orchestration intance, 
-    auth token,
-    arg will be the number of steps to push the orchestration forward.  By default, the orchestration engine will execute the next task that is defined 
-    in the orchestration definion, and then it will cede control and post a message for the next task to execute.
-    """
+    """this method will execute the indicated orchestration command
+    auth token is required for the execution of the orchestration
+    the orchestration command will be executed in the context of the provided orchestration data
+    the orchestration data will be updated as the orchestration progresses"""
 
     command = orch_cmd.get('command', 'execute')
     orch_instance_id = orch_cmd.get('orch_instance_id', None)
@@ -127,6 +125,14 @@ hen before attempting to execute the instance, we check the counter to verify it
         run_task_instance: Runs a task instance.
     """
     def __init__(self, data_store, orch_instance_id, token=None, executors=None):
+        """_summary_
+
+        Args:
+            data_store (_type_): _description_
+            orch_instance_id (_type_): _description_
+            token (_type_, optional): _description_. Defaults to None.
+            executors (_type_, optional): _description_. Defaults to None.
+        """
         self.store = data_store
         self.orch_definition, self.orch_instance, self.task_instances = self.store.get_orch_data(orch_instance_id)
         self.token = token
