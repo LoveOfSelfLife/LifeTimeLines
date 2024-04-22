@@ -30,7 +30,7 @@ class Persons(Resource):
 @ns.param('id', 'person ID')
 class Person(Resource):
     @ns.doc('get a specific person entity by ID')
-    def get(self, ids):
+    def get(self, id):
         person_storage = EntityStore()
         it = person_storage.get_item(PersonEntity({"id": id})) 
         if it:
