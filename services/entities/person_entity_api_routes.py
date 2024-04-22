@@ -6,24 +6,19 @@ from common.entities.person import PersonEntity
 
 from common.google_credentials import get_credentials
 from common.entity_store import EntityStore
-ns = Namespace('Persons', description='services manage Person Entity metadata')
+ns = Namespace('Persons', description='services to define and manage Person Entity metadata')
 pmodel = ns.model('Person', {})
 
 @ns.route('/')
 class Persons(Resource):
     ''' '''
-    @ns.doc('get person entities')
+    @ns.doc('get list of person entities')
     def get(self):
-        headers_str = f"Headers: {request.headers}"
-        print(headers_str)
-        # storage will return a list of PersonEntity objects
         person_storage = EntityStore()
-        # get_list() returns a list of PersonEntity instances, which are just Dicts
-        # these will automatically be serialized to JSON by the flask framework
         people =  person_storage.list_items(PersonEntity())
         return list(people)
     
-    @ns.doc('create or update a person entity')
+    @ns.doc('create or update a person entity.  The back-end operation is an upsert, so presence of an ID will update an existing entity, and absence of an ID will create a new entity.')
     @ns.expect(pmodel)
     def post(self):
         person_storage = EntityStore()        
@@ -31,26 +26,21 @@ class Persons(Resource):
         person_storage.upsert_item(pe)
         return { 'id': pe[pe.key_field] }, 201
 
-@ns.route('/<ids>')
-@ns.param('ids', 'comma-separated list of person ids')
+@ns.route('/<id>')
+@ns.param('id', 'person ID')
 class Person(Resource):
+    @ns.doc('get a specific person entity by ID')
     def get(self, ids):
         person_storage = EntityStore()
-        items = [] 
-        for id in ids.split(','):
-            it = person_storage.get_item(PersonEntity({"id": id})) 
-            if it:
-                items.append(it)
-
-        if items:
-            return items
+        it = person_storage.get_item(PersonEntity({"id": id})) 
+        if it:
+            return it
         else:
             return 'not found', 404
 
-    @ns.doc('delete a person')
-    def delete(self, ids):
+    @ns.doc('delete a person entity by ID')
+    def delete(self, id):
         person_storage = EntityStore()
-        id_list = ids.split(',')
-        person_storage.delete(id_list, PersonEntity)
-        return { 'result': id_list }, 204
+        person_storage.delete([id], PersonEntity)
+        return { 'result': id }, 204
     
