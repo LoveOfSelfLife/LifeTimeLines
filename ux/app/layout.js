@@ -10,24 +10,17 @@ import { Divider } from '@mui/material';
 import { List } from '@mui/material';
 import { ListItem } from '@mui/material';
 import { ListItemButton } from '@mui/material';
-import { ListItemIcon } from '@mui/material';
 import { ListItemText } from '@mui/material';
-// import { DashboardIcon } from '@mui/icons-material';
-// import DashboardIcon from '@mui/icons-material/Dashboard';
 
 import { HomeIcon } from '@mui/icons-material';
-import { StarIcon } from '@mui/icons-material';
 import { ChecklistIcon } from '@mui/icons-material';
 import { SettingsIcon } from '@mui/icons-material';
 import { PiChartLineBold } from "react-icons/pi";
 import { IconButton } from '@mui/material';
-// import IconButton from '@mui/material/IconButton';
-// import ThemeRegistry from '@/components/ThemeRegistry/ThemeRegistry';
 
-import { AuthProvider } from '../components/auth/auth';
-import { LogInOutButton } from '@/components/auth/LogInOutButton';
-import { LoggedInName } from '@/components/auth/LoggedInName';
-import { Menu } from '@mui/icons-material';
+import ThemeRegistry from '@/components/theme/ThemeRegistry';
+import { LoginButton, LogoutButton } from '@/components/LoginButton';
+import WelcomeName from '@/components/WelcomeName';
 
 export const metadata = {
   title: 'LifeTimeLines',
@@ -51,29 +44,24 @@ function Page() {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <head>
-      </head>
-      <AuthProvider>
-        <body>
-            {/* <ThemeRegistry> */}
+      <body>
+          <ThemeRegistry options={{ key: "mui" }}>        
             <AppBar position="fixed" sx={{ zIndex: 2000 }}>
                 <Toolbar sx={{ backgroundColor: 'background.paper' }}>
                   <IconButton edge="start" color="black" aria-label="menu" href='/'>
                   <PiChartLineBold />
                   </IconButton>
                 hello                  
-                  {/* <DashboardIcon sx={{ color: '#444', mr: 2, transform: 'translateY(-2px)' }} /> */}
                   <Typography variant="h6" noWrap component="div" color="black">
                     LifeTimeLines
                   </Typography>
                   <Typography variant="h10" noWrap component="div" color="black" paddingLeft={5}>
                     hello 
-                    <LoggedInName/>
+                    <WelcomeName/>
                   </Typography>
                 </Toolbar>
               </AppBar>
               <Drawer 
-                // open={open} onClose={toggleDrawer(false)}
                 sx={{
                   width: DRAWER_WIDTH,
                   flexShrink: 0,
@@ -93,9 +81,6 @@ export default function RootLayout({ children }) {
                   {LINKS.map(({ text, href, icon: Icon }) => (
                     <ListItem key={href} disablePadding>
                       <ListItemButton component={Link} href={href}>
-                        {/* <ListItemIcon>
-                          <Icon />
-                        </ListItemIcon> */}
                         <ListItemText primary={text} />
                       </ListItemButton>
                     </ListItem>
@@ -106,16 +91,16 @@ export default function RootLayout({ children }) {
                   {PLACEHOLDER_LINKS.map(({ text, icon: Icon }) => (
                     <ListItem key={text} disablePadding>
                     <ListItemButton>
-                      {/* <ListItemIcon>
-                        <Icon />
-                      </ListItemIcon> */}
                       <ListItemText primary={text} />
                     </ListItemButton>
                   </ListItem>
                 ))}
-                  <ListItem key="loginLogout" disablePadding>
-                    <LogInOutButton/>
+                  <ListItem key="login" disablePadding>
+                    <LoginButton/>
                   </ListItem>
+                  <ListItem key="Logout" disablePadding>
+                    <LogoutButton/>
+                  </ListItem>                  
                 </List>
               </Drawer>
               <Box
@@ -130,8 +115,8 @@ export default function RootLayout({ children }) {
               >
                 {children}
             </Box>
-          </body>
-        </AuthProvider>
+          </ThemeRegistry>
+        </body>
     </html>
   );
 };

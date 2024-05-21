@@ -8,6 +8,8 @@ import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/DeleteOutlined';
 import SaveIcon from '@mui/icons-material/Save';
 import CancelIcon from '@mui/icons-material/Close';
+import Snackbar from '@mui/material/Snackbar';
+
 import {
   GridRowModes,
   DataGrid,
@@ -46,6 +48,9 @@ export default function PersonsList({ persons, onSelectPerson, onDeletePerson })
     setRows(persons);
   }
   , [persons]);
+
+  // const [snackbar, setSnackbar] = React.useState<Pick<AlertProps, 'children'|'severity'> | null>(null);
+  
 
   const handleRowEditStop = (params, event) => {
     if (params.reason === GridRowEditStopReasons.rowFocusOut) {
@@ -131,6 +136,10 @@ export default function PersonsList({ persons, onSelectPerson, onDeletePerson })
   const handleRowModesModelChange = (newRowModesModel) => {
     setRowModesModel(newRowModesModel);
   };
+
+  const handleProcessRowUpdateError = React.useCallback((error) => {
+    console.log('Error updating row:', error);
+  }, []);
 
   const columns = [
     { field: 'id', headerName: 'id', width: 180, editable: false },
@@ -230,6 +239,7 @@ export default function PersonsList({ persons, onSelectPerson, onDeletePerson })
           onRowModesModelChange={handleRowModesModelChange}
           onRowEditStop={handleRowEditStop}
           processRowUpdate={processRowUpdate}
+          onProcessRowUpdateError={handleProcessRowUpdateError}
           slots={{
             toolbar: EditToolbar,
           }}
