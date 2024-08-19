@@ -7,9 +7,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set environment variable
-        run: echo "MY_ENV_VAR=myValue" >> $GITHUB_ENV
+        run: echo "MY_ENV_VAR=myValue \
+            MY_OTHER_VAR=otherVar" >> $GITHUB_ENV
 
       - name: Use environment variable
         run: |
           echo "The value of MY_ENV_VAR is $MY_ENV_VAR"
+          echo "The value of MY_OTHER_VAR is $MY_OTHER_VAR"
 
