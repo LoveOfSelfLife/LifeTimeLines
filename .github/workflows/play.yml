@@ -15,10 +15,10 @@ jobs:
             echo "MY_ENV_VAR=myValue" >> $GITHUB_ENV
             echo "MY_OTHER_VAR=otherVar" >> $GITHUB_ENV
 
-            - name: Use environment variable
-            run: |
-              echo "The value of MY_ENV_VAR is $MY_ENV_VAR"
-              echo "The value of MY_OTHER_VAR is $MY_OTHER_VAR"
+      - name: Use environment variable
+        run: |
+            echo "The value of MY_ENV_VAR is $MY_ENV_VAR"
+            echo "The value of MY_OTHER_VAR is $MY_OTHER_VAR"
     
       - name: Set environment variable
         run: |
