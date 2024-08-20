@@ -27,8 +27,8 @@ jobs:
                 echo $varval >> $GITHUB_ENV
               done
   
-        - uses: ./.github/workflows/_provision_containerapp_infra.yml
-          with:
+            uses: ./.github/workflows/_provision_containerapp_infra.yml
+            with:
               containerapp_name: ${{ github.event.inputs.app_name }}
               container_registry_image: ${{ github.event.inputs.app_name }}:latest
               containerapp_environment_rg: ltl-aca-rg
@@ -37,7 +37,7 @@ jobs:
               containerapp_location: East US 2
               queue_name: none
 
-          secrets:
+            secrets:
               container_registry: ${{ secrets.container_registry }}
               container_registry_id: ${{ secrets.container_registry_id }}
               container_registry_pw: ${{ secrets.container_registry_pw }}
