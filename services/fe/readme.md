@@ -1,112 +1,104 @@
-# Game of Life in FastHTML
+# FastHTML Todo App
 
-This project implements [Conway's Game of Life](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life) using FastHTML, showcasing real-time updates and multi-client synchronization through WebSockets.
+This project implements a simple Todo list application using FastHTML, showcasing dynamic updates and database integration.
 
-![Game of Life Animation](gol.gif)
+![Todo App Screenshot](todo_screenshot.png)
 
 ## Features
 
-- Interactive Game of Life grid
-- Real-time updates across multiple clients
-- WebSocket integration for live synchronization
-- Simple controls: Run, Pause, and Reset
-
-## Live Demo
-
-Try out the live version hosted on Railway: [Game of Life Demo](https://game-of-life-production-ed7f.up.railway.app/)
+- Add, edit, and delete todo items
+- Mark todos as complete
+- Real-time updates without page reloads
+- SQLite database integration
 
 ## Technology Stack
 
 - [FastHTML](https://github.com/AnswerDotAI/fasthtml): A Python framework for building dynamic web applications
-- WebSockets: For real-time communication between server and clients
 - HTMX: For seamless client-side updates without full page reloads
+- SQLite: For persistent data storage
 
 ## Implementation Highlights
 
-### Game Logic
+### App Setup and Database Integration
 
-The core Game of Life logic is implemented in the `update_grid` function courtesy of ChatGPT:
-
-```python
-def update_grid(grid: list[list[int]]) -> list[list[int]]:
-    new_grid = [[0 for _ in range(20)] for _ in range(20)]
-    def count_neighbors(x, y):
-        directions = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
-        count = 0
-        for dx, dy in directions:
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < len(grid) and 0 <= ny < len(grid[0]): count += grid[nx][ny]
-        return count
-    for i in range(len(grid)):
-        for j in range(len(grid[0])):
-            neighbors = count_neighbors(i, j)
-            if grid[i][j] == 1:
-                if neighbors < 2 or neighbors > 3: new_grid[i][j] = 0
-                else: new_grid[i][j] = 1
-            elif neighbors == 3: new_grid[i][j] = 1
-    return new_grid
-```
-
-This function determines how the game world evolves over time by applying the rules of Conway's Game of Life to the cells in the grid.
-
-### Grid Rendering and User Interaction
-
-The grid is rendered using FastHTML components:
+FastHTML makes it easy to set up a database-backed application:
 
 ```python
-def Grid():
-    cells = []
-    for y, row in enumerate(game_state['grid']):
-        for x, cell in enumerate(row):
-            cell_class = 'alive' if cell else 'dead'
-            cell = Div(cls=f'cell {cell_class}', hx_put='/update', hx_vals={'x': x, 'y': y}, hx_swap='none', hx_target='#gol', hx_trigger='click')
-            cells.append(cell)
-    return Div(*cells, id='grid')
-
-@rt('/update')
-async def put(x: int, y: int):
-    game_state['grid'][y][x] = 1 if game_state['grid'][y][x] == 0 else 0
-    await update_players()
+app,rt,todos,Todo = fast_app(
+    'data/todos.db',
+    hdrs=[Style(':root { --pico-font-size: 100%; }')],
+    id=int, title=str, done=bool, pk='id')
 ```
 
-Above is a component for representing the game's state that the user can interact with and update on the server using cool HTMX features such as `hx_vals` for determining which cell was clicked to make it dead or alive. We use `hx_put` to send a PUT request to the server to update the game state rather than a POST request, which would have returned a new Grid component with the updated state since we want to handle that via websockets so all clients can see the changes rather than only the client that initiated the change.
-
-### FastHTML and WebSocket Integration
-
-FastHTML handles WebSocket connections with ease:
+This single line sets up our app, routing, database connection, and Todo data model model using the `fast_app` function. However, you can use the standard `FastHTML` class to set up your app and `database` function from [`fastlite`](https://github.com/AnswerDotAI/fastlite) to create your database manually.
 
 ```python
-@app.ws('/gol', conn=on_connect, disconn=on_disconnect)
-async def ws(msg:str, send): pass
-
-player_queue = []
-async def on_connect(send): player_queue.append(send)
-async def on_disconnect(send): await update_players()
+app = FastHTML(hdrs=[Style(':root { --pico-font-size: 100%; }')])
+rt = app.route
+db = database('todos.db')
+if 'Todo' not in db.t: db.t['Todo'].create(id=int, title=str, done=bool, pk='id')
+Todo = db.t['Todo'].dataclass()
 ```
 
-The `@app.ws` decorator sets up the WebSocket endpoint, while `on_connect` and `on_disconnect` manage the player queue. Similar to all of HTMX, you send HTML snippets, or in our case FastHTML components, to the client to update the page. There is only one difference with standard HTMX updating of HTML on the client and how it is done via websockets, that being all swaps are OOB. You can find more information on the HTMX websocket extension documentation page [here](https://github.com/bigskysoftware/htmx-extensions/blob/main/src/ws/README.md).
+### Todo Item Rendering
 
-### Real-time Updates
-
-A background task continuously updates the game state and notifies clients:
+Each todo item is rendered as an HTML component:
 
 ```python
-async def update_players():
-    for i, player in enumerate(player_queue):
-        try: await player(Grid())
-        except: player_queue.pop(i)
-
-async def background_task():
-    while True:
-        if game_state['running'] and len(player_queue) > 0:
-            game_state['grid'] = update_grid(game_state['grid'])
-            await update_players()
-        await asyncio.sleep(1.0)
-
-background_task_coroutine = asyncio.create_task(background_task())
+@patch
+def __ft__(self:Todo):
+    show = AX(self.title, f'/todos/{self.id}', id_curr)
+    edit = AX('edit',     f'/edit/{self.id}' , id_curr)
+    dt = ' ✅' if self.done else ''
+    return Li(show, dt, ' | ', edit, id=tid(self.id))
 ```
 
-`update_players()` sends the current game state to all connected clients, updating their visuals in real-time and removing any players that have disconnected.
+This method defines how each Todo object is displayed, including its title, completion status, and edit link. We are taking advantage of monkey patching via the `@patch` decorator to add new functionality to the Todo class. If you want to learn more about monkey patching, check out this [article](https://en.wikipedia.org/wiki/Monkey_patch).
+
+### Adding New Todos
+
+Here is how we setup the form for adding new todos:
+
+```python
+def mk_input(**kw): return Input(id="new-title", name="title", placeholder="New Todo", **kw)
+
+@rt("/")
+async def get():
+    add = Form(Group(mk_input(), Button("Add")),
+               hx_post="/", target_id='todo-list', hx_swap="beforeend")
+    card = Card(Ul(*todos(), id='todo-list'),
+                header=add, footer=Div(id=id_curr)),
+    title = 'Todo list'
+    return Title(title), Main(H1(title), card, cls='container')
+```
+
+This creates an input field and "Add" button, which uses HTMX to post new todos without a page reload.
+
+### Editing Todos
+
+Editing a todo item is handled by this route which takes the todo's id as a parameter:
+
+```python
+@rt("/edit/{id}")
+async def get(id:int):
+    res = Form(Group(Input(id="title"), Button("Save")),
+        Hidden(id="id"), CheckboxX(id="done", label='Done'),
+        hx_put="/", target_id=tid(id), id="edit")
+    return fill_form(res, todos.get(id))
+```
+
+This allows us to dynamically fill the form with the todo's current data, allowing for easy editing.
+
+### Deleting Todos
+
+Similarly, we can do the same for deleting todos, except we use the `delete` method instead of `get`:
+
+```python
+@rt("/todos/{id}")
+async def delete(id:int):
+    todos.delete(id)
+    return clear(id_curr)
+```
 
 ## Running Locally
 
@@ -115,4 +107,5 @@ To run the app locally:
 1. Clone the repository
 2. Navigate to the project directory
 3. Install dependencies (if any)
-4. Run the following command: `uvicorn main:app --reload`
+4. Run the following command: `python main.py`
+
