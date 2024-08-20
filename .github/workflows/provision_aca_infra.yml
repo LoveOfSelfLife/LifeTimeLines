@@ -2,8 +2,7 @@
 # GitHub Actions workflow.
 #
 
-name: Provision Container App (prompts for name)
-
+name: Provision ACA Infrastructure
 on:
   workflow_dispatch:
       inputs:
