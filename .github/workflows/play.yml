@@ -14,9 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-      # Checks-out your repository under $GITHUB_WORKSPACE.
+        # Checks-out your repository under $GITHUB_WORKSPACE.
       - uses: actions/checkout@v2
-
+  
       - name: Set environment variable
         run: |
             echo "MY_ENV_VAR=myValue" >> $GITHUB_ENV
@@ -27,13 +27,13 @@ jobs:
             echo "The value of MY_ENV_VAR is $MY_ENV_VAR"
             echo "The value of MY_OTHER_VAR is $MY_OTHER_VAR"
     
-      - name: Set environment variable
-        run: |
-          for varval in $(cat ./services/${{ inputs.APP_NAME }}/build_vars.txt);
-            do
-                echo $varval >> $GITHUB_ENV
-            done
-
+            - name: Set environment variable
+            run: |
+              for varval in $(cat ./services/${{ inputs.APP_NAME }}/build_vars.txt);
+                do
+                    echo $varval >> $GITHUB_ENV
+                done
+    
       - name: check environment variables
         run: |
           echo "A = $A"
