@@ -51,4 +51,4 @@ async def get(id:int):
                  target_id=tid(todo.id), hx_swap="outerHTML")
     return Div(Div(todo.title), btn)
 
-serve()
+serve(port=5002)
