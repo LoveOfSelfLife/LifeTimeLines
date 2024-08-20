@@ -16,6 +16,8 @@ on:
               - echo
               - entities
               - otmgr
+              - fe
+              
 jobs:
 
   call-provision-container-app:
