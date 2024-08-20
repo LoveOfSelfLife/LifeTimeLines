@@ -1,6 +1,12 @@
 name: Example Workflow for Environment Files
 
-on: push
+on:
+    workflow_dispatch:
+        inputs:
+            APP_NAME:
+                description: 'The name of the app'
+                required: true
+                default: 'myapp'
 
 jobs:
   set_and_use_env_vars:
@@ -22,7 +28,7 @@ jobs:
     
       - name: Set environment variable
         run: |
-          for varval in $(cat ./services/echo/build_vars.txt);
+          for varval in $(cat ./services/${{ inputs.APP_NAME }}/build_vars.txt);
             do
                 echo $varval >> $GITHUB_ENV
             done
