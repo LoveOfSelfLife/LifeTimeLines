@@ -1,0 +1,50 @@
+# 
+# GitHub Actions workflow.
+#
+
+name: Provision ACA Infrastructure
+on:
+  workflow_dispatch:
+      inputs:
+          app_name:
+              type: string
+              description: Container app to provision
+              required: true
+jobs:
+
+  call-provision-container-app:
+
+    runs-on: ubuntu-latest
+    steps:
+  
+        # Checks-out your repository under $GITHUB_WORKSPACE.
+        - uses: actions/checkout@v2
+
+        - name: Set environment variable
+          run: |
+            for varval in $(cat ./services/${{ inputs.app_name }}/build_vars.txt);
+              do
+                echo $varval >> $GITHUB_ENV
+              done
+  
+        - uses: ./.github/workflows/_provision_containerapp_infra.yml
+          with:
+              containerapp_name: ${{ github.event.inputs.app_name }}
+              container_registry_image: ${{ github.event.inputs.app_name }}:latest
+              containerapp_environment_rg: ltl-aca-rg
+              containerapp_environment_name: ltl-aca-env
+              containerapp_template: $ACA_TEMPLATE
+              containerapp_location: East US 2
+              queue_name: none
+
+          secrets:
+              container_registry: ${{ secrets.container_registry }}
+              container_registry_id: ${{ secrets.container_registry_id }}
+              container_registry_pw: ${{ secrets.container_registry_pw }}
+              azure_credentials: ${{ secrets.azure_credentials }}
+              azure_storagetable_connectionstring: ${{ secrets.azure_storagetable_connectionstring }}
+              aad_client_id: ${{ secrets.aad_client_id }}
+              aad_client_secret: ${{ secrets.aad_client_secret }}
+              google_client_secret_base64: ${{ secrets.google_client_secret_base64 }}
+              tenant_id: ${{ secrets.tenant_id }}
+              subscription_id: ${{ secrets.subscription_id }}
