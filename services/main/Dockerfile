@@ -9,7 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 # Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED=1
 
-ARG main
+ARG app
 
 # Install pip requirements
 COPY services/${app}/requirements.txt .
