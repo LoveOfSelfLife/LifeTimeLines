@@ -61,6 +61,18 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE.
       - uses: actions/checkout@v2
 
+      - name: Set environment variable
+        run: |
+          for varval in $(cat ./services/${{ inputs.containerapp_name }}/build_vars.txt);
+            do
+              echo $varval >> $GITHUB_ENV
+            done
+      - name: Use environment variable
+        run: |
+          echo "The value of ACA_TEMPLATE is $ACA_TEMPLATE"
+          echo "The value of ACA_TEMPLATE"
+          echo $ACA_TEMPLATE
+
       - name: 'Az CLI login'
         uses: Azure/login@v1
         with:
@@ -74,7 +86,7 @@ jobs:
             cd arm;
             az deployment group create
             --resource-group ${{ inputs.containerapp_environment_rg }}
-            --template-file ${{ inputs.containerapp_template }}
+            --template-file $ACA_TEMPLATE
             --query "properties.provisioningState"
             --parameters 
             "containerapp-name"="${{ inputs.containerapp_name }}"

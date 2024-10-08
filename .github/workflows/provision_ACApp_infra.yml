@@ -11,24 +11,9 @@ on:
               description: Container app to provision
               required: true
 jobs:
-  get_and_set_env_vars:
-    runs-on: ubuntu-latest
-    
-    steps:
-        - uses: actions/checkout@v2
-        - name: Set environment variable
-          run: |
-            for varval in $(cat ./services/${{ inputs.app_name }}/build_vars.txt);
-              do
-                echo $varval >> $GITHUB_ENV
-              done
-        - name: Use environment variable
-          run: |
-            echo "The value of MY_ENV_VAR is $MY_ENV_VAR"
-            echo "The value of MY_OTHER_VAR is $MY_OTHER_VAR"
 
   call-provision-container-app:
-    needs: get_and_set_env_vars
+
     uses: ./.github/workflows/_provision_containerapp_infra.yml
     with:
       containerapp_name: ${{ github.event.inputs.app_name }}
