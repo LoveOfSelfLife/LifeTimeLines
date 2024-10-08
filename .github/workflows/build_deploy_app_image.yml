@@ -14,6 +14,7 @@ on:
               - entities
               - otex
               - otmgr
+              - main
     
 jobs:
   
