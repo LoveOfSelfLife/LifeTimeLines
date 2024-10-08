@@ -9,11 +9,12 @@ on:
               options: 
               - photos
               - fe
+              - feapp
               - echo
               - entities
               - otex
               - otmgr
-              - fe
+              - main
 jobs:
   
     call-build-container-app:
