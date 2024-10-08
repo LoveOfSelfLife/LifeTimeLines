@@ -1,8 +1,10 @@
 from flask import (
-    Flask, redirect, render_template, request, flash, jsonify, send_file
+    Flask, redirect, render_template, request, flash, jsonify, send_file, Blueprint
 )
 from contacts_model import Contact, Archiver
 import time
+
+main = Blueprint('main', __name__)  # Create a blueprint named 'main'
 
 Contact.load_db()
 
@@ -10,17 +12,15 @@ Contact.load_db()
 # Flask App
 # ========================================================
 
-app = Flask(__name__)
-
-app.secret_key = b'hypermedia rocks'
+# app = Flask(__name__)
 
 
-@app.route("/")
+@main.route("/")
 def index():
     return redirect("/contacts")
 
 
-@app.route("/contacts")
+@main.route("/contacts")
 def contacts():
     search = request.args.get("q")
     page = int(request.args.get("page", 1))
@@ -33,44 +33,44 @@ def contacts():
     return render_template("index.html", contacts=contacts_set, archiver=Archiver.get())
 
 
-@app.route("/contacts/archive", methods=["POST"])
+@main.route("/contacts/archive", methods=["POST"])
 def start_archive():
     archiver = Archiver.get()
     archiver.run()
     return render_template("archive_ui.html", archiver=archiver)
 
 
-@app.route("/contacts/archive", methods=["GET"])
+@main.route("/contacts/archive", methods=["GET"])
 def archive_status():
     archiver = Archiver.get()
     return render_template("archive_ui.html", archiver=archiver)
 
 
-@app.route("/contacts/archive/file", methods=["GET"])
+@main.route("/contacts/archive/file", methods=["GET"])
 def archive_content():
     archiver = Archiver.get()
     return send_file(archiver.archive_file(), "archive.json", as_attachment=True)
 
 
-@app.route("/contacts/archive", methods=["DELETE"])
+@main.route("/contacts/archive", methods=["DELETE"])
 def reset_archive():
     archiver = Archiver.get()
     archiver.reset()
     return render_template("archive_ui.html", archiver=archiver)
 
 
-@app.route("/contacts/count")
+@main.route("/contacts/count")
 def contacts_count():
     count = Contact.count()
     return "(" + str(count) + " total Contacts)"
 
 
-@app.route("/contacts/new", methods=['GET'])
+@main.route("/contacts/new", methods=['GET'])
 def contacts_new_get():
     return render_template("new.html", contact=Contact())
 
 
-@app.route("/contacts/new", methods=['POST'])
+@main.route("/contacts/new", methods=['POST'])
 def contacts_new():
     c = Contact(None, request.form['first_name'], request.form['last_name'], request.form['phone'],
                 request.form['email'])
@@ -81,19 +81,19 @@ def contacts_new():
         return render_template("new.html", contact=c)
 
 
-@app.route("/contacts/<contact_id>")
+@main.route("/contacts/<contact_id>")
 def contacts_view(contact_id=0):
     contact = Contact.find(contact_id)
     return render_template("show.html", contact=contact)
 
 
-@app.route("/contacts/<contact_id>/edit", methods=["GET"])
+@main.route("/contacts/<contact_id>/edit", methods=["GET"])
 def contacts_edit_get(contact_id=0):
     contact = Contact.find(contact_id)
     return render_template("edit.html", contact=contact)
 
 
-@app.route("/contacts/<contact_id>/edit", methods=["POST"])
+@main.route("/contacts/<contact_id>/edit", methods=["POST"])
 def contacts_edit_post(contact_id=0):
     c = Contact.find(contact_id)
     c.update(request.form['first_name'], request.form['last_name'], request.form['phone'], request.form['email'])
@@ -104,7 +104,7 @@ def contacts_edit_post(contact_id=0):
         return render_template("edit.html", contact=c)
 
 
-@app.route("/contacts/<contact_id>/email", methods=["GET"])
+@main.route("/contacts/<contact_id>/email", methods=["GET"])
 def contacts_email_get(contact_id=0):
     c = Contact.find(contact_id)
     c.email = request.args.get('email')
@@ -112,7 +112,7 @@ def contacts_email_get(contact_id=0):
     return c.errors.get('email') or ""
 
 
-@app.route("/contacts/<contact_id>", methods=["DELETE"])
+@main.route("/contacts/<contact_id>", methods=["DELETE"])
 def contacts_delete(contact_id=0):
     contact = Contact.find(contact_id)
     contact.delete()
@@ -123,7 +123,7 @@ def contacts_delete(contact_id=0):
         return ""
 
 
-@app.route("/contacts/", methods=["DELETE"])
+@main.route("/contacts/", methods=["DELETE"])
 def contacts_delete_all():
     contact_ids = list(map(int, request.form.getlist("selected_contact_ids")))
     for contact_id in contact_ids:
@@ -139,13 +139,13 @@ def contacts_delete_all():
 # JSON Data API
 # ===========================================================
 
-@app.route("/api/v1/contacts", methods=["GET"])
+@main.route("/api/v1/contacts", methods=["GET"])
 def json_contacts():
     contacts_set = Contact.all()
     return {"contacts": [c.__dict__ for c in contacts_set]}
 
 
-@app.route("/api/v1/contacts", methods=["POST"])
+@main.route("/api/v1/contacts", methods=["POST"])
 def json_contacts_new():
     c = Contact(None, request.form.get('first_name'), request.form.get('last_name'), request.form.get('phone'),
                 request.form.get('email'))
@@ -155,13 +155,13 @@ def json_contacts_new():
         return {"errors": c.errors}, 400
 
 
-@app.route("/api/v1/contacts/<contact_id>", methods=["GET"])
+@main.route("/api/v1/contacts/<contact_id>", methods=["GET"])
 def json_contacts_view(contact_id=0):
     contact = Contact.find(contact_id)
     return contact.__dict__
 
 
-@app.route("/api/v1/contacts/<contact_id>", methods=["PUT"])
+@main.route("/api/v1/contacts/<contact_id>", methods=["PUT"])
 def json_contacts_edit(contact_id):
     c = Contact.find(contact_id)
     c.update(request.form['first_name'], request.form['last_name'], request.form['phone'], request.form['email'])
@@ -171,7 +171,7 @@ def json_contacts_edit(contact_id):
         return {"errors": c.errors}, 400
 
 
-@app.route("/api/v1/contacts/<contact_id>", methods=["DELETE"])
+@main.route("/api/v1/contacts/<contact_id>", methods=["DELETE"])
 def json_contacts_delete(contact_id=0):
     contact = Contact.find(contact_id)
     contact.delete()
