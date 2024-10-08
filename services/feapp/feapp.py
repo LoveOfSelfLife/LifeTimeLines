@@ -133,3 +133,12 @@ class Solr(Resource):
                 return {"id": 0, "task" : f'saved to: {path}'}
         else:
             return {"id": 0, "task" : "False" }
+
+@ns.route('/headers')
+class Headers(Resource):
+    '''return the headers'''
+    @ns.doc('show headers')
+    def get(self):
+        '''return headers'''
+        h = { k:v for k,v in request.headers.items() }
+        return h
