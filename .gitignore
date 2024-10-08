@@ -11,6 +11,11 @@ ux/node_modules/
 ux/.next/
 ux/.vercel/
 package-lock.json
+**/fe/data/**
+
+test*.yml
+echo*.yml
+vars.txt
 
 \#*\#
 ~*

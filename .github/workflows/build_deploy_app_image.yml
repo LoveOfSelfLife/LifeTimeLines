@@ -1,0 +1,29 @@
+name: Builds image, pushes to registry, deploys to container app (prompts for app name)
+
+on:
+  workflow_dispatch:
+      inputs:
+          name:
+              type: choice
+              description: App to build and deploy
+              options: 
+              - photos
+              - fe
+              - feapp
+              - echo
+              - entities
+              - otex
+              - otmgr
+    
+jobs:
+  
+    call-build-deploy-container-app:
+      uses: ./.github/workflows/_build_containerapp_image.yml
+      with:
+        app-name: ${{ github.event.inputs.name }}
+      secrets:
+        container_registry: ${{ secrets.container_registry }}
+        container_registry_id: ${{ secrets.container_registry_id }}
+        container_registry_pw: ${{ secrets.container_registry_pw }}
+        azure_credentials: ${{ secrets.azure_credentials }}
+  
