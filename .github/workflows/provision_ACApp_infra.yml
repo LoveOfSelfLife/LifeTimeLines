@@ -24,8 +24,9 @@ jobs:
               done
         - name: Use environment variable
           run: |
-            echo "The value of MY_ENV_VAR is $MY_ENV_VAR"
-            echo "The value of MY_OTHER_VAR is $MY_OTHER_VAR"
+            echo "The value of ACA_TEMPLATE is $ACA_TEMPLATE"
+            echo "The value of ACA_TEMPLATE"
+            echo $ACA_TEMPLATE
 
   call-provision-container-app:
     needs: get_and_set_env_vars
