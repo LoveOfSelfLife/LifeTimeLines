@@ -15,7 +15,7 @@ def create_app():
 
     Contact.load_db()
 
-    app : Flask = Flask(__name__, static_url_path='')
+    app : Flask = Flask(__name__)
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.secret_key = 'A0Zr98j/3yX R~XHH!jmN;aljsfsjd'
 
