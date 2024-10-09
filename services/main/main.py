@@ -6,15 +6,6 @@ import time
 
 main = Blueprint('main', __name__)  # Create a blueprint named 'main'
 
-Contact.load_db()
-
-# ========================================================
-# Flask App
-# ========================================================
-
-# app = Flask(__name__)
-
-
 @main.route("/")
 def index():
     return redirect("/contacts")
