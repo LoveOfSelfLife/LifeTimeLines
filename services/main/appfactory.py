@@ -1,25 +1,23 @@
 import os
-from flask import Flask, jsonify
-from werkzeug.middleware.proxy_fix import ProxyFix
-from flask_restx import Api
-from flask_cors import CORS   
-
-import datetime
-import signal
 import sys
-from types import FrameType
-from dotenv import load_dotenv
+import signal
 
+from flask import Flask, jsonify
+from flask_cors import CORS   
+from werkzeug.middleware.proxy_fix import ProxyFix
+
+from dotenv import load_dotenv
 from common.table_store import TableStore
 from common.queue_store import QueueStore
 from common.jwt_auth import AuthHandler, AuthError
+
 from common.api_app import shutdown_handler
 from main import main
 from contacts_model import Contact
 
 def create_app():
     load_dotenv()
-    
+
     Contact.load_db()
 
     app : Flask = Flask(__name__, static_url_path='')
