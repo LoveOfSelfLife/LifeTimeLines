@@ -15,9 +15,12 @@ from common.queue_store import QueueStore
 from common.jwt_auth import AuthHandler, AuthError
 from common.api_app import shutdown_handler
 from main import main
+from contacts_model import Contact
 
 def create_app():
     load_dotenv()
+    
+    Contact.load_db()
 
     app : Flask = Flask(__name__, static_url_path='')
     app.wsgi_app = ProxyFix(app.wsgi_app)
