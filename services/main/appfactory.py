@@ -7,10 +7,6 @@ from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from dotenv import load_dotenv
-from common.table_store import TableStore
-from common.queue_store import QueueStore
-from common.jwt_auth import AuthHandler, AuthError
-
 from common.api_app import shutdown_handler
 from main import main
 from contacts_model import Contact
@@ -23,13 +19,8 @@ def create_app():
     app : Flask = Flask(__name__, static_url_path='')
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.secret_key = 'A0Zr98j/3yX R~XHH!jmN;aljsfsjd'
-    # Register the blueprint with the app
+
     app.register_blueprint(main)
-        
-    # TableStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
-    # QueueStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
-    
-    # AuthHandler(os.getenv('TENANT_ID', None), os.getenv('AZURE_CLIENT_ID', None))
 
     CORS(app)  
 
