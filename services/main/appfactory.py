@@ -7,7 +7,6 @@ from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from dotenv import load_dotenv
-from common.api_app import shutdown_handler
 from main import main
 from contacts_model import Contact
 
@@ -26,6 +25,16 @@ def create_app():
 
     signal.signal(signal.SIGTERM, shutdown_handler)
     return app
+
+# https://cloud.google.com/blog/topics/developers-practitioners/graceful-shutdowns-cloud-run-deep-dive
+# [START cloudrun_sigterm_handler]
+def shutdown_handler(signal: int, frame) -> None:
+    # logger.info("Signal received, safely shutting down.")
+    # database.shutdown()
+    # middleware.logging_flush()
+    print("Exiting the LifeTimeLines process.", flush=True)
+    # sys.exit(0)
+
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
