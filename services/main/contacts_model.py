@@ -13,6 +13,7 @@ PAGE_SIZE = 100
 class Contact:
     # mock contacts database
     db = {}
+    contacts_file = '/share/contacts/contacts.json'
 
     def __init__(self, id_=None, first=None, last=None, phone=None, email=None):
         self.id = id_
@@ -83,8 +84,8 @@ class Contact:
     @classmethod
     def load_db(cls):
         cwd = os.getcwd()
-        with open('contacts.json', 'r') as contacts_file:
-            contacts = json.load(contacts_file)
+        with open(Contact.contacts_file, 'r') as f:
+            contacts = json.load(f)
             cls.db.clear()
             for c in contacts:
                 cls.db[c['id']] = Contact(c['id'], c['first'], c['last'], c['phone'], c['email'])
@@ -92,7 +93,7 @@ class Contact:
     @staticmethod
     def save_db():
         out_arr = [c.__dict__ for c in Contact.db.values()]
-        with open("contacts.json", "w") as f:
+        with open(Contact.contacts_file, "w") as f:
             json.dump(out_arr, f, indent=2)
 
     @classmethod
@@ -136,7 +137,7 @@ class Archiver:
         Archiver.archive_status = "Complete"
 
     def archive_file(self):
-        return 'contacts.json'
+        return Contact.contacts_file
 
     def reset(self):
         Archiver.archive_status = "Waiting"
