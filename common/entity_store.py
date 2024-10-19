@@ -30,7 +30,7 @@ class EntityObject (dict):
     def get_partition_value(self):
         if type(self).partition_value:
             return type(self).partition_value
-        return self[self.get_partition_field()]
+        return self.get(self.get_partition_field(), None)
 
     def get_static_partition_value(self):
         if type(self).partition_value:
@@ -120,7 +120,7 @@ class EntityStore :
             for r in storage.query(eobj.get_partition_value(), filter=filter, select=select, newer_than_cutoff_ts_iso=newer_than_cutoff_ts_iso):
                 yield self._loads_from_storage_format(r, type(eobj))
         else:
-            for r in storage.query(filter=filter, select=select, newer_than_cutoff_ts_iso=newer_than_cutoff_ts_iso):
+            for r in storage.query(eobj.get_partition_value(), filter=filter, select=select, newer_than_cutoff_ts_iso=newer_than_cutoff_ts_iso):
                 yield self._loads_from_storage_format(r, type(eobj))
 
     def get_item(self, eobj):
