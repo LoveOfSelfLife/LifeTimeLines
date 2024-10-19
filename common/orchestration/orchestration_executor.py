@@ -1,5 +1,6 @@
 import copy
 import re
+import os
 from datetime import datetime
 import itertools
 from common.orchestration.orchestration_utils import OrchTaskDefDataStore
@@ -446,12 +447,15 @@ hen before attempting to execute the instance, we check the counter to verify it
         return (result, status)
 
     def get_function(self, task_instance):
+
         if self.executors:
             imported_module = importlib.import_module(f"{self.executors}")
         else:
             task_def = self.get_task_def(task_instance)
             module = task_def.get('module', 'executors')
             base_pkg = 'common.orchestration.modules'
+            if os.getenv("ORCH_TESTING_MODE"):
+                module = module + '_test'
             imported_module = importlib.import_module(f"{base_pkg}.{module}")
         func_str = task_def['func']
         func_callable = getattr(imported_module, func_str)
@@ -520,6 +524,8 @@ hen before attempting to execute the instance, we check the counter to verify it
             try:
                 output, function_status = self.invoke_function(the_function, input)
                 logging.info(f"function completed, output: {output}")
+                # TODO: the output for the task instance, should be the aggregate of all the outputs from each
+                # invocation of the function, not just the output from the last invocation
                 task_instance['output'] = output
                 execution_details["output"] = output
                 execution_details["status"] = "completed"
