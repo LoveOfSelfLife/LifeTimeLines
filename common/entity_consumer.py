@@ -30,6 +30,16 @@ def get_iso_timestamp_of_last_consumed_entity(eobj:EntityObject, consumer_id:str
     consumed_rec = es.get_item(ConsumedItemsTimeTracker({"table_name":eobj.get_table_name(), "consumer_id":consumer_id}))
     return consumed_rec.get("latest_item_consumed_iso", None) if consumed_rec else None
 
+def set_iso_timestamp_of_last_consumed_entity(eobj:EntityObject, consumer_id:str, ts_iso:str):
+    """
+    set the timestamp of the last consumed entity
+    """
+    es = EntityStore()
+    co = ConsumedItemsTimeTracker({"table_name":eobj.get_table_name(), 
+                                   "consumer_id":consumer_id, 
+                                   "latest_item_consumed_iso": ts_iso})
+    es.upsert_item(co)
+
 def any_unconsumed_entities(eobj:EntityObject, consumer_id:str):
     """
     any unconsumed entities for a given consumer
@@ -54,7 +64,6 @@ def _iso_lessthan(iso1:str, iso2:str):
     dt2 = datetime.fromisoformat(iso2)
     return dt1 < dt2
 
-
 def find_unconsumed_entity_ranges(eobj, consumer_id, range_length):
     """
     Find unconsumed entity ranges
@@ -63,30 +72,36 @@ def find_unconsumed_entity_ranges(eobj, consumer_id, range_length):
     if latest_entity_ts_iso is None:
         return []
 
-    consumed_ts_iso = get_iso_timestamp_of_last_consumed_entity(eobj, consumer_id)
-    if consumed_ts_iso is None:
-        # this means that nothing has been consumed yet by this consumer, so we need to consume everything
-        # from the first entity to the latest entity
-        consumed_ts_iso = "1970-01-01T00:00:00Z"
+    last_consumed_ts_iso = get_iso_timestamp_of_last_consumed_entity(eobj, consumer_id)
 
-    if _iso_lessthan(consumed_ts_iso, latest_entity_ts_iso):
-        timestamps_list = _extract_sorted_timestamps_from_entity_table(eobj, start=consumed_ts_iso, end=latest_entity_ts_iso)
-        return list(_break_up_list_into_ranges_of_size_num(timestamps_list, range_length))
-    return []
+    timestamps_list = _extract_sorted_timestamps_from_entity_table(eobj, start_time_iso=last_consumed_ts_iso, end_time_iso=latest_entity_ts_iso)
+    spl = list(_split_list_into_ranges_of_size_num(timestamps_list, range_length))
+
+    return [(timestamps_list[s[0]], timestamps_list[s[1]] if s[1] else None) for s in spl]
     
-def _extract_sorted_timestamps_from_entity_table(eobj, start, end):
+def _extract_sorted_timestamps_from_entity_table(eobj, start_time_iso, end_time_iso):
     """
     Query timestamps from entity table that fall within a given range from start to end
     """
     # here we choose to use the TableStore directly, instead of the EntityStore, because we only need the timestamps
-    tblstore = TableStore(eobj.get_table_name())
+    tblstore : TableStore = TableStore(eobj.get_table_name())
     ts_list=[]
-    for mi in tblstore.query(select=["Timestamp"], filter=f"Timestamp gt datetime'{start}' and Timestamp le datetime'{end}'"):
+    for mi in tblstore.query(select=["Timestamp"], 
+                             start_time_iso=start_time_iso, 
+                             end_time_iso=end_time_iso):
         ts_list.append(mi.metadata["timestamp"])
     ts_list.sort()
     return ts_list
 
-def _break_up_list_into_ranges_of_size_num(ts_list, num):
+def _find_next_split(p, L, num):
+    """
+    """
+    q = p+num
+    while q+1 < len(L) and L[q] == L[q+1]:
+        q += 1
+    return q
+
+def _split_list_into_ranges_of_size_num(ts_list, num):
     """
     break up a list into smaller chunks, where each chunk is represented as a range with start & end indices, where each chunk has approximately length equal to num
     return an iterator over those ranges 
@@ -96,21 +111,15 @@ def _break_up_list_into_ranges_of_size_num(ts_list, num):
     however, if we want to break up the list [1,2,3,3,4,5,5,5,5,6,7] into ranges of size 3, the result will be [(0,4), (4,9), (9,11)], representing the ranges [1,2,3,3], [4,5,5,5,5] and [6,7]
     Note that the end of the first range, 3, is not equal to the start of the second range, 4, so the first range breaks with 4 elements, not 3 elements
     """
-    L=ts_list
-
-    len_L = len(L)
+    len_L = len(ts_list)
     p = 0
     while p < len_L:
-        start = p
-        q = p+num
-        while q < len_L and L[q-1] == L[q]:
-            q += 1
-        if q < len_L:
-            end = q
+        splits_at = _find_next_split(p, ts_list, num)
+        if splits_at < len_L:
+            yield (p, splits_at)
         else:
-            end = len_L
-        yield (start, end)
-        p = end
+            yield (p, None)
+        p = splits_at+1
 
 if __name__ == "__main__":
     pass

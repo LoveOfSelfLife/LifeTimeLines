@@ -38,8 +38,17 @@ class TableStore():
         entity = {**keys, **vals}
         return self.table_client.upsert_entity(entity)
 
-    def query(self, partition_value=None, filter=None, select=None, newer_than_cutoff_ts_iso=None):
-        ts_filter = f" and (Timestamp gt datetime'{newer_than_cutoff_ts_iso}')" if newer_than_cutoff_ts_iso else ""
+    def query(self, partition_value=None, filter=None, select=None, start_time_iso=None, end_time_iso=None, 
+              include_start_time=False, include_end_time=True):
+        import datetime
+        from datetime import timedelta
+        start_ts = (datetime.datetime.fromisoformat(str(start_time_iso))+timedelta(microseconds=1)).strftime("%Y-%m-%dT%H:%M:%S.%f")[:] + 'Z' if start_time_iso else None
+        end_ts = (datetime.datetime.fromisoformat(str(end_time_iso))+timedelta(microseconds=1)).strftime("%Y-%m-%dT%H:%M:%S.%f")[:] + 'Z' if end_time_iso else None
+        start_rel = "ge" if include_start_time else "gt"
+        end_rel = "le" if include_end_time else "lt"
+        ts_filter = f" and (Timestamp {start_rel} datetime'{start_ts}')" if start_ts else ""
+        ts_filter = f"{ts_filter} and (Timestamp {end_rel} datetime'{end_ts}')" if end_ts else ts_filter
+
         if partition_value:
             if filter:
                 if select:
