@@ -211,7 +211,7 @@ class MediaItemsFromDateRanges(Resource):
         
         return list(items)
 
-@ns.route('/update-mediaitems-for-daterange')
+@ns.route('/mediaitems-for-dates')
 class UpdateMediaItemsForDateRanges(Resource):
 
     '''update media items from date ranges'''
@@ -234,6 +234,19 @@ class UpdateMediaItemsForDateRanges(Resource):
 
         for day, media_item_days in day_to_media_item_days.items():
             es.upsert_items(media_item_days)
+        
+        return {"status": "ok"}
+    
+    '''get media items from date ranges'''
+    @ns.doc(params={'date': {'description': 'media item date in YYYY-MM-DD format', 'in': 'query', 'type': 'str'}})
+
+    def get(self):
+        date_iso = request.args.get('date', None)
+
+        es = EntityStore()
+        items = es.list_items(MediaItemDay({"day": date_iso}))
+        
+        return list(items)
 
 @ns.route('/daterange')
 class MediaItemExtents(Resource):
