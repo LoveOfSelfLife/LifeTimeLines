@@ -11,8 +11,8 @@ class ConsumedItemsTimeTracker (EntityObject):
     def __init__(self, d={}):
         super().__init__(d)
 
-def get_iso_timestamp_of_latest_stored_item(eobj):
-    return get_iso_timestamp_of_latest_stored_item_in_table(eobj.get_table_name())
+def get_iso_timestamp_of_latest_stored_item(table_name):
+    return get_iso_timestamp_of_latest_stored_item_in_table(table_name)
 
 def get_iso_timestamp_of_latest_stored_item_in_table(table:str):
     es = EntityStore()
@@ -22,20 +22,20 @@ def get_iso_timestamp_of_latest_stored_item_in_table(table:str):
         return rec.get("latest_item_updated_iso", None)
     return None
 
-def get_iso_timestamp_of_last_consumed_entity(eobj:EntityObject, consumer_id:str):
+def get_iso_timestamp_of_last_consumed_entity(table_name:str, consumer_id:str):
     """
     Retrieve timestamp of last consumed entity
     """
     es = EntityStore()
-    consumed_rec = es.get_item(ConsumedItemsTimeTracker({"table_name":eobj.get_table_name(), "consumer_id":consumer_id}))
+    consumed_rec = es.get_item(ConsumedItemsTimeTracker({"table_name":table_name, "consumer_id":consumer_id}))
     return consumed_rec.get("latest_item_consumed_iso", None) if consumed_rec else None
 
-def set_iso_timestamp_of_last_consumed_entity(eobj:EntityObject, consumer_id:str, ts_iso:str):
+def set_iso_timestamp_of_last_consumed_entity(table_name:str, consumer_id:str, ts_iso:str):
     """
     set the timestamp of the last consumed entity
     """
     es = EntityStore()
-    co = ConsumedItemsTimeTracker({"table_name":eobj.get_table_name(), 
+    co = ConsumedItemsTimeTracker({"table_name":table_name, 
                                    "consumer_id":consumer_id, 
                                    "latest_item_consumed_iso": ts_iso})
     es.upsert_item(co)
@@ -44,11 +44,11 @@ def any_unconsumed_entities(eobj:EntityObject, consumer_id:str):
     """
     any unconsumed entities for a given consumer
     """
-    latest_entity_ts_iso = get_iso_timestamp_of_latest_stored_item(eobj)
+    latest_entity_ts_iso = get_iso_timestamp_of_latest_stored_item(eobj.get_table_name())
     if latest_entity_ts_iso is None:
         return False
 
-    consumed_ts_iso = get_iso_timestamp_of_last_consumed_entity(eobj, consumer_id)
+    consumed_ts_iso = get_iso_timestamp_of_last_consumed_entity(eobj.get_table_name(), consumer_id)
     if consumed_ts_iso is None:
         return True
     
@@ -64,27 +64,32 @@ def _iso_lessthan(iso1:str, iso2:str):
     dt2 = datetime.fromisoformat(iso2)
     return dt1 < dt2
 
-def find_unconsumed_entity_ranges(eobj, consumer_id, range_length):
+def find_serializable_unconsumed_entity_ranges(table_name, consumer_id, range_length):
+    result = find_unconsumed_entity_ranges(table_name, consumer_id, range_length)
+    
+    return [(str(r[0].strftime("%Y-%m-%dT%H:%M:%S.%f")[:] + 'Z' if r[0] else None), str(r[1].strftime("%Y-%m-%dT%H:%M:%S.%f")[:] + 'Z' if r[1] else None)) for r in result]
+
+def find_unconsumed_entity_ranges(table_name, consumer_id, range_length):
     """
     Find unconsumed entity ranges
     """
-    latest_entity_ts_iso = get_iso_timestamp_of_latest_stored_item(eobj)
+    latest_entity_ts_iso = get_iso_timestamp_of_latest_stored_item(table_name)
     if latest_entity_ts_iso is None:
         return []
 
-    last_consumed_ts_iso = get_iso_timestamp_of_last_consumed_entity(eobj, consumer_id)
+    last_consumed_ts_iso = get_iso_timestamp_of_last_consumed_entity(table_name, consumer_id)
 
-    timestamps_list = _extract_sorted_timestamps_from_entity_table(eobj, start_time_iso=last_consumed_ts_iso, end_time_iso=latest_entity_ts_iso)
+    timestamps_list = _extract_sorted_timestamps_from_entity_table(table_name, start_time_iso=last_consumed_ts_iso, end_time_iso=latest_entity_ts_iso)
     spl = list(_split_list_into_ranges_of_size_num(timestamps_list, range_length))
 
     return [(timestamps_list[s[0]], timestamps_list[s[1]] if s[1] else None) for s in spl]
     
-def _extract_sorted_timestamps_from_entity_table(eobj, start_time_iso, end_time_iso):
+def _extract_sorted_timestamps_from_entity_table(table_name, start_time_iso, end_time_iso):
     """
     Query timestamps from entity table that fall within a given range from start to end
     """
     # here we choose to use the TableStore directly, instead of the EntityStore, because we only need the timestamps
-    tblstore : TableStore = TableStore(eobj.get_table_name())
+    tblstore : TableStore = TableStore(table_name)
     ts_list=[]
     for mi in tblstore.query(select=["Timestamp"], 
                              start_time_iso=start_time_iso, 

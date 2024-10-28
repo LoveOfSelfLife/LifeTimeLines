@@ -98,7 +98,7 @@ class TestConsumers(unittest.TestCase):
                     mr = datetime.datetime.fromisoformat(str(i["Timestamp"]))
             
                 max_timestamp_iso = mr.strftime("%Y-%m-%dT%H:%M:%S.%f")[:] + 'Z'
-                set_iso_timestamp_of_last_consumed_entity(C1Entity(), "process2", max_timestamp_iso)
+                set_iso_timestamp_of_last_consumed_entity(C1Entity().get_table_name(), "process2", max_timestamp_iso)
 
     def test_populateC1(self):
         print(f"populateC1")
@@ -123,7 +123,7 @@ class TestConsumers(unittest.TestCase):
                     break
 
                 max_timestamp_iso = max(dtlist).strftime("%Y-%m-%dT%H:%M:%S.%f")[:] + 'Z'
-                set_iso_timestamp_of_last_consumed_entity(C1Entity(), "process1", max_timestamp_iso)
+                set_iso_timestamp_of_last_consumed_entity(C1Entity().get_table_name(), "process1", max_timestamp_iso)
             else:
                 done = True
 
