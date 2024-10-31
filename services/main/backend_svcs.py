@@ -16,12 +16,12 @@ def contacts():
 # JSON Data API
 # ===========================================================
 
-@main.route("/api/v1/be", methods=["GET"])
-def json_be():
+@main.route("/api/v1/be/<info>", methods=["GET"])
+def json_be(info):
     tr = ApiTokenRequestor()
     token = tr.get_token()
 
-    info = 'xyz'
+    # info = 'xyz'
     service = 'photos'
     path = f"/tasks/drive/look/{info}"
 

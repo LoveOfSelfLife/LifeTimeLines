@@ -1,4 +1,5 @@
 import msal
+import os
 
 class AuthRequestor() :
     def __init__(self, tenant, client_id, client_secret, scope):
@@ -23,3 +24,21 @@ class AuthRequestor() :
             print(result.get("error_description"))
             print(result.get("correlation_id"))  # You may need this when reporting a bug
             raise Exception(f'cannot get auth token') 
+
+class ApiTokenRequestor():
+    def __init__(self):
+        AZURE_CLIENT_ID = os.getenv("AZURE_CLIENT_ID")
+        AZURE_CLIENT_SECRET = os.getenv("AZURE_CLIENT_SECRET")
+        TENANT_ID = os.getenv("TENANT_ID")
+
+        self.scope = [f"api://{AZURE_CLIENT_ID}/.default"]
+        self.auth_requestor = AuthRequestor(TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, self.scope)
+        
+        self.app = msal.ConfidentialClientApplication(
+            client_id=AZURE_CLIENT_ID, 
+            authority=f"https://login.microsoftonline.com/{TENANT_ID}",
+            client_credential=AZURE_CLIENT_SECRET
+            )
+
+    def get_token(self):
+        return self.auth_requestor.get_auth_token()
