@@ -181,6 +181,6 @@ class LsFiles(Resource):
     @ns.doc('look at file store')
     def get(self, info):
         import os
-        dir = os.getcwd()
-        file_info = os.listdir(dir)
-        return { "info":info, "dir": dir, "file_info": file_info }
+        newdir = info.replace("_", "/")
+        file_info = os.listdir(newdir)
+        return { "info":info, "cwd": os.getcwd(), "file_info": file_info }

@@ -3,6 +3,8 @@ from flask import (
 )
 import time
 import os
+import requests
+from common.auth_requestor import ApiTokenRequestor
 
 main = Blueprint('be', __name__)  
 
@@ -16,7 +18,18 @@ def contacts():
 
 @main.route("/api/v1/be", methods=["GET"])
 def json_be():
-    return {"be": "be"}, 200
+    tr = ApiTokenRequestor()
+    token = tr.get_token()
+
+    info = 'xyz'
+    service = 'photos'
+    path = f"/tasks/drive/look/{info}"
+
+    URL=f'https://{service}.ltl.richkempinski.com{path}'
+    headers={'Authorization': 'Bearer ' + token}
+    resp = requests.get(URL, verify=False, headers=headers)
+
+    return resp.json(), resp.status_code    
 
 if __name__ == "__main__":
     pass
