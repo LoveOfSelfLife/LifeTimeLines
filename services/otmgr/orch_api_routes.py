@@ -98,7 +98,9 @@ class SingleInstances(Resource):
     # @requires_auth
     def get(self, id):
         es = EntityStore()
-        if oinst := es.list_items(OrchestrationTaskInstance({"parent_instance_id": id})):
+        #if oinst := es.list_items(OrchestrationTaskInstance({"parent_instance_id": id})):
+        oi = OrchestrationTaskInstance({"parent_instance_id": id})
+        if oinst := es.list_items(oi):
             return list(oinst)
         else:
             return "not found", 404    
@@ -119,7 +121,8 @@ class OrchCommandsApi(Resource):
     # @requires_auth
     def get(self):
         es = EntityStore()
-        if cmd_inst := es.list_items(OrchestrationCommand({"orch_instance_id": orch_instance_id})):
+        #if cmd_inst := es.list_items(OrchestrationCommand({"orch_instance_id": orch_instance_id})):
+        if cmd_inst := es.list_items(OrchestrationCommand()):
             return list(cmd_inst)
         else:
             return "not found", 404    

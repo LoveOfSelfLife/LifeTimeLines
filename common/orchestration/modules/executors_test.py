@@ -16,23 +16,23 @@ def curate_mediaitems_fn(timestamp, days=365, token=None):
         return (ts.isoformat(), 200)
 
 def task_once1_fn(x, token=None):
-    print(f"task_once1_fn(x={x})")
+    print(f"TEST task_once1_fn(x={x})")
     return ([f"#1-task_once1_fn(x={x})", f"#2-task_once1_fn(x={x})"], 200)
 
 def task_once2_fn(y, token=None):
-    print(f"task_once2_fn(y={y})")
+    print(f"TEST task_once2_fn(y={y})")
     return ([f"#1-task_once2_fn(y={y})", f"#2-task_once2_fn(y={y})"], 200)
 
 def task_iterate_fn(in1, in2, token=None):
-    print(f"task_iterate_fn(in1={in1}, in2={in2})") 
+    print(f"TEST task_iterate_fn(in1={in1}, in2={in2})") 
     return (f"task_iterate_fn(in1={in1}, in2={in2})", 200)
 
 def task_iterate_iterate_fn(in1, in2, token=None):
-    print(f"task_iterate_iterate_fn(in1={in1}, in2={in2})")
+    print(f"TEST task_iterate_iterate_fn(in1={in1}, in2={in2})")
     return (f"task_iterate_iterate_fn(in1={in1}, in2={in2})", 200)
     
 def task_repeat_fn(n, output=None, token=None):
-    print(f"task_repeat_fn(n={n}, output={output})")
+    print(f"TEST task_repeat_fn(n={n}, output={output})")
     if output is None:
         num_left = 4
     else:
@@ -42,7 +42,7 @@ def task_repeat_fn(n, output=None, token=None):
     return ({ "num_times" : num_left }, 200)
 
 def task_iterate_repeat_fn(in1, output=None, token=None):
-    print(f"task_iterate_repeat_fn(in1={in1}, output={output})")
+    print(f"TEST task_iterate_repeat_fn(in1={in1}, output={output})")
     # return (f"task_iterate_repeat_fn(in1={in1}, output={output})", 200)
     if output is None:
         num_left = 3
@@ -53,7 +53,7 @@ def task_iterate_repeat_fn(in1, output=None, token=None):
     return ({ "num_times" : num_left }, 200)
     
 def task_iterate_iterate_repeat_fn(in1, in2, output=None, token=None):
-    print(f"task_iterate_iterate_repeat_fn(in1={in1}, in2={in2},  output={output})")    
+    print(f"TEST task_iterate_iterate_repeat_fn(in1={in1}, in2={in2},  output={output})")    
     # return (f"task_iterate_iterate_repeat_fn(in1={in1}, in2={in2}, output={output})", 200)
     if output is None:
         num_left = 2
@@ -64,7 +64,7 @@ def task_iterate_iterate_repeat_fn(in1, in2, output=None, token=None):
     return ({ "num_times" : num_left }, 200)
 
 def call_api(service, method, path, body, token=None):
-    print(f"call_api({service}, {method}, {path}, {body}, TOKEN)")
+    print(f"TEST call_api({service}, {method}, {path}, {body}, TOKEN)")
     return (json.dumps({"result": [1,2,3,4,5]}), 200)
 
     # URL=f'https://{service}.ltl.richkempinski.com{path}'

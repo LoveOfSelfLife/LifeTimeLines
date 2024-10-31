@@ -1,9 +1,11 @@
 from flask_restx import Namespace, Resource, reqparse, fields
 from flask import request, url_for, redirect, jsonify
 
-
 import datetime
 from common.entities.journal_day import JournalDay
+from common.entities.mediaitem_day import MediaItemDay
+from common.entities.photos import MediaItem
+from common.entity_consumer import find_serializable_unconsumed_entity_ranges
 from common.entity_store import EntityStore
 
 from googlephotosapi import GooglePhotosApi
@@ -79,6 +81,10 @@ class Albums(Resource):
 
         return result
 
+album_sync_fields = ns.model('Resource', {
+    'next': fields.String,
+    'num': fields.Integer
+})
 
 @ns.route('/incremental-album-sync-op/<album_id>')
 @ns.param('album_id', 'Album id')
@@ -107,32 +113,19 @@ class AlbumSyncOp(Resource):
 
         return { "num_items" : len(sync['items']), "next" : sync['continuation_token'] }
 
-# @ns.route('/albums/<album_id>')
-# @ns.param('album_id', 'The album id')
-# class Album(Resource):
-#     '''get items in an albumm'''
-#     # query params here
-#     @ns.doc(params={'end': {'description': 'iso datetime', 'in': 'query', 'type': 'str'},
-#                     'next': {'description': 'next page token', 'in': 'query', 'type': 'str'},
-#                     'num': {'description': 'number of items', 'in': 'query', 'type': 'int'}})
-#     def get(self, album_id):
-#         ts = None
-#         end = request.args.get('end')
-#         next_page = request.args.get('next')
-#         num_items = request.args.get('num')
 
-#         if not num_items:
-#             num_items = 100
+    @ns.expect(album_sync_fields)
+    def post(self, album_id):
+        json_data = request.get_json(force=True)
+        continuation_token = json_data.get('next')
+        num_items = json_data.get('num')
+        if not num_items:
+            num_items = 100
 
-#         if end:
-#             ts = datetime.datetime.fromisoformat(end)
-        
-#         api = GooglePhotosApi(get_credentials())
+        album_sync_mgr = AlbumsSyncMgr()
+        sync = album_sync_mgr.sync_album_items_incrementally(album_id, num_items, continuation_token)
 
-#         # returns {"next_page_token": nextPageToken, "items": album_item_list}
-#         album_items = api.sync_album_items_incrementally(album_id, num_items, next_page, ts)
-
-#         return { "items" : album_items['items'], "next" : album_items['next_page_token'] }
+        return { "num_items" : len(sync['items']), "next" : sync['continuation_token'] }
 
 @ns.route('/category/<category>')
 @ns.param('category', 'The category')
@@ -178,6 +171,82 @@ class MediaItems(Resource):
         mitems = api.get_media_items_in_datetime_range(start_dt, end_dt)
 
         return list(mitems)
+
+
+rangeconsumption_parser = reqparse.RequestParser()
+rangeconsumption_parser.add_argument("table_name", type=str)
+rangeconsumption_parser.add_argument("consumer_id", type=str)
+rangeconsumption_parser.add_argument("range_length", type=int)
+
+@ns.route('/ranges-to-consume')
+class RangesToConsume(Resource):
+
+    '''get ranges of items in a table that need to be consumed by a specific consumer'''
+    @ns.doc(params={'table_name': {'description': 'table containing items to be consumed', 'in': 'query', 'type': 'str'},
+                    'consumer_id': {'description': 'id of process consuming entities', 'in': 'query', 'type': 'str'},
+                    'ranges_length': {'description': 'number of items in each range', 'in': 'query', 'type': 'int'}})
+    def get(self):
+        table_name = request.args.get('table_name', None)
+        consumer_id = request.args.get('consumer_id', None)
+        range_length = request.args.get('range_length', 1000)
+
+        if not range_length:
+            range_length = 1000
+        results = find_serializable_unconsumed_entity_ranges(table_name, consumer_id, range_length)
+
+        return results
+
+@ns.route('/mediaitems')
+class MediaItemsFromDateRanges(Resource):
+
+    '''get media items from date ranges'''
+    @ns.doc(params={'start': {'description': 'start datetime iso1806', 'in': 'query', 'type': 'str'},
+                    'end': {'description': 'end datetime iso1806', 'in': 'query', 'type': 'str'}})
+    def get(self):
+        start_iso = request.args.get('start', None)
+        end_iso = request.args.get('end', None)
+
+        es = EntityStore()
+        items = es.list_items(MediaItem(), start_time_iso=start_iso, end_time_iso=end_iso)
+        
+        return list(items)
+
+@ns.route('/mediaitems-for-dates')
+class UpdateMediaItemsForDateRanges(Resource):
+
+    '''update media items from date ranges'''
+    @ns.expect(resource_fields)
+    def post(self):
+        json_data = request.get_json(force=True)
+        startdate_iso = json_data['start']
+        enddate_iso = json_data['end']
+
+        es = EntityStore()
+        items = es.list_items(MediaItem(), start_time_iso=startdate_iso, end_time_iso=enddate_iso)
+        day_to_media_item_days = {}
+
+        for item in items:
+            day = datetime.datetime.fromisoformat(item['creationTime']).date().isoformat()
+            if day not in day_to_media_item_days:
+                day_to_media_item_days[day] = []
+            miday = MediaItemDay({"day": day, "item": item['mitemId'], "creationTime": item['creationTime'], "mimeType": item['mimeType']})
+            day_to_media_item_days[day].append(miday)
+
+        for day, media_item_days in day_to_media_item_days.items():
+            es.upsert_items(media_item_days)
+        
+        return {"status": "ok"}
+    
+    '''get media items from date ranges'''
+    @ns.doc(params={'date': {'description': 'media item date in YYYY-MM-DD format', 'in': 'query', 'type': 'str'}})
+
+    def get(self):
+        date_iso = request.args.get('date', None)
+
+        es = EntityStore()
+        items = es.list_items(MediaItemDay({"day": date_iso}))
+        
+        return list(items)
 
 @ns.route('/daterange')
 class MediaItemExtents(Resource):

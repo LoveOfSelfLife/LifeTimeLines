@@ -83,13 +83,13 @@ class TestEntityStore(unittest.TestCase):
         for g in gel:
             print(json.dumps(g, indent=4))
                                                
-        gel = storage.list_items(ge, filter="city eq 'pocono pines'", newer_than_cutoff_ts_iso='2024-03-06T18:24:23Z')
+        gel = storage.list_items(ge, filter="city eq 'pocono pines'", start_time_iso='2024-03-06T18:24:23Z')
 
         print("Filtering by timestamp")
         for g in gel:
             print(json.dumps(g, indent=4))
 
-        gel = storage.list_items(ge, newer_than_cutoff_ts_iso='2024-03-06T18:24:23Z')
+        gel = storage.list_items(ge, start_time_iso='2024-03-06T18:24:23Z')
 
         print("Filtering by just timestamp")
         for g in gel:

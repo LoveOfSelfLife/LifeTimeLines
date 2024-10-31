@@ -44,6 +44,10 @@ def main() -> None:
     if TENANT_ID is None:
         raise Exception(f'You attempted to run the container without providing the TENANT_ID')
 
+    ORCH_TESTING_MODE = os.getenv("ORCH_TESTING_MODE")
+    if ORCH_TESTING_MODE:
+        OrchestrationQueue.set_testing_mode(True)
+
     TableStore.initialize(STORAGE_CONNECTION_STRING)
     QueueStore.initialize(STORAGE_CONNECTION_STRING)
 

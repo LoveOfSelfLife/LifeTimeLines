@@ -30,7 +30,7 @@ class EntityObject (dict):
     def get_partition_value(self):
         if type(self).partition_value:
             return type(self).partition_value
-        return self[self.get_partition_field()]
+        return self.get(self.get_partition_field(), None)
 
     def get_static_partition_value(self):
         if type(self).partition_value:
@@ -95,14 +95,14 @@ class EntityStore :
             EntityStore.storage_map[table_name] = storage
         return storage
 
-    def list_items(self, eobj:EntityObject, filter=None, select=None, newer_than_cutoff_ts_iso=None):
+    def list_items(self, eobj:EntityObject, filter=None, select=None, start_time_iso=None, end_time_iso=None,
+                   include_start_time=False, include_end_time=True):
         """return a iterator of objects from the underlying Table store
 
         Args:
             entity_class (EntityObject instance): used to determine the table name that this method will query
             filter (string, optional): used to filter the results to only include items that satisfy the filter. Defaults to None.
             newer_than_cutoff_ts_iso (ios formatter string, optional): used to return only those items that were updated in the table after the cutoff time. Defaults to None.
-
         Yields:
             EntityObject : an iterator of entity objects of the desiried type
         """
@@ -117,10 +117,18 @@ class EntityStore :
             # filter = filter
             # TODO: complete this
         if eobj.get_static_partition_value():
-            for r in storage.query(eobj.get_partition_value(), filter=filter, select=select, newer_than_cutoff_ts_iso=newer_than_cutoff_ts_iso):
+            for r in storage.query(eobj.get_partition_value(), filter=filter, select=select, 
+                                   start_time_iso=start_time_iso, 
+                                   end_time_iso=end_time_iso,
+                                   include_start_time=include_start_time, 
+                                   include_end_time=include_end_time):
                 yield self._loads_from_storage_format(r, type(eobj))
         else:
-            for r in storage.query(filter=filter, select=select, newer_than_cutoff_ts_iso=newer_than_cutoff_ts_iso):
+            for r in storage.query(eobj.get_partition_value(), filter=filter, select=select, 
+                                   start_time_iso=start_time_iso, 
+                                   end_time_iso=end_time_iso,
+                                   include_start_time=include_start_time, 
+                                   include_end_time=include_end_time):
                 yield self._loads_from_storage_format(r, type(eobj))
 
     def get_item(self, eobj):
@@ -161,7 +169,7 @@ class EntityStore :
                 eobj = entities[0]
                 storage = EntityStore._get_storage_by_table_name(eobj.get_table_name())
                 _, last_item_meta = storage.batch_upsert([self._dumps_to_storage_format(e) for e in entities])
-                if track_last_updated_item:
+                if track_last_updated_item and last_item_meta:
                     update_timestamp_of_latest_stored_item(eobj, last_item_meta)
                 return len(entities)
             return 0

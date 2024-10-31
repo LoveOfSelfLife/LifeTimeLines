@@ -1,14 +1,44 @@
 from flask import (
     Flask, redirect, render_template, request, flash, jsonify, send_file, Blueprint
 )
+from werkzeug.utils import secure_filename
 from contacts_model import Contact, Archiver
 import time
+import os
 
 main = Blueprint('main', __name__)  # Create a blueprint named 'main'
+
+UPLOAD_FOLDER = '.'
+ALLOWED_EXTENSIONS = {'txt', 'json'}
 
 @main.route("/")
 def index():
     return redirect("/contacts")
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@main.route("/upload", methods=("POST",))
+def upload():
+    if request.method == 'POST':
+        # check if the post request has the file part
+        if 'file' not in request.files:
+            flash('No file part')
+            # return redirect(request.url)
+            return ("", 404) 
+        file = request.files['file']
+        # If the user does not select a file, the browser submits an
+        # empty file without a filename.
+        if file.filename == '':
+            flash('No selected file')
+            # return redirect(request.url)
+            return ("", 404)             
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            file.save(os.path.join('UPLOAD_FOLDER', filename))
+
+    return ("", 204)  # return empty response so htmx does not overwrite the progress bar value
 
 
 @main.route("/contacts")
