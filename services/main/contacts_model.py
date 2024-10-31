@@ -84,11 +84,14 @@ class Contact:
     @classmethod
     def load_db(cls):
         cwd = os.getcwd()
-        with open(Contact.contacts_file, 'r') as f:
-            contacts = json.load(f)
-            cls.db.clear()
-            for c in contacts:
-                cls.db[c['id']] = Contact(c['id'], c['first'], c['last'], c['phone'], c['email'])
+        try:
+            with open(Contact.contacts_file, 'r') as f:
+                contacts = json.load(f)
+                cls.db.clear()
+                for c in contacts:
+                    cls.db[c['id']] = Contact(c['id'], c['first'], c['last'], c['phone'], c['email'])
+        except FileNotFoundError:
+            pass
 
     @staticmethod
     def save_db():
