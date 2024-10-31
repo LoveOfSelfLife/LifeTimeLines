@@ -31,5 +31,22 @@ def json_be(info):
 
     return resp.json(), resp.status_code    
 
+@main.route("/api/v1/be/copy/<src_file_id>/<info>", methods=["GET"])
+def json_copy(src_file_id, info):
+    tr = ApiTokenRequestor()
+    token = tr.get_token()
+    
+    service = 'photos'
+    # path = f"/tasks/drive/look/{info}"
+    path = f"/tasks/drive/copy/{src_file_id}/{info}"
+
+    URL=f'https://{service}.ltl.richkempinski.com{path}'
+    headers={'Authorization': 'Bearer ' + token}
+    resp = requests.get(URL, verify=False, headers=headers)
+
+    return resp.json(), resp.status_code    
+
+
+
 if __name__ == "__main__":
     pass
