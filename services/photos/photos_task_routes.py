@@ -1,12 +1,18 @@
 from flask_restx import Namespace, Resource, reqparse, fields
 from flask import request, url_for, redirect
+import requests
 import datetime
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from common.jwt_auth import AuthError
 from googlephotosapi import GooglePhotosApi
-from common.google_credentials import get_credentials
+from common.google_credentials import GOOGLE_SCOPES, get_config_from_secret, get_credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
 from photos_sync import PhotosSyncMgr
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload
+from io import BytesIO
+import zipfile
 
 from photos_tasks import PHOTOS_TASKS
 
@@ -111,10 +117,6 @@ def get_files(name):
         return {"status": f"error occurred {error}"}, 500
         
 def unzipfile(file_id):
-    from googleapiclient.discovery import build
-    from googleapiclient.http import MediaIoBaseDownload
-    from io import BytesIO
-    import zipfile
 
     try:
         service = build("drive", "v3", credentials=get_credentials())
@@ -155,14 +157,16 @@ copy_fields = ns.model('Resource', {
     'destination': fields.String
 })
 
-def download_file(service, file_id):
-
-    file = service.files().get(fileId=file_id).execute()
-    download_url = file.get('webViewLink')
-    response = service.files().export_media(fileId=file_id, mimeType='application/octet-stream').execute()
-
-    with open('downloaded_file.txt', 'wb') as f:
-        f.write(response.content)
+def copy_drive_file(service, src_file_id, dst_folder_file, token):
+    # file = service.files().get(fileId=src_file_id, fields='name, mimeType, webContentLink, exportLinks').execute()
+    # download_url = file.get('webContentLink')
+    download_url = f"https://www.googleapis.com/drive/v3/files/{src_file_id}?alt=media"
+    headers = {'Authorization': 'Bearer ' + token}
+    response = requests.get(download_url, stream=True, allow_redirects=True, headers=headers)
+                                                                                      
+    with open(dst_folder_file, 'wb') as f:
+        for chunk in response.iter_content(1024):
+            f.write(chunk)
 
 @ns.route('/drive/copy/<file_id>')
 class CopyDriveFiles(Resource):
@@ -184,3 +188,22 @@ class LsFiles(Resource):
         newdir = info.replace("_", "/")
         file_info = os.listdir(newdir)
         return { "info":info, "cwd": os.getcwd(), "file_info": file_info }
+
+@ns.route('/drive/copy/<src_file_id>/<info>')
+class CopyFiles(Resource):
+    @ns.doc('coppy file from drive')
+    def get(self, src_file_id, info):
+        import os
+        import time
+        from google.auth.transport.requests import Request
+        dst_folder_file = info.replace("_", "/")
+        credentials=get_credentials()
+        credentials.refresh(Request())
+        # service = build("drive", "v3", credentials=credentials)
+        start_time = time.time()
+        copy_drive_file(None, src_file_id, dst_folder_file, credentials.token)
+        end_time = time.time()
+        return { "dest":dst_folder_file, "time": end_time - start_time }
+        
+
+
