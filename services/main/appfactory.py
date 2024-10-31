@@ -8,6 +8,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from dotenv import load_dotenv
 from main import main
+from backend_svcs import main as backend_main
 from contacts_model import Contact
 
 def create_app():
@@ -20,6 +21,7 @@ def create_app():
     app.secret_key = 'A0Zr98j/3yX R~XHH!jmN;aljsfsjd'
 
     app.register_blueprint(main)
+    app.register_blueprint(backend_main)
 
     CORS(app)  
 
