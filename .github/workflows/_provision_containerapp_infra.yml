@@ -39,6 +39,8 @@ on:
         required: true
       azure_storagetable_connectionstring:
         required: true
+      azure_fileshare_connectionstring:
+        required: true
       aad_client_id:
         required: true
       aad_client_secret:
