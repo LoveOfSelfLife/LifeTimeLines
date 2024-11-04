@@ -38,7 +38,7 @@ def json_copy(src_file_id, info):
     
     service = 'photos'
     # path = f"/tasks/drive/look/{info}"
-    path = f"/tasks/drive/copy/{src_file_id}/{info}"
+    path = f"/tasks/drive/copy-incr/{src_file_id}/{info}"
 
     URL=f'https://{service}.ltl.richkempinski.com{path}'
     headers={'Authorization': 'Bearer ' + token}
