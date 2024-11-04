@@ -13,6 +13,9 @@ from common.table_store import TableStore
 from common.queue_store import QueueStore
 from common.jwt_auth import AuthHandler, AuthError
 from common.env_context import Env
+import logging
+
+
 
 def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescription=''):
     app : Flask = Flask(__name__, static_url_path='', static_folder='static', template_folder='../templates')
@@ -40,6 +43,13 @@ def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescriptio
     api.init_app(app)
     
     CORS(app)  
+
+    # Configure logging
+    logging.basicConfig(level=logging.INFO)  # Adjust level as needed (e.g., DEBUG, INFO, WARNING)
+    logger = logging.getLogger(__name__)
+
+    # Usage example
+    logger.info("This is an info log message. in the create_api_app function in api_app.py")
 
     signal.signal(signal.SIGTERM, shutdown_handler)
     return app
