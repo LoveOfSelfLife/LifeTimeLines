@@ -18,7 +18,7 @@ import time
 from google.auth.transport.requests import Request
 
 from photos_tasks import PHOTOS_TASKS
-
+import logging
 ns = Namespace('tasks', description='services to sync with google photos')
 
 def is_task(task):
@@ -173,6 +173,7 @@ class CopyFiles(Resource):
     @ns.doc('coppy file from drive incrementally')
     def get(self, src_file_id, info):
 
+        logging.info(f"Copying file {src_file_id} to {info}")
         from common.share_client import GoogleDriveService, FShareService, copy_file_incremental
         from common.env_context import Env
 
@@ -184,4 +185,5 @@ class CopyFiles(Resource):
         copy_file_incremental(drive_service.get_service(), fshare_service, src_file_id, dst_folder_file, "999999")
         end_time = time.time()
 
+        
         return { "dest":dst_folder_file, "time (secs)": end_time - start_time }
