@@ -13,6 +13,9 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from io import BytesIO
 import zipfile
+import os
+import time
+from google.auth.transport.requests import Request
 
 from photos_tasks import PHOTOS_TASKS
 
@@ -151,34 +154,10 @@ class PhotosTaskInstances(Resource):
         return unzipfile(file_id)
         # return get_files(file_id)
         
-
 copy_fields = ns.model('Resource', {
     'file_id': fields.String,
     'destination': fields.String
 })
-
-def copy_drive_file(service, src_file_id, dst_folder_file, token):
-    # file = service.files().get(fileId=src_file_id, fields='name, mimeType, webContentLink, exportLinks').execute()
-    # download_url = file.get('webContentLink')
-    download_url = f"https://www.googleapis.com/drive/v3/files/{src_file_id}?alt=media"
-    headers = {'Authorization': 'Bearer ' + token}
-    response = requests.get(download_url, stream=True, allow_redirects=True, headers=headers)
-                                                                                      
-    with open(dst_folder_file, 'wb') as f:
-        for chunk in response.iter_content(1024):
-            f.write(chunk)
-
-@ns.route('/drive/copy/<file_id>')
-class CopyDriveFiles(Resource):
-
-    @ns.doc('copy file from google to file store')
-    @ns.expect(copy_fields)
-    def post(self):
-        json_data = request.get_json(force=True)
-        file_id = json_data['file_id']
-        destination = json_data['destination']
-
-        return { "file_id": file_id, "destination": destination }
 
 @ns.route('/drive/look/<info>')
 class LsFiles(Resource):
@@ -188,22 +167,21 @@ class LsFiles(Resource):
         newdir = info.replace("_", "/")
         file_info = os.listdir(newdir)
         return { "info":info, "cwd": os.getcwd(), "file_info": file_info }
-
-@ns.route('/drive/copy/<src_file_id>/<info>')
-class CopyFiles(Resource):
-    @ns.doc('coppy file from drive')
-    def get(self, src_file_id, info):
-        import os
-        import time
-        from google.auth.transport.requests import Request
-        dst_folder_file = info.replace("_", "/")
-        credentials=get_credentials()
-        credentials.refresh(Request())
-        # service = build("drive", "v3", credentials=credentials)
-        start_time = time.time()
-        copy_drive_file(None, src_file_id, dst_folder_file, credentials.token)
-        end_time = time.time()
-        return { "dest":dst_folder_file, "time": end_time - start_time }
         
+@ns.route('/drive/copy-incr/<src_file_id>/<info>')
+class CopyFiles(Resource):
+    @ns.doc('coppy file from drive incrementally')
+    def get(self, src_file_id, info):
 
+        from common.share_client import GoogleDriveService, FShareService, copy_file_incremental
+        from common.env_context import Env
 
+        dst_folder_file = info.replace("_", "/")
+        FShareService.initialize(Env.AZURE_FILESHARE_CONNECTIONSTRING)
+        drive_service = GoogleDriveService()
+        fshare_service = FShareService()
+        start_time = time.time()
+        copy_file_incremental(drive_service.get_service(), fshare_service, src_file_id, dst_folder_file, "999999")
+        end_time = time.time()
+
+        return { "dest":dst_folder_file, "time (secs)": end_time - start_time }

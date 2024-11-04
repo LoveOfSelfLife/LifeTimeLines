@@ -12,16 +12,18 @@ from types import FrameType
 from common.table_store import TableStore
 from common.queue_store import QueueStore
 from common.jwt_auth import AuthHandler, AuthError
+from common.env_context import Env
 
 def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescription=''):
     app : Flask = Flask(__name__, static_url_path='', static_folder='static', template_folder='../templates')
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RTxyz'
+    Env.initialize()
         
-    TableStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
-    QueueStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
+    TableStore.initialize(Env.AZURE_STORAGETABLE_CONNECTIONSTRING)
+    QueueStore.initialize(Env.AZURE_STORAGETABLE_CONNECTIONSTRING)
     
-    AuthHandler(os.getenv('TENANT_ID', None), os.getenv('AZURE_CLIENT_ID', None))
+    AuthHandler(Env.TENANT_ID, Env.AZURE_CLIENT_ID)
     
     api = Api(
         title=apiname,
