@@ -32,6 +32,10 @@
             "defaultValue": "",
             "type": "String"
         },
+        "azure-fileshare-connectionstring": {
+            "defaultValue": "",
+            "type": "String"
+        },
         "aad-client-id": {
             "defaultValue": "",
             "type": "String"
@@ -79,6 +83,10 @@
                         {
                             "name": "azure-storagetable-connectionstring",
                             "value": "[parameters('azure-storagetable-connectionstring')]"
+                        },
+                        {
+                            "name": "azure-fileshare-connectionstring",
+                            "value": "[parameters('azure-fileshare-connectionstring')]"
                         },
                         {
                             "name": "container-registry-pw",
@@ -135,6 +143,10 @@
                                 {
                                     "name": "AZURE_STORAGETABLE_CONNECTIONSTRING",
                                     "secretRef": "azure-storagetable-connectionstring"
+                                },
+                                {
+                                    "name": "AZURE_FILESHARE_CONNECTIONSTRING",
+                                    "secretRef": "azure-fileshare-connectionstring"
                                 },
                                 {
                                     "name": "AZURE_CLIENT_ID",

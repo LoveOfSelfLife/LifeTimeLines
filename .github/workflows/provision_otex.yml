@@ -26,6 +26,7 @@ jobs:
       container_registry_pw: ${{ secrets.container_registry_pw }}
       azure_credentials: ${{ secrets.azure_credentials }}
       azure_storagetable_connectionstring: ${{ secrets.azure_storagetable_connectionstring }}
+      azure_fileshare_connectionstring: ${{ secrets.azure_fileshare_connectionstring }}      
       aad_client_id: ${{ secrets.aad_client_id }}
       aad_client_secret: ${{ secrets.aad_client_secret }}
       google_client_secret_base64: ${{ secrets.google_client_secret_base64 }}

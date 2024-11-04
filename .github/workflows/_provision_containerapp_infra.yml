@@ -99,6 +99,7 @@ jobs:
             "container-registry-id"="${{ secrets.container_registry_id }}"
             "container-registry-pw"="${{ secrets.container_registry_pw }}"
             "azure-storagetable-connectionstring"="${{ secrets.azure_storagetable_connectionstring }}"
+            "azure-fileshare-connectionstring"="${{ secrets.azure_fileshare_connectionstring }}"            
             "aad-client-id"="${{ secrets.aad_client_id }}"
             "aad-client-secret"="${{ secrets.aad_client_secret }}"
             "google-client-secret-base64"="${{ secrets.google_client_secret_base64 }}"
