@@ -178,7 +178,7 @@ class CopyFiles(Resource):
         from common.env_context import Env
 
         dst_folder_file = info.replace("_", "/")
-        FShareService.initialize(Env.AZURE_FILESHARE_CONNECTIONSTRING)
+
         drive_service = GoogleDriveService()
         fshare_service = FShareService()
         start_time = time.time()
