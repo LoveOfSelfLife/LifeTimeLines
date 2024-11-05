@@ -21,6 +21,12 @@ def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescriptio
     app : Flask = Flask(__name__, static_url_path='', static_folder='static', template_folder='../templates')
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RTxyz'
+
+    # Configure logging
+    app.logger.setLevel(logging.INFO)
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)  # Adjust level as needed (e.g., DEBUG, INFO, WARNING)
+    logger = logging.getLogger(__name__)
+
     Env.initialize()
         
     TableStore.initialize(Env.AZURE_STORAGETABLE_CONNECTIONSTRING)
@@ -44,9 +50,6 @@ def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescriptio
     
     CORS(app)  
 
-    # Configure logging
-    logging.basicConfig(level=logging.INFO)  # Adjust level as needed (e.g., DEBUG, INFO, WARNING)
-    logger = logging.getLogger(__name__)
 
     # Usage example
     logger.info("This is an info log message. in the create_api_app function in api_app.py")
