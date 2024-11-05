@@ -13,9 +13,8 @@ from common.table_store import TableStore
 from common.queue_store import QueueStore
 from common.jwt_auth import AuthHandler, AuthError
 from common.env_context import Env
+from common.share_client import FShareService 
 import logging
-
-
 
 def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescription=''):
     app : Flask = Flask(__name__, static_url_path='', static_folder='static', template_folder='../templates')
@@ -31,7 +30,8 @@ def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescriptio
         
     TableStore.initialize(Env.AZURE_STORAGETABLE_CONNECTIONSTRING)
     QueueStore.initialize(Env.AZURE_STORAGETABLE_CONNECTIONSTRING)
-    
+    FShareService.initialize(Env.AZURE_FILESHARE_CONNECTIONSTRING)
+
     AuthHandler(Env.TENANT_ID, Env.AZURE_CLIENT_ID)
     
     api = Api(
