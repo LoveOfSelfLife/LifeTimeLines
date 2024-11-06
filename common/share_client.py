@@ -19,12 +19,12 @@ import logging
 
 DEFAULT_SHARE_NAME = 'richkhome'
 
-class GoogleDriveService:
+class GoogleDrive:
 
     def __init__(self):
         self.service = build('drive', 'v3', credentials=get_credentials())
 
-    def get_service(self):
+    def get_drive_service(self):
         return self.service
     
 class FShareService: 
@@ -49,12 +49,13 @@ class FileCopyProgress (EntityObject):
     def __init__(self, d={}):
         super().__init__(d)
 
-def copy_file_incremental(drive_service:GoogleDriveService, file_share_service:FShareService, 
+def copy_file_incremental(drive:GoogleDrive, file_share_service:FShareService, 
                           src_drive_file_id:str, dest_fileshare_path:str, operation_id:str):
 
     logging.info(f"Copying file {src_drive_file_id} to {dest_fileshare_path} incrementally")
 
     try:
+        drive_service = drive.get_drive_service()
         dest_file_client= file_share_service.getFShareFileClient(dest_fileshare_path)
         # dest_file_client= ShareFileClient.from_connection_string(FShareService.connection_string, 
         #                                                          share_name='richkhome',

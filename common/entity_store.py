@@ -17,7 +17,8 @@ class EntityObject (dict):
         dict.__init__(d)
         for k,v in d.items():
             self[k] = v
-
+        self.validate()
+        
     def get_key_field(self):
         return type(self).key_field
     
@@ -54,6 +55,9 @@ class EntityObject (dict):
             tbl3 = tbl
         return lambda: f"{tbl3}_{IDGenerator.get_unique_id(tbl)}"
 
+    def validate(self):
+        pass
+            
 class LatestItemUpdatedTimeTracker (EntityObject):
     table_name='LatestItemsUpdatedTrackerTable'
     partition_value="all"

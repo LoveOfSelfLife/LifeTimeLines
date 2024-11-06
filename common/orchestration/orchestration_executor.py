@@ -435,12 +435,14 @@ hen before attempting to execute the instance, we check the counter to verify it
     def invoke_function(self, func, input):
         logging.info(f"invoking function: {func} with input: {input}")
         input['token'] = self.token
+        input['instance_id'] = self.orch_instance['id']
         result_tuple = func(**input)
         (result, status) = result_tuple
         return (result, status)
 
     def invoke_repeated_function(self, func, input, output_as_input):
         input['token'] = self.token
+        input['instance_id'] = self.orch_instance['id']
         input['output'] = output_as_input
         result_tuple = func(**input)
         (result, status) = result_tuple

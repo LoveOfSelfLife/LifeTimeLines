@@ -102,6 +102,10 @@
                         {
                             "name": "tenant-id",
                             "value": "[parameters('tenant-id')]"
+                        },
+                        {
+                            "name": "google-client-secret-base64",
+                            "value": "[parameters('google-client-secret-base64')]"
                         }
                     ],
                     "registries": [
@@ -133,6 +137,10 @@
                                 {
                                     "name": "AZURE_CLIENT_SECRET",
                                     "secretRef": "aad-client-secret"
+                                },
+                                {
+                                    "name": "GOOGLE_CLIENT_SECRET_BASE64",
+                                    "secretRef": "google-client-secret-base64"
                                 },
                                 {
                                     "name": "TENANT_ID",

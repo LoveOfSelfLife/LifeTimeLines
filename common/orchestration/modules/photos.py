@@ -3,7 +3,7 @@ import json
 import logging
 from datetime import datetime, timedelta
 
-def retrieve_unsynced_mediaitem_dateranges_fn(after, before, daysgap, token=None):
+def retrieve_unsynced_mediaitem_dateranges_fn(after, before, daysgap, token=None, instance_id=None):
     service = 'photos'
     path=f"/photos/unsynced-photos-ranges?start_dt_iso={after}&end_dt_iso={before}&gap_days={daysgap}"
 
@@ -18,7 +18,7 @@ def retrieve_unsynced_mediaitem_dateranges_fn(after, before, daysgap, token=None
 
     return resp.json(), resp.status_code    
 
-def retrieve_entity_album_list_fn(token=None):
+def retrieve_entity_album_list_fn(token=None, instance_id=None):
     service = 'photos'
     path = '/photos/actor-entity-albums'
 

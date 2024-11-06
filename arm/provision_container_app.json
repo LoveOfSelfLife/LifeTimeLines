@@ -103,6 +103,10 @@
                         {
                             "name": "google-client-secret-base64",
                             "value": "[parameters('google-client-secret-base64')]"
+                        },
+                        {
+                            "name": "tenant-id",
+                            "value": "[parameters('tenant-id')]"
                         }
                     ],
                     "activeRevisionsMode": "Single",
@@ -166,7 +170,7 @@
                                 },
                                 {
                                     "name": "TENANT_ID",
-                                    "value": "[parameters('tenant-id')]"
+                                    "secretRef": "tenant-id"                                    
                                 }
                             ],
                             "resources": {

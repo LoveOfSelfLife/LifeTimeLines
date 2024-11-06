@@ -4,27 +4,8 @@ import time
 
 from common.entity_store import  EntityStore, EntityObject
 from azure.storage.queue import QueueClient
-
-class OrchestrationQueue:
-    STORAGE_QUEUE_NAME = 'request-queue'
-    TESTING_STORAGE_QUEUE_NAME = 'testing-queue'
-    queue_client = None
-    queue_name = STORAGE_QUEUE_NAME
-
-    @staticmethod
-    def get_queue_client():
-        if OrchestrationQueue.queue_client:
-            return OrchestrationQueue.queue_client
-        else:
-            OrchestrationQueue.queue_client = QueueClient.from_connection_string(os.getenv("AZURE_STORAGETABLE_CONNECTIONSTRING"), OrchestrationQueue.queue_name)
-            return OrchestrationQueue.queue_client
-    
-    @staticmethod
-    def set_testing_mode(testing_mode=False):
-        if testing_mode:
-            OrchestrationQueue.queue_name = OrchestrationQueue.TESTING_STORAGE_QUEUE_NAME
-        else:
-            OrchestrationQueue.queue_name = OrchestrationQueue.STORAGE_QUEUE_NAME
+from common.env_context import Env
+from common.orchestration.orchestration_queue import OrchestrationQueue
 
     
 class OrchestrationDefinition (EntityObject):
@@ -49,6 +30,13 @@ class OrchestrationCommand (EntityObject):
 
     def __init__(self, d={}):
         super().__init__(d)
+    def validate(self):
+        # if not self.get('command', None):
+        #     raise Exception("command is required")
+
+        # if not self.get('status', None):
+        #     raise Exception("status is required")
+        pass
 
 class OrchestrationTaskInstance (EntityObject):
     """ this table 
