@@ -16,6 +16,7 @@ import zipfile
 import os
 import time
 from google.auth.transport.requests import Request
+from common.share_client import GoogleDrive, FShareService, copy_file_incremental
 
 from photos_tasks import PHOTOS_TASKS
 import logging
@@ -174,16 +175,38 @@ class CopyFiles(Resource):
     def get(self, src_file_id, info):
 
         logging.info(f"Copying file {src_file_id} to {info}")
-        from common.share_client import GoogleDriveService, FShareService, copy_file_incremental
         from common.env_context import Env
 
         dst_folder_file = info.replace("_", "/")
 
-        drive_service = GoogleDriveService()
+        drive = GoogleDrive()
         fshare_service = FShareService()
         start_time = time.time()
-        copy_file_incremental(drive_service.get_service(), fshare_service, src_file_id, dst_folder_file, "999999")
+        copy_file_incremental(drive, fshare_service, src_file_id, dst_folder_file, "999999")
         end_time = time.time()
-
         
         return { "dest":dst_folder_file, "time (secs)": end_time - start_time }
+
+copy_file_fields = ns.model('Resource', {
+    'start': fields.String,
+    'end': fields.String
+})
+
+@ns.route('/copyfiletask/')
+class CopyTasks(Resource):
+    @ns.doc('coppy file from drive incrementally')
+    @ns.expect(copy_file_fields)
+    def post(self):
+        json_data = request.get_json(force=True)
+        src_drive_file_id = json_data['drive-file-id']
+        dest_fileshare_path = json_data['fileshare-path']
+        instance_id = json_data['instance-id']
+        
+        drive = GoogleDrive()
+        fshare_service = FShareService()
+        start_time = time.time()
+        result = copy_file_incremental(drive, fshare_service, src_drive_file_id, dest_fileshare_path, str(instance_id))
+        end_time = time.time()
+
+        return { "result":result, "dest":dest_fileshare_path, "time (secs)": end_time - start_time }
+    

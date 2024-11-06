@@ -4,8 +4,10 @@ import datetime
 import json
 from common.entity_store import EntityStore
 from common.jwt_auth import requires_auth
-from common.orchestration.orchestration_utils import OrchestrationCommand, OrchestrationQueue, OrchestrationTaskInstance, OrchestrationDefinition
+from common.orchestration.orchestration_queue import OrchestrationQueue
+from common.orchestration.orchestration_utils import OrchestrationCommand, OrchestrationTaskInstance, OrchestrationDefinition
 from common.orchestration.orchestration_utils import  check_if_orch_instance_exists, create_orch_command_instance, create_orch_instances, post_orch_command_instance_to_queue
+from common.env_context import Env
 
 ns = Namespace('orch', description='orchestration api')
 
@@ -131,7 +133,6 @@ class OrchCommandsApi(Resource):
     @ns.expect(orch_cmd_resource_fields)
     # @requires_auth
     def post(self):
-        OrchestrationQueue.set_testing_mode(True)
         json_data = request.get_json(force=True)
         command =json_data['command']
         orch_instance_id = json_data['id']

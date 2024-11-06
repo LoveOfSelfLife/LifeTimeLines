@@ -3,11 +3,11 @@ import json
 import logging
 from datetime import datetime, timedelta
 
-def get_last_processed_timestamp_fn(token=None):
+def get_last_processed_timestamp_fn(token=None, instance_id=None):
         result = { "timestamp": "20190301" }
         return (result, 200)
 
-def curate_mediaitems_fn(timestamp, days=365, token=None):
+def curate_mediaitems_fn(timestamp, days=365, token=None, instance_id=None):
     ts = datetime.fromisoformat(timestamp) 
     ts = ts + timedelta(int(days))
     if ts > datetime.now():
@@ -15,23 +15,23 @@ def curate_mediaitems_fn(timestamp, days=365, token=None):
     else:
         return (ts.isoformat(), 200)
 
-def task_once1_fn(x, token=None):
+def task_once1_fn(x, token=None, instance_id=None):
     print(f"TEST task_once1_fn(x={x})")
     return ([f"#1-task_once1_fn(x={x})", f"#2-task_once1_fn(x={x})"], 200)
 
-def task_once2_fn(y, token=None):
+def task_once2_fn(y, token=None, instance_id=None):
     print(f"TEST task_once2_fn(y={y})")
     return ([f"#1-task_once2_fn(y={y})", f"#2-task_once2_fn(y={y})"], 200)
 
-def task_iterate_fn(in1, in2, token=None):
+def task_iterate_fn(in1, in2, token=None, instance_id=None):
     print(f"TEST task_iterate_fn(in1={in1}, in2={in2})") 
     return (f"task_iterate_fn(in1={in1}, in2={in2})", 200)
 
-def task_iterate_iterate_fn(in1, in2, token=None):
+def task_iterate_iterate_fn(in1, in2, token=None, instance_id=None):
     print(f"TEST task_iterate_iterate_fn(in1={in1}, in2={in2})")
     return (f"task_iterate_iterate_fn(in1={in1}, in2={in2})", 200)
     
-def task_repeat_fn(n, output=None, token=None):
+def task_repeat_fn(n, output=None, token=None, instance_id=None):
     print(f"TEST task_repeat_fn(n={n}, output={output})")
     if output is None:
         num_left = 4
@@ -41,7 +41,7 @@ def task_repeat_fn(n, output=None, token=None):
         return ({ "num_times" : 0 }, 404)
     return ({ "num_times" : num_left }, 200)
 
-def task_iterate_repeat_fn(in1, output=None, token=None):
+def task_iterate_repeat_fn(in1, output=None, token=None, instance_id=None):
     print(f"TEST task_iterate_repeat_fn(in1={in1}, output={output})")
     # return (f"task_iterate_repeat_fn(in1={in1}, output={output})", 200)
     if output is None:
@@ -52,7 +52,7 @@ def task_iterate_repeat_fn(in1, output=None, token=None):
         return ({ "num_times" : 0 }, 404)
     return ({ "num_times" : num_left }, 200)
     
-def task_iterate_iterate_repeat_fn(in1, in2, output=None, token=None):
+def task_iterate_iterate_repeat_fn(in1, in2, output=None, token=None, instance_id=None):
     print(f"TEST task_iterate_iterate_repeat_fn(in1={in1}, in2={in2},  output={output})")    
     # return (f"task_iterate_iterate_repeat_fn(in1={in1}, in2={in2}, output={output})", 200)
     if output is None:
@@ -63,7 +63,7 @@ def task_iterate_iterate_repeat_fn(in1, in2, output=None, token=None):
         return ({ "num_times" : 0 }, 404)
     return ({ "num_times" : num_left }, 200)
 
-def call_api(service, method, path, body, token=None):
+def call_api(service, method, path, body, token=None, instance_id=None):
     print(f"TEST call_api({service}, {method}, {path}, {body}, TOKEN)")
     return (json.dumps({"result": [1,2,3,4,5]}), 200)
 
