@@ -1,27 +1,40 @@
 import os
-import sys
 import signal
 
-from flask import Flask, jsonify
+from flask import Flask
 from flask_cors import CORS   
 from werkzeug.middleware.proxy_fix import ProxyFix
-
 from dotenv import load_dotenv
-from main import main
-from backend_svcs import main as backend_main
-from contacts_model import Contact
+
+from base import bp as base_bp
+from views.view1.routes import bp as view1_bp
+from views.view2.routes import bp as view2_bp
+from views.contacts.routes import bp as contacts_bp
+from views.orchestration.routes import bp as orchestration_bp
+from views.tables.routes import bp as tables_bp
+from views.services.routes import bp as services_bp
+from views.processes.routes import bp as processes_bp
+
+from views.contacts.routes import init as contacts_init
+from views.contacts.contacts_model import Contact
 
 def create_app():
-    load_dotenv()
 
-    Contact.load_db()
+    load_dotenv()
+    contacts_init()
 
     app : Flask = Flask(__name__)
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.secret_key = 'A0Zr98j/3yX R~XHH!jmN;aljsfsjd'
 
-    app.register_blueprint(main)
-    app.register_blueprint(backend_main)
+    app.register_blueprint(base_bp)
+    app.register_blueprint(contacts_bp, url_prefix='/contacts')
+    app.register_blueprint(orchestration_bp, url_prefix='/orchestration')
+    app.register_blueprint(view1_bp, url_prefix='/view1')
+    app.register_blueprint(view2_bp, url_prefix='/view2')
+    app.register_blueprint(tables_bp, url_prefix='/tables')
+    app.register_blueprint(services_bp, url_prefix='/services')
+    app.register_blueprint(processes_bp, url_prefix='/processes')
 
     CORS(app)  
 
