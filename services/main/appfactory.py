@@ -17,10 +17,12 @@ from views.processes.routes import bp as processes_bp
 
 from views.contacts.routes import init as contacts_init
 from views.contacts.contacts_model import Contact
+from common.env_init import initialize_environment
 
 def create_app():
 
     load_dotenv()
+    initialize_environment()
     contacts_init()
 
     app : Flask = Flask(__name__)

@@ -9,11 +9,10 @@ import signal
 import sys
 from types import FrameType
 
-from common.table_store import TableStore
-from common.queue_store import QueueStore
 from common.jwt_auth import AuthHandler, AuthError
 from common.env_context import Env
-from common.share_client import FShareService 
+from common.env_init import initialize_environment
+
 import logging
 
 def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescription=''):
@@ -26,11 +25,7 @@ def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescriptio
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)  # Adjust level as needed (e.g., DEBUG, INFO, WARNING)
     logger = logging.getLogger(__name__)
 
-    Env.initialize()
-        
-    TableStore.initialize(Env.AZURE_STORAGETABLE_CONNECTIONSTRING)
-    QueueStore.initialize(Env.AZURE_STORAGETABLE_CONNECTIONSTRING)
-    FShareService.initialize(Env.AZURE_FILESHARE_CONNECTIONSTRING)
+    initialize_environment()
 
     AuthHandler(Env.TENANT_ID, Env.AZURE_CLIENT_ID)
     
