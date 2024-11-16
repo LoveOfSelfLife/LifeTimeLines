@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<form action="/contacts/new" method="post">
+<form action="/contacts/new" method="post" hx-boost="false">
     <fieldset>
         <legend>Contact Values</legend>
         <div class="table rows">
@@ -34,6 +34,5 @@
 <p>
     <a href="/contacts">Back</a>
 </p>
-
 
 {% endblock %}

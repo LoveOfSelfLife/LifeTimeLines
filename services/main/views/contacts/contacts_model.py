@@ -13,7 +13,7 @@ PAGE_SIZE = 100
 class Contact:
     # mock contacts database
     db = {}
-    contacts_file = '/share/contacts/contacts.json'
+    contacts_file = None
 
     def __init__(self, id_=None, first=None, last=None, phone=None, email=None):
         self.id = id_
@@ -22,6 +22,8 @@ class Contact:
         self.phone = phone
         self.email = email
         self.errors = {}
+        root_path = os.getenv('ROOT_FILE_PATH', '/share')
+        Contact.contacts_file = os.path.join(root_path, 'contacts', 'contacts.json')
 
     def __str__(self):
         return json.dumps(self.__dict__, ensure_ascii=False)
@@ -59,7 +61,7 @@ class Contact:
 
     @classmethod
     def count(cls):
-        time.sleep(2)
+        time.sleep(1)
         return len(cls.db)
 
     @classmethod
@@ -83,6 +85,7 @@ class Contact:
 
     @classmethod
     def load_db(cls):
+        c  = Contact()
         cwd = os.getcwd()
         try:
             with open(Contact.contacts_file, 'r') as f:
@@ -101,6 +104,8 @@ class Contact:
 
     @classmethod
     def find(cls, id_):
+        if id_ is None:
+            return Contact()
         id_ = int(id_)
         c = cls.db.get(id_)
         if c is not None:

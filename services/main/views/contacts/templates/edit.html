@@ -2,7 +2,7 @@
 
 {% block content %}
 
-    <form action="/contacts/{{ contact.id }}/edit" method="post">
+    <form action="/contacts/{{ contact.id }}/edit" method="post" hx-boost="false">
         <fieldset>
             <legend>Contact Values</legend>
             <div class="table rows">

@@ -1,21 +1,13 @@
 import os
 import time
-from googleapiclient.discovery import build
-
-from azure.storage.fileshare import ShareClient, ShareFileClient
-from requests.exceptions import RequestException
-from common.entity_store import EntityObject, EntityStore
-from common.env_context import Env
-
-from common.jwt_auth import AuthError
-
-from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from common.google_credentials import GOOGLE_SCOPES, get_config_from_secret, get_credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.http import MediaIoBaseDownload
-from google.auth.transport.requests import Request
 import logging
+
+from azure.storage.fileshare import ShareClient
+from requests.exceptions import RequestException
+from googleapiclient.discovery import build
+from common.entity_store import EntityObject, EntityStore
+from common.google_credentials import GOOGLE_SCOPES, get_credentials
+from common.env_context import Env
 
 DEFAULT_SHARE_NAME = 'richkhome'
 
@@ -57,11 +49,8 @@ def copy_file_incremental(drive:GoogleDrive, file_share_service:FShareService,
     try:
         drive_service = drive.get_drive_service()
         dest_file_client= file_share_service.getFShareFileClient(dest_fileshare_path)
-        # dest_file_client= ShareFileClient.from_connection_string(FShareService.connection_string, 
-        #                                                          share_name='richkhome',
-        #                                                          file_path=dest_fileshare_path)
 
-        chunk_size=4 * 1024 * 1024
+        chunk_size = 4 * 1024 * 1024
 
         src_file_metadata = drive_service.files().get(fileId=src_drive_file_id, fields='size').execute()
         src_file_size = int(src_file_metadata['size'])
@@ -102,14 +91,14 @@ def copy_file_incremental(drive:GoogleDrive, file_share_service:FShareService,
 
         if start_offset >= src_file_size:
             print(f"Completed {num_completed_offsets} offsets. we are done, we should now delete the progress items")
-            # entity_store.delete_items(FileCopyProgress({"operation_id": operation_id}))
-            return True
+            entity_store.delete_items(FileCopyProgress({"operation_id": str(operation_id)}))
+            return True, num_completed_offsets, src_file_size
         else:
             print(f"Completed {num_completed_offsets} offsets but not finished. - should keep the progress items")
-            return False
+            return False, num_completed_offsets, src_file_size
     except Exception as e:
         logging.exception(f"Error occurred during file copy: {e}")
-        return False
+        raise Exception(f"Error occurred during file copy: {e}")
     
 def download_chunk(drive_service, file_id, start, end):
     request = drive_service.files().get_media(fileId=file_id)

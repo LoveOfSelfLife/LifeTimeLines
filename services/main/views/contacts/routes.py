@@ -2,24 +2,22 @@ from flask import (
     Flask, redirect, render_template, request, flash, jsonify, send_file, Blueprint
 )
 from werkzeug.utils import secure_filename
-from contacts_model import Contact, Archiver
-import time
+from views.contacts.contacts_model import Contact, Archiver
 import os
 
-main = Blueprint('main', __name__)  # Create a blueprint named 'main'
+bp = Blueprint('contacts', __name__, template_folder='templates')  
 
 UPLOAD_FOLDER = '.'
 ALLOWED_EXTENSIONS = {'txt', 'json'}
 
-@main.route("/")
-def index():
-    return redirect("/contacts")
+def init():
+    Contact.load_db()
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@main.route("/upload", methods=("POST",))
+@bp.route("/upload", methods=("POST",))
 def upload():
     if request.method == 'POST':
         # check if the post request has the file part
@@ -41,7 +39,7 @@ def upload():
     return ("", 204)  # return empty response so htmx does not overwrite the progress bar value
 
 
-@main.route("/contacts")
+@bp.route("/")
 def contacts():
     search = request.args.get("q")
     page = int(request.args.get("page", 1))
@@ -51,70 +49,76 @@ def contacts():
             return render_template("rows.html", contacts=contacts_set)
     else:
         contacts_set = Contact.all()
-    return render_template("index.html", contacts=contacts_set, archiver=Archiver.get())
+    
+    content_html = render_template("contacts.html", contacts=contacts_set, archiver=Archiver.get())
+    if request.headers.get("HX-Request"):
+        return content_html
+    else:
+        return render_template("base.html", content=content_html)
 
-
-@main.route("/contacts/archive", methods=["POST"])
+@bp.route("/archive", methods=["POST"])
 def start_archive():
     archiver = Archiver.get()
     archiver.run()
     return render_template("archive_ui.html", archiver=archiver)
 
 
-@main.route("/contacts/archive", methods=["GET"])
+@bp.route("/archive", methods=["GET"])
 def archive_status():
     archiver = Archiver.get()
     return render_template("archive_ui.html", archiver=archiver)
 
 
-@main.route("/contacts/archive/file", methods=["GET"])
+@bp.route("/archive/file", methods=["GET"])
 def archive_content():
     archiver = Archiver.get()
     return send_file(archiver.archive_file(), "archive.json", as_attachment=True)
 
 
-@main.route("/contacts/archive", methods=["DELETE"])
+@bp.route("/archive", methods=["DELETE"])
 def reset_archive():
     archiver = Archiver.get()
     archiver.reset()
     return render_template("archive_ui.html", archiver=archiver)
 
 
-@main.route("/contacts/count")
+@bp.route("/count")
 def contacts_count():
     count = Contact.count()
     return "(" + str(count) + " total Contacts)"
 
 
-@main.route("/contacts/new", methods=['GET'])
+@bp.route("/new", methods=['GET'])
 def contacts_new_get():
     return render_template("new.html", contact=Contact())
 
 
-@main.route("/contacts/new", methods=['POST'])
+@bp.route("/new", methods=['POST'])
 def contacts_new():
     c = Contact(None, request.form['first_name'], request.form['last_name'], request.form['phone'],
                 request.form['email'])
     if c.save():
         flash("Created New Contact!")
+        if request.headers.get("HX-Request"):
+            print("HX-Request is true")
         return redirect("/contacts")
     else:
         return render_template("new.html", contact=c)
 
 
-@main.route("/contacts/<contact_id>")
+@bp.route("/<contact_id>")
 def contacts_view(contact_id=0):
     contact = Contact.find(contact_id)
     return render_template("show.html", contact=contact)
 
 
-@main.route("/contacts/<contact_id>/edit", methods=["GET"])
+@bp.route("/<contact_id>/edit", methods=["GET"])
 def contacts_edit_get(contact_id=0):
     contact = Contact.find(contact_id)
     return render_template("edit.html", contact=contact)
 
 
-@main.route("/contacts/<contact_id>/edit", methods=["POST"])
+@bp.route("/<contact_id>/edit", methods=["POST"])
 def contacts_edit_post(contact_id=0):
     c = Contact.find(contact_id)
     c.update(request.form['first_name'], request.form['last_name'], request.form['phone'], request.form['email'])
@@ -125,7 +129,7 @@ def contacts_edit_post(contact_id=0):
         return render_template("edit.html", contact=c)
 
 
-@main.route("/contacts/<contact_id>/email", methods=["GET"])
+@bp.route("/<contact_id>/email", methods=["GET"])
 def contacts_email_get(contact_id=0):
     c = Contact.find(contact_id)
     c.email = request.args.get('email')
@@ -133,18 +137,20 @@ def contacts_email_get(contact_id=0):
     return c.errors.get('email') or ""
 
 
-@main.route("/contacts/<contact_id>", methods=["DELETE"])
+@bp.route("/<contact_id>", methods=["DELETE"])
 def contacts_delete(contact_id=0):
     contact = Contact.find(contact_id)
     contact.delete()
     if request.headers.get('HX-Trigger') == 'delete-btn':
         flash("Deleted Contact!")
-        return redirect("/contacts", 303)
+        contacts_set = Contact.all()
+        content_html = render_template("contacts.html", contacts=contacts_set, archiver=Archiver.get())
+        return render_template("base.html", content=content_html)
     else:
         return ""
 
 
-@main.route("/contacts/", methods=["DELETE"])
+@bp.route("/", methods=["DELETE"])
 def contacts_delete_all():
     contact_ids = list(map(int, request.form.getlist("selected_contact_ids")))
     for contact_id in contact_ids:
@@ -153,20 +159,24 @@ def contacts_delete_all():
     flash("Deleted Contacts!")
     contacts_set = Contact.all(1)
     archiver = Archiver.get()    
-    return render_template("index.html", contacts=contacts_set, archiver=archiver)
-
-
+    content_html = render_template("contacts.html", contacts=contacts_set, archiver=Archiver.get())
+    # if request.headers.get("HX-Request"):
+    #     return content_html
+    # else:
+    #     return render_template("base.html", content=content_html)
+    return render_template("base.html", content=content_html)    
+    
 # ===========================================================
 # JSON Data API
 # ===========================================================
 
-@main.route("/api/v1/contacts", methods=["GET"])
+@bp.route("/api/v1/contacts", methods=["GET"])
 def json_contacts():
     contacts_set = Contact.all()
     return {"contacts": [c.__dict__ for c in contacts_set]}
 
 
-@main.route("/api/v1/contacts", methods=["POST"])
+@bp.route("/api/v1/contacts", methods=["POST"])
 def json_contacts_new():
     c = Contact(None, request.form.get('first_name'), request.form.get('last_name'), request.form.get('phone'),
                 request.form.get('email'))
@@ -176,13 +186,13 @@ def json_contacts_new():
         return {"errors": c.errors}, 400
 
 
-@main.route("/api/v1/contacts/<contact_id>", methods=["GET"])
+@bp.route("/api/v1/contacts/<contact_id>", methods=["GET"])
 def json_contacts_view(contact_id=0):
     contact = Contact.find(contact_id)
     return contact.__dict__
 
 
-@main.route("/api/v1/contacts/<contact_id>", methods=["PUT"])
+@bp.route("/api/v1/contacts/<contact_id>", methods=["PUT"])
 def json_contacts_edit(contact_id):
     c = Contact.find(contact_id)
     c.update(request.form['first_name'], request.form['last_name'], request.form['phone'], request.form['email'])
@@ -192,12 +202,8 @@ def json_contacts_edit(contact_id):
         return {"errors": c.errors}, 400
 
 
-@main.route("/api/v1/contacts/<contact_id>", methods=["DELETE"])
+@bp.route("/api/v1/contacts/<contact_id>", methods=["DELETE"])
 def json_contacts_delete(contact_id=0):
     contact = Contact.find(contact_id)
     contact.delete()
     return jsonify({"success": True})
-
-
-if __name__ == "__main__":
-    pass
