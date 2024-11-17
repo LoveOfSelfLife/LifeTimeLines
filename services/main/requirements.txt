@@ -12,3 +12,4 @@ jsonify>=0.5
 requests>=2.27
 Flask-Cors==3.0.10
 datetimerange>=2.1.0
+flask_restx==1.0.6
