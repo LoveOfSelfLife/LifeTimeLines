@@ -32,16 +32,38 @@ def post_orch_defs():
     service = 'otmgr'
     path = '/orch/instances'
     URL=f'https://{service}.ltl.richkempinski.com{path}'
-    headers={'Authorization': 'Bearer ' + token}
+    headers={"Authorization": "Bearer " + token,
+             "Content-Type": "application/json"}
     print(f'URL:  {URL}')
-    body = { "id" : definition['id'], "context" : request.form }
-    resp = requests.post(URL, data=body, verify=False, headers=headers)
+    context = dict(request.form)
+    body = { "id" : definition['id'], "context" : context }
+    
+    resp = requests.post(URL, data=json.dumps(body), verify=False, headers=headers)
     print(f'response status:  {resp.status_code}')        
     resp.encoding = 'utf-8'        
     instance_id = resp.json().get('instance_id', None)
-    return resp.text, resp.status_code
 
-    return json.dumps(definition, indent=4)
+
+    execute_cmd = {
+    "command": "execute",
+    "id": instance_id,
+    "arg": 2
+    }
+    
+
+    path = '/orch/commands'
+    URL=f'https://{service}.ltl.richkempinski.com{path}'
+    headers={"Authorization": "Bearer " + token,
+             "Content-Type": "application/json"}
+    print(f'URL:  {URL}')
+        
+    resp = requests.post(URL, data=json.dumps(execute_cmd), verify=False, headers=headers)
+    print(f'response status:  {resp.status_code}')        
+    resp.encoding = 'utf-8'        
+    exec_cmd_id = resp.json().get('execution_command_id', None)
+
+    return f"Instance ID: {instance_id}, Execution Command ID: {exec_cmd_id}", resp.status_code
+    return resp.text, resp.status_code
     # return hx_render_template('orch_definitions.html', definitions=definitions)
 
 @bp.route('/orch-defs/create')

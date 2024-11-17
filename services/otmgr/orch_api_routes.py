@@ -142,6 +142,6 @@ class OrchCommandsApi(Resource):
             einst = create_orch_command_instance(command, orch_instance_id, arg)
             es.upsert_item(einst)
             post_orch_command_instance_to_queue(einst)
-            return "created", 201
+            return {"execution_command_id": einst.get('id')}, 201
  
         return "orch instance not found", 404
