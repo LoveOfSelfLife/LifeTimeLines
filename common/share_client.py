@@ -92,7 +92,7 @@ def copy_file_incremental(drive:GoogleDrive, file_share_service:FShareService,
 
         if start_offset >= src_file_size:
             print(f"Completed {num_completed_offsets} offsets. we are done, we should now delete the progress items")
-            entity_store.delete_items(FileCopyProgress({"operation_id": str(operation_id)}))
+            entity_store.delete_all_in_partition(FileCopyProgress(), str(operation_id))
             return True, num_completed_offsets, src_file_size
         else:
             print(f"Completed {num_completed_offsets} offsets but not finished. - should keep the progress items")
