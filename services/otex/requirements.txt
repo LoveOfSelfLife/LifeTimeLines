@@ -9,3 +9,4 @@ datetimerange>=2.1.0
 
 flask==2.0.2
 flask_restx==1.0.6
+Werkzeug==2.2.2
