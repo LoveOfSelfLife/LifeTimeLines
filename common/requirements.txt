@@ -15,3 +15,4 @@ google-api-python-client>=1.12
 google-auth>=1.25
 google-auth-oauthlib>=0.4
 google-auth-httplib2>=0.0.4
+azure-data-tables>=12.4.2
