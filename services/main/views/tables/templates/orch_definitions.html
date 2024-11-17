@@ -19,12 +19,17 @@
                     <td><input type="checkbox" class="entity-checkbox"></td>
                     <td>{{ definition.id }}</td>
                     <td>{{ definition.context }}</td>
-                    <td><button class="btn btn-warning btn-sm">Create Instance</button></td>
                     <td><button class="btn btn-warning btn-sm"
-                        hx-get="/tables/orch-instances/{{ definition.id }}"
+                        hx-get="/tables/orch-defs/create?def-id={{ definition.id }}"
                         hx-target="#content"
                         hx-swap="innerHTML"
-                        hx-push-url="/tables/orch-instances/{{ definition.id }}"
+                        hx-push-url="/tables/orch-defs/create?def-id={{ definition.id }}"                        
+                        >Create Instance</button></td>
+                    <td><button class="btn btn-warning btn-sm"
+                        hx-get="/tables/orch-instances?def-id={{ definition.id }}"
+                        hx-target="#content"
+                        hx-swap="innerHTML"
+                        hx-push-url="/tables/orch-instances?def-id={{ definition.id }}"
                         >View Instances</button></td>
                 </tr>
                 {% endfor %}
