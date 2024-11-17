@@ -1,0 +1,32 @@
+
+    <div class="container mt-4">
+        <div class="d-flex justify-content-between mb-2">
+            <!-- <button class="btn btn-primary">Add New Entity</button> -->
+        </div>
+        <h2>{{ definition_id }}</h2>
+        <table class="table table-responsive table-striped table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th scope="col"></th>
+                    <th scope="col">Id</th>
+                    <th scope="col">Inputs</th>
+                    <th scope="col">Status</th>
+                    <th scope="col"></th>
+                    <th scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for instance in instances %}
+                <tr>
+                    <td><input type="checkbox" class="entity-checkbox"></td>
+                    <td>{{ instance.id }}</td>
+                    <td>{{ instance.context }}</td>
+                    <td>{{ instance.status }}</td>
+                    <td><button class="btn btn-warning btn-sm">Create Instance</button></td>
+                    <td><button class="btn btn-warning btn-sm">View Instances</button></td>
+                </tr>
+                {% endfor %}
+
+            </tbody>
+        </table>
+    </div>

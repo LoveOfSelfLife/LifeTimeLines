@@ -2,6 +2,7 @@ from datetime import datetime
 import json
 import re
 import urllib
+from common.entity_filter import Filter
 from common.table_store import TableStore
 from common.id_generator import IDGenerator
 
@@ -99,7 +100,7 @@ class EntityStore :
             EntityStore.storage_map[table_name] = storage
         return storage
 
-    def list_items(self, eobj:EntityObject, filter=None, select=None, start_time_iso=None, end_time_iso=None,
+    def list_items(self, eobj:EntityObject, filter=None, dfilter=None, select=None, start_time_iso=None, end_time_iso=None,
                    include_start_time=False, include_end_time=True):
         """return a iterator of objects from the underlying Table store
 
@@ -121,19 +122,50 @@ class EntityStore :
             # filter = filter
             # TODO: complete this
         if eobj.get_static_partition_value():
-            for r in storage.query(eobj.get_partition_value(), filter=filter, select=select, 
+            for r in storage.query(eobj.get_partition_value(), filter=filter, dfilter=dfilter, select=select, 
                                    start_time_iso=start_time_iso, 
                                    end_time_iso=end_time_iso,
                                    include_start_time=include_start_time, 
                                    include_end_time=include_end_time):
                 yield self._loads_from_storage_format(r, type(eobj))
         else:
-            for r in storage.query(eobj.get_partition_value(), filter=filter, select=select, 
+            for r in storage.query(eobj.get_partition_value(), filter=filter, dfilter=dfilter, select=select, 
                                    start_time_iso=start_time_iso, 
                                    end_time_iso=end_time_iso,
                                    include_start_time=include_start_time, 
                                    include_end_time=include_end_time):
                 yield self._loads_from_storage_format(r, type(eobj))
+
+    def list_items2(self, eobj:EntityObject, dfilter=None, select=None, start_time_iso=None, end_time_iso=None,
+                   include_start_time=False, include_end_time=True):
+        """return a iterator of objects from the underlying Table store
+
+        Args:
+            entity_class (EntityObject instance): used to determine the table name that this method will query
+            filter (string, optional): used to filter the results to only include items that satisfy the filter. Defaults to None.
+            newer_than_cutoff_ts_iso (ios formatter string, optional): used to return only those items that were updated in the table after the cutoff time. Defaults to None.
+        Yields:
+            EntityObject : an iterator of entity objects of the desiried type
+        """
+        # if entity_class has a value for the "items_list_field" attribute, then any entity
+        # may possily be spread out across multiple Table storage rows.   In that case, we only 
+        # want to retrieve the base entity objects, which can be identified as have a Null value
+        # in the underlying row's _Parent attribute.  To make sure this occurs, we add a filter
+
+        storage = EntityStore._get_storage_by_table_name(eobj.get_table_name())
+        if eobj.get_items_list_field() is not None:
+            pass
+            # filter = filter
+            # TODO: complete this
+        if eobj.get_partition_value():
+            dfilter.append(Filter("PartitionKey", eobj.get_partition_value(), op="eq"))
+
+        for r in storage.query2(dfilter=dfilter, select=select, 
+                                start_time_iso=start_time_iso, 
+                                end_time_iso=end_time_iso,
+                                include_start_time=include_start_time, 
+                                include_end_time=include_end_time):
+            yield self._loads_from_storage_format(r, type(eobj))
 
     def get_item(self, eobj):
         try:
@@ -228,5 +260,5 @@ class EntityStore :
         vals["RowKey"] = eobj.get_key_value()
         for k,v in eobj.items():
             if k in eobj.get_fields() and k != eobj.get_partition_field() and k != eobj.get_key_field():
-                vals[k] = json.dumps(v)
+                vals[k] = json.dumps(v) if type(v) is not str else v  # don't double encode strings, otherwise they will have extra quotes
         return vals

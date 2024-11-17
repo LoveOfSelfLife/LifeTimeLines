@@ -84,11 +84,10 @@ class Instances(Resource):
             # there will be multiple instances, one for each task
             orch_instances = create_orch_instances(orch_def, context)
             es.upsert_items(orch_instances)
-            #
-            # then next is to put a message on the message queue to go ahead and execute the orchestration
-            # TODO:  post message to execution queue
-            #
-            return "created", 201
+
+            orch_instance_id = orch_instances[0].get('parent_instance_id', None)
+
+            return { "instance_id" : str(orch_instance_id) }, 201
         else:
             return "not found", 404
 
