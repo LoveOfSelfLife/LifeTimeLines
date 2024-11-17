@@ -6,3 +6,6 @@ jsonify>=0.5
 requests>=2.27
 pandas>=1.2
 datetimerange>=2.1.0
+
+flask==2.0.2
+flask_restx==1.0.6
