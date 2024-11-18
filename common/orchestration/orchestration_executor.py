@@ -26,7 +26,7 @@ def execute_orchestration(orch_cmd, orch_data=None, token=None, executors=None):
     if command == "execute":
         for step_id in executor.get_steps():
             step_status = executor.get_step_status(step_id)
-            # print(f'step_id: {step_id}, step_status: {step_status}')
+            logging.info(f'step_id: {step_id}, step_status: {step_status}')
 
             if step_status == "not_started" or step_status == "in_progress":
                 logging.info(f'step_id: {step_id} with step_status: {step_status} has not started or is in progress, so we will run all unfinished tasks in the step')
