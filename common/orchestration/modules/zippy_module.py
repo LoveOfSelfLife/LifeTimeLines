@@ -12,6 +12,7 @@ def zip_crawler(path_to_zipfile, output_file, token=None, instance_id=None):
         n=0
         with open(output_file, 'w') as f:
             for item in json_list:
+                logging.info(f"processing file #{n}: {output_file}")
                 f.write('[\n' if n==0 else ',\n')
                 n += 1
                 f.write(f"{json.dumps(item, indent=4)}")
