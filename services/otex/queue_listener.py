@@ -62,8 +62,12 @@ def main() -> None:
             if message.content is not None:
                 message_content_obj = json.loads(message.content)
                 orch_cmd = OrchestrationCommand(message_content_obj)
-
-                result = execute_orchestration(orch_cmd=orch_cmd, token=auth.get_auth_token())
+                try:
+                    logger.info(f'START: executing orchestration command: {orch_cmd}')
+                    result = execute_orchestration(orch_cmd=orch_cmd, token=auth.get_auth_token())
+                    logger.info(f'END: executing orchestration command: {orch_cmd}')
+                except Exception as e:
+                    logger.error(f'ERROR: executing orchestration command: {orch_cmd}, error: {e}')
 
             else:
                 logger.info(f'no message to process (message.content is empty)')
