@@ -19,6 +19,6 @@ def zip_json_extractor(path_to_zipfile, json_files_list):
         for name in json_files_list:
             with zip_ref.open(name) as json_file:
                 inner_json = json.load(json_file)
-                inner_json['name'] = name
-                json_list.append(inner_json)
+                extracted_json = { "name" : name, "json" : inner_json }
+                json_list.append(extracted_json)
     return json_list
