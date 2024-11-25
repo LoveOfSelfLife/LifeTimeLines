@@ -16,7 +16,8 @@ import zipfile
 import os
 import time
 from google.auth.transport.requests import Request
-from common.share_client import GoogleDrive, FShareService, copy_file_incremental
+from common.share_client import FShareService, copy_file_incremental
+from common.google_drive import GoogleDrive
 
 from photos_tasks import PHOTOS_TASKS
 import logging

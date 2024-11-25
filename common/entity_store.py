@@ -6,6 +6,7 @@ from common.entity_filter import Filter
 from common.table_store import TableStore
 from common.id_generator import IDGenerator
 
+  
 class EntityObject (dict):
     table_name = None
     fields = None
@@ -13,13 +14,20 @@ class EntityObject (dict):
     partition_field=None
     partition_value=None
     items_list_field = None
+    is_editable = False
 
     def __init__(self, d={}):
         dict.__init__(d)
+        self.initialize(d)
+        
+    def initialize(self, d={}):
         for k,v in d.items():
             self[k] = v
         self.validate()
-        
+    
+    def get_name(self):
+        return type(self).__name__
+    
     def get_key_field(self):
         return type(self).key_field
     
@@ -57,7 +65,7 @@ class EntityObject (dict):
         return lambda: f"{tbl3}_{IDGenerator.get_unique_id(tbl)}"
 
     def validate(self):
-        pass
+        return True
             
 class LatestItemUpdatedTimeTracker (EntityObject):
     table_name='LatestItemsUpdatedTrackerTable'

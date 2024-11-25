@@ -8,18 +8,11 @@ from requests.exceptions import RequestException
 from common.entity_store import EntityObject, EntityStore
 from common.google_credentials import GOOGLE_SCOPES, get_credentials
 from common.env_context import Env
+from common.google_drive import GoogleDrive
 
 DEFAULT_SHARE_NAME = 'richkhome'
 
-class GoogleDrive:
-
-    def __init__(self):
-        from googleapiclient.discovery import build
-        self.service = build('drive', 'v3', credentials=get_credentials())
-
-    def get_drive_service(self):
-        return self.service
-    
+   
 class FShareService: 
     connection_string = None
 

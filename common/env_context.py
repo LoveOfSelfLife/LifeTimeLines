@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+import hashlib
 
 class Env :
     def initialize():
@@ -11,3 +12,7 @@ class Env :
         Env.AZURE_CLIENT_SECRET = os.getenv("AZURE_CLIENT_SECRET", None)
         Env.ORCH_TESTING_MODE = os.getenv("ORCH_TESTING_MODE", None)
         Env.GOOGLE_CLIENT_SECRET_BASE64 = os.getenv("GOOGLE_CLIENT_SECRET_BASE64", None)
+        
+        m = hashlib.sha256()
+        m.update(Env.AZURE_CLIENT_SECRET.encode())
+        Env.SECRET_KEY = m.hexdigest()

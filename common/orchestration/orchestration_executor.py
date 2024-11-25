@@ -531,10 +531,10 @@ hen before attempting to execute the instance, we check the counter to verify it
                 task_instance['output'] = output
                 execution_details["output"] = output
                 execution_details["status"] = "completed"
-            except:
+            except Exception as e:
                 task_status = "failed"
-                execution_details["status"] = "failed"
-                logging.info(f"function failed")
+                execution_details["status"] = "failed with exception: {e}"
+                logging.info(f"function failed with exception: {e}")
 
             execution_details["end"] = datetime.now().isoformat()
 
