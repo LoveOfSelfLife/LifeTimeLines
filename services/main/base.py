@@ -1,8 +1,9 @@
 from flask import redirect, render_template, request, Blueprint
 
-bp = Blueprint('base', __name__)  
+# from services.main.views.configurations.extra import get_editable_entity_names
+from services.main.views.configurations.editable_entities import get_editable_entity_names
+bp = Blueprint('', __name__, template_folder='templates')  
 
-    
 @bp.route("/")
 def index():
-    return render_template("base.html")
+    return render_template("base.html", ctx = { "configs" : get_editable_entity_names() })

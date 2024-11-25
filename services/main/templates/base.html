@@ -37,12 +37,6 @@
             hx-push-url="/services">Services</a>
         </li>
         <li class="nav-item active">
-            <a class="nav-link" hx-get="/tables"
-            hx-target="#content"
-            hx-swap="innerHTML"
-            hx-push-url="/tables">Tables</a>
-        </li>
-        <li class="nav-item active">
             <a class="nav-link" hx-get="/processes"
             hx-target="#content"
             hx-swap="innerHTML"
@@ -81,6 +75,65 @@
                 hx-swap="innerHTML"
                 hx-push-url="/contacts"
                 >Contacts</a
+            >
+            </div>
+        </li>
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle"
+            href="#"
+            id="navbarDropdown"
+            role="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            >Configurations
+            </a>
+            <div class="dropdown-menu" aria-labelledby="dropdown04">
+            {% for config in ctx.configs %}
+            <a
+                class="dropdown-item"
+                hx-get="/configurations?entity-type={{ config }}"
+                hx-target="#content"
+                hx-swap="innerHTML"
+                hx-push-url="/configurations?entity-type={{ config }}"
+                >{{ config }}</a
+            >
+            {% endfor %}
+            </div>
+        </li>
+
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle"
+            href="#"
+            id="navbarDropdown"
+            role="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            >Orchestration
+            </a>
+            <div class="dropdown-menu" aria-labelledby="dropdown04">
+            <a
+                class="dropdown-item"
+                hx-get="/orchestrations/definitions"
+                hx-target="#content"
+                hx-swap="innerHTML"
+                hx-push-url="/orchestrations/definitions"
+                >Definitions</a
+            >
+            <a
+                class="dropdown-item"
+                hx-get="/orchestrations/instances"
+                hx-target="#content"
+                hx-swap="innerHTML"
+                hx-push-url="/orchestrations/instances"
+                >Instances</a
+            >
+            <a
+                class="dropdown-item"
+                hx-get="/orchestrations/commands"
+                hx-target="#content"
+                hx-swap="innerHTML"
+                hx-push-url="/orchestrations/commands"
+                >Commands</a
             >
             </div>
         </li>

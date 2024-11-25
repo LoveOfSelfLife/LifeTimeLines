@@ -1,4 +1,4 @@
-{% include 'archive_ui.html' %}
+{% include 'contacts/archive_ui.html' %}
 
 <form action="/contacts" method="get" class="tool-bar">
     <label for="search">Search Term</label>
@@ -39,7 +39,7 @@
     </tr>
     </thead>
     <tbody>
-    {% include 'rows.html' %}
+    {% include 'contacts/rows.html' %}
     </tbody>
 </table>
     <button hx-delete="/contacts"

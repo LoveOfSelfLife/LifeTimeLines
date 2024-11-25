@@ -2,6 +2,7 @@ from flask import (
     Flask, redirect, render_template, request, flash, jsonify, send_file, Blueprint
 )
 from werkzeug.utils import secure_filename
+from services.main.views.common import hx_render_template
 from views.contacts.contacts_model import Contact, Archiver
 import os
 
@@ -46,27 +47,23 @@ def contacts():
     if search is not None:
         contacts_set = Contact.search(search)
         if request.headers.get('HX-Trigger') == 'search':
-            return render_template("rows.html", contacts=contacts_set)
+            return hx_render_template("contacts/rows.html", contacts=contacts_set)
     else:
         contacts_set = Contact.all()
     
-    content_html = render_template("contacts.html", contacts=contacts_set, archiver=Archiver.get())
-    if request.headers.get("HX-Request"):
-        return content_html
-    else:
-        return render_template("base.html", content=content_html)
+    hx_render_template("contacts/contacts.html", contacts=contacts_set, archiver=Archiver.get())
 
 @bp.route("/archive", methods=["POST"])
 def start_archive():
     archiver = Archiver.get()
     archiver.run()
-    return render_template("archive_ui.html", archiver=archiver)
+    return render_template("contacts/archive_ui.html", archiver=archiver)
 
 
 @bp.route("/archive", methods=["GET"])
 def archive_status():
     archiver = Archiver.get()
-    return render_template("archive_ui.html", archiver=archiver)
+    return render_template("contacts/archive_ui.html", archiver=archiver)
 
 
 @bp.route("/archive/file", methods=["GET"])
@@ -79,7 +76,7 @@ def archive_content():
 def reset_archive():
     archiver = Archiver.get()
     archiver.reset()
-    return render_template("archive_ui.html", archiver=archiver)
+    return render_template("contacts/archive_ui.html", archiver=archiver)
 
 
 @bp.route("/count")
@@ -90,7 +87,7 @@ def contacts_count():
 
 @bp.route("/new", methods=['GET'])
 def contacts_new_get():
-    return render_template("new.html", contact=Contact())
+    return render_template("contacts/new.html", contact=Contact())
 
 
 @bp.route("/new", methods=['POST'])
@@ -103,19 +100,19 @@ def contacts_new():
             print("HX-Request is true")
         return redirect("/contacts")
     else:
-        return render_template("new.html", contact=c)
+        return render_template("contacts/new.html", contact=c)
 
 
 @bp.route("/<contact_id>")
 def contacts_view(contact_id=0):
     contact = Contact.find(contact_id)
-    return render_template("show.html", contact=contact)
+    return render_template("contacts/show.html", contact=contact)
 
 
 @bp.route("/<contact_id>/edit", methods=["GET"])
 def contacts_edit_get(contact_id=0):
     contact = Contact.find(contact_id)
-    return render_template("edit.html", contact=contact)
+    return render_template("contacts/edit.html", contact=contact)
 
 
 @bp.route("/<contact_id>/edit", methods=["POST"])
@@ -126,7 +123,7 @@ def contacts_edit_post(contact_id=0):
         flash("Updated Contact!")
         return redirect("/contacts/" + str(contact_id))
     else:
-        return render_template("edit.html", contact=c)
+        return render_template("contacts/edit.html", contact=c)
 
 
 @bp.route("/<contact_id>/email", methods=["GET"])
@@ -144,7 +141,7 @@ def contacts_delete(contact_id=0):
     if request.headers.get('HX-Trigger') == 'delete-btn':
         flash("Deleted Contact!")
         contacts_set = Contact.all()
-        content_html = render_template("contacts.html", contacts=contacts_set, archiver=Archiver.get())
+        content_html = render_template("contacts/contacts.html", contacts=contacts_set, archiver=Archiver.get())
         return render_template("base.html", content=content_html)
     else:
         return ""
@@ -159,7 +156,7 @@ def contacts_delete_all():
     flash("Deleted Contacts!")
     contacts_set = Contact.all(1)
     archiver = Archiver.get()    
-    content_html = render_template("contacts.html", contacts=contacts_set, archiver=Archiver.get())
+    content_html = render_template("contacts/contacts.html", contacts=contacts_set, archiver=Archiver.get())
     # if request.headers.get("HX-Request"):
     #     return content_html
     # else:
