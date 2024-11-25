@@ -3,7 +3,8 @@ from flask import (
 )
 from werkzeug.utils import secure_filename
 from services.main.views.common import hx_render_template
-from views.contacts.contacts_model import Contact, Archiver
+from views.common import hx_render_template
+from ..contacts.contacts_model import Contact, Archiver
 import os
 
 bp = Blueprint('contacts', __name__, template_folder='templates')  
