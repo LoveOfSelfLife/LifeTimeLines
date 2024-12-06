@@ -2,6 +2,7 @@ import os
 import json
 from quart import Blueprint, render_template, request
 import requests
+import logging
 
 from common.auth_requestor import AuthRequestor
 from common.env_context import Env
@@ -17,11 +18,13 @@ async def root():
 
 @bp.route('/definitions')
 async def orch_defs():
+    logging.info('request to orch_defs()')
     definitions = get_orchestration_definitions()
     return await hx_render_template('orchestration/orch_definitions.html', definitions=definitions)
 
 @bp.route('/definitions', methods=['POST'])
 async def post_orch_defs():
+    logging.info('request to post_orch_defs()')
     def_id = request.args.get('def-id')
     if not def_id:
         return "No definition id provided", 404
@@ -74,6 +77,7 @@ async def post_orch_defs():
 
 @bp.route('/definitions/create')
 async def orch_defs_create():
+    logging.info('request to orch_defs_create()')
     def_id = request.args.get('def-id')
     if not def_id:
         return "No definition id provided", 404
@@ -84,6 +88,7 @@ async def orch_defs_create():
 
 @bp.route('/instances')
 async def orch_instances():
+    logging.info('request to orch_instances()')
     def_id = request.args.get('def-id')
     definition_id = request.args.get('definition-id')
     def_id = definition_id if definition_id else def_id
@@ -95,5 +100,6 @@ async def orch_instances():
 
 @bp.route('/instances/<def_id>')
 async def orch_instances_for_def(def_id):
+    logging.info('request to orch_instances_for_def()')
     instances = get_orchestration_instances(def_id)
     return await hx_render_template('orchestration/orch_instances.html', instances=instances, definition_id=def_id)
