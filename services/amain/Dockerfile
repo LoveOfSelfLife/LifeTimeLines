@@ -29,4 +29,5 @@ COPY common /app/common
 RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /app
 USER appuser
 
-CMD ["uvicorn", "--bind", "0.0.0.0:5002", "appfactory:create_app()"]
+# CMD ["uvicorn", "--bind", "0.0.0.0:5002", "appfactory:create_app()"]
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:5002", "appfactory:create_app()"]
