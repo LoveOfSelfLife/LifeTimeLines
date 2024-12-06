@@ -1,30 +1,25 @@
 import os
 import signal
 
-from quart import Quaet
-# from flask_cors import CORS   
+from quart import Quart
 from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 
 from base import bp as base_bp
 from views.view1.routes import bp as view1_bp
 from views.view2.routes import bp as view2_bp
-from views.contacts.routes import bp as contacts_bp
 from views.orchestration.routes import bp as orchestration_bp
 from views.services.routes import bp as services_bp
 from views.processes.routes import bp as processes_bp
 from views.configurations.routes import bp as configurations_bp
-from views.contacts.routes import init as contacts_init
-from views.contacts.contacts_model import Contact
 from common.env_init import initialize_environment
 from common.env_context import Env
 
 def create_app():
     load_dotenv()
     initialize_environment()
-    contacts_init()
     
-    app : Flask = Flask(__name__)
+    app : Quart = Quart(__name__)
     app.config['EXPLAIN_TEMPLATE_LOADING'] = True
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.secret_key = Env.SECRET_KEY
@@ -32,7 +27,6 @@ def create_app():
     for bp in [base_bp, 
                view1_bp, 
                view2_bp, 
-               contacts_bp, 
                orchestration_bp, 
                configurations_bp, 
                services_bp, 

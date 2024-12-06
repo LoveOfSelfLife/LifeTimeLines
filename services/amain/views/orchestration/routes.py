@@ -11,17 +11,17 @@ from .orchestrations import get_orchestration_definitions, get_orchestration_ins
 bp = Blueprint('orchestrations', __name__, template_folder='templates')
 
 @bp.route('/')
-def root():
-    return hx_render_template('default.html')
+async def root():
+    return await hx_render_template('default.html')
 
 
 @bp.route('/definitions')
-def orch_defs():
+async def orch_defs():
     definitions = get_orchestration_definitions()
-    return hx_render_template('orchestration/orch_definitions.html', definitions=definitions)
+    return await hx_render_template('orchestration/orch_definitions.html', definitions=definitions)
 
 @bp.route('/definitions', methods=['POST'])
-def post_orch_defs():
+async def post_orch_defs():
     def_id = request.args.get('def-id')
     if not def_id:
         return "No definition id provided", 404
@@ -73,17 +73,17 @@ def post_orch_defs():
 
 
 @bp.route('/definitions/create')
-def orch_defs_create():
+async def orch_defs_create():
     def_id = request.args.get('def-id')
     if not def_id:
         return "No definition id provided", 404
     definition = get_orchestration_definitions(def_id)
     orchestration = { "context" : definition['context'] , "definition_id" : definition['id'], "errors": {} }
-    return hx_render_template('orchestration/orch_create_instance_form.html', orchestration=orchestration)
+    return await hx_render_template('orchestration/orch_create_instance_form.html', orchestration=orchestration)
 
 
 @bp.route('/instances')
-def orch_instances():
+async def orch_instances():
     def_id = request.args.get('def-id')
     definition_id = request.args.get('definition-id')
     def_id = definition_id if definition_id else def_id
@@ -91,9 +91,9 @@ def orch_instances():
         instances = get_orchestration_instances(def_id)
     else:
         instances = get_orchestration_instances()
-    return hx_render_template('orchestration/orch_instances.html', instances=instances, definition_id=def_id if def_id else "")
+    return await hx_render_template('orchestration/orch_instances.html', instances=instances, definition_id=def_id if def_id else "")
 
 @bp.route('/instances/<def_id>')
-def orch_instances_for_def(def_id):
+async def orch_instances_for_def(def_id):
     instances = get_orchestration_instances(def_id)
-    return hx_render_template('orchestration/orch_instances.html', instances=instances, definition_id=def_id)
+    return await hx_render_template('orchestration/orch_instances.html', instances=instances, definition_id=def_id)

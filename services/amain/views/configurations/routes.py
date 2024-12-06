@@ -45,7 +45,7 @@ def get_allowed_tables():
     return get_editable_entity_names()
 
 @bp.route('/')
-def config_listing():
+async def config_listing():
 
     config_id = request.args.get('entity-type')
     if not config_id:
@@ -53,11 +53,11 @@ def config_listing():
 
     ctx = get_config_entity_ctx(config_id)
 
-    return hx_render_template('configurations/entity_list.html', ctx=ctx, table_id=config_id) 
+    return await hx_render_template('configurations/entity_list.html', ctx=ctx, table_id=config_id) 
 
 
 @bp.route('/edit')
-def orch_defs_create():
+async def orch_defs_create():
     table_id = request.args.get('entity-type')
     if not table_id:
         return "No table id provided", 404
@@ -77,14 +77,14 @@ def orch_defs_create():
     fields = get_editable_fields(entity)
     
     # return json.dumps(entity_to_edit)
-    return hx_render_template('configurations/entity_edit.html', entity=entity_to_edit, fields=fields, 
+    return await hx_render_template('configurations/entity_edit.html', entity=entity_to_edit, fields=fields, 
                               table_id=table_id, errors={},
                               key_val = key_val, partition_val = partition_val,
                               back_url = f'/configurations?entity-type={table_id}',
                               update_url=f'/configurations/update?entity-type={table_id}&key={key_val}&partition={partition_val}')
     
 @bp.route('/update', methods=['POST'])
-def update_entity():
+async def update_entity():
     table_id = request.args.get('entity-type')
     if not table_id:
         return "No table id provided", 404

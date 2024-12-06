@@ -4,5 +4,5 @@ bp = Blueprint('processes', __name__, template_folder='templates')
 
 
 @bp.route('/')
-def root():
-    return hx_render_template('default.html')
+async def root():
+    return await hx_render_template('default.html')
