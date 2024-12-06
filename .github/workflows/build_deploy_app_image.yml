@@ -10,7 +10,6 @@ on:
               - photos
               - fe
               - feapp
-              - echo
               - entities
               - otex
               - otmgr

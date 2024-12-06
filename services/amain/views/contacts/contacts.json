@@ -1,0 +1,18 @@
+[
+  {
+    "id": 2,
+    "first": "Richie",
+    "last": "Kempinski",
+    "phone": "9082724771",
+    "email": "richklklkempinski@gmail.com",
+    "errors": {}
+  },
+  {
+    "id": 4,
+    "first": "Lynn",
+    "last": "Kempinski",
+    "phone": "9084996992",
+    "email": "lynnttkempinski@gmail.com",
+    "errors": {}
+  }
+]

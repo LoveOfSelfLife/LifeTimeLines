@@ -1,0 +1,27 @@
+
+  <form>
+    <fieldset>
+        <h2>Create Orchestration Instance: {{ orchestration.definition_id }}</h2>
+        <legend>Orchestration Instance Context</legend>
+        <div class="table rows">
+            {% for key, value in orchestration.context.items() %}
+                <p>
+                    <label for="{{ key }}">{{ key|capitalize }}</label>
+                    <input name="{{ key }}" id="{{ key }}" type="text" placeholder="{{ key|capitalize }}"
+                           value="{{ value }}">
+                    <span class="error">{{ orchestration.errors[key] }}</span>
+                </p>
+            {% endfor %}
+        </div>
+        <button
+            hx-post="/orchestraions/definitions?def-id={{ orchestration.definition_id }}"
+            hx-swap="innerHTML"
+            hx-confirm="Are you sure you want to create this instances?"
+            hx-target="#content">
+        >Create Instance</button>
+    </fieldset>
+</form>
+
+<p>
+    <a href="/orchestrations/definitions">Back</a>
+</p>

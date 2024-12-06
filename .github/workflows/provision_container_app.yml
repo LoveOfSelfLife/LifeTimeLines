@@ -13,7 +13,6 @@ on:
               options: 
               - photos
               - feapp
-              - echo
               - entities
               - otmgr
               - fe

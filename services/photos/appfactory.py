@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from common.api_app import create_api_app
-from common.google_credentials import auth_ns
+from .google_auth_api_routes import ns as auth_ns
 from photos_api_routes import ns as photos_ns
 from photos_task_routes import ns as tasks_ns
 
