@@ -1,24 +1,17 @@
-name: DO NOT USE Builds image, pushes to registry, deploys to container app (prompts for app name)
+name: Builds image, pushes to registry, deploys to container app (prompts for app name)
 
 on:
   workflow_dispatch:
-      inputs:
-          name:
-              type: choice
-              description: App to build and deploy
-              options: 
-              - photos
-              - fe
-              - feapp
-              - entities
-              - otex
-              - otmgr
-              - main
+    inputs:
+      name:
+          type: string
+          description: app to build, push, and deploy
+          required: true
     
 jobs:
   
     call-build-deploy-container-app:
-      uses: ./.github/workflows/_build_containerapp_image.yml
+      uses: ./.github/workflows/_build_deploy_containerapp_image.yml
       with:
         app-name: ${{ github.event.inputs.name }}
       secrets:
