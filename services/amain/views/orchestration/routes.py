@@ -1,6 +1,6 @@
 import os
 import json
-from flask import Blueprint, render_template, request
+from quart import Blueprint, render_template, request
 import requests
 
 from common.auth_requestor import AuthRequestor

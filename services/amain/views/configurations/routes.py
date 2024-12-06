@@ -1,6 +1,6 @@
 import os
 import json
-from flask import Blueprint, render_template, request, redirect
+from quart import Blueprint, render_template, request, redirect
 import requests
 
 from common.entities.entity_registry import get_editable_entity_names

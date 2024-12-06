@@ -1,4 +1,4 @@
-from flask import render_template, request
+from quart import render_template, request
 
 # from services.main.views.configurations.editable_entities import get_editable_entity_names
 from common.entities.entity_registry import get_editable_entity_names

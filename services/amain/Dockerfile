@@ -30,4 +30,5 @@ RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /
 USER appuser
 
 # CMD [ "python", "main.py"]
-CMD ["gunicorn", "--bind", "0.0.0.0:5002", "appfactory:create_app()"]
+# CMD ["gunicorn", "--bind", "0.0.0.0:5002", "appfactory:create_app()"]
+CMD ["uvicorn", "--bind", "0.0.0.0:5002", "appfactory:create_app()"]

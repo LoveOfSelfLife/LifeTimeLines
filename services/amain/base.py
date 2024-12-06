@@ -1,4 +1,4 @@
-from flask import redirect, render_template, request, Blueprint
+from quart import redirect, render_template, request, Blueprint
 
 # from services.main.views.configurations.extra import get_editable_entity_names
 from common.entities.entity_registry import get_editable_entity_names

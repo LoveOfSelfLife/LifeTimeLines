@@ -1,8 +1,8 @@
 import os
 import signal
 
-from flask import Flask
-from flask_cors import CORS   
+from quart import Quaet
+# from flask_cors import CORS   
 from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 
@@ -39,7 +39,7 @@ def create_app():
                processes_bp]:
         app.register_blueprint(bp, url_prefix=f'/{bp.name}')
 
-    CORS(app)  
+    # CORS(app)  
 
     signal.signal(signal.SIGTERM, shutdown_handler)
     return app

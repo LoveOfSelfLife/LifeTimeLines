@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request
+from quart import Blueprint, render_template, request
 from ..common import hx_render_template
 bp = Blueprint('view1', __name__, template_folder='templates')
 
