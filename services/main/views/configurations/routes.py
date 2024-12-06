@@ -3,8 +3,9 @@ import json
 from flask import Blueprint, render_template, request, redirect
 import requests
 
+from common.entities.entity_registry import get_editable_entity_names
 from common.env_context import Env
-from .editable_entities import get_editable_entity_by_name, get_editable_entity_names
+from common.entities.entity_registry import get_editable_entity_by_name
 from ..common import hx_render_template
 from common.entity_store import EntityStore
 bp = Blueprint('configurations', __name__, template_folder='templates')
