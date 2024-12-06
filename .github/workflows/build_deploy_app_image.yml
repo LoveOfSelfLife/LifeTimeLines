@@ -1,4 +1,4 @@
-name: Builds image, pushes to registry, deploys to container app (prompts for app name)
+name: DO NOT USE Builds image, pushes to registry, deploys to container app (prompts for app name)
 
 on:
   workflow_dispatch:
