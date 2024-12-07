@@ -19,8 +19,8 @@ async def root():
 
 @bp.route('/definitions')
 async def orch_defs():
-    logger.info('request to orch_defs()')
-    print('request to orch_defs()', flush=True)
+    await logger.info('request to orch_defs()')
+    await print('request to orch_defs()', flush=True)
     definitions = get_orchestration_definitions()
     return await hx_render_template('orchestration/orch_definitions.html', definitions=definitions)
 
@@ -92,8 +92,8 @@ async def orch_defs_create():
 
 @bp.route('/instances')
 async def orch_instances():
-    logger.info('request to orch_instances()')
-    print('request to orch_instances()', flush=True)
+    await logger.info('request to orch_instances()')
+    await print('request to orch_instances()', flush=True)
     def_id = request.args.get('def-id')
     definition_id = request.args.get('definition-id')
     def_id = definition_id if definition_id else def_id
