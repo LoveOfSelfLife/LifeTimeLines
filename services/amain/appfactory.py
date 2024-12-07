@@ -14,6 +14,7 @@ from views.processes.routes import bp as processes_bp
 from views.configurations.routes import bp as configurations_bp
 from common.env_init import initialize_environment
 from common.env_context import Env
+import logging
 
 def create_app():
     load_dotenv()
@@ -23,6 +24,9 @@ def create_app():
     app.config['EXPLAIN_TEMPLATE_LOADING'] = True
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.secret_key = Env.SECRET_KEY
+    app.logger.setLevel(logging.INFO)
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)  # Adjust level as needed (e.g., DEBUG, INFO, WARNING)
+    logger = logging.getLogger(__name__)
     
     for bp in [base_bp, 
                view1_bp, 
