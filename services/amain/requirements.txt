@@ -9,5 +9,7 @@ python-dotenv==0.21.1
 jsonify>=0.5
 requests>=2.27
 datetimerange>=2.1.0
-Quart
+quart
 uvicorn
+gunicorn
+uvicorn-worker
