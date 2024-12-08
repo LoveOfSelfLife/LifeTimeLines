@@ -109,3 +109,9 @@ async def orch_instances_for_def(def_id):
     print('request to orch_instances_for_def()', flush=True)
     instances = get_orchestration_instances(def_id)
     return await hx_render_template('orchestration/orch_instances.html', instances=instances, definition_id=def_id)
+
+@bp.route('/xyz')
+async def xyz():
+    await logger.info('request to xyz()')
+    await print('request to xyz()', flush=True)
+    return "xyz"
