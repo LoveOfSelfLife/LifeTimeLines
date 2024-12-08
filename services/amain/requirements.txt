@@ -13,3 +13,4 @@ quart
 uvicorn
 gunicorn
 uvicorn-worker
+aiohttp
