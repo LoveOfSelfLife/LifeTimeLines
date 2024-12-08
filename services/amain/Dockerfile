@@ -30,4 +30,5 @@ RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /
 USER appuser
 
 # CMD ["uvicorn", "--bind", "0.0.0.0:5002", "appfactory:create_app()"]
-CMD ["gunicorn", "appfactory:create_app()", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:5002", ]
+# CMD ["gunicorn", "appfactory:create_app()", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:5002", ]
+CMD ["uvicorn", "--bind", "0.0.0.0:5002", "--factory", "appfactory:create_app()"]
