@@ -31,4 +31,5 @@ USER appuser
 
 # CMD ["uvicorn", "--bind", "0.0.0.0:5002", "appfactory:create_app()"]
 # CMD ["gunicorn", "appfactory:create_app()", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:5002", ]
-CMD ["uvicorn", "--bind", "0.0.0.0:5002", "--factory", "appfactory:create_app"]
+# CMD ["uvicorn", "--bind", "0.0.0.0:5002", "--factory", "appfactory:create_app"]
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:5002", "appfactory:create_app()"]
