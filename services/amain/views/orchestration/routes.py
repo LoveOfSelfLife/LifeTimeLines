@@ -1,6 +1,6 @@
 import os
 import json
-from quart import Blueprint, render_template, request
+from quart import Blueprint, render_template, request, current_app as app
 import requests
 import logging
 
@@ -19,8 +19,9 @@ async def root():
 
 @bp.route('/definitions')
 async def orch_defs():
-    await logger.info('request to orch_defs()')
-    await print('request to orch_defs()', flush=True)
+    app.logger.info('applogger: request to orch_defs()')
+    logger.info('logger: request to orch_defs()')
+    print('print: request to orch_defs()', flush=True)
     definitions = get_orchestration_definitions()
     return await hx_render_template('orchestration/orch_definitions.html', definitions=definitions)
 
