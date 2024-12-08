@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import json
 from quart import Blueprint, render_template, request, current_app as app
@@ -22,6 +23,8 @@ async def orch_defs():
     app.logger.info('applogger: request to orch_defs()')
     logger.info('logger: request to orch_defs()')
     print('print: request to orch_defs()', flush=True)
+    with open('/shared/abc.txt', 'w') as f:
+        f.write(f'abc, date: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     definitions = get_orchestration_definitions()
     return await hx_render_template('orchestration/orch_definitions.html', definitions=definitions)
 
@@ -93,8 +96,8 @@ async def orch_defs_create():
 
 @bp.route('/instances')
 async def orch_instances():
-    await logger.info('request to orch_instances()')
-    await print('request to orch_instances()', flush=True)
+    logger.info('request to orch_instances()')
+    print('request to orch_instances()', flush=True)
     def_id = request.args.get('def-id')
     definition_id = request.args.get('definition-id')
     def_id = definition_id if definition_id else def_id
@@ -113,6 +116,6 @@ async def orch_instances_for_def(def_id):
 
 @bp.route('/xyz')
 async def xyz():
-    await logger.info('request to xyz()')
-    await print('request to xyz()', flush=True)
+    logger.info('request to xyz()')
+    print('request to xyz()', flush=True)
     return "xyz"
