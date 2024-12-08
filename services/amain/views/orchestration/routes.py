@@ -23,8 +23,6 @@ async def orch_defs():
     app.logger.info('applogger: request to orch_defs()')
     logger.info('logger: request to orch_defs()')
     print('print: request to orch_defs()', flush=True)
-    with open('/shared/abc.txt', 'w') as f:
-        f.write(f'abc, date: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
     definitions = get_orchestration_definitions()
     return await hx_render_template('orchestration/orch_definitions.html', definitions=definitions)
 
