@@ -3,18 +3,19 @@ from flask import request, url_for, redirect
 import datetime
 import json
 from common.entities.person import PersonEntity
-
+import logging
 from common.google_credentials import get_credentials
 from common.entity_store import EntityStore
 ns = Namespace('Persons', description='services to define and manage Person Entity metadata')
 pmodel = ns.model('Person', {})
-
+logger = logging.getLogger(__name__)
 @ns.route('/')
 class Persons(Resource):
     ''' '''
     @ns.doc('get list of person entities')
     def get(self):
         person_storage = EntityStore()
+        logger.info(f"getting list of persons")
         people =  person_storage.list_items(PersonEntity())
         return list(people)
     

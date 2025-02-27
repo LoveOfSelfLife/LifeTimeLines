@@ -1,0 +1,26 @@
+{
+    "drive_sync_cfgs": [
+        {
+            "id": "sync_takeout",
+            "version": "1.0",
+            "config_type": "drive_sync_cfg",
+            "enabled": false,
+            "sync_interval": -1,
+            "drive_path": "/Downloads",
+            "drive_path_id": null,
+            "file_share_path": "/share/Takeout",
+            "default_to_sync_file_patterns": ["Takeout*.zip"]
+        },
+        {
+            "id": "sync_journal",
+            "version": "1.0",
+            "config_type": "drive_sync_cfg",
+            "enabled": false,
+            "sync_interval": -1,
+            "drive_path": "/Journal",
+            "drive_path_id": null,
+            "file_share_path": "/share/Journal",
+            "default_to_sync_file_pattern": []
+        }
+    ]
+}

@@ -18,6 +18,21 @@ def zip_extract_filenames(path_to_zipfile, suffix_list=['.json']):
                 files_dict['other'] = files_dict.get('other', []) + [name]
     return files_dict
 
+def zip_extract_file_details(path_to_zipfile):
+    files_dict = {}
+    files_list = []
+    with zipfile.ZipFile(path_to_zipfile, 'r') as zip_ref:
+        names = zip_ref.namelist()
+        for name in names:
+            finfo = {}
+            file_info = zip_ref.getinfo(name)
+            finfo['name'] = name
+            finfo['size'] = file_info.file_size
+            finfo['compress_size'] = file_info.compress_size
+            finfo['date_time'] = file_info.date_time
+            files_list.append(finfo)
+    return files_list
+
 def zip_json_file_extractor(path_to_zipfile, json_files_list):
     json_list = []
     with zipfile.ZipFile(path_to_zipfile, 'r') as zip_ref:

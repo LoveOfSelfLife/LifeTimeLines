@@ -131,11 +131,10 @@ class GoogleDrive:
             results = self.service.files().list(
                 pageToken=page_token,
                 q=query,
-                fields="files(id, name), nextPageToken"
+                fields="files(id, name, mimeType, createdTime, modifiedTime, size), nextPageToken"
                 ).execute()
             for item in results.get('files', []):
                 yield item
             page_token = results.get('nextPageToken', None)
             if not page_token:
                 break
-

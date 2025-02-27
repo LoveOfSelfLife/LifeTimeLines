@@ -1,7 +1,8 @@
 import os
 from dotenv import load_dotenv
 from common.api_app import create_api_app
-from common.google_credentials import auth_ns
+from common.discovery import get_service_port
+from .google_auth_api_routes import ns as auth_ns
 from photos_api_routes import ns as photos_ns
 from photos_task_routes import ns as tasks_ns
 
@@ -18,8 +19,9 @@ def create_app():
 if __name__ == '__main__':
     from argparse import ArgumentParser
 
+    port = get_service_port('photos')
     parser = ArgumentParser()
-    parser.add_argument('-p', '--port', default=8080, type=int, help='port to listen on')
+    parser.add_argument('-p', '--port', default=port, type=int, help='port to listen on')
     args = parser.parse_args()
     port = args.port
     

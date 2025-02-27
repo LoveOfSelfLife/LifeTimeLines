@@ -29,8 +29,6 @@ def create_app():
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.secret_key = Env.SECRET_KEY
     
-    # app.register_blueprint(base_bp, url_prefix=f'/{base_bp.name}')
-    
     for bp in [base_bp, 
                view1_bp, 
                view2_bp, 

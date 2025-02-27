@@ -3,6 +3,7 @@ import json
 from flask import Blueprint, render_template, request
 import requests
 
+from common.discovery import get_service_url
 from common.auth_requestor import AuthRequestor
 from common.env_context import Env
 from ..common import hx_render_template
@@ -31,12 +32,13 @@ def post_orch_defs():
     token = auth.get_auth_token()
 
     service = 'otmgr'
-    path = '/orchestraions/instances'
+    path = '/orch/instances'
 
-    if os.getenv('ORCH_TESTING_MODE'):
-        PRE_URL=f'http://localhost:8080'
-    else:
-        PRE_URL=f'https://{service}.ltl.richkempinski.com'
+    PRE_URL = get_service_url(service)
+    # if os.getenv('ORCH_TESTING_MODE'):
+    #     PRE_URL=f'http://localhost:8080'
+    # else:
+    #     PRE_URL=f'https://{service}.ltl.richkempinski.com'
 
     URL=f'{PRE_URL}{path}'
     headers={"Authorization": "Bearer " + token,
@@ -56,7 +58,7 @@ def post_orch_defs():
     "arg": 2
     }
     
-    path = '/commands'
+    path = '/orch/commands'
     URL=f'{PRE_URL}{path}'
 
     headers={"Authorization": "Bearer " + token,

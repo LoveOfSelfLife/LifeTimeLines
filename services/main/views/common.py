@@ -1,7 +1,7 @@
 from flask import render_template, request
 
 # from services.main.views.configurations.editable_entities import get_editable_entity_names
-from .configurations.editable_entities import get_editable_entity_names
+from common.entities.entity_registry import get_editable_entity_names
 def hx_render_template(template, **kwargs):
     # kwargs['configs'] = get_editable_entity_names()
     if request.headers.get("HX-Request"):

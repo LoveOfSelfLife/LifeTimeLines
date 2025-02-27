@@ -1,0 +1,16 @@
+click
+Flask
+itsdangerous
+Jinja2
+MarkupSafe
+zipp
+Werkzeug
+python-dotenv
+jsonify
+requests
+datetimerange
+quart
+uvicorn
+gunicorn
+uvicorn-worker
+aiohttp

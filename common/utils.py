@@ -8,6 +8,9 @@ def generate_unique_id(table='', partition=''):
     t = f'{table}-{partition}-{iso}-{random.randint(0,5000)}'.encode()
     return hashlib.sha1(t).hexdigest()
 
+def generate_digest(s: str):
+    return hashlib.sha256(s.encode()).hexdigest()
+
 def to_base62(number):
   """Converts a number to base62.
   Args:

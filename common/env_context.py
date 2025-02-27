@@ -13,6 +13,7 @@ class Env :
         Env.ORCH_TESTING_MODE = os.getenv("ORCH_TESTING_MODE", None)
         Env.GOOGLE_CLIENT_SECRET_BASE64 = os.getenv("GOOGLE_CLIENT_SECRET_BASE64", None)
         
-        m = hashlib.sha256()
-        m.update(Env.AZURE_CLIENT_SECRET.encode())
-        Env.SECRET_KEY = m.hexdigest()
+        if Env.AZURE_CLIENT_SECRET:
+            m = hashlib.sha256()
+            m.update(Env.AZURE_CLIENT_SECRET.encode())
+            Env.SECRET_KEY = m.hexdigest()

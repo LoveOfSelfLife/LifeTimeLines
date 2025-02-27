@@ -1,19 +1,16 @@
-import os
-from flask import Flask, jsonify
-from werkzeug.middleware.proxy_fix import ProxyFix
+from flask import Flask
 from flask_restx import Api
 from flask_cors import CORS   
+from werkzeug.middleware.proxy_fix import ProxyFix
 
-import datetime
-import signal
 import sys
+import signal
+import logging
 from types import FrameType
 
 from common.jwt_auth import AuthHandler, AuthError
 from common.env_context import Env
 from common.env_init import initialize_environment
-
-import logging
 
 def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescription=''):
     app : Flask = Flask(__name__, static_url_path='', static_folder='static', template_folder='../templates')
@@ -44,7 +41,6 @@ def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescriptio
     api.init_app(app)
     
     CORS(app)  
-
 
     # Usage example
     logger.info("This is an info log message. in the create_api_app function in api_app.py")
