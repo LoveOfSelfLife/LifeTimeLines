@@ -14,6 +14,8 @@ from views.processes.routes import bp as processes_bp
 from views.configurations.routes import bp as configurations_bp
 from common.env_init import initialize_environment
 from common.env_context import Env
+from common.discovery import get_service_port
+
 import logging
 import sys
 
@@ -56,8 +58,9 @@ def shutdown_handler(signal: int, frame) -> None:
 if __name__ == '__main__':
     from argparse import ArgumentParser
 
+    port = get_service_port('amain')
     parser = ArgumentParser()
-    parser.add_argument('-p', '--port', default=8080, type=int, help='port to listen on')
+    parser.add_argument('-p', '--port', default=port, type=int, help='port to listen on')
     args = parser.parse_args()
     port = args.port
     

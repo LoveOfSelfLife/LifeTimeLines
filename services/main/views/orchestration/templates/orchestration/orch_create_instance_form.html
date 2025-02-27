@@ -14,7 +14,7 @@
             {% endfor %}
         </div>
         <button
-            hx-post="/orchestraions/definitions?def-id={{ orchestration.definition_id }}"
+            hx-post="/orchestrations/definitions?def-id={{ orchestration.definition_id }}"
             hx-swap="innerHTML"
             hx-confirm="Are you sure you want to create this instances?"
             hx-target="#content">

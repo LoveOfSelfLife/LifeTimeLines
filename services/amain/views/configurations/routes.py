@@ -94,7 +94,7 @@ async def update_entity():
     # entity_type = get_config_entity_type(table_id)
     key_val = request.args.get('key', None)
     partition_val = request.args.get('partition', None)
-    entity = request.form
+    entity = await request.form
     es = EntityStore()
     
     updated_entity = entity_type

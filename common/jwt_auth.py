@@ -1,4 +1,5 @@
-from flask import Flask, request, jsonify, _request_ctx_stack
+from flask import Flask, request, jsonify
+# from flask import _request_ctx_stack
 from cryptography.hazmat.primitives import serialization
 import requests
 import json
@@ -158,7 +159,7 @@ def requires_auth(f):
                 raise AuthError({"code": "not_authorized",
                                 "description": "User or app does not have required roles"}, 401)
 
-            _request_ctx_stack.top.current_user = payload
+            #_request_ctx_stack.top.current_user = payload
             return f(*args, **kwargs)
         raise AuthError({"code": "invalid_header",
                         "description": "Unable to find appropriate key"}, 401)
