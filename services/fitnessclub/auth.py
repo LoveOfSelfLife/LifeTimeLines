@@ -6,8 +6,8 @@ load_dotenv()
 auth = Auth(
     None,
     authority=os.getenv("AUTHORITY"),
-    client_id=os.getenv("CLIENT_ID"),
-    client_credential=os.getenv("CLIENT_SECRET"),
+    client_id=os.getenv("B2C_CLIENT_ID"),
+    client_credential=os.getenv("B2C_CLIENT_SECRET"),
     redirect_uri=os.getenv("REDIRECT_URI"),
     oidc_authority=os.getenv("OIDC_AUTHORITY"),
     b2c_tenant_name=os.getenv('B2C_TENANT_NAME'),

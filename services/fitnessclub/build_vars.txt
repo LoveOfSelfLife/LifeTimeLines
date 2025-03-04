@@ -1,1 +1,1 @@
-ACA_TEMPLATE=./provision_container_app.json
+ACA_TEMPLATE=./provision_b2c_container_app.json
