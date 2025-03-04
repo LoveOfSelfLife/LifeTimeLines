@@ -7,6 +7,7 @@ service_lookup = {
     , 'amain':     { "host": "http://localhost", "port": 8082 }
     , 'otmgr':     { "host": "http://localhost", "port": 8084 }
     , 'feapp':     { "host": "http://localhost", "port": 8085 }
+    , 'fe':        { "host": "http://localhost", "port": 8086 }    
 }
 
 def get_service_host_port(service):

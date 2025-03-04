@@ -18,6 +18,10 @@ RUN python -m pip install -r requirements.txt -r common_requirements.txt
 
 WORKDIR /app
 COPY services/${app} /app
+COPY services/${app}/static/site.css /app/static
+COPY services/${app}/static/img /app/static/img
+COPY services/${app}/static/js /app/static/js
+COPY services/${app}/templates /app/templates
 COPY common /app/common
 
 # Creates a non-root user with an explicit UID and adds permission to access the /app folder
@@ -25,5 +29,5 @@ COPY common /app/common
 RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /app
 USER appuser
 
-# CMD [ "uvicorn", "main:app"]
-CMD [ "python", "main.py"]
+# CMD [ "python", "main.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5002", "appfactory:create_app()"]

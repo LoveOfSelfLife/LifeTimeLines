@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Active Fitness - Home</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="logo">Active Fitness</div>
+      <div class="nav-buttons">
+        <!-- <a href="/signin" class="btn">Sign In</a> -->
+        <a href="{{ auth_uri }}" class="btn">Sign In</a>        
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-overlay">
+      <h1>Welcome to Active Fitness</h1>
+      <p>Your journey to a healthier life continues here.</p>
+      <!-- <a href="/signin" class="btn">Join Now</a> -->
+    </div>
+  </section>
+</body>
+</html>
