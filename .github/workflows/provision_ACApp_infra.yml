@@ -35,4 +35,7 @@ jobs:
       google_client_secret_base64: ${{ secrets.google_client_secret_base64 }}
       tenant_id: ${{ secrets.tenant_id }}
       subscription_id: ${{ secrets.subscription_id }}
-
+      b2c_tenant_name: ${{ secrets.b2c_tenant_name }}
+      b2c_client_id: ${{ secrets.b2c_client_id }}
+      b2c_client_secret: ${{ secrets.b2c_client_secret }}
+      redirect_uri: ${{ secrets.redirect_uri }}
