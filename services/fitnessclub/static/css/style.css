@@ -1,0 +1,137 @@
+/* Reset & basic settings */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  body {
+    font-family: Arial, sans-serif;
+    color: #fff;
+    line-height: 1.6;
+    background: #222;
+  }
+  
+  /* Navigation styling */
+  .navbar {
+    background: rgba(0, 0, 0, 0.7);
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+    padding: 10px 20px;
+  }
+  .nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .logo {
+    font-size: 1.8em;
+    font-weight: bold;
+  }
+  .nav-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .nav-buttons a {
+    color: #fff;
+    text-decoration: none;
+    padding: 8px 16px;
+    border: 2px solid #fff;
+    border-radius: 5px;
+    transition: background 0.3s, color 0.3s;
+    font-size: 1em;
+  }
+  .nav-buttons a:hover {
+    background: #fff;
+    color: #000;
+  }
+  
+  /* Hero Section for public page */
+  .hero {
+    height: 100vh;
+    background: url('../images/fitness-bg.jpg') center/cover no-repeat;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin-top: 60px; /* account for fixed navbar */
+  }
+  .hero-overlay {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 20px;
+    text-align: center;
+    border-radius: 10px;
+  }
+  .hero h1 {
+    font-size: 3em;
+    margin-bottom: 20px;
+  }
+  .hero p {
+    font-size: 1.2em;
+    margin-bottom: 30px;
+  }
+  .btn {
+    display: inline-block;
+    padding: 10px 20px;
+    border: 2px solid #fff;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: background 0.3s, color 0.3s;
+  }
+  .btn:hover {
+    background: #fff;
+    color: #000;
+  }
+  
+  /* Content Section for member page */
+  .content {
+    padding: 100px 20px 20px;
+    text-align: center;
+    margin-top: 60px; /* ensure content isn’t hidden behind nav */
+  }
+  
+  /* Responsive styling for tablets and smaller devices */
+  @media (max-width: 768px) {
+    .logo {
+      font-size: 1.5em;
+    }
+    .nav-buttons a {
+      padding: 6px 12px;
+      font-size: 0.9em;
+    }
+    .hero h1 {
+      font-size: 2.2em;
+    }
+    .hero p {
+      font-size: 1em;
+    }
+  }
+  
+  /* Responsive styling for mobile devices */
+  @media (max-width: 480px) {
+    .nav-container {
+      flex-direction: column;
+      align-items: center;
+    }
+    .nav-buttons {
+      justify-content: center;
+      width: 100%;
+      margin-top: 10px;
+    }
+    .nav-buttons a {
+      width: 100%;
+      text-align: center;
+      margin: 5px 0;
+    }
+    .hero h1 {
+      font-size: 1.8em;
+    }
+    .hero p {
+      font-size: 0.9em;
+    }
+  }
+  
