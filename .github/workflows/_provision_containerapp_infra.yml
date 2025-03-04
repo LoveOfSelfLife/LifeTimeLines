@@ -51,6 +51,14 @@ on:
         required: true
       subscription_id:
         required: true
+      b2c_tenant_name:
+        required: true
+      b2c_client_id:
+        required: true
+      b2c_client_secret:
+        required: true
+      redirect_uri:
+        required: true
 
 jobs:
 
@@ -107,4 +115,7 @@ jobs:
             "google-client-secret-base64"="${{ secrets.google_client_secret_base64 }}"
             "tenant-id"="${{ secrets.tenant_id }}"
             "subscription-id"="${{ secrets.subscription_id }}"
-
+            "b2c-tenant-name"="${{ secrets.b2c_tenant_name }}"
+            "b2c-client-id"="${{ secrets.b2c_client_id }}"
+            "b2c-client-secret"="${{ secrets.b2c_client_secret }}"
+            "redirect-uri"="${{ secrets.redirect_uri }}"
