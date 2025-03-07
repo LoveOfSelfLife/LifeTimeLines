@@ -1,6 +1,7 @@
 import os
 import signal
 
+from cachelib import FileSystemCache
 from flask import Flask
 from flask_cors import CORS   
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -13,7 +14,6 @@ from views.configurations.routes import bp as configurations_bp
 from common.env_init import initialize_environment
 from common.env_context import Env
 from auth import auth
-import app_config
 
 def create_app():
     load_dotenv()
@@ -23,7 +23,24 @@ def create_app():
     app.config['EXPLAIN_TEMPLATE_LOADING'] = True
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.secret_key = Env.SECRET_KEY
-    app.config.from_object(app_config)
+    # Set the session type to 'filesystem'
+    app.config['SESSION_TYPE'] = 'filesystem'    
+
+    if Env.SESSION_DIR:
+        SESSION_DIR = Env.SESSION_DIR
+    else:
+        SESSION_DIR = '/share/FitnessClub/sessions'
+
+    # Create a FileSystemCache instance:
+    # - directory: path to store the session files (ensure the directory exists or create it)
+    # - threshold: maximum number of cached items (optional, default might be 500)
+    # - mode: file permissions (for example, 0o600 means read/write for the owner only)
+    app.config['SESSION_CLIENT'] = FileSystemCache(
+        cache_dir=SESSION_DIR,  # Change to your desired directory path
+        threshold=1000,       # Set as needed (default is often 500)
+        mode=0o600            # Set file permissions; this is similar to the old SESSION_FILE_MODE
+    )
+
     auth.init_app(app)
 
     for bp in [base_bp, 
