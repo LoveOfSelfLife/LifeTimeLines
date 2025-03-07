@@ -14,6 +14,7 @@ from views.configurations.routes import bp as configurations_bp
 from common.env_init import initialize_environment
 from common.env_context import Env
 from auth import auth
+from datetime import timedelta
 
 def create_app():
     load_dotenv()
@@ -25,6 +26,8 @@ def create_app():
     app.secret_key = Env.SECRET_KEY
     # Set the session type to 'filesystem'
     app.config['SESSION_TYPE'] = 'filesystem'    
+
+    
 
     if Env.SESSION_DIR:
         SESSION_DIR = Env.SESSION_DIR
@@ -40,6 +43,7 @@ def create_app():
         threshold=1000,       # Set as needed (default is often 500)
         mode=0o600            # Set file permissions; this is similar to the old SESSION_FILE_MODE
     )
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=90)
 
     auth.init_app(app)
 
