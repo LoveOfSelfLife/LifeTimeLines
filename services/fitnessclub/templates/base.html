@@ -32,7 +32,10 @@
     <div class="collapse navbar-collapse" id="navbarsExample04">
         <!-- <ul class="navbar-nav mr-auto"> -->
         <ul class="navbar-nav ms-auto mb-2 mb-lg-0">            
-        <li class="nav-item ">
+          <li class="nav-item ">
+            <a class="nav-link" href="/logout">Logout</a>
+          </li>
+          <li class="nav-item ">
             <a class="nav-link" hx-get="/schedule"
             hx-target="#content"
             hx-swap="innerHTML"
@@ -43,6 +46,12 @@
             hx-target="#content"
             hx-swap="innerHTML"
             hx-push-url="/program">Program</a>
+        </li>
+        <li class="nav-item ">
+          <a class="nav-link" hx-get="/profile"
+          hx-target="#content"
+          hx-swap="innerHTML"
+          hx-push-url="/profile">Program</a>
         </li>
         <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle"

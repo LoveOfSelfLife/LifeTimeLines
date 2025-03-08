@@ -10,10 +10,12 @@ from common.discovery import get_service_port
 from base import bp as base_bp
 from views.schedule.routes import bp as schedule_bp
 from views.program.routes import bp as program_bp
+from views.profile.routes import bp as profile_bp
 from views.configurations.routes import bp as configurations_bp
 from common.env_init import initialize_environment
 from common.env_context import Env
 from auth import auth
+from datetime import timedelta
 
 def create_app():
     load_dotenv()
@@ -25,6 +27,8 @@ def create_app():
     app.secret_key = Env.SECRET_KEY
     # Set the session type to 'filesystem'
     app.config['SESSION_TYPE'] = 'filesystem'    
+
+    
 
     if Env.SESSION_DIR:
         SESSION_DIR = Env.SESSION_DIR
@@ -38,15 +42,17 @@ def create_app():
     app.config['SESSION_CLIENT'] = FileSystemCache(
         cache_dir=SESSION_DIR,  # Change to your desired directory path
         threshold=1000,       # Set as needed (default is often 500)
-        mode=0o600            # Set file permissions; this is similar to the old SESSION_FILE_MODE
+        mode=0o666            # Set file permissions; this is similar to the old SESSION_FILE_MODE
     )
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=90)
 
     auth.init_app(app)
 
     for bp in [base_bp, 
                configurations_bp, 
                schedule_bp, 
-               program_bp]:
+               program_bp,
+               profile_bp]:
         app.register_blueprint(bp, url_prefix=f'/{bp.name}')
 
     CORS(app)  
