@@ -17,6 +17,18 @@ from common.env_context import Env
 from auth import auth
 from datetime import timedelta
 
+class AzureFileSystemCache(FileSystemCache):
+    def _set_mode(self, filename):
+        """Override this method to prevent chmod from being applied."""
+        pass  # Do nothing instead of changing file permissions
+
+# # Use this in your Flask configuration
+# app.config['SESSION_CLIENT'] = AzureFileSystemCache(
+#     cache_dir='/share/FitnessClub/sessions',  # Your Azure file share path
+#     threshold=1000,
+#     mode=0o600  # This won't be applied due to the override
+# )
+
 def create_app():
     load_dotenv()
     initialize_environment()
@@ -39,7 +51,7 @@ def create_app():
     # - directory: path to store the session files (ensure the directory exists or create it)
     # - threshold: maximum number of cached items (optional, default might be 500)
     # - mode: file permissions (for example, 0o600 means read/write for the owner only)
-    app.config['SESSION_CLIENT'] = FileSystemCache(
+    app.config['SESSION_CLIENT'] = AzureFileSystemCache(
         cache_dir=SESSION_DIR,  # Change to your desired directory path
         threshold=1000,       # Set as needed (default is often 500)
         mode=0o666            # Set file permissions; this is similar to the old SESSION_FILE_MODE
