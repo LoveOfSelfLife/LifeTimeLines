@@ -1,0 +1,23 @@
+<h2>Active Fitness club</h2>
+<h1>Profile</h1>
+<form hx-post="/save_profile" hx-trigger="submit">
+    <div>
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name" required>
+    </div>
+    <div>
+        <label for="email">Email Address:</label>
+        <input type="email" id="email" name="email" required>
+    </div>
+    <div>
+        <label for="mobile">Mobile Number:</label>
+        <input type="tel" id="mobile" name="mobile" required>
+    </div>
+    <div>
+        <input type="checkbox" id="sms_consent" name="sms_consent">
+        <label for="sms_consent">I want to receive SMS messages</label>
+    </div>
+    <div>
+        <button type="submit">Save</button>
+    </div>
+</form>
