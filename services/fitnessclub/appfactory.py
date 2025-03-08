@@ -18,9 +18,11 @@ from auth import auth
 from datetime import timedelta
 
 class AzureFileSystemCache(FileSystemCache):
-    def _set_mode(self, filename):
-        """Override this method to prevent chmod from being applied."""
-        pass  # Do nothing instead of changing file permissions
+    def _run_safely(self, fn, *args, **kwargs):
+        if fn.__name__ == 'chmod':
+            return None
+        else:
+            return super()._run_safely(fn, *args, **kwargs)
 
 # # Use this in your Flask configuration
 # app.config['SESSION_CLIENT'] = AzureFileSystemCache(
