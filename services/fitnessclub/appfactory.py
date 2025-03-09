@@ -23,7 +23,11 @@ class AzureFileSystemCache(FileSystemCache):
             return None
         else:
             return super()._run_safely(fn, *args, **kwargs)
-
+    def _get_filename(self, key: str) -> str:
+        filename = super()._get_filename(key)
+        print(f"session key: {key}, filename: {filename}")
+        return filename
+    
 # # Use this in your Flask configuration
 # app.config['SESSION_CLIENT'] = AzureFileSystemCache(
 #     cache_dir='/share/FitnessClub/sessions',  # Your Azure file share path
@@ -58,6 +62,7 @@ def create_app():
         threshold=1000,       # Set as needed (default is often 500)
         mode=0o666            # Set file permissions; this is similar to the old SESSION_FILE_MODE
     )
+    app.config['SESSION_FILE_DIR'] = SESSION_DIR
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=90)
 
     auth.init_app(app)
