@@ -76,8 +76,7 @@ def create_app():
 
     CORS(app)  
 
-    # app.session_interface = app.config['SESSION_CLIENT']
-    
+    app.session_interface.cache = app.config['SESSION_CLIENT']
 
     signal.signal(signal.SIGTERM, shutdown_handler)
     return app
