@@ -3,7 +3,7 @@ import json
 from flask import Blueprint, render_template, request, redirect
 import requests
 from auth import auth
-from common.entities.active_fitness_registry import get_active_fitness_entity_names, get_active_fitness_entity_by_name
+from services.fitnessclub.active_fitness_registry import get_active_fitness_entity_names, get_active_fitness_entity_by_name
 from common.env_context import Env
 
 from ..common import hx_render_template
@@ -54,7 +54,9 @@ def config_listing(context=None):
 
     ctx = get_config_entity_ctx(config_id)
 
-    return hx_render_template('configurations/entity_list.html', ctx=ctx, table_id=config_id) 
+    return hx_render_template('admin/entity_list.html', 
+                              ctx=ctx, table_id=config_id, 
+                              context=context) 
 
 
 @bp.route('/edit')
@@ -79,11 +81,12 @@ def orch_defs_create(context=None):
     fields = get_editable_fields(entity)
     
     # return json.dumps(entity_to_edit)
-    return hx_render_template('configurations/entity_edit.html', entity=entity_to_edit, fields=fields, 
+    return hx_render_template('admin/entity_edit.html', entity=entity_to_edit, fields=fields, 
                               table_id=table_id, errors={},
                               key_val = key_val, partition_val = partition_val,
-                              back_url = f'/configurations?entity-type={table_id}',
-                              update_url=f'/configurations/update?entity-type={table_id}&key={key_val}&partition={partition_val}')
+                              back_url = f'/admin?entity-type={table_id}',
+                              update_url=f'/admin/update?entity-type={table_id}&key={key_val}&partition={partition_val}',
+                              context=context)
     
 @bp.route('/update', methods=['POST'])
 @auth.login_required
@@ -111,4 +114,4 @@ def update_entity(context=None):
     print(f"updated_entity: {updated_entity}")
 
     es.upsert_item(updated_entity)
-    return redirect(f'/configurations?entity-type={table_id}') 
+    return redirect(f'/admin?entity-type={table_id}') 

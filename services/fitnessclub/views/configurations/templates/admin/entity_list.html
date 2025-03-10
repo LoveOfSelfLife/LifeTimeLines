@@ -1,0 +1,36 @@
+<div class="container mt-5">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h2>{{ ctx.entity_type }}</h2>
+        </div>
+        <div class="card-body">
+            <table class="table table-responsive table-striped table-bordered">
+                <thead class="thead-dark">
+                    <tr>
+                        {% for field in ctx.fields %}
+                        <th scope="col">{{ field }}</th>
+                        {% endfor %}
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entity in ctx.entities %}
+                    <tr>
+                        {% for value in entity.val_list %}
+                        <td>{{ value }}</td>
+                        {% endfor %}
+                        <td>
+                            <button class="btn btn-warning btn-sm"
+                                hx-get="/admin/edit?entity-type={{table_id}}&key={{ entity.key_val }}&partition={{ entity.partition_val }}"
+                                hx-target="#content"
+                                hx-swap="innerHTML"
+                                hx-push-url="/admin/edit?entity-type={{table_id}}&key={{ entity.key_val }}&partition={{ entity.partition_val }}"
+                            >Edit</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

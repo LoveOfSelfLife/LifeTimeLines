@@ -3,7 +3,7 @@ from common.utils import IDGenerator
 
 class MemberEntity (EntityObject):
     table_name="MemberTable"
-    fields=["id", "name", "sms", "email" ]
+    fields=["id", "name", "level", "short_name", "email", "sms", "level" ]
     key_field="id"
     partition_value="member"
 
