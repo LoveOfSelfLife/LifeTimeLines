@@ -1,5 +1,5 @@
 from flask import render_template, request
-from common.entities.active_fitness_registry import get_active_fitness_entity_names
+from services.fitnessclub.active_fitness_registry import get_active_fitness_entity_names
 
 def hx_render_template(template, **kwargs):
     # kwargs['configs'] = get_editable_entity_names()

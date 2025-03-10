@@ -3,7 +3,7 @@ import json
 from flask import Blueprint, render_template, request, redirect
 import requests
 from auth import auth
-from common.entities.active_fitness_registry import get_active_fitness_entity_names, get_active_fitness_entity_by_name
+from services.fitnessclub.active_fitness_registry import get_active_fitness_entity_names, get_active_fitness_entity_by_name
 from common.env_context import Env
 
 from ..common import hx_render_template
