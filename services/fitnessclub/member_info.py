@@ -1,6 +1,7 @@
 
 from common.entity_store import EntityStore
-from services.fitnessclub.active_fitness import MemberEntity
+# from services.fitnessclub.active_fitness import MemberEntity
+from active_fitness import MemberEntity
 
 
 def get_user_info_from_token(token):

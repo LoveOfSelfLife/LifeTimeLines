@@ -1,9 +1,11 @@
 from flask import redirect, render_template, request, Blueprint, url_for, session
 from auth import auth
-from services.fitnessclub.active_fitness_registry import get_active_fitness_entity_names
+# from services.fitnessclub.active_fitness_registry import get_active_fitness_entity_names
+from active_fitness_registry import get_active_fitness_entity_names
 import os
 
-from services.fitnessclub.member_info import MembershipRegistry, get_user_info_from_token
+# from services.fitnessclub.member_info import MembershipRegistry, get_user_info_from_token
+from member_info import MembershipRegistry, get_user_info_from_token
 bp = Blueprint('/', __name__, template_folder='templates')  
 
 class FirstTimeUserException(Exception):
