@@ -19,7 +19,9 @@ RUN python -m pip install -r requirements.txt -r common_requirements.txt
 WORKDIR /app
 COPY services/${app} /app
 COPY services/${app}/static/site.css /app/static
+COPY services/${app}/static/css /app/static/css
 COPY services/${app}/static/img /app/static/img
+COPY services/${app}/static/images /app/static/images
 COPY services/${app}/static/js /app/static/js
 COPY services/${app}/templates /app/templates
 COPY common /app/common

@@ -1,7 +1,10 @@
 from flask import render_template, request
-from services.fitnessclub.active_fitness_registry import get_active_fitness_entity_names
-from services.fitnessclub.base import FirstTimeUserException, UnregisteredMemberException, is_admin_member, verify_registered_member
-from services.fitnessclub.member_info import MembershipRegistry, get_user_info_from_token
+# from services.fitnessclub.active_fitness_registry import get_active_fitness_entity_names
+# from services.fitnessclub.base import FirstTimeUserException, UnregisteredMemberException, is_admin_member, verify_registered_member
+# from services.fitnessclub.member_info import MembershipRegistry, get_user_info_from_token
+from active_fitness_registry import get_active_fitness_entity_names
+from base import FirstTimeUserException, UnregisteredMemberException, is_admin_member, verify_registered_member
+from member_info import MembershipRegistry, get_user_info_from_token
 
 def del_hx_render_template(template, **kwargs):
     # kwargs['configs'] = get_editable_entity_names()
