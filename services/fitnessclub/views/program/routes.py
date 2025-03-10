@@ -6,4 +6,4 @@ from auth import auth
 @bp.route('/')
 @auth.login_required
 def root(context=None):
-    return hx_render_template('program.html')
+    return hx_render_template('program.html', context=context)

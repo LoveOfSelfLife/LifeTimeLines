@@ -5,7 +5,7 @@
     box-sizing: border-box;
 }
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Roboto', sans-serif;
     color: #fff;
     line-height: 1.6;
     background: #222;
@@ -13,13 +13,40 @@ body {
 
 /* Navigation styling */
 .navbar {
-    background: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.85);
     width: 100%;
     position: fixed;
     top: 0;
     left: 0;
     z-index: 1000;
     padding: 10px 20px;
+}
+.navbar-brand img {
+    border-radius: 50%;
+}
+.navbar-nav .nav-link {
+    color: #fff;
+    transition: color 0.3s;
+}
+.navbar-nav .nav-link:hover {
+    color: #ddd;
+}
+.navbar-nav .dropdown-menu {
+    background: rgba(0, 0, 0, 0.85);
+    border: none;
+}
+.navbar-nav .dropdown-item {
+    color: #fff;
+    transition: background 0.3s, color 0.3s;
+}
+.navbar-nav .dropdown-item:hover {
+    background: #444;
+    color: #fff;
+}
+.navbar-nav .user-name {
+    font-size: 0.9em;
+    color: #ccc;
+    margin-right: 10px;
 }
 .nav-container {
     display: flex;
@@ -93,10 +120,30 @@ body {
     min-height: calc(100vh - 60px); /* ensure content fills the viewport */
     background: #333;
     margin-top: 60px; /* account for fixed navbar */
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+/* Form styling */
+.form-label {
+    font-weight: bold;
+}
+.form-control {
+    border-radius: 5px;
+}
+.form-check-label {
+    margin-left: 5px;
 }
 
 /* Responsive styling for tablets and smaller devices */
 @media (max-width: 768px) {
+    .navbar-brand img {
+        width: 25px;
+        height: 25px;
+    }
+    .navbar-nav .nav-link {
+        font-size: 0.9em;
+    }
     .logo {
         font-size: 1.5em;
     }
@@ -110,10 +157,20 @@ body {
     .hero p {
         font-size: 1em;
     }
+    .content {
+        padding: 15px;
+    }
 }
 
 /* Responsive styling for mobile devices */
 @media (max-width: 480px) {
+    .navbar-brand img {
+        width: 20px;
+        height: 20px;
+    }
+    .navbar-nav .nav-link {
+        font-size: 0.8em;
+    }
     .nav-container {
         flex-direction: column;
         align-items: center;
@@ -133,5 +190,8 @@ body {
     }
     .hero p {
         font-size: 0.9em;
+    }
+    .content {
+        padding: 10px;
     }
 }
