@@ -9,6 +9,7 @@
     />
     <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="stylesheet" href="/static/site.css" />
+    <!-- <link rel="stylesheet" href="static/css/aboutstyles.css"> -->
     <script src="/static/js/htmx-1.8.0.js"></script>
     <script src="/static/js/_hyperscript-0.9.7.js"></script>
     <script src="/static/js/rsjs-menu.js" type="module"></script>
@@ -33,8 +34,11 @@
                     <a class="nav-link" hx-get="/schedule" hx-target="#content" hx-swap="innerHTML" hx-push-url="/schedule">Schedule</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" hx-get="/program" hx-target="#content" hx-swap="innerHTML" hx-push-url="/program">Programs</a>
-                </li>
+                  <a class="nav-link" hx-get="/program" hx-target="#content" hx-swap="innerHTML" hx-push-url="/program">Programs</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" hx-get="/about" hx-target="#content" hx-swap="innerHTML" hx-push-url="/about">About</a>
+            </li>
                 {% if ctx.admin %}
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Admin</a>
