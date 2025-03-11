@@ -1,8 +1,34 @@
 from flask import render_template, request
 from active_fitness_registry import get_active_fitness_entity_names
-from services.fitnessclub.hx_common import is_admin_member
 from member_info import MembershipRegistry, get_user_info_from_token
-from services.fitnessclub.hx_common import FirstTimeUserException, UnregisteredMemberException, verify_registered_member
+from services.fitnessclub.member_info import MembershipRegistry
+
+
+class FirstTimeUserException(Exception):
+    def __init__(self):
+        super().__init__("First time user")
+
+
+class UnregisteredMemberException(Exception):
+    def __init__(self):
+        super().__init__("Unregistered member")
+
+
+def verify_registered_member(user):
+    members = MembershipRegistry()
+    if not members.check_if_member(user['id']):
+        raise FirstTimeUserException()
+    else:
+        user = members.get_member(user['id'])
+    if user.get('level') == 0:
+        raise UnregisteredMemberException()
+    return user
+
+
+def is_admin_member(user):
+    members = MembershipRegistry()
+    member = members.get_member(user['id'])
+    return member.get('level') == 10
 
 
 def hx_render_template(template, **kwargs):
@@ -35,6 +61,19 @@ def hx_render_template(template, **kwargs):
                                 ctx={"configs":get_active_fitness_entity_names(), 
                                                     "user": "unknown",
                                                     "admin": False })
+
+
+class NotAdminMemberException(Exception):
+    def __init__(self):
+        super().__init__("Not an admin member")
+
+
+def verify_admin_member(user):
+    member = verify_registered_member(user)
+    if member.get('level') == 10:
+        return member
+    else:
+        raise NotAdminMemberException()
         
 
 
