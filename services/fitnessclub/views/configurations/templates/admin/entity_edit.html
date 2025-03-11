@@ -1,7 +1,7 @@
 <div class="container mt-5">
     <div class="card shadow-sm">
         <div class="card-header bg-primary text-white">
-            <h2>Entity: {{ table_id }} Id: {{ key_val }} Partition: {{ partition_val }}</h2>
+            <h2>Edit {{ table_id }} Id: {{ key_val }}</h2>
         </div>
         <div class="card-body">
             <form hx-post="{{ update_url }}" hx-swap="innerHTML" hx-confirm="Are you sure?" hx-target="#content">
