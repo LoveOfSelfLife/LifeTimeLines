@@ -3,11 +3,8 @@ import json
 from flask import Blueprint, render_template, request, redirect
 import requests
 from auth import auth
-# from services.fitnessclub.active_fitness_registry import get_active_fitness_entity_names, get_active_fitness_entity_by_name
 from active_fitness_registry import get_active_fitness_entity_names, get_active_fitness_entity_by_name
 from common.env_context import Env
-
-# from ..common import hx_render_template
 from hx_common import hx_render_template
 from common.entity_store import EntityStore
 bp = Blueprint('admin', __name__, template_folder='templates')

@@ -1,12 +1,10 @@
 from flask import redirect, render_template, request, Blueprint, url_for, session
 from auth import auth
-# from services.fitnessclub.active_fitness_registry import get_active_fitness_entity_names
 from active_fitness_registry import get_active_fitness_entity_names
 import os
 from hx_common import hx_render_template
-# from services.fitnessclub.member_info import MembershipRegistry, get_user_info_from_token
 from member_info import MembershipRegistry, get_user_info_from_token
-from services.fitnessclub.hx_common import FirstTimeUserException, UnregisteredMemberException, is_admin_member, verify_registered_member
+from hx_common import FirstTimeUserException, UnregisteredMemberException, is_admin_member, verify_registered_member
 
 bp = Blueprint('/', __name__, template_folder='templates')  
 
