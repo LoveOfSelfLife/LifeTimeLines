@@ -80,7 +80,7 @@ body {
 /* Hero Section for public page */
 .hero {
     height: 100vh;
-    background: url('../images/ymca-1.jpg') center/cover no-repeat;
+    background: url('/static/images/ymca-1.jpg') center/cover no-repeat;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -90,6 +90,15 @@ body {
 .hero-overlay {
     background: rgba(0, 0, 0, 0.5);
     padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     text-align: center;
     border-radius: 10px;
 }
@@ -127,12 +136,15 @@ body {
 /* Form styling */
 .form-label {
     font-weight: bold;
+    text-align: left; /* Ensure labels are left-justified */
 }
 .form-control {
+    border-color: black;
     border-radius: 5px;
 }
 .form-check-label {
     margin-left: 5px;
+    text-align: left; /* Ensure labels are left-justified */
 }
 
 /* Responsive styling for tablets and smaller devices */

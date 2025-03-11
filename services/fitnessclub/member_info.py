@@ -1,5 +1,44 @@
 from common.entity_store import EntityStore
-from active_fitness import MemberEntity
+from common.entity_store import EntityObject
+
+
+class MemberEntity (EntityObject):
+    table_name="MemberTable"
+    fields=["id", "name", "level", "short_name", "email", "mobile", "sms_consent"]
+    key_field="id"
+    partition_value="member"
+
+    def __init__(self, d={}):
+        super().__init__(d)
+
+
+class ExerciseEntity (EntityObject):
+    table_name="ExerciseTable"
+    fields=["id", "type" ]
+    key_field="id"
+    partition_field="type"
+
+    def __init__(self, d={}):
+        super().__init__(d)
+
+class ProgramEntity (EntityObject):
+    table_name="ProgramTable"
+    fields=["id", "type" ]
+    key_field="id"
+    partition_field="type"
+
+    def __init__(self, d={}):
+        super().__init__(d)
+
+def get_user_profile(id):
+    es = EntityStore()
+    profile = es.get_item(MemberEntity({"id" : id}))
+    return profile
+
+def save_user_profile(profile):
+    es = EntityStore()
+    es.upsert_item(MemberEntity(profile))
+    return profile
 
 def get_user_info_from_token(token):
     member = dict()
