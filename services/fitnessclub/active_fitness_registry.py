@@ -6,6 +6,7 @@ from exercises import ExerciseEntity
 class ActiveFitnessRegistry:
     editable_entities = {
         "members" : MemberEntity(),
+        "exercises" : ExerciseEntity(),
         "programs" : ProgramEntity()
     }
     non_editable_entities = {
