@@ -1,7 +1,7 @@
 
 # from services.fitnessclub.active_fitness import ProgramEntity, MemberEntity, ExerciseEntity
 from active_fitness import ProgramEntity, MemberEntity
-from services.fitnessclub.exercises import ExerciseEntity
+from exercises import ExerciseEntity
 
 class ActiveFitnessRegistry:
     editable_entities = {
