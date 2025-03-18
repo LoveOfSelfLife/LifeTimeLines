@@ -12,11 +12,14 @@ ux/.next/
 ux/.vercel/
 package-lock.json
 **/fe/data/**
-
+solr/logs/*
+flask_session/*
+**/fitnessclub/sessions/**
+services/fitnessclub/exercise_search_app/**
 test*.yml
 echo*.yml
 vars.txt
-
+**/flask_session/** 
 \#*\#
 ~*
 *~
