@@ -11,7 +11,7 @@ from base import bp as base_bp
 from views.schedule.routes import bp as schedule_bp
 from views.program.routes import bp as program_bp
 from views.profile.routes import bp as profile_bp
-from views.configurations.routes import bp as configurations_bp
+from views.admin.routes import bp as admin_bp
 from common.env_init import initialize_environment
 from common.env_context import Env
 from auth import auth
@@ -68,7 +68,7 @@ def create_app():
     auth.init_app(app)
 
     for bp in [base_bp, 
-               configurations_bp, 
+               admin_bp, 
                schedule_bp, 
                program_bp,
                profile_bp]:
