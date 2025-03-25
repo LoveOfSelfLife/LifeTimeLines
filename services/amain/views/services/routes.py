@@ -8,7 +8,7 @@ async def root():
     return await hx_render_template('default.html')
 
 @bp.route('/test')
-async def root():
+async def services():
     return await hx_render_template('services.html')
 
 
