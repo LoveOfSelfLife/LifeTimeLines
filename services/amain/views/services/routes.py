@@ -14,7 +14,7 @@ async def services():
 
 
 @bp.route('/redis')
-async def redis():
+async def redis_test():
 
     # Configure Redis connection settings
     REDIS_HOST = 'redis-cache.ltl.richkempinski.com'
@@ -27,7 +27,7 @@ async def redis():
         # Test connection with a ping
         redis_client.ping()
         print("Connected to Redis successfully!")
-
+        
     except redis.ConnectionError as e:
         print("Failed to connect to Redis:", e)
         redis_client = None
