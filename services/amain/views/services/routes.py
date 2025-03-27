@@ -15,10 +15,8 @@ async def services():
 async def redis_test():
 
     # Configure Redis connection settings
-    # REDIS_HOST = 'redis-cache.ltl.richkempinski.com'
     REDIS_HOST = 'rediscache'
     REDIS_PORT = 6379
-    REDIS_PASSWORD = None  # Set this if your Redis server requires a password
 
     # Attempt to establish a connection to Redis
     try:
@@ -53,7 +51,3 @@ async def redis_test():
             "status": "error",
             "message": "No Redis connection available."
         }), 500
-
-if __name__ == '__main__':
-    app.run(debug=True)
-

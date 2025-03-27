@@ -16,10 +16,10 @@
     <script src="/static/js/rsjs-menu.js" type="module"></script>
     <script defer src="https://unpkg.com/alpinejs@3/dist/cdn.min.js"></script>
     <style>
-        .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
-        .htmx-request .htmx-indicator { opacity: 1; }
-        .htmx-request.htmx-indicator { opacity: 1; }
-    </style>
+            .htmx-indicator { opacity: 0; transition: opacity 200ms ease-in; }
+            .htmx-request .htmx-indicator { opacity: 1; }
+            .htmx-request.htmx-indicator { opacity: 1; }
+     </style>
   </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
@@ -71,17 +71,28 @@
     <div class="container-fluid mt-5 pt-4">
         <section class="hero">
             <div class="hero-overlay">            
-            <div id="content" class="content bg-dark text-white p-4 rounded shadow-sm">
-                <p class="text-gray-500">Active Friends Fitness Club</p>
-            </div>
-    <!--        <div class="hero-overlay">
-                    <h1>Welcome to Active Friends Fitness</h1>
-                    <p>Your journey to a healthier life continues here.</p>
-                </div> -->
+                <div id="content" class="content bg-dark text-white p-4 rounded shadow-sm">
+                    <p class="text-gray-500">Active Friends Fitness Club</p>
+                </div>
             </div>
         </section>
     </div>
 
+    <!-- Placeholder for the modal -->
+    <div id="modal" class="modal fade">
+        <div id="dialog" class="modal-dialog" hx-target="this"></div>
+      </div>
+  
+      <!-- Empty toast to show the message -->
+      <div class="toast-container position-fixed top-0 end-0 p-3">
+        <div id="toast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+          <div class="d-flex">
+            <div id="toast-body" class="toast-body"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        </div>
+      </div>
+  
 <script>
         document.addEventListener('DOMContentLoaded', function() {
             const links = document.querySelectorAll('.nav-link');
@@ -114,6 +125,7 @@
       integrity="sha384-IQsoLXl5PILFhosVNubq5LC7Qb9DXgDA9i+tQ8Zj3iwWAwPtgFTxbJ8NT4GN1R8p"
       crossorigin="anonymous"
     ></script>
-
+    <script src="/static/dialog.js"></script>
+    <script src="/static/toast.js"></script>
   </body>
 </html>

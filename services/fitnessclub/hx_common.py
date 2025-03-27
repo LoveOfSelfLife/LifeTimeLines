@@ -1,6 +1,6 @@
 from flask import render_template, request
-from active_fitness_registry import get_active_fitness_entity_names
-from member_info import MembershipRegistry, get_user_info_from_token
+from common.fitness.active_fitness_registry import get_active_fitness_entity_names
+from common.fitness.member_info import MembershipRegistry, get_user_info_from_token
 
 class FirstTimeUserException(Exception):
     def __init__(self):

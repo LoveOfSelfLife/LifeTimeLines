@@ -1,0 +1,33 @@
+<div class="container mt-5">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h2>Event:</h2>
+        </div>
+        <div class="card-body">
+            <form hx-post="{{ update_url }}" hx-swap="innerHTML" hx-confirm="Are you sure?" hx-target="#content">
+                <div class="table rows">
+                    <input type="hidden" id="id" name="id" value="{{ event.id }}">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Event:</label>
+                        <input type="text" id="name" name="name" class="form-control" value="{{ event.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="date" class="form-label">Date:</label>
+                        <input type="date" id="date" name="date" class="form-control" value="{{ event.date }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="time" class="form-label">TIme:</label>
+                        <input type="time" id="time" name="time" class="form-control" value="{{ event.time }}" required>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input type="checkbox" id="attending" name="attending" class="form-check-input" value="yes" {{ 'checked' if event.get('attending', '') == 'yes' else '' }}>
+                        <label for="attending" class="form-check-label">Are you atending?</label>
+                    </div>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

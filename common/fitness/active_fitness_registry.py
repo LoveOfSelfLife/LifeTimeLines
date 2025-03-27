@@ -1,7 +1,7 @@
-
-# from services.fitnessclub.active_fitness import ProgramEntity, MemberEntity, ExerciseEntity
-from active_fitness import ProgramEntity, MemberEntity
-from exercises import ExerciseEntity
+from common.fitness.active_fitness import ProgramEntity
+from common.fitness.members import MemberEntity
+from common.fitness.exercises import ExerciseEntity
+from common.fitness.members import MemberEntity
 
 class ActiveFitnessRegistry:
     editable_entities = {
