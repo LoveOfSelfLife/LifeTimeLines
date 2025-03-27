@@ -55,6 +55,9 @@ def create_app():
     app.config['SESSION_PERMANENT'] = True # Optional, but recommended for persistent sessions
     app.config['SECRET_KEY'] = Env.SECRET_KEY
 
+    for k, v in app.config.items():
+        print(f"{k}: {v}")
+        
 
     # app.config['SESSION_REDIS'] = RedisCache(
     #     host='rediscache' if not Env.ORCH_TESTING_MODE else 'localhost', 
