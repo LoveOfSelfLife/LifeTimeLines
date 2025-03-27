@@ -1,34 +1,5 @@
 from common.entity_store import EntityStore
-from common.entity_store import EntityObject
-
-
-class MemberEntity (EntityObject):
-    table_name="MemberTable"
-    fields=["id", "name", "level", "short_name", "email", "mobile", "sms_consent"]
-    key_field="id"
-    partition_value="member"
-
-    def __init__(self, d={}):
-        super().__init__(d)
-
-
-class ExerciseEntity (EntityObject):
-    table_name="ExerciseTable"
-    fields=["id", "type" ]
-    key_field="id"
-    partition_field="type"
-
-    def __init__(self, d={}):
-        super().__init__(d)
-
-class ProgramEntity (EntityObject):
-    table_name="ProgramTable"
-    fields=["id", "type" ]
-    key_field="id"
-    partition_field="type"
-
-    def __init__(self, d={}):
-        super().__init__(d)
+from common.fitness.members import MemberEntity
 
 def get_user_profile(id):
     es = EntityStore()

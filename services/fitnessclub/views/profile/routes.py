@@ -1,6 +1,6 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, redirect, render_template, request, url_for
 from hx_common import hx_render_template
-from member_info import get_user_info_from_token, get_user_profile, save_user_profile
+from common.fitness.member_info import get_user_info_from_token, get_user_profile, save_user_profile
 bp = Blueprint('profile', __name__, template_folder='templates')
 from auth import auth
 
@@ -22,6 +22,7 @@ def profile(context=None):
     return hx_render_template('profile.html', 
                               context=context, 
                               profile=profile,
+                              hx_push_url="/profile/update",
                               update_url="/profile/update")
 
 @bp.route('/update', methods=['POST'])
@@ -30,10 +31,5 @@ def update_profile(context=None):
     print(f"Request: {request.form}")
 
     profile = save_user_profile(request.form)
-    return hx_render_template('profile.html', 
-                              context=context, 
-                              profile=profile,
-                              update_url="/profile/update")
-
-
-    
+    return redirect("/")
+  

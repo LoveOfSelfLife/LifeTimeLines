@@ -1,0 +1,51 @@
+<h2>Active Fitness</h2>
+<h3>Schedule</h3>
+<div class="container mt-5">
+    <div class="row">
+        {% for event in events %}
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white"></div>
+                    <h5>{{ event.dayofweek }}</h5>
+                    <h5>{{ event.date }}</h5>
+                    <h5>{{ event.time }}</h5>
+                </div>
+                <div class="card-body">
+                    <p>{{ event.name }}</p>
+                    <p>Members Attending: 
+                    {% for j in event.joined %}
+                        {{ j.member_short_name }} [ {{ j.activity_name }} ] , 
+                    {% endfor %}
+                    </p>    
+                </div>
+                <div class="card-footer"bg-primary text-white">
+                    <button 
+                        class="btn btn-primary btn-sm" 
+                        hx-get="/view_activity/{{ event.id }}"
+                        hx-target="#dialog"
+                        hx-swap="innerHTML"
+                    >
+                    Activity
+                    </button>                  
+                    <button 
+                        class="btn btn-primary btn-sm" 
+                        hx-get="/join_event/{{ event.id }}"
+                        hx-target="#dialog"
+                        hx-swap="innerHTML"
+                    >
+                    Join
+                    </button>   
+                    <button 
+                        class="btn btn-primary btn-sm" 
+                        hx-get="/edit_event/{{ event.id }}"
+                        hx-target="#dialog"
+                        hx-swap="innerHTML"
+                    >
+                    Edit
+                    </button>   
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>

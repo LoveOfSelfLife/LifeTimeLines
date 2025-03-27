@@ -3,7 +3,7 @@ import json
 from flask import Blueprint, render_template, request, redirect
 import requests
 from auth import auth
-from active_fitness_registry import get_active_fitness_entity_names, get_active_fitness_entity_by_name
+from common.fitness.active_fitness_registry import get_active_fitness_entity_names, get_active_fitness_entity_by_name
 from common.env_context import Env
 from hx_common import hx_render_template
 from common.entity_store import EntityStore
@@ -57,10 +57,9 @@ def config_listing(context=None):
                               ctx=ctx, table_id=config_id, 
                               context=context) 
 
-
 @bp.route('/edit')
 @auth.login_required
-def orch_defs_create(context=None):
+def entity_editor(context=None):
     table_id = request.args.get('entity-type')
     if not table_id:
         return "No table id provided", 404

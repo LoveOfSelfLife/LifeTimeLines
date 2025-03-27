@@ -4,7 +4,9 @@ import os
 
 from common.blob_store import BlobStore
 from common.entity_store import EntityObject, EntityStore
-from azure.storage.blob import BlobServiceClient, BlobClient
+# from azure.storage.blob import BlobServiceClient, BlobClient
+
+from common.fitness.utils import convert_to_alphanumeric
 
 class ExerciseEntity (EntityObject):
     table_name="ExerciseTable"
@@ -23,10 +25,6 @@ class ExerciseIndexEntity (EntityObject):
 
     def __init__(self, d={}):
         super().__init__(d)
-
-def convert_to_alphanumeric(s):
-    """Convert a string to alphanumeric characters only."""
-    return "".join([c for c in s if c.isalnum()])
 
 def gen_exercise_id(exercise):
     """Generate an exercise id from the exercise name."""
@@ -112,33 +110,3 @@ def load_exercises(exercise_dir):
             # blobstore.upload(img_path, img_id)
             print(f"blobstore.upload({img_path}, {img_id})")
         es.upsert_item(ExerciseEntity(exercise))
-
-# def collect_exercise_index_values(exercises_list):
-#     """Update the exercise index tables.
-#     this method will iterate through the exercises_list, and for each exercise attribute, it will collect all the values for 
-#      that attribute from across of all the exercises.  the result will be a dictionary with the attribute as the key and a list of values as
-#      the value.  This dictionary will be used to update the index table with the new values.
-#      this method should return the dictionary
-#     """
-#     exercise_index_values = {}
-#     for exercise in exercises_list:
-#         for attr in exercise_attributes:
-#             vals = exercise.get(attr, [])
-#             # check if vals is a list, then iterate through each items, otherwise just use the item
-#             if not isinstance(vals, list):
-#                 vals = [vals]
-#             for val in vals:
-#                 val = val if val else "body"
-#                 print(f"Exercise: {exercise['name']} has {attr} {val}")
-#                 """ what we want to store in the index table is 
-#                 key: exercise_value, attr: exercise_attribute, value: exercises_list
-#                 """
-
-#                 if attr not in exercise_index_values:
-#                     exercise_index_values[attr] = {}
-#                 if val not in exercise_index_values[attr]:
-#                     exercise_index_values[attr][val] = []
-#                 exercise_index_values[attr][val].append(exercise["name"])
-#     print(exercise_index_values)
-#     return exercise_index_values
-
