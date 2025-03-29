@@ -17,3 +17,4 @@ requests>=2,<3
 # ms_identity_python[flask] @ https://github.com/azure-samples/ms-identity-python/archive/refs/heads/0.9.zip
 azure-storage-blob>=12.25.0
 redis>=5.2.1
+identify>=0.9.2
