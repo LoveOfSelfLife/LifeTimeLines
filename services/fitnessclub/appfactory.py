@@ -18,24 +18,6 @@ from common.env_context import Env
 from auth import auth
 from datetime import timedelta
 
-# class AzureFileSystemCache(FileSystemCache):
-#     def _run_safely(self, fn, *args, **kwargs):
-#         if fn.__name__ == 'chmod':
-#             return None
-#         else:
-#             return super()._run_safely(fn, *args, **kwargs)
-#     def _get_filename(self, key: str) -> str:
-#         filename = super()._get_filename(key)
-#         print(f"session key: {key}, filename: {filename}")
-#         return filename
-    
-# # Use this in your Flask configuration
-# app.config['SESSION_CLIENT'] = AzureFileSystemCache(
-#     cache_dir='/share/FitnessClub/sessions',  # Your Azure file share path
-#     threshold=1000,
-#     mode=0o600  # This won't be applied due to the override
-# )
-
 def create_app():
     load_dotenv()
     initialize_environment()
@@ -54,17 +36,6 @@ def create_app():
     )
     app.config['SESSION_PERMANENT'] = True # Optional, but recommended for persistent sessions
     app.config['SECRET_KEY'] = Env.SECRET_KEY
-
-    for k, v in app.config.items():
-        print(f"{k}: {v}")
-        
-
-    # app.config['SESSION_REDIS'] = RedisCache(
-    #     host='rediscache' if not Env.ORCH_TESTING_MODE else 'localhost', 
-    #     port=6379, 
-    #     key_prefix='fitnessclub', 
-    #     default_timeout=0
-    # )
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=90)
 
     auth.init_app(app)
@@ -77,8 +48,6 @@ def create_app():
         app.register_blueprint(bp, url_prefix=f'/{bp.name}')
 
     CORS(app)  
-
-    # app.session_interface.cache = app.config['SESSION_CLIENT']
 
     signal.signal(signal.SIGTERM, shutdown_handler)
     return app
