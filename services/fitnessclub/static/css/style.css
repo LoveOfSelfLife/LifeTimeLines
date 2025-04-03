@@ -8,8 +8,8 @@
     font-family: Arial, sans-serif;
     color: #fff;
     line-height: 1.6;
-    background: #222;
-  }
+    /* background: #222; */
+    }
   
   /* Navigation styling */
   .navbar {
@@ -92,6 +92,8 @@
     padding: 100px 20px 20px;
     text-align: center;
     margin-top: 60px; /* ensure content isn’t hidden behind nav */
+    background: url('../images/ymca-1.jpg') center/cover no-repeat;
+  
   }
   
   /* Responsive styling for tablets and smaller devices */

@@ -22,6 +22,7 @@ def index(context = None):
         member = verify_registered_member(user)
         return render_template("base.html", ctx = {"configs" : get_active_fitness_entity_names(), 
                                                    "user": member.get('name'), 
+                                                   "short_name": member.get('short_name'), 
                                                    "admin": is_admin_member(member) })
         
     except UnregisteredMemberException as e:
