@@ -9,6 +9,7 @@ def get_user_profile(id):
 def save_user_profile(profile):
     es = EntityStore()
     es.upsert_item(MemberEntity(profile))
+    MembershipRegistry().refresh_members()
     return profile
 
 def get_user_info_from_token(token):
@@ -49,4 +50,7 @@ class MembershipRegistry:
 
     def get_member(self, member_id):
         return MembershipRegistry._members.get(member_id)
+    
+    def refresh_members(self):
+        self._load_members()
     

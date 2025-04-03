@@ -28,6 +28,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# azurite
+__azurite*
+
 # C extensions
 *.so
 

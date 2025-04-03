@@ -51,6 +51,8 @@ def list_events(logged_in_member_id, from_date, to_date):
         event["day_of_week"] = day_of_week_to_string(dt)
         event["date"] = dt.strftime("%b-%d-%Y")
         event["time"] = dt.strftime("%I:%M %p")
+        event["month"] = dt.strftime("%b")
+        event["month_day"] = dt.strftime("%d")
         event["name"] = e["name"]
         event["description"] = e["description"]
         event["location"] = e["location"]
@@ -82,6 +84,7 @@ def list_events(logged_in_member_id, from_date, to_date):
             event["joined"].append(details)
             if logged_in_member_id == member_id:
                 event["member_joined_details"] = details
+        event["num_members"] = len(event["joined"])
     return events
 
 def get_event(event_id):
