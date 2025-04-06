@@ -4,8 +4,8 @@
             <h2>{{ ctx.entity_type }}</h2>
         </div>
         <div class="card-body">
-            <div class="table-scrollable">            
-                <table class="table table-responsive table-striped table-bordered">
+            <div class="table-responsive">            
+                <table class="table table-sm table-striped table-bordered">
                     <thead class="thead-dark">
                         <tr>
                             {% for field in ctx.fields %}
@@ -21,7 +21,7 @@
                             <td>{{ value }}</td>
                             {% endfor %}
                             <td>
-                                <button class="btn btn-warning btn-sm"
+                                <button class="btn btn-success btn-sm"
                                     hx-get="/admin/edit?entity-type={{table_id}}&key={{ entity.key_val }}&partition={{ entity.partition_val }}"
                                     hx-target="#content"
                                     hx-swap="innerHTML"
