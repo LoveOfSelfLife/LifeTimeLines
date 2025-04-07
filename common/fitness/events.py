@@ -10,7 +10,7 @@ from common.fitness.utils import generate_id
 class EventEntity (EntityObject):
     PARTITION_VALUE = "fitness"
     table_name="EventTable"
-    fields=["event_id", "type", "datetime", "name", "description", "location"]
+    fields=["event_id", "type", "datetime", "name", "description", "location", "owner_member_id", "joined"]
     key_field="event_id"
     partition_value=PARTITION_VALUE
 
@@ -40,56 +40,86 @@ def day_of_week_to_string(datetime_dt):
     return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][day_of_week]
 
 
+def map_event(e):
+    event = {}
+    if "event_id" in e:
+        event["event_id"] = e["event_id"]
+    dt = datetime.fromisoformat(e["datetime"])
+    event["datetime_dt"] = dt
+    event["day_of_week"] = day_of_week_to_string(dt)
+    event["date"] = dt.strftime("%Y-%m-%d")
+    event["time"] = dt.strftime("%H:%M")
+    event["time_display"] = dt.strftime("%I:%M %p")
+    event["month"] = dt.strftime("%b")
+    event["month_day"] = dt.strftime("%d")
+    event["name"] = e.get("name", "")
+    event["type"] = e.get("type", "")
+    event["description"] = e.get("description", "")
+    event["location"] = e.get("location", "")
+    event["joined"] = e.get("joined", [])
+    return event
+
 def list_events(logged_in_member_id, from_date, to_date):
     es = EntityStore()
     events = []
     for e in es.list_items(EventEntity()):
-        event = {}
-        event["event_id"] = e["event_id"]
-        dt = datetime.fromisoformat(e["datetime"])
-        event["datetime_dt"] = dt
-        event["day_of_week"] = day_of_week_to_string(dt)
-        event["date"] = dt.strftime("%b-%d-%Y")
-        event["time"] = dt.strftime("%I:%M %p")
-        event["month"] = dt.strftime("%b")
-        event["month_day"] = dt.strftime("%d")
-        event["name"] = e["name"]
-        event["description"] = e["description"]
-        event["location"] = e["location"]
+        event = map_event(e)
+
+        joined_list = []
+        for j in event.get("joined", []):
+            mbr = es.get_item(MemberEntity({ "id": j["member_id"] }))
+            j["member_short_name"] = mbr["short_name"]
+            joined_list.append(j)
+        event["joined"] = joined_list
+        event["num_members_joined"] = len(event["joined"])
         events.append(event)
 
-    # find out who has joined each event    
-    for event in events:
-        event["joined"] = []
-        joined = es.list_items(JoinedEntity({ "event_id": event["event_id"]}))
-        for j in joined:
-            member_id = j.get("member_id", None)
-            if member_id is None:
-                continue
-            details = {}
-            details["event"] = event
-            details["member_id"] = member_id
-            mbr = es.get_item(MemberEntity({ "id": member_id }))
-            details["member_short_name"] = mbr["short_name"]
+    # # find out who has joined each event    
+    # for event in events:
+    #     event["joined"] = []
+    #     members_who_joined = es.list_items(JoinedEntity({ "event_id": event["event_id"]}))
+    #     for j in members_who_joined:
+    #         member_id = j.get("member_id", None)
+    #         if member_id is None:
+    #             continue
+    #         details = {}
+    #         details["event"] = event
+    #         details["member_id"] = member_id
 
-            activity_id = j.get("activity_id", None)
-            # TODO:  fix this hack with the "null" string
-            if activity_id and activity_id != "null":
-                details["activity_id"] = j["activity_id"]
-                activity = es.get_item(ActivityEntity({ "activity_id": activity_id }))
-                details["activity_name"] = activity["activity_name"]
-            else:
-                details["activity_id"] = ""
-                details["activity_name"] = "No activity yet"
-            event["joined"].append(details)
-            if logged_in_member_id == member_id:
-                event["member_joined_details"] = details
-        event["num_members"] = len(event["joined"])
+    #         mbr = es.get_item(MemberEntity({ "id": member_id }))
+    #         details["member_short_name"] = mbr["short_name"]
+
+    #         activity_id = j.get("activity_id", None)
+    #         # TODO:  fix this hack with the "null" string
+    #         if activity_id and activity_id != "null":
+    #             details["activity_id"] = j["activity_id"]
+    #             activity = es.get_item(ActivityEntity({ "activity_id": activity_id }))
+    #             details["activity_name"] = activity["activity_name"]
+    #         else:
+    #             details["activity_id"] = ""
+    #             details["activity_name"] = "No activity yet"
+    #         event["joined"].append(details)
+    #         if logged_in_member_id == member_id:
+    #             event["member_joined_details"] = details
+    #     event["num_members"] = len(event["joined"])
     return events
 
 def get_event(event_id):
     es = EntityStore()
     event = es.get_item(EventEntity({ "event_id": event_id }))
+    if event:
+        event = map_event(event)
+    return event
+
+def create_new_event(member_id):
+    event = EventEntity()
+    event["type"] = "e"
+    event["name"] = ""
+    event["description"] = ""
+    event["location"] = ""
+    event["datetime"] = ""
+    event["ownder_member_id"] = member_id
+    event["joined"] = []
     return event
 
 def create_event(_event_def):
@@ -97,6 +127,13 @@ def create_event(_event_def):
     id = generate_id("ev")
     _event_def["event_id"] = id
     event = EventEntity(_event_def)
+    es.upsert_item(event)
+    return event
+
+def store_event(event_def):
+    es = EntityStore()
+    event_def["event_id"] = event_def.get("event_id", generate_id("ev"))
+    event = EventEntity(event_def)
     es.upsert_item(event)
     return event
 
