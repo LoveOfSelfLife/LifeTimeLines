@@ -1,7 +1,7 @@
 import json
 from flask import Blueprint, abort, make_response, render_template, request
 from hx_common import hx_render_template
-from common.fitness.events import EventEntity, create_new_event, list_events, get_event, create_event, store_event, update_event
+from common.fitness.events import EventEntity, create_new_event, list_events, get_event, create_event, store_event, update_event, delete_event, generate_id
 bp = Blueprint('schedule', __name__, template_folder='templates')
 from auth import auth
 
@@ -97,22 +97,19 @@ def create_event(context=None):
     if request.method == 'POST':
         # retrieve the form data
         name = request.form.get('name')
-        type = request.form.get('type')
+        # type = request.form.get('type')
         date = request.form.get('date')
         time = request.form.get('time')
         description = request.form.get('description')
 
-        if name and type and date and time:
+        if name and date and time:
             event={}
-            # ["event_id", "type", "datetime", "name", "description", "location", "owner_member_id", "joined"]
-            event['type'] = type
             event['name'] = name
-            event['description'] = request.form.get('description')
-            event['location'] = request.form.get('location')
+            event['description'] = description
             event['datetime'] = f"{date}T{time}"
+            event['location'] = "Cranford YMCA"
             event['owner_member_id'] = member_id
             event['joined'] = []
-
 
             # update the event in the back-end store
             store_event(event)            
@@ -148,9 +145,43 @@ def new_event(context=None):
 
 @bp.route('/event/delete/<event_id>', methods=['POST'])
 @auth.login_required
-def delete(context=None):
-    print(f"Request: {request.form}")
-    pass
+def remove_event(context=None, event_id=None):
+    user = context.get('user', None)
+    member_id = user.get('sub', None) if user else None   
+
+    event = get_event(event_id)
+    if not event:
+        return abort(404)
+    delete_event(event_id)
+    response = make_response('', 204)
+    response.headers['HX-Trigger'] = json.dumps({
+        "eventListChanged": None,
+        "showMessage": f"Event: {event['name']} deleted."
+    })
+    return response
+
+@bp.route('/leave_event/<event_id>', methods=['POST'])
+@auth.login_required
+def leave_event(context=None, event_id=None):
+    user = context.get('user', None)
+    member_id = user.get('sub', None) if user else None   
+
+    event = get_event(event_id)
+    if not event:
+        return abort(404)
+    joined = event.get('joined', [])
+    new_joined = []
+    for j in joined:
+        if j["member_id"] != member_id:
+            new_joined.append(j)
+    event['joined'] = new_joined
+    store_event(event)            
+    response = make_response('', 204)
+    response.headers['HX-Trigger'] = json.dumps({
+        "eventListChanged": None,
+        "showMessage": f"Event: {event['name']} updated."
+    })
+    return response
 
 @bp.route('/event/create', methods=['POST'])
 @auth.login_required

@@ -17,15 +17,6 @@ class EventEntity (EntityObject):
     def __init__(self, d={}):
         super().__init__(d)
 
-class JoinedEntity (EntityObject):
-    table_name="JoinedTable"
-    fields=["joined_id", "event_id", "member_id", "activity_id"]
-    key_field="joined_id"
-    partition_field="event_id"
-    
-    def __init__(self, d={}):
-        super().__init__(d)
-
 class ActivityEntity (EntityObject):
     table_name="ActivityTable"
     fields=["activity_id", "member_id", "activity_name", "program_instance"]
@@ -62,46 +53,25 @@ def map_event(e):
 def list_events(logged_in_member_id, from_date, to_date):
     es = EntityStore()
     events = []
+    
     for e in es.list_items(EventEntity()):
         event = map_event(e)
-
+        is_joined = False
         joined_list = []
         for j in event.get("joined", []):
             mbr = es.get_item(MemberEntity({ "id": j["member_id"] }))
             j["member_short_name"] = mbr["short_name"]
+            if j["member_id"] == logged_in_member_id:
+                is_joined = True
             joined_list.append(j)
+        event["is_joined"] = is_joined
         event["joined"] = joined_list
         event["num_members_joined"] = len(event["joined"])
+        if e.get("owner_member_id") == logged_in_member_id:
+            event["is_owner"] = True
+        else:
+            event["is_owner"] = False
         events.append(event)
-
-    # # find out who has joined each event    
-    # for event in events:
-    #     event["joined"] = []
-    #     members_who_joined = es.list_items(JoinedEntity({ "event_id": event["event_id"]}))
-    #     for j in members_who_joined:
-    #         member_id = j.get("member_id", None)
-    #         if member_id is None:
-    #             continue
-    #         details = {}
-    #         details["event"] = event
-    #         details["member_id"] = member_id
-
-    #         mbr = es.get_item(MemberEntity({ "id": member_id }))
-    #         details["member_short_name"] = mbr["short_name"]
-
-    #         activity_id = j.get("activity_id", None)
-    #         # TODO:  fix this hack with the "null" string
-    #         if activity_id and activity_id != "null":
-    #             details["activity_id"] = j["activity_id"]
-    #             activity = es.get_item(ActivityEntity({ "activity_id": activity_id }))
-    #             details["activity_name"] = activity["activity_name"]
-    #         else:
-    #             details["activity_id"] = ""
-    #             details["activity_name"] = "No activity yet"
-    #         event["joined"].append(details)
-    #         if logged_in_member_id == member_id:
-    #             event["member_joined_details"] = details
-    #     event["num_members"] = len(event["joined"])
     return events
 
 def get_event(event_id):
@@ -116,7 +86,7 @@ def create_new_event(member_id):
     event["type"] = "e"
     event["name"] = ""
     event["description"] = ""
-    event["location"] = ""
+    event["location"] = "Cranford YMCA"
     event["datetime"] = ""
     event["ownder_member_id"] = member_id
     event["joined"] = []
@@ -141,6 +111,10 @@ def update_event(_event_def):
     print("update_event - not implemented")
     pass
 
+def delete_event(event_id):
+    es = EntityStore()
+    es.delete([event_id],EventEntity)
+    
 def create_activity(_activity_def):
     es = EntityStore()
     id = generate_id("at")
@@ -164,28 +138,3 @@ def get_activity(activity_id):
     es = EntityStore()
     activity = es.get_item(ActivityEntity({ "activity_id": activity_id }))
     return activity
-
-def create_joined_entity(_joined_def):
-    es = EntityStore()
-    id = generate_id("jn")
-    _joined_def["joined_id"] = id
-    joined = JoinedEntity(_joined_def)
-    es.upsert_item(joined)
-    return joined
-
-def list_joined_entities():
-    es = EntityStore()
-    joined_entities = []
-    for e in es.list_items(JoinedEntity()):
-        joined_entity = {}
-        joined_entity["joined_id"] = e["joined_id"] 
-        joined_entity["event_id"] = e["event_id"]
-        joined_entity["member_id"] = e["member_id"]
-        joined_entity["activity_id"] = e["activity_id"]
-        joined_entities.append(joined_entity)
-    return joined_entities
-
-def get_joined_entity(joined_id):
-    es = EntityStore()
-    joined_entity = es.get_item(JoinedEntity({ "joined_id": joined_id }))
-    return joined_entity
