@@ -12,7 +12,7 @@
         <div class="col-12" style="padding-left: 0px; padding-right: 0px;">
             <div class="card border-primary border-1">
                 <div class="card-header fw-bold text-center text-primary">{{ event.name }}</div>
-                <div class="card-sub-title text-center text-secondary">{{ event.description }}</div>
+                <div class="card-sub-title text-center text-secondary">You will do: {{ event.my_activity }}</div>
                 <div class="card-body text-center">
 
                     <div class="h4 fw-bold">{{ event.day_of_week }} {{ event.month }} {{ event.month_day }} @ {{
@@ -31,7 +31,7 @@
                     <button class="btn btn-primary btn-sm text-white m-0"
                         hx-get="/schedule/join_event/{{ event.event_id }}" hx-target="#dialog" hx-swap="innerHTML">
                         {% if event.is_joined %}
-                        Change Activity
+                        Activity
                         {% else %}
                         Join Event
                         {% endif %}

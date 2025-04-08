@@ -33,12 +33,12 @@ def edit_event(context, event_id):
         date = request.form.get('date')
         time = request.form.get('time')
 
-        if name and type and date and time:
+        if name and date and time:
             # ["event_id", "type", "datetime", "name", "description", "location", "owner_member_id", "joined"]
-            event['type'] = type
+            # event['type'] = type
             event['name'] = name
             event['description'] = request.form.get('description')
-            event['location'] = request.form.get('location')
+            event['location'] = "Cranford YMCA"
             event['datetime'] = f"{date}T{time}"
             event['owner_member_id'] = member_id
 

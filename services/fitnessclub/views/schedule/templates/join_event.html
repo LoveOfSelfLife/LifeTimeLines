@@ -1,12 +1,12 @@
 <form hx-post="{{ request.path }}" class="modal-content">
     <div class="modal-header">
-      <h5 class="modal-title">{{ 'Join Event' }}</h5>
+      <h5 class="modal-title text-black">{{ 'Join Event' }}</h5>
       <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
   
     <div class="modal-body">
       <div class="mb-3">
-        <label for="title" class="form-label">Select an activity to do</label>
+        <label for="title" class="form-label text-black">Select an activity to do</label>
         <div class="mb-3">
           <label for="type" class="form-label">Type</label>
           <select name="activity" id="type" class="form-select" required>
