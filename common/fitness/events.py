@@ -58,14 +58,17 @@ def list_events(logged_in_member_id, from_date, to_date):
         event = map_event(e)
         is_joined = False
         joined_list = []
+        my_activity = ""
         for j in event.get("joined", []):
             mbr = es.get_item(MemberEntity({ "id": j["member_id"] }))
             j["member_short_name"] = mbr["short_name"]
             if j["member_id"] == logged_in_member_id:
+                my_activity = j["activity"]
                 is_joined = True
             joined_list.append(j)
         event["is_joined"] = is_joined
         event["joined"] = joined_list
+        event["my_activity"] = my_activity
         event["num_members_joined"] = len(event["joined"])
         if e.get("owner_member_id") == logged_in_member_id:
             event["is_owner"] = True
