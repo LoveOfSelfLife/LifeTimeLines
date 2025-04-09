@@ -11,6 +11,7 @@ from common.discovery import get_service_port
 from base import bp as base_bp
 from views.schedule.routes import bp as schedule_bp
 from views.program.routes import bp as program_bp
+from views.exercises.routes import bp as exercises_bp
 from views.profile.routes import bp as profile_bp
 from views.admin.routes import bp as admin_bp
 from common.env_init import initialize_environment
@@ -44,7 +45,8 @@ def create_app():
                admin_bp, 
                schedule_bp, 
                program_bp,
-               profile_bp]:
+               profile_bp,
+               exercises_bp]:
         app.register_blueprint(bp, url_prefix=f'/{bp.name}')
 
     CORS(app)  
