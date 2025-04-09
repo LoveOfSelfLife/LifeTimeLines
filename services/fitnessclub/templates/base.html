@@ -32,7 +32,7 @@
 <body>
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
     <a class="navbar-brand" href="/">
-      <img src="/static/favicon.ico" alt="App Icon" width="30" height="30">
+      <span><img src="/static/favicon.ico" alt="App Icon" width="30" height="30"> Home</span>
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
       aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,13 +43,16 @@
 
         <li class="nav-item active">
           <a class="nav-link" hx-get="/schedule" hx-target="#content" hx-swap="innerHTML"
-            hx-push-url="/schedule">Upcoming Events</a>
+            hx-push-url="/schedule">Sessions</a>
         </li>
         <li class="nav-item">
           <a class="nav-link" hx-get="/program" hx-target="#content" hx-swap="innerHTML"
-            hx-push-url="/program">Programs</a>
+            hx-push-url="/program">Workouts</a>
         </li>
-
+        <li class="nav-item">
+          <a class="nav-link" hx-get="/exercises" hx-target="#content" hx-swap="innerHTML"
+            hx-push-url="/exercises">Exercises</a>
+        </li>
 
         {% if ctx.admin %}
 
