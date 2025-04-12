@@ -14,6 +14,7 @@ from views.program.routes import bp as program_bp
 from views.exercises.routes import bp as exercises_bp
 from views.profile.routes import bp as profile_bp
 from views.admin.routes import bp as admin_bp
+from views.members.routes import bp as members_bp
 from common.env_init import initialize_environment
 from common.env_context import Env
 from auth import auth
@@ -46,7 +47,9 @@ def create_app():
                schedule_bp, 
                program_bp,
                profile_bp,
-               exercises_bp]:
+               exercises_bp,
+               members_bp
+               ]:
         app.register_blueprint(bp, url_prefix=f'/{bp.name}')
 
     CORS(app)  

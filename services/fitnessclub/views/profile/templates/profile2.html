@@ -1,0 +1,42 @@
+<div class="container">
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h2>Member Profile:</h2>
+        </div>
+        <div class="card-body">
+            <form hx-post="{{ update_url }}" hx-swap="innerHTML" hx-confirm="Are you sure?" hx-target="#content">
+                <div class="table rows">
+                    <input type="hidden" id="id" name="id" value="{{ profile.id }}">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name:</label>
+                        <input type="text" id="name" name="name" class="form-control" value="{{ profile.name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="short_name" class="form-label">Short Name:</label>
+                        <input type="text" id="short_name" name="short_name" class="form-control" value="{{ profile.short_name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email Address:</label>
+                        <input type="email" id="email" name="email" class="form-control" value="{{ profile.email }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="mobile" class="form-label">Mobile Number:</label>
+                        <input type="tel" id="mobile" name="mobile" class="form-control" value="{{ profile.mobile }}" required>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input type="checkbox" id="sms_consent" name="sms_consent" class="form-check-input" value="agree" {{ 'checked' if profile.get('sms_consent', '') == 'agree' else '' }}>
+                        <label for="sms_consent" class="form-check-label">
+                            By checking this box, you agree to receive SMS messages at the mobile number provided.
+                            These messages will notify you about fitness events within the Active Friends Fitness Club. 
+                            You can unselect this checkbox at any time to stop receiving SMS messages.
+                            You can also respond "STOP" to any SMS message to stop receiving messages.
+                        </label>
+                    </div>
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
