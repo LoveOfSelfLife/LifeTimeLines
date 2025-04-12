@@ -4,7 +4,7 @@ import os
 
 from common.blob_store import BlobStore
 from common.entity_store import EntityObject, EntityStore
-from common.fitness.members import MemberEntity
+from common.fitness.member_info import MemberEntity
 from common.fitness.utils import generate_id
 
 class EventEntity (EntityObject):

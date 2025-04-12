@@ -1,5 +1,20 @@
-from common.entity_store import EntityStore
-from common.fitness.members import MemberEntity
+from common.entity_store import EntityObject, EntityStore
+
+class MemberEntity (EntityObject):
+    table_name="MemberTable"
+    fields=["id", "name", "level", "short_name", "email", "mobile", "sms_consent", "email_consent", "image_url"]
+    key_field="id"
+    partition_value="member"
+
+    def __init__(self, d={}):
+        super().__init__(d)
+
+def get_members_list():
+    es = EntityStore()
+    members = []
+    for m in es.list_items(MemberEntity()):
+        members.append(m)
+    return members
 
 def get_user_profile(id):
     es = EntityStore()

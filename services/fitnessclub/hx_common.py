@@ -69,6 +69,10 @@ def verify_admin_member(user):
     else:
         raise NotAdminMemberException()
         
-
-
+def get_member_id(context):
+    member_id = None
+    user = context.get('user', None)
+    if user:
+        member_id = user.get('sub', None)
+    return member_id
         
