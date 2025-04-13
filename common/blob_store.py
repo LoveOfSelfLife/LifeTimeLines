@@ -20,8 +20,11 @@ class BlobStore():
         except ResourceExistsError:
             print("Container already exists")
 
-    def upload(self, local_file_path, blob_name):
-        blob_client = self.container_client.get_blob_client(blob=blob_name)
+    def upload_file(self, local_file_path, blob_name):
         with open(local_file_path, "rb") as data:
-            blob_client.upload_blob(data)
+            self.upload(data, blob_name)
         print(f"File '{local_file_path}' uploaded to '{blob_name}' in container '{self.container_name}'")        
+    
+    def upload(self, data, blob_name):
+        blob_client = self.container_client.get_blob_client(blob=blob_name)
+        blob_client.upload_blob(data)

@@ -60,6 +60,7 @@ def settings(context=None):
 def update_profile(context=None):
     print(f"Request: {request.form}")
 
-    profile = save_user_profile(request.form)
+    profile = save_user_profile(request.form, 
+                                request.files)
     return redirect("/")
   

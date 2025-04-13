@@ -4,7 +4,7 @@
             <h2>Member Profile:</h2>
         </div>
         <div class="card-body">
-            <form hx-post="{{ update_url }}" hx-swap="innerHTML" hx-confirm="Are you sure?" hx-target="#content">
+            <form hx-post="{{ update_url }}" hx-swap="innerHTML" hx-confirm="Are you sure?" hx-target="#content" enctype="multipart/form-data">
                 <div class="table rows">
                     <input type="hidden" id="id" name="id" value="{{ profile.id }}">
                     <div class="mb-3">
@@ -23,6 +23,10 @@
                         <label for="mobile" class="form-label">Mobile Number:</label>
                         <input type="tel" id="mobile" name="mobile" class="form-control" value="{{ profile.mobile }}" required>
                     </div>
+                    <div class="mb-3">
+                        <label for="profile_photo" class="form-label">Profile Photo:</label>
+                        <input type="file" id="profile_photo" name="profile_photo" class="form-control" accept="image/*">
+                    </div>                    
                     <div class="form-check mb-3">
                         <input type="checkbox" id="sms_consent" name="sms_consent" class="form-check-input" value="agree" {{ 'checked' if profile.get('sms_consent', '') == 'agree' else '' }}>
                         <label for="sms_consent" class="form-check-label">

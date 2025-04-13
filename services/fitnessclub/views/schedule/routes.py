@@ -4,6 +4,7 @@ from hx_common import hx_render_template
 from common.fitness.events import EventEntity, create_new_event, list_events, get_event, create_event, store_event, update_event, delete_event, generate_id
 bp = Blueprint('schedule', __name__, template_folder='templates')
 from auth import auth
+from datetime import datetime, timedelta
 
 @bp.route('/')
 @auth.login_required
@@ -12,7 +13,12 @@ def root(context = None):
     user = context.get('user', None)
     if user:
         member_id = user.get('sub', None)
-    events = list_events(member_id, 2, 3)
+    # get today's date
+    today = datetime.now().strftime("%Y-%m-%d")
+    # add 2 weeks to today's date
+    two_weeks_later = (datetime.now() + timedelta(weeks=2)).strftime("%Y-%m-%d")
+
+    events = list_events(member_id, today, two_weeks_later)
     events = sorted(events, key=lambda x: x["datetime_dt"])
     return hx_render_template('event_list.html', context=context, events=events)
 
