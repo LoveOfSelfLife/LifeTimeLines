@@ -56,6 +56,9 @@ def list_events(logged_in_member_id, from_date, to_date):
     
     for e in es.list_items(EventEntity()):
         event = map_event(e)
+        # check if event is in the date range
+        if event["datetime_dt"] < datetime.fromisoformat(from_date) or event["datetime_dt"] > datetime.fromisoformat(to_date):
+            continue
         is_joined = False
         joined_list = []
         my_activity = ""

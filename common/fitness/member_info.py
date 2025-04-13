@@ -1,4 +1,6 @@
+from common.blob_store import BlobStore
 from common.entity_store import EntityObject, EntityStore
+from werkzeug.utils import secure_filename
 
 class MemberEntity (EntityObject):
     table_name="MemberTable"
@@ -21,9 +23,21 @@ def get_user_profile(id):
     profile = es.get_item(MemberEntity({"id" : id}))
     return profile
 
-def save_user_profile(profile):
+def save_user_profile(profile, request_files):
     es = EntityStore()
-    es.upsert_item(MemberEntity(profile))
+    container_name = 'members'
+    bs = BlobStore(container_name)
+    # Handle profile photo upload
+    if 'profile_photo' in request_files:
+        file = request_files['profile_photo']
+        if file and file.filename:
+            filename = secure_filename(file.filename)
+            # Upload the file to Azure Blob Storage
+            bs.upload(file, filename)
+            # Save the blob URL to the user's profile
+            updated_profile = profile.copy()
+            updated_profile["image_url"] = f"https://ltltablestorage.blob.core.windows.net/{container_name}/{filename}"
+    es.upsert_item(MemberEntity(updated_profile))
     MembershipRegistry().refresh_members()
     return profile
 
