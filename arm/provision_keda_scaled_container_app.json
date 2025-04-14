@@ -61,6 +61,15 @@
         },
         "subscription-id": {
             "type": "String"
+        },
+        "b2c-tenant-name": {
+            "type": "String"
+        },
+        "b2c-client-id": {
+            "type": "String"
+        },
+        "b2c-client-secret": {
+            "type": "String"
         }
     },
     "variables": {

@@ -1,1 +1,2 @@
 ACA_TEMPLATE=./provision_keda_scaled_container_app.json
+QUEUE_NAME=inbound-sms-queue
