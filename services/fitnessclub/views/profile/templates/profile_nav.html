@@ -1,15 +1,17 @@
-<div class="col mt-0 bg-dark text-white">
+<div class="col mt-0 bg-white text-black">
     <div class="row">
-        <div class="col-md-1">
-            <nav class="nav flex-column text-white">
-                <a class="nav-link active text-white" hx-get="/profile/profile2" hx-target="#profilecontent"
+        <div class="col-12">
+            <nav class="nav justify-content-center text-black">
+                <a class="nav-link active text-black" hx-get="/profile/profile2" hx-target="#profilecontent"
                     hx-swap="innerHTML">Profile</a>
-                <a class="nav-link text-white" hx-get="/profile/settings" hx-target="#profilecontent"
+                <a class="nav-link text-black" hx-get="/profile/settings" hx-target="#profilecontent"
                     hx-swap="innerHTML">Settings</a>
-                <a class="nav-link text-white" href="/logout">Logout</a>
+                <a class="nav-link text-black" href="/logout">Logout</a>
             </nav>
         </div>
-        <div class="col-md-11" id="profilecontent">
+        <div class="row">        
+            <div class="col-md-11" id="profilecontent">
+            </div>
         </div>
     </div>
 </div>
