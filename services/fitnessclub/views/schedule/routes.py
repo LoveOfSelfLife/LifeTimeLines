@@ -1,7 +1,7 @@
 import json
 from flask import Blueprint, abort, make_response, render_template, request
 from hx_common import hx_render_template
-from common.fitness.events import EventEntity, create_new_event, list_events, get_event, create_event, store_event, update_event, delete_event, generate_id
+from common.fitness.events import EventEntity, EventTypes, create_new_event, list_events, get_event, store_event, update_event, delete_event, generate_id
 bp = Blueprint('schedule', __name__, template_folder='templates')
 from auth import auth
 from datetime import datetime, timedelta
@@ -49,7 +49,7 @@ def edit_event(context, event_id):
             event['owner_member_id'] = member_id
 
             # update the event in the back-end store
-            store_event(event)            
+            store_event(EventTypes.EVENT_UPDATED, event)            
 
             response = make_response('', 204)
             response.headers['HX-Trigger'] = json.dumps({
@@ -83,7 +83,7 @@ def join_event(context, event_id):
         new_joined.append({"member_id": member_id, "activity": activity})
 
         event['joined'] = new_joined
-        store_event(event)            
+        store_event(EventTypes.EVENT_MEMBER_JOINED, event)            
 
         response = make_response('', 204)
         response.headers['HX-Trigger'] = json.dumps({
@@ -96,7 +96,7 @@ def join_event(context, event_id):
 
 @bp.route('/create_event', methods=['GET','POST'])
 @auth.login_required
-def create_event(context=None):
+def create_event_handler(context=None):
     user = context.get('user', None)
     member_id = user.get('sub', None) if user else None   
 
@@ -118,7 +118,7 @@ def create_event(context=None):
             event['joined'] = []
 
             # update the event in the back-end store
-            store_event(event)            
+            store_event(EventTypes.EVENT_CREATED, event)            
 
             response = make_response('', 204)
             response.headers['HX-Trigger'] = json.dumps({
@@ -181,7 +181,7 @@ def leave_event(context=None, event_id=None):
         if j["member_id"] != member_id:
             new_joined.append(j)
     event['joined'] = new_joined
-    store_event(event)            
+    store_event(EventTypes.EVENT_MEMBER_LEFT, event)            
     response = make_response('', 204)
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": None,
@@ -194,24 +194,24 @@ def leave_event(context=None, event_id=None):
 def create(context=None):
     print(f"Request: {request.form}")
 
-    event = create_event(request.form)
+    event = store_event(request.form)
 
     return hx_render_template('event_editor.html', 
                               context=context, 
                               event=event,
                               update_url="/event/update")
 
-@bp.route('/edit/update', methods=['POST'])
-@auth.login_required
-def update_profile(context=None):
-    print(f"Request: {request.form}")
+# @bp.route('/edit/update', methods=['POST'])
+# @auth.login_required
+# def update_profile(context=None):
+#     print(f"Request: {request.form}")
 
-    profile = update_event(request.form)
+#     profile = update_event(request.form)
     
-    return hx_render_template('profile.html', 
-                              context=context, 
-                              profile=profile,
-                              update_url="/profile/update")
+#     return hx_render_template('profile.html', 
+#                               context=context, 
+#                               profile=profile,
+#                               update_url="/profile/update")
 
 
 @bp.route('/view_activity', methods=['GET'])

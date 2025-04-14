@@ -6,6 +6,18 @@ from common.blob_store import BlobStore
 from common.entity_store import EntityObject, EntityStore
 from common.fitness.member_info import MemberEntity
 from common.fitness.utils import generate_id
+from common.fitness.event_publisher import EventPublisher
+
+class EventTypes:
+    EVENT_CREATED = "event_created"
+    EVENT_UPDATED = "event_updated"
+    EVENT_DELETED = "event_deleted"
+    EVENT_MEMBER_JOINED = "event_member_joined"
+    EVENT_MEMBER_LEFT = "event_member_left"
+    EVENT_MEMBER_ACTIVITY = "event_member_activity"
+    EVENT_MEMBER_ACTIVITY_UPDATED = "event_member_activity_updated"
+    EVENT_MEMBER_ACTIVITY_DELETED = "event_member_activity_deleted"
+    
 
 class EventEntity (EntityObject):
     PARTITION_VALUE = "fitness"
@@ -98,19 +110,22 @@ def create_new_event(member_id):
     event["joined"] = []
     return event
 
-def create_event(_event_def):
-    es = EntityStore()
-    id = generate_id("ev")
-    _event_def["event_id"] = id
-    event = EventEntity(_event_def)
-    es.upsert_item(event)
-    return event
+# def create_event(_event_def):
+#     es = EntityStore()
+#     id = generate_id("ev")
+#     _event_def["event_id"] = id
+#     event = EventEntity(_event_def)
+#     es.upsert_item(event)
+#     return event
 
-def store_event(event_def):
+def store_event(update_type, event_def):
     es = EntityStore()
     event_def["event_id"] = event_def.get("event_id", generate_id("ev"))
     event = EventEntity(event_def)
     es.upsert_item(event)
+    ep = EventPublisher()
+    ep.publish_event(update_type, event)
+
     return event
 
 def update_event(_event_def):
