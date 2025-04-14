@@ -70,6 +70,9 @@
         },
         "b2c-client-secret": {
             "type": "String"
+        },
+        "redirect-uri": {
+            "type": "String"
         }
     },
     "variables": {
