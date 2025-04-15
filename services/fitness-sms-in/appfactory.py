@@ -13,7 +13,7 @@ from common.graceful_exit import GracefulExit
 from common.auth_requestor import AuthRequestor
 
 from common.fitness.inbound_sms_queue import InboundSMSQueue
-from common.fitness.sms_processor import process_sms_message
+from common.fitness.sms_processor import process_sms_message, parse_sms_message
 
 def main() -> None:
 
@@ -59,7 +59,8 @@ def main() -> None:
             logger.info(f'Dequeueing: {sms_message.content}')
             inbound_sms_queue_client.delete_message(sms_message.id, sms_message.pop_receipt)
             if sms_message.content is not None:
-                sms_message_content_obj = json.loads(sms_message.content)
+                sms_message_content_obj = parse_sms_message(sms_message.content)
+                
                 try:
                     logger.info(f'START: processing inbound message: {sms_message_content_obj}')
                     result = process_sms_message(sms_message_content_obj, auth.get_auth_token())
