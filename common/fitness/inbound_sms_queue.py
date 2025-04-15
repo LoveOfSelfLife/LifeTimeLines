@@ -7,7 +7,8 @@ from azure.storage.queue import QueueClient
 
 class InboundSMSQueue:
     INBOUND_SMS_QUEUE_NAME = 'inbound-sms-queue'
-    TESTING_INBOUND_SMS_QUEUE_NAME = 'testing-inbound-sms-queue'
+    TESTING_INBOUND_SMS_QUEUE_NAME = 'inbound-sms-queue'
+    # TESTING_INBOUND_SMS_QUEUE_NAME = 'testing-inbound-sms-queue'
 
     queue_client = None
     queue_name = None
