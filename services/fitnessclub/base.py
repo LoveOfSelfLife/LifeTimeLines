@@ -11,7 +11,17 @@ bp = Blueprint('/', __name__, template_folder='templates')
 @bp.route("/about")
 def about():
     return hx_render_template('about.html', context=None)
-    # return render_template("about.html")
+
+
+@bp.route("/privacy")
+def privacy():
+    return render_template('privacy.html', context=None)
+
+
+@bp.route("/data-deletion")
+def data_deletion():
+    return render_template('data_deletion.html', context=None)
+
 
 @bp.route("/")
 @auth.login_required
