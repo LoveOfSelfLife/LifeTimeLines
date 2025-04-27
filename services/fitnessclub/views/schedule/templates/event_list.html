@@ -25,11 +25,11 @@
                     </h5>
                     {% if event.is_owner %}
                     <button class="btn btn-primary btn-sm text-white m-0"
-                        hx-get="/schedule/edit_event/{{ event.event_id }}" hx-target="#dialog" hx-swap="innerHTML">Edit Event</button>
+                        hx-get="/schedule/edit_event/{{ event.id }}" hx-target="#dialog" hx-swap="innerHTML">Edit Event</button>
                     {% endif %}
 
                     <button class="btn btn-primary btn-sm text-white m-0"
-                        hx-get="/schedule/join_event/{{ event.event_id }}" hx-target="#dialog" hx-swap="innerHTML">
+                        hx-get="/schedule/join_event/{{ event.id }}" hx-target="#dialog" hx-swap="innerHTML">
                         {% if event.is_joined %}
                         Activity
                         {% else %}
@@ -37,7 +37,7 @@
                         {% endif %}
                     </button>    
                     {% if event.is_joined %}
-                    <button type="button" class="btn btn-danger" hx-post="/schedule/leave_event/{{ event['event_id'] }}"
+                    <button type="button" class="btn btn-danger" hx-post="/schedule/leave_event/{{ event['id'] }}"
                         hx-confirm="Are you sure you want to leave this event?">Leave</button>
                     <span class="flex-grow-1"></span>
                     {% endif %}

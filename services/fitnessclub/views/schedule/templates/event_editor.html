@@ -39,7 +39,7 @@
 
     <div class="modal-footer">
         {% if event %}
-        <button type="button" class="btn btn-danger" hx-post="/schedule/event/delete/{{ event['event_id'] }}"
+        <button type="button" class="btn btn-danger" hx-post="/schedule/event/delete/{{ event['id'] }}"
             hx-confirm="Are you sure you want to delete this event?">Remove</button>
         <span class="flex-grow-1"></span>
         {% endif %}
