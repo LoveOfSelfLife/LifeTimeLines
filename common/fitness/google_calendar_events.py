@@ -195,40 +195,44 @@ class GoogleCalendarService:
         events = self.get_events(date_min=date_min, date_max=date_max)
         sorted_events = sorted(events, key=lambda x: x['start'].get('dateTime', x['start'].get('date')))
         events_list = []
-        date_cursor = event_date = datetime.fromisoformat(date_min).date()
+        date_cursor = event_date_dt = datetime.fromisoformat(date_min).date()
 
         for event in sorted_events:
-            event_date = get_date_of_event(event)
-            while date_cursor <= event_date:
+            event_date_dt = get_date_of_event(event)
+            while date_cursor <= event_date_dt:
                 # add a date object for the date cursor to the output stream
                 date_dict = {
                     "type": "date",
                     "date": date_cursor.strftime("%Y-%m-%d"),
                     "month": date_cursor.strftime("%B"),
                     "monthDay": date_cursor.strftime("%d"),
-                    "dayOfWeek": date_cursor.strftime("%a")
+                    "dayOfWeek": date_cursor.strftime("%a"),
+                    "display_date": date_cursor.strftime("%B %d")
                 }
                 events_list.append(date_dict)
                 date_cursor += timedelta(days=1)
 
             event_date = event['start'].get('dateTime', event['start'].get('date'))
-            event_date = datetime.fromisoformat(event_date).date()
+            event_date_dt = datetime.fromisoformat(event_date).date()
             event_time = event['start'].get('dateTime', event['start'].get('date'))
             event_time = datetime.fromisoformat(event_time).time()
             event_display_time = event_time.strftime("%I:%M %p")
             event_time = event_time.strftime("%H:%M")
-            event_day_of_week = event_date.strftime("%a")
-            event_month = event_date.strftime("%B")
-            event_month_day = event_date.strftime("%d")
+            event_day_of_week = event_date_dt.strftime("%a")
+            event_month = event_date_dt.strftime("%B")
+            event_month_day = event_date_dt.strftime("%d")
             event_month_day = int(event_month_day)
-            event_date = event_date.strftime("%Y-%m-%d")
+            event_date = event_date_dt.strftime("%Y-%m-%d")
+            # display date as month name and day of month
+            event_display_date = event_date_dt.strftime("%B %d")
             event_summary = event.get('summary', '')
             event_id = event.get('id', '')
             event_type = 'event'
             event_dict = {
                 'id': event_id,
                 'type': event_type,
-                'date': event_date,
+                'date': event_date_dt,
+                'display_date': event_display_date,
                 'dayOfWeek': event_day_of_week,
                 'month': event_month,
                 'monthDay': event_month_day,
@@ -285,9 +289,57 @@ class GoogleCalendarService:
         except Exception as error:
             print(f"An error occurred: {error}")
 
-    def update_workout_event(self, id, date, time, member):
-        print(f"Updating event {id} to {date} at {time} for member {member}")
-        pass
+    def update_workout_event(self, id, event_date, event_time, member_id, location='', description='workout session'):
+        print(f"Updating event {id} to {event_date} at {event_time} for member {member_id}")
+        """
+        Adds an event to the Google Calendar.
+
+        Args:
+            event (dict): The event to add.
+        """
+        
+        # date is formatted as MM/DD/YYYY
+        # time is formatted as HH:MM in military time
+
+        event_date = datetime.strptime(event_date, "%Y-%m-%d").date()
+        event_time = datetime.strptime(event_time, "%H:%M").time()
+        event_datetime = datetime.combine(event_date, event_time)
+        #end time is 1 hour later
+        event_datetime_end = event_datetime + timedelta(hours=1)
+
+        profile = get_user_profile(member_id)
+        if profile:
+            member_short_name = profile.get('short_name', member_id)
+        else:
+            print(f"Unable to get profile for member id {member_id}")
+
+        event = {
+            'summary': f'{member_short_name}',
+            'location': location,
+            'description': description,
+            'start': {
+                'dateTime': f'{event_datetime.isoformat()}',
+                'timeZone': 'America/New_York'
+            },
+            'end': {
+                'dateTime': f'{event_datetime_end.isoformat()}',
+                'timeZone': 'America/New_York', 
+            }
+        }
+
+        try:
+            event = self.service.events().update(calendarId=self.calendar_id, eventId=id, body=event).execute()
+            print("Event created: %s" % (event.get("htmlLink")))
+        except Exception as error:
+            print(f"An error occurred: {error}")
+
+    def delete_workout_event(self, id):
+        try:
+            event = self.service.events().delete(calendarId=self.calendar_id, eventId=id).execute()
+            print("Event deleted: %s" % (event.get("htmlLink"))) 
+        except Exception as error:
+            print(f"An error occurred: {error}")
+
 
 
 def get_date_of_event(event):

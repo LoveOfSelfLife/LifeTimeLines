@@ -1,11 +1,11 @@
-<div class="table-responsive" hx-trigger="eventListChanged from:body" hx-get="/schedule/your-schedule" hx-target="this" hx-swap="outerHTML">>
+<div class="table-responsive" hx-trigger="eventListChanged from:body" hx-get="/schedule/your-schedule" hx-target="this" hx-swap="outerHTML">
     <table class="table table-sm table-custom align-middle mb-0">
       <tbody>
 {% for e in events %}
 {% if e.type == "date" %}
         <tr class="date-row">
           <td colspan="3" class="px-3 py-2 fw-bold small text-uppercase">
-            {{ e.date }}  {{ e.dayOfWeek}}
+            {{ e.dayOfWeek}} {{ e.display_date }}  
             <button class="btn btn-sm btn-outline-primary float-end"hx-get="/schedule/create_event?date={{ e.date }}" hx-target="#dialog" hx-swap="innerHTML">
               <i class="bi bi-plus-lg"></i>
             </button>

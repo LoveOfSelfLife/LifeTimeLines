@@ -1,13 +1,11 @@
-<h2>Schedule of events</h2>
-
 <ul class="nav nav-tabs">
     <li class="nav-item">
-        <a class="nav-link active" aria-current="page" hx-get="/schedule/calendar" hx-target="#scheduleContent" hx-swap="innerHTML">Club Calendar</a>
+        <a class="nav-link active" aria-current="page" hx-trigger="load, click" hx-get="/schedule/your-schedule" hx-target="#scheduleContent" hx-swap="innerHTML">Club Schedule</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" aria-current="page" hx-get="/schedule/your-schedule" hx-target="#scheduleContent" hx-swap="innerHTML">Your Schedule</a>
+        <a class="nav-link" aria-current="page" hx-get="/schedule/calendar" hx-target="#scheduleContent" hx-swap="innerHTML">Google Calendar</a>
     </li>
   </ul>
   <div id="scheduleContent" class="tab-content"> 
-    {% include "google_calendar.html" %}
+    <h1>loading...</h1>
   </div>

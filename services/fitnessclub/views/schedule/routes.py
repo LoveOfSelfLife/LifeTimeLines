@@ -89,7 +89,8 @@ def edit_event(context):
             "id": event_id,
             "date": event_date,
             "time": event_time,
-            "member": member_short_name
+            "member": member_short_name,
+            "member_id": member_id
         }
 
     if request.method == 'POST':
@@ -97,12 +98,11 @@ def edit_event(context):
         id = request.form.get('id')
         date = request.form.get('date')
         time = request.form.get('time')
-        member = member_short_name
 
         if date and time:
             # update the event in the back-end store
             calendar_service = get_calendar_service()    
-            calendar_service.update_workout_event(id, date, time, member)
+            calendar_service.update_workout_event(id, date, time, member_id)
 
             response = make_response('', 204)
             response.headers['HX-Trigger'] = json.dumps({
@@ -112,6 +112,26 @@ def edit_event(context):
             return response
 
     return render_template('event_editor.html', event=event, update_url=f"/schedule/edit_event")
+
+@bp.route('/delete_event/<id>', methods=['POST'])
+@auth.login_required
+def remove_workout_session(context=None, id=None):
+    user = context.get('user', None)
+    member_id = user.get('sub', None) if user else None   
+
+    # if not workout_session:
+        # return abort(404)
+    calendar_service = get_calendar_service()    
+    calendar_service.delete_workout_event(id)
+
+    response = make_response('', 204)
+    response.headers['HX-Trigger'] = json.dumps({
+        "eventListChanged": None,
+        "showMessage": f"Event deleted."
+    })
+    return response
+
+
 
 @bp.route('/join_event/<id>', methods=['GET', 'POST'])
 @auth.login_required
@@ -163,22 +183,6 @@ def new_workout_session(context=None):
                               context=context, 
                               update_url="/event/edit/update")
 
-@bp.route('/event/delete/<id>', methods=['POST'])
-@auth.login_required
-def remove_workout_session(context=None, id=None):
-    user = context.get('user', None)
-    member_id = user.get('sub', None) if user else None   
-
-    workout_session = get_workout_session(id)
-    if not workout_session:
-        return abort(404)
-    delete_workout_session(id)
-    response = make_response('', 204)
-    response.headers['HX-Trigger'] = json.dumps({
-        "eventListChanged": None,
-        "showMessage": f"Event: {workout_session['name']} deleted."
-    })
-    return response
 
 @bp.route('/leave_event/<id>', methods=['POST'])
 @auth.login_required

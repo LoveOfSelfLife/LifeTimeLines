@@ -24,7 +24,7 @@
     <div class="modal-footer">
         <!-- here I only want to include this code if the event object is not empty and it has a non null 'id' attribute  -->
         {% if event and event['id'] %}
-        <button type="button" class="btn btn-danger" hx-post="/schedule/event/delete/{{ event['id'] }}"
+        <button type="button" class="btn btn-danger" hx-post="/schedule/delete_event/{{ event['id'] }}"
             hx-confirm="Are you sure you want to delete this event?">Remove</button>
         <span class="flex-grow-1"></span>
         {% endif %}
