@@ -6,7 +6,7 @@ from common.blob_store import BlobStore
 from common.entity_store import EntityObject, EntityStore
 from common.fitness.member_info import MemberEntity
 from common.fitness.utils import generate_id
-from common.fitness.event_publisher import EventPublisher
+from common.fitness.message_publisher import MessagePublisher
 
 class EventTypes:
     EVENT_CREATED = "event_created"
@@ -116,8 +116,8 @@ def store_workout_session(update_type, workout_session_def):
     workout_session_def["id"] = workout_session_def.get("id", generate_id("ev"))
     workout_session = WorkoutSessionEntity(workout_session_def)
     es.upsert_item(workout_session)
-    ep = EventPublisher()
-    ep.publish_event(update_type, workout_session)
+    ep = MessagePublisher()
+    ep.publish_message(update_type, workout_session)
 
     return workout_session
 
