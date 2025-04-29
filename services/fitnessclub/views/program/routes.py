@@ -7,3 +7,4 @@ from auth import auth
 @auth.login_required
 def root(context=None):
     return hx_render_template('program.html', context=context)
+

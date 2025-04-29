@@ -1,7 +1,7 @@
 from common.fitness.outbound_event_queue import OutboundEventQueue
 import json
 
-class EventPublisher:
+class MessagePublisher:
     """
     EventPublisher is a class that used by the fitness app to publish events to the Azure storage queue.
     It is used to publish significant events that will be consumed by the fitness event processor.
@@ -11,7 +11,7 @@ class EventPublisher:
         self.queue_client = OutboundEventQueue.get_queue_client()
         self.queue_name = OutboundEventQueue.queue_name
 
-    def publish_event(self, event_type, event_data):
+    def publish_message(self, event_type, event_data):
         """
         Publish an event to the Azure storage queue.
         :param event_type: The type of the event to publish.

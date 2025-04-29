@@ -13,7 +13,7 @@ from common.graceful_exit import GracefulExit
 from common.auth_requestor import AuthRequestor
 
 from common.fitness.outbound_event_queue import OutboundEventQueue
-from common.fitness.event_processor import process_event_message
+from common.fitness.message_processor import process_fitness_message
 
 def main() -> None:
 
@@ -60,7 +60,7 @@ def main() -> None:
                 event_message_content_obj = json.loads(event_message.content)
                 try:
                     logger.info(f'START: processing outbound event message: {event_message_content_obj}')
-                    result = process_event_message(event_message_content_obj, auth.get_auth_token())
+                    result = process_fitness_message(event_message_content_obj, auth.get_auth_token())
                     logger.info(f'END: executing outbound event message')
                 except Exception as e:
                     logger.error(f'ERROR: processing outbound event message: {e}')
