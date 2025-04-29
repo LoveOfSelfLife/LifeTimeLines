@@ -33,8 +33,12 @@ def your_schedule(context = None):
     if user:
         member_id = user.get('sub', None)
         member_short_name = get_user_profile(member_id).get('short_name', None)    
-
-    events = cal.get_dates_and_events_stream(date_min="2025-04-28", date_max="2025-05-05")
+    # here we figure out the date range for the calendar
+    # the start date is today, and the end date is 14 days from today
+    today = datetime.now()
+    start_date = today.strftime("%Y-%m-%d")
+    end_date = (today + timedelta(days=14)).strftime("%Y-%m-%d")
+    events = cal.get_dates_and_events_stream(date_min=start_date, date_max=end_date)
     return render_template('your_schedule.html', context=context, member_short_name=member_short_name, events=events)
 
 @bp.route('/create_event', methods=['GET','POST'])

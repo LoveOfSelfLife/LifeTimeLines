@@ -196,6 +196,7 @@ class GoogleCalendarService:
         sorted_events = sorted(events, key=lambda x: x['start'].get('dateTime', x['start'].get('date')))
         events_list = []
         date_cursor = event_date_dt = datetime.fromisoformat(date_min).date()
+        end_date = datetime.fromisoformat(date_max).date()
 
         for event in sorted_events:
             event_date_dt = get_date_of_event(event)
@@ -241,7 +242,20 @@ class GoogleCalendarService:
                 'summary': event_summary
             }
             events_list.append(event_dict)
-        
+        # after we process all the events, we need to add the date objects for the remaining dates in the range
+        # this is the case where the last event is not the last date in the range
+        while date_cursor <= end_date:
+            # add a date object for the date cursor to the output stream
+            date_dict = {
+                "type": "date",
+                "date": date_cursor.strftime("%Y-%m-%d"),
+                "month": date_cursor.strftime("%B"),
+                "monthDay": date_cursor.strftime("%d"),
+                "dayOfWeek": date_cursor.strftime("%a"),
+                "display_date": date_cursor.strftime("%B %d")
+            }
+            events_list.append(date_dict)
+            date_cursor += timedelta(days=1)        
         return events_list
 
 

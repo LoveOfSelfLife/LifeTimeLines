@@ -127,7 +127,9 @@ body {
 .content {
     padding: 20px;
     min-height: calc(100vh - 60px); /* ensure content fills the viewport */
-    background: #333;
+    /* background: url('images/ymca-1.jpg') center/cover no-repeat;     */
+    /* background: #bc095a; */
+    /* background: #333; */
     margin-top: 60px; /* account for fixed navbar */
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
