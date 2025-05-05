@@ -19,6 +19,12 @@ class GoogleCalendarService:
         self.service = build_calendar_service()
         self.calendar_id = 'primary'
 
+    def reset_calendar_service(self):
+        """
+        Resets the Google Calendar API service by reinitializing it.
+        """
+        self.service = build_calendar_service()
+
     def get_events(self, date_min:str=None, date_max:str=None):
         """
         Fetches events from the Google Calendar.
@@ -48,8 +54,15 @@ class GoogleCalendarService:
             return events_result.get('items', [])
         except Exception as error:
             print(f"An error occurred: {error}")
-            return []
-        
+            print(f"resetting calendar service and retrying")
+            self.reset_calendar_service()
+            try:
+                events_result = self.service.events().list(calendarId=self.calendar_id,  
+                                                           timeMin=time_min, timeMax=time_max).execute()
+                return events_result.get('items', [])
+            except Exception as error:
+                print(f"An error occurred on retry: {error}")
+                return []
 
     def get_dates_and_events_stream(self, date_min:str=None, date_max:str=None):
         """
@@ -84,7 +97,7 @@ class GoogleCalendarService:
         when the date changes, we will add the date object to the list of events and continue adding events until the date changes again.
         we will continue this process until we reach the end of the date range.
 
-        """
+
         events = [
             {
                 "type": "date",
@@ -192,6 +205,7 @@ class GoogleCalendarService:
             "summary": "workout: Rich K"
             }        
         ]
+        """        
         events = self.get_events(date_min=date_min, date_max=date_max)
         sorted_events = sorted(events, key=lambda x: x['start'].get('dateTime', x['start'].get('date')))
         events_list = []
