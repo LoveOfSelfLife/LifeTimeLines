@@ -10,7 +10,7 @@ from common.fitness.utils import convert_to_alphanumeric
 
 class ExerciseEntity (EntityObject):
     table_name="ExerciseTable"
-    fields=["id", "type", "name", "force", "level", "mechanic", "equipment", "primaryMuscles", "secondaryMuscles", "instructions", "category", "images", "videos"]
+    fields=["id", "type", "name", "force", "level", "mechanic", "equipment", "equipment_number", "origin",  "primaryMuscles", "secondaryMuscles", "instructions", "category", "images", "videos"]
     key_field="id"
     partition_value="exercise"
 
