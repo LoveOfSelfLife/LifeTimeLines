@@ -3,10 +3,11 @@ import os
 from dotenv import load_dotenv
 import json
 from common.entity_store import EntityStore
+from common.fitness.exercise_entity import ExerciseEntity
 from common.table_store import TableStore
 from common.blob_store import BlobStore
-from common.fitness.exercises import load_exercise_into_index_table, exercise_generator, load_exercises
-from common.fitness.exercises import ExerciseEntity, ExerciseIndexEntity
+from common.fitness.exercises_loader import load_exercise_into_index_table, exercise_generator, load_exercises
+from common.fitness.exercise_entity import ExerciseIndexEntity
 
 
 def init():
