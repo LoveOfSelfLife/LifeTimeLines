@@ -1,7 +1,7 @@
 from hashlib import sha256
 from common.entity_store import EntityObject
 from common.fitness.utils import convert_to_alphanumeric
-
+import json
 
 class ExerciseEntity (EntityObject):
     table_name="ExerciseTable"
