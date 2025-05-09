@@ -5,7 +5,9 @@ import json
 
 class ExerciseEntity (EntityObject):
     table_name="ExerciseTable"
-    fields=["id", "type", "name", "force", "level", "mechanic", "equipment", "equipment_number", "origin",  "primaryMuscles", "secondaryMuscles", "instructions", "category", "images", "videos"]
+    fields=["id", "type", "name", "force", "level", "mechanic", "equipment", "equipment_detail", 
+            "origin",  "primaryMuscles", "secondaryMuscles", "instructions", "category", "images", "videos", 
+            "setCompletionMeasure", "udf1", "udf2"]
     key_field="id"
     partition_value="exercise"
 

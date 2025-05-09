@@ -18,21 +18,7 @@ def init():
     TableStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
     BlobStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
 
-def read_exercises_table():
-        print(f"read_exercises_table")
-        es = EntityStore()
-        exercises = []
-        for e in es.list_items(ExerciseEntity()):
-            exercises.append(e)
-        print(f"number of exercises: {len(exercises)}")
-        max_show = 4
-        for exercise in exercises:
-            if max_show == 0:
-                break
-            max_show -= 1
-            print(f"exercise: {json.dumps(exercise, indent=4)}")
-
-def transform_exercise_table():
+def transform_exercise_table(f):
     es = EntityStore()
     exercises = []
     for e in es.list_items(ExerciseEntity()):
@@ -41,11 +27,11 @@ def transform_exercise_table():
     updated_exercises = []
     for exercise in exercises:
         # Transform the exercise data as needed
-        transformed_exercise = transform_exercise(exercise)
+        transformed_exercise = ExerciseEntity(f(exercise))
         updated_exercises.append(transformed_exercise)
-    es.upsert_items(updated_exercises, ExerciseEntity())
+    es.upsert_items(updated_exercises)
 
-def export_exercises():
+def export_exercises(json_file = "exercise_export.json"):
     es = EntityStore()
     exercises = []
     for e in es.list_items(ExerciseEntity()):
@@ -53,14 +39,34 @@ def export_exercises():
 
     updated_exercises = []
     for exercise in exercises:
-        # Transform the exercise data as needed
-        transformed_exercise = transform_exercise(exercise)
-        updated_exercises.append(transformed_exercise)
-
-    json_file = "exercise_export.json"
+        updated_exercises.append(exercise)
+    
     with open(json_file, "w") as f:
         json.dump(updated_exercises, fp=f, indent=4)
 
+def transform_instructions(exercise_data):
+    # Transform the exercise instructions from a list of strings into a single string delimited by new lines
+    exercise = exercise_data.copy()
+    if exercise.get("instructions", None) is None:
+        exercise["instructons"] = ""
+    if isinstance(exercise["instructions"], list):
+        exercise["instructions"] = "\n".join(exercise["instructions"])
+    exercise['setCompletionMeasure'] = "reps"
+    return exercise 
+
+def convert_image_id_to_url(exercise_data):
+    # Transform the exercise instructions from a list of strings into a single string delimited by new lines
+    exercise = exercise_data.copy()
+    base_url = "https://ltltablestorage.blob.core.windows.net/fitness-media"
+    if exercise.get("images", None) is None:
+        exercise["images"] = []
+    else:
+        for img in exercise["images"]:
+            if 'id' not in img:
+                continue
+            img['url'] = f"{base_url}/{img['id']}"
+            del img['id']  # remove the id field
+    return exercise 
 
 def transform_exercise(exercise_data):
     # Transform the exercise data as needed
@@ -74,7 +80,7 @@ def transform_exercise(exercise_data):
         img['description'] = f"{img['description']}"
     if exercise.get("videos") is None:
         exercise["videos"] = []
-    exercise['equipment_number'] = ""
+    exercise['equipment_detail'] = ""
     exercise['origin'] = "exercises.json"
     return exercise 
 
@@ -83,4 +89,10 @@ if __name__ == '__main__':
     # Initialize the environment and run the test function
     init()
     # read_exercises_table()
-    export_exercises()
+    # transform_exercise_instructions()
+    # check_exercise_instructions()
+    # transform_exercise_table(transform_add_setcompletionmeasure)
+    # export_exercises()
+    transform_exercise_table(convert_image_id_to_url)
+    export_exercises("exercise_export_with_img_urls.json")
+    
