@@ -2,12 +2,16 @@ from hashlib import sha256
 from common.entity_store import EntityObject
 from common.fitness.utils import convert_to_alphanumeric
 import json
+from common.fitness.exercise_schema import schema as exercise_schema
 
 class ExerciseEntity (EntityObject):
     table_name="ExerciseTable"
-    fields=["id", "type", "name", "force", "level", "mechanic", "equipment", "equipment_number", "origin",  "primaryMuscles", "secondaryMuscles", "instructions", "category", "images", "videos"]
+    fields=["id", "type", "name", "force", "level", "mechanic", "equipment", "equipment_detail", 
+            "origin",  "primaryMuscles", "secondaryMuscles", "instructions", "category", "images", "videos", 
+            "setCompletionMeasure", "udf1", "udf2"]
     key_field="id"
     partition_value="exercise"
+    schema = exercise_schema
 
     def __init__(self, d={}):
         super().__init__(d)

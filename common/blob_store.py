@@ -28,3 +28,7 @@ class BlobStore():
     def upload(self, data, blob_name):
         blob_client = self.container_client.get_blob_client(blob=blob_name)
         blob_client.upload_blob(data)
+
+    def get_blob_client(self, blob_name):
+        return self.container_client.get_blob_client(blob=blob_name)
+    

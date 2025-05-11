@@ -1,7 +1,7 @@
 <form hx-post="{{ request.path }}"
     class="modal-content">
     <div class="modal-header text-black">
-        <h5 class="modal-title">{{ 'Edit Event' if event and event['id'] else 'Add Event' }}</h5>
+        <h5 class="modal-title">{{ 'Modify your appointment' if event and event['id'] else 'Make appointment at gym' }}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
 
@@ -25,7 +25,7 @@
         <!-- here I only want to include this code if the event object is not empty and it has a non null 'id' attribute  -->
         {% if event and event['id'] %}
         <button type="button" class="btn btn-danger" hx-post="/schedule/delete_event/{{ event['id'] }}"
-            hx-confirm="Are you sure you want to delete this event?">Remove</button>
+            hx-confirm="Are you sure you want to remove you appointment at the gym?">Remove</button>
         <span class="flex-grow-1"></span>
         {% endif %}
 

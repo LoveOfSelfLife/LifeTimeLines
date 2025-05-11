@@ -1,12 +1,14 @@
 from common.blob_store import BlobStore
 from common.entity_store import EntityObject, EntityStore
 from werkzeug.utils import secure_filename
+from common.fitness.member_schema import member_schema
 
 class MemberEntity (EntityObject):
     table_name="MemberTable"
     fields=["id", "name", "level", "short_name", "email", "mobile", "sms_consent", "email_consent", "image_url"]
     key_field="id"
     partition_value="member"
+    schema = member_schema
 
     def __init__(self, d={}):
         super().__init__(d)
@@ -55,6 +57,7 @@ def get_user_info_from_token(token):
             member['name'] = member['email']
     
     return member
+
 
 class MembershipRegistry:
     _members = None
