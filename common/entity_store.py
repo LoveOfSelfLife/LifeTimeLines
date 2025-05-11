@@ -15,6 +15,7 @@ class EntityObject (dict):
     partition_value=None
     items_list_field = None
     is_editable = False
+    schema=None
 
     def __init__(self, d={}):
         dict.__init__(d)
@@ -55,6 +56,9 @@ class EntityObject (dict):
     
     def get_items_list_field(self):
         return type(self).items_list_field
+
+    def get_schema(self):
+        return type(self).schema
 
     def get_key_generator(self):
         tbl = type(self).table_name

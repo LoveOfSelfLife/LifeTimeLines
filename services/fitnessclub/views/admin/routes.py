@@ -1,23 +1,23 @@
 import os
 import json
-from flask import Blueprint, render_template, request, redirect
+from flask import Blueprint, jsonify, render_template, request, redirect
 import requests
 from auth import auth
-from common.fitness.active_fitness_registry import get_active_fitness_entity_names, get_active_fitness_entity_by_name
+from common.fitness.active_fitness_registry import get_fitnessclub_entity_names, get_fitnessclub_entity_by_name
 from common.env_context import Env
 from hx_common import hx_render_template
 from common.entity_store import EntityStore
 bp = Blueprint('admin', __name__, template_folder='templates')
 
-def get_config_entity_ctx(config):
-    entity =get_active_fitness_entity_by_name(config)
+def get_entity_table_ctx(config):
+    entity, listing_fields  =get_fitnessclub_entity_by_name(config)
     fields = entity.get_fields()
     es = EntityStore()
     entities_list = es.list_items(entity)
     entities = []
     for e in entities_list:
         val_list = []
-        for f in fields:
+        for f in listing_fields:
             v = e.get(f, None)
             val_list.append(v)
         key_val = e.get_key_value()
@@ -26,7 +26,7 @@ def get_config_entity_ctx(config):
 
     ctx = {
             "entity_type" : config,
-            "fields" : fields,
+            "fields" : listing_fields,
             "entities" : entities }
     return ctx
     
@@ -41,20 +41,20 @@ def get_editable_fields(entity):
     return efields
 
 def get_allowed_tables():
-    return get_active_fitness_entity_names()
+    return get_fitnessclub_entity_names()
 
 @bp.route('/')
 @auth.login_required
-def config_listing(context=None):
+def table_listing(context=None):
 
-    config_id = request.args.get('entity-type')
-    if not config_id:
-        return "No config provided", 404
+    table_id = request.args.get('entity-type')
+    if not table_id:
+        return "No table name provided", 404
 
-    ctx = get_config_entity_ctx(config_id)
+    ctx = get_entity_table_ctx(table_id)
 
     return hx_render_template('admin/entity_list.html', 
-                              ctx=ctx, table_id=config_id, 
+                              ctx=ctx, table_id=table_id, 
                               context=context) 
 
 @bp.route('/edit')
@@ -65,7 +65,7 @@ def entity_editor(context=None):
         return "No table id provided", 404
     if table_id not in get_allowed_tables():
         return "Table not allowed", 404
-    entity = get_active_fitness_entity_by_name(table_id)
+    entity, _ = get_fitnessclub_entity_by_name(table_id)
 
     key_val = request.args.get('key', None)
     partition_val = request.args.get('partition', None)
@@ -77,9 +77,13 @@ def entity_editor(context=None):
         entity[pf] = partition_val
     entity_to_edit = es.get_item(entity)
     fields = get_editable_fields(entity)
-    
+    schema = entity.get_schema()
+    if 'Timestamp' in entity_to_edit:
+        del(entity_to_edit['Timestamp'])
+
     # return json.dumps(entity_to_edit)
-    return hx_render_template('admin/entity_edit.html', entity=entity_to_edit, fields=fields, 
+    return hx_render_template('admin/entity_editor.html', entity=entity_to_edit, schema=schema,
+                              fields=fields, 
                               table_id=table_id, errors={},
                               key_val = key_val, partition_val = partition_val,
                               back_url = f'/admin?entity-type={table_id}',
@@ -94,7 +98,7 @@ def update_entity(context=None):
         return "No table id provided", 404
     if table_id not in get_allowed_tables():
         return "Table not allowed", 404
-    entity_type = get_active_fitness_entity_by_name(table_id)
+    entity_type, _ = get_fitnessclub_entity_by_name(table_id)
     key_val = request.args.get('key', None)
     partition_val = request.args.get('partition', None)
     entity = request.form
@@ -113,3 +117,30 @@ def update_entity(context=None):
 
     es.upsert_item(updated_entity)
     return redirect(f'/admin?entity-type={table_id}') 
+
+@bp.route('/save/<table_id>', methods=['POST'])
+@auth.login_required
+def save_json(context=None, table_id=None):
+
+    # 1) Parse the incoming JSON
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({"error": "Invalid or missing JSON"}), 400
+
+    # 2) Here’s where you’d persist it:
+    #    e.g. save_to_db(data), write to file, etc.
+    #    For now we'll just log it
+
+    print(f"Received JSON payload for table {table_id}: {data}")
+    entity,_ = get_fitnessclub_entity_by_name(table_id)
+    es = EntityStore()
+    entity.initialize(data)
+    es.upsert_item(entity)
+
+    # 3) Send back a JSON confirmation
+    return jsonify({
+        "status": "success",
+        "message": "JSON saved",
+        # echoing back the payload is optional:
+        # "savedData": data
+    }), 200

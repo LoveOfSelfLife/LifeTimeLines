@@ -137,18 +137,30 @@ body {
 
 /* Form styling */
 .form-label {
+    color:blue;
     font-weight: bold;
     text-align: left; /* Ensure labels are left-justified */
 }
 .form-control {
     border-color: black;
     border-radius: 5px;
+    font-size:x-small;
 }
 .form-check-label {
     margin-left: 5px;
+    color:black;
+    font-size: x-small;
     text-align: left; /* Ensure labels are left-justified */
 }
-
+.form-check-input {
+    margin-right: 5px;
+    border-color:black;
+    width: 20px; /* Adjust size of checkbox */
+    height: 20px; /* Adjust size of checkbox */
+}
+.col-md-12 span.h3.card-title.level-2 {
+  color: blue;
+}
 /* Responsive styling for tablets and smaller devices */
 @media (max-width: 768px) {
     .navbar-brand img {

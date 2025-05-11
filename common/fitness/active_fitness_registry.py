@@ -5,16 +5,25 @@ from common.fitness.member_info import MemberEntity
 
 class ActiveFitnessRegistry:
     editable_entities = {
-        "members" : MemberEntity(),
-        "exercises" : ExerciseEntity(),
-        "programs" : ProgramEntity()
-    }
+        "members" : { "entity": MemberEntity(), 
+                      "listing_view_fields": ["id", "name", "short_name", "email", "level", "is_active", "is_admin"],
+                     },
+        "exercises" : { "entity": ExerciseEntity(),
+                        "listing_view_fields": ["name", "category"],
+                       },
+        "programs" : { "entity": ProgramEntity(),
+                        "listing_view_fields": ["id", "name"]
+                       }
+                      }
     non_editable_entities = {
     }
     entities = {**editable_entities, **non_editable_entities}
 
-def get_active_fitness_entity_names():
+def get_fitnessclub_entity_names():
     return list(ActiveFitnessRegistry.editable_entities.keys())
 
-def get_active_fitness_entity_by_name(name):
-    return ActiveFitnessRegistry.editable_entities.get(name, None)
+def get_fitnessclub_entity_by_name(name):
+    entry = ActiveFitnessRegistry.editable_entities.get(name, None)
+    if entry:
+        return entry["entity"], entry["listing_view_fields"]
+    return None, None

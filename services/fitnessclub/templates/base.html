@@ -11,7 +11,12 @@
   <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />   -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet"/>  
   
-  <script src="/static/js/htmx-1.8.0.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" crossorigin="anonymous" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/json-editor@latest/dist/themes/bootstrap5.min.css">
+    
+  <script src="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js"></script>   
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/2.0.4/htmx.min.js" crossorigin="anonymous"></script>
+  <!-- <script src="/static/js/htmx-1.8.0.js"></script> -->
   <script src="/static/js/_hyperscript-0.9.7.js"></script>
   <script src="/static/js/rsjs-menu.js" type="module"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.js"></script>
@@ -21,6 +26,59 @@
   <script defer src="/static/dialog.js"></script>
   <script defer src="/static/toast.js"></script>
   <script defer src="https://unpkg.com/alpinejs@3/dist/cdn.min.js"></script>
+<!-- include HTMX + the JSON‐enc extension -->
+<script src="https://unpkg.com/htmx.org"></script>
+<script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>  
+  <script>
+        JSONEditor.defaults.callbacks.upload = {
+            "realUploadHandler": function (jseditor, pointer, fileBlob, callback) {
+                // fileBlob: the File object from the <input type="file">
+                // pointer: JSON Pointer to the property (e.g. "/avatar")
+                // callback: fn(urlString) — call with the URL when done
+
+                // build FormData
+                var formData = new FormData();
+                formData.append('file', fileBlob);
+
+                // POST to your API
+                fetch(jseditor.jsoneditor.options.upload_end_point, 
+                {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                })
+                    .then(function (res) {
+                        if (!res.ok) callback.failure("failuer on upload: " + res.status);
+                        return res.json();
+                    })
+                    .then(function (json) {
+                        if (!json.url) throw new Error("No URL returned");
+                        callback.success(json.url);
+                    })
+                    .catch(function (err) {
+                        console.error(err);
+                        // Pass `null` or empty string on error so editor knows upload failed
+                        callback.failure("failuer on upload: " + err.message);
+                    });
+            }
+        };
+        JSONEditor.defaults.iconlibs.fontawesome5.iconClass = 'fas';
+        JSONEditor.defaults.options.theme = 'bootstrap5';        
+    </script>
+    <style>
+  /* make all JSON-Editor labels a darker blue (or whatever you like) */
+  .jsoneditor .jsoneditor-label .form-label{
+    color: #2c3e50 !important;
+    font-weight: 500;
+    /* optional: bump up the font-size */
+    font-size: 1rem;
+  }
+
+  /* if you want the field background lighter/darker */
+  .jsoneditor .jsoneditor-tree {
+    background: #f9f9f9;
+  }
+</style>
   <style>
     .htmx-indicator {
       opacity: 0;

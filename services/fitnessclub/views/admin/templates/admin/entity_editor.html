@@ -1,0 +1,46 @@
+
+<div class="container mt-5">
+    <div id="editor_holder" style="margin-bottom:1em;"></div>
+    <script>
+        // JSONEditor.defaults.iconlibs.fontawesome5.iconClass = 'fas';
+        // JSONEditor.defaults.options.theme = 'bootstrap5';
+        console.log('schema: ', {{ schema|tojson }});
+        console.log('entity: ', {{ entity|tojson }});
+        var editor = new JSONEditor(document.getElementById('editor_holder'), {
+            schema: {{ schema|tojson }},
+            compact: true,
+            disable_collapse: true,
+            upload_end_point: '/api/upload/{{ table_id }}',
+            disable_properties: true,
+            disable_array_delete_last_row: true,
+            disable_array_delete_all_rows: true,
+            disable_array_reorder: true,
+            disable_edit_json: true,
+            array_controls_top: false,
+            iconlib: 'fontawesome5',
+            startval: {{ entity|tojson }}
+        });
+        document.getElementById('save-json').addEventListener('click', async () => {
+        const payload = editor.getValue();
+        try {
+            const res = await fetch('/admin/save/{{ table_id }}', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error(res.statusText);
+            const json = await res.json();
+            document.getElementById('save-status').textContent = '✅ Saved!';
+        } catch (err) {
+            console.error(err);
+            document.getElementById('save-status').textContent =
+            '❌ Save failed: ' + err.message;
+        }
+        });        
+</script>
+    <button id="save-json" type="button" class="btn btn-primary">
+    Save
+    </button>    
+    <div id="save-status" role="status" style="margin-top:.5em;"></div>    
+</div>
