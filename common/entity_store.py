@@ -16,6 +16,9 @@ class EntityObject (dict):
     items_list_field = None
     is_editable = False
     schema=None
+    entity_name_to_entity_class_map = {}
+    display_name = None
+
 
     def __init__(self, d={}):
         dict.__init__(d)
@@ -25,9 +28,31 @@ class EntityObject (dict):
         for k,v in d.items():
             self[k] = v
         self.validate()
+        EntityObject.entity_name_to_entity_class_map[self.get_table_name()] = self.__class__
+    
+    @staticmethod
+    def get_entity_class_from_table_name(table_name):
+        """Get the entity class from the table name.
+
+        Args:
+            cls (type): The class type of the entity.
+
+        Returns:
+            type: The entity class corresponding to the table name.
+        """
+        return EntityObject.entity_name_to_entity_class_map.get(table_name, None)
     
     def get_name(self):
         return type(self).__name__
+    
+    def get_display_name(self):
+        if type(self).display_name:
+            return type(self).display_name
+        if self.get_table_name().endswith("Table"):
+            return self.get_table_name()[:-5]
+        else:
+            return self.get_table_name()
+            
     
     def get_key_field(self):
         return type(self).key_field
@@ -42,6 +67,9 @@ class EntityObject (dict):
         if type(self).partition_value:
             return type(self).partition_value
         return self.get(self.get_partition_field(), None)
+    
+    def get_composite_key(self):
+        return (self.get_key_value(), self.get_partition_value())
 
     def get_static_partition_value(self):
         if type(self).partition_value:
@@ -198,7 +226,36 @@ class EntityStore :
             return self._loads_from_storage_format(base_item, type(eobj))
         except Exception:
             return None
+        
+    def get_item_by_composite_key(self, eobj, composite_key):
+        (key, partition) = composite_key
+        return self.get_item_by_key(eobj, key, partition)
+    
+    def get_item_by_key(self, eobj, key_value, partition_value=None):
+        try:
+            storage = EntityStore._get_storage_by_table_name(eobj.get_table_name())
+            base_item = storage.get_item(partition_key_value=partition_value if partition_value else eobj.get_partition_value(),
+                                    row_key_value=key_value)
+            kf = eobj.get_key_field()
+            pf = eobj.get_partition_field()
+            eobj[kf] = key_value
+            if pf and partition_value:
+                eobj[pf] = partition_value
 
+            if eobj.get_items_list_field() is not None:
+                # TODO: this whole block is untested, it is also just a draft
+                additonal_list_items = []
+                next_id = base_item.get("_Next", None)
+                while next_id:
+                    next_item = storage.get_item(partition_key_value=eobj.get_partition_value(), 
+                                            row_key_value=next_id)
+                    additonal_list_items.append(next_item[eobj.get_items_list_field()])
+                    next_id = next_item.get("_Next", None)
+                base_item[eobj.get_items_list_field()] = list(base_item[eobj.get_items_list_field()]) + additonal_list_items
+
+            return self._loads_from_storage_format(base_item, type(eobj))
+        except Exception:
+            return None
     def upsert_item(self, eobj, track_last_updated_item=True):
         storage = EntityStore._get_storage_by_table_name(eobj.get_table_name())
         if eobj.get_key_field() not in eobj.keys():
@@ -230,6 +287,13 @@ class EntityStore :
         storage = EntityStore._get_storage_by_table_name(entity_class.table_name)
         for rk in row_keys:
             storage.delete_item(partition_key=entity_class.partition_value, row_key=rk)
+
+    def delete_items(self, items_list):
+        for item in items_list:
+            if item.get_partition_value() is None:
+                raise Exception("partition value not defined")
+            storage = EntityStore._get_storage_by_table_name(item.get_table_name())
+            storage.delete_item(partition_key=item.get_partition_value(), row_key=item.get_key_value())
 
     def delete_all_in_partition(self, entity_class, partition_value):
         storage = EntityStore._get_storage_by_table_name(entity_class.table_name)

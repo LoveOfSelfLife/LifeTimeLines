@@ -2,10 +2,9 @@ import uuid
 from flask import redirect, render_template, request, Blueprint, url_for, session
 from auth import auth
 from common.blob_store import BlobStore
-from common.fitness.active_fitness_registry import get_fitnessclub_entity_names
 import os
 from hx_common import hx_render_template
-from common.fitness.member_info import MembershipRegistry, get_user_info_from_token
+from common.fitness.member_entity import MembershipRegistry, get_user_info_from_token
 from hx_common import FirstTimeUserException, UnregisteredMemberException, is_admin_member, verify_registered_member
 
 bp = Blueprint('/', __name__, template_folder='templates')  
@@ -32,8 +31,7 @@ def index(context = None):
     user = get_user_info_from_token(context)
     try:
         member = verify_registered_member(user)
-        return render_template("base.html", ctx = {"configs" : get_fitnessclub_entity_names(), 
-                                                   "user": member.get('name'), 
+        return render_template("base.html", ctx = {"user": member.get('name'), 
                                                    "short_name": member.get('short_name'), 
                                                    "admin": is_admin_member(member) })
         

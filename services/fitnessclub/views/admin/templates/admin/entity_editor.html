@@ -10,7 +10,7 @@
             schema: {{ schema|tojson }},
             compact: true,
             disable_collapse: true,
-            upload_end_point: '/api/upload/{{ table_id }}',
+            upload_end_point: '{{ upload_file_url }}',
             disable_properties: true,
             disable_array_delete_last_row: true,
             disable_array_delete_all_rows: true,
@@ -21,26 +21,46 @@
             startval: {{ entity|tojson }}
         });
         document.getElementById('save-json').addEventListener('click', async () => {
-        const payload = editor.getValue();
-        try {
-            const res = await fetch('/admin/save/{{ table_id }}', {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-            });
-            if (!res.ok) throw new Error(res.statusText);
-            const json = await res.json();
-            document.getElementById('save-status').textContent = '✅ Saved!';
-        } catch (err) {
-            console.error(err);
-            document.getElementById('save-status').textContent =
-            '❌ Save failed: ' + err.message;
-        }
-        });        
+            const payload = editor.getValue();
+            try {
+                const res = await fetch('{{ update_entity_url}}', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+                });
+                if (!res.ok) throw new Error(res.statusText);
+                {# const json = await res.json(); #}
+                {# document.getElementById('save-status').textContent = '✅ Saved!'; #}
+                showToast("Entity was saved!");
+
+                # this is a hack to force the page to reload
+                # because the fetch results are not being intercepted by HTMX
+                window.location.replace("/admin/?entity-table={{table_id}}");
+
+            } catch (err) {
+                console.error(err);
+                {# document.getElementById('save-status').textContent =
+                '❌ Save failed: ' + err.message; #}
+                showToast("Entity failed to be saved!");
+            }
+        });
+
+        document.getElementById('back-to-list').addEventListener('click', () => {
+            window.history.back();
+        });
+
 </script>
+    <button id="back-to-list" type="button" class="btn btn-primary">
+    Back
+    </button> 
     <button id="save-json" type="button" class="btn btn-primary">
     Save
     </button>    
+
+    <button type="button" class="btn btn-danger" hx-post="{{ delete_entity_url }}" hx-target="#content" hx-swap="innerHTML"
+        hx-confirm="Are you sure you want to delete this {{ table_id }}?">
+        Delete</button>
+
     <div id="save-status" role="status" style="margin-top:.5em;"></div>    
 </div>

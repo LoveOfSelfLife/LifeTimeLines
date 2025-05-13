@@ -12,7 +12,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet"/>  
   
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" crossorigin="anonymous" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/json-editor@latest/dist/themes/bootstrap5.min.css">
+  <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/json-editor@latest/dist/themes/bootstrap5.min.css"> -->
     
   <script src="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js"></script>   
   <script src="https://cdnjs.cloudflare.com/ajax/libs/htmx/2.0.4/htmx.min.js" crossorigin="anonymous"></script>
@@ -119,11 +119,15 @@
 
         <li class="nav-item active">
           <a hx-boost="false" class="nav-link" hx-get="/schedule" hx-target="#content" hx-swap="innerHTML"
-            hx-push-url="/schedule">Calendar</a>
+            hx-push-url="/schedule">Club Calendar</a>
         </li>
         <li class="nav-item">
           <a hx-boost="false" class="nav-link" hx-get="/program" hx-target="#content" hx-swap="innerHTML"
-            hx-push-url="/program">Workouts</a>
+            hx-push-url="/program">Your Program</a>
+        </li>        
+        <li class="nav-item">
+          <a hx-boost="false" class="nav-link" hx-get="/workouts" hx-target="#content" hx-swap="innerHTML"
+            hx-push-url="/workouts">Workouts</a>
         </li>
         <li class="nav-item">
           <a hx-boost="false" class="nav-link" hx-get="/exercises" hx-target="#content" hx-swap="innerHTML"
@@ -136,10 +140,15 @@
           <a hx-boost="false" class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button"
             data-bs-toggle="dropdown" aria-expanded="false">Admin <span class="caret"></span></a>
           <ul class="dropdown-menu dropdown-menu-dark" aria-labelledby="adminDropdown">
-            {% for adm in ctx.configs %}
-            <li><a hx-boost="false" class="dropdown-item" hx-get="/admin?entity-type={{ adm }}" hx-target="#content"
-                hx-swap="innerHTML" hx-push-url="/admin?entity-type={{ adm }}">{{ adm }}</a></li>
-            {% endfor %}
+
+            <li><a hx-boost="false" class="dropdown-item" hx-get="/admin?entity-table=ExerciseTable" hx-target="#content"
+                hx-swap="innerHTML" hx-push-url="/admin?entity-table=ExerciseTable">Exercises</a></li>
+            <li><a hx-boost="false" class="dropdown-item" hx-get="/admin?entity-table=MemberTable" hx-target="#content"
+                hx-swap="innerHTML" hx-push-url="/admin?entity-table=MemberTable">Members</a></li>
+            <li><a hx-boost="false" class="dropdown-item" hx-get="/admin?entity-table=WorkoutTable" hx-target="#content"
+                hx-swap="innerHTML" hx-push-url="/admin?entity-table=WorkoutTable">Workouts</a></li>
+            <li><a hx-boost="false" class="dropdown-item" hx-get="/admin?entity-table=ProgramTable" hx-target="#content"
+                hx-swap="innerHTML" hx-push-url="/admin?entity-table=ProgramTable">Programs</a></li>
           </ul>
         </li>
         {% endif %}
@@ -175,11 +184,12 @@
   <!-- <div class="container-fluid"> -->
   <div class="container">
     <div id="content" class="content bg-dark text-white rounded shadow-sm">
-      <!-- <div id="content" 
-      class="content bg-dark text-white rounded shadow-sm"
-      style="background-image: url('static/images/ymca-1.jpg'); background-size: cover; background-position: center;"
-    > -->
+      {% if content %}
+      {{ content|safe }}
+      {% else %}
       <p class="text-gray-500 bg-dark text-center p-3">Active Friends Fitness Club</p>
+      {% endif %}
+
     </div>
   </div>
 
