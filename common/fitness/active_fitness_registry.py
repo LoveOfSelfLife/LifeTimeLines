@@ -1,29 +1,36 @@
-from common.fitness.active_fitness import ProgramEntity
-from common.fitness.member_info import MemberEntity
+from common.fitness.program_entity import ProgramEntity
+from common.fitness.member_entity import MemberEntity
 from common.fitness.exercise_entity import ExerciseEntity
-from common.fitness.member_info import MemberEntity
+from common.fitness.member_entity import MemberEntity
+from common.fitness.workout_entity import WorkoutEntity
 
-class ActiveFitnessRegistry:
-    editable_entities = {
-        "members" : { "entity": MemberEntity(), 
-                      "listing_view_fields": ["id", "name", "short_name", "email", "level", "is_active", "is_admin"],
-                     },
-        "exercises" : { "entity": ExerciseEntity(),
-                        "listing_view_fields": ["name", "category"],
-                       },
-        "programs" : { "entity": ProgramEntity(),
-                        "listing_view_fields": ["id", "name"]
-                       }
-                      }
-    non_editable_entities = {
+editable_entities = {
+    "MemberTable" : { "entity_class": MemberEntity, 
+                      "listing_view_fields": ["name", "short_name", "email"]
+                    },
+    "ExerciseTable" : { "entity_class": ExerciseEntity,
+                        "listing_view_fields": ["name", "category"]
+                    },
+    "ProgramTable" : { "entity_class": ProgramEntity,
+                        "listing_view_fields": ["name"]
+                    },
+    "WorkoutTable" : { "entity_class": WorkoutEntity,
+                        "listing_view_fields": ["name"]
+                    }
     }
-    entities = {**editable_entities, **non_editable_entities}
 
 def get_fitnessclub_entity_names():
-    return list(ActiveFitnessRegistry.editable_entities.keys())
+    return list(editable_entities.keys())
 
-def get_fitnessclub_entity_by_name(name):
-    entry = ActiveFitnessRegistry.editable_entities.get(name, None)
+
+def get_fitnessclub_entity_type_for_entity(entity_name):
+    entry = editable_entities.get(entity_name, None)
     if entry:
-        return entry["entity"], entry["listing_view_fields"]
+        return entry["entity_class"]()
+    return None, None
+
+def get_fitnessclub_listing_fields_for_entity(entity_name):
+    entry = editable_entities.get(entity_name, None)
+    if entry:
+        return entry["listing_view_fields"]
     return None, None

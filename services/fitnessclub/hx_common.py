@@ -1,6 +1,5 @@
 from flask import render_template, request
-from common.fitness.active_fitness_registry import get_fitnessclub_entity_names
-from common.fitness.member_info import MembershipRegistry, get_user_info_from_token
+from common.fitness.member_entity import MembershipRegistry, get_user_info_from_token
 
 class FirstTimeUserException(Exception):
     def __init__(self):
@@ -37,9 +36,8 @@ def hx_render_template(template, **kwargs):
                 member = verify_registered_member(user)
                 return render_template('base.html', 
                                     content=render_template(template, **kwargs), 
-                                    ctx={"configs":get_fitnessclub_entity_names(), 
-                                                        "user": member.get('name'), 
-                                                        "admin": is_admin_member(member)} )
+                                    ctx={"user": member.get('name'), 
+                                         "admin": is_admin_member(member)} )
 
             except UnregisteredMemberException as e:
                 print(f"User not registered: {e}")
@@ -53,9 +51,8 @@ def hx_render_template(template, **kwargs):
         else:
             return render_template('base.html', 
                                 content=render_template(template, **kwargs), 
-                                ctx={"configs":get_fitnessclub_entity_names(), 
-                                                    "user": "unknown",
-                                                    "admin": False })
+                                ctx={"user": "unknown",
+                                     "admin": False })
 
 class NotAdminMemberException(Exception):
     def __init__(self):

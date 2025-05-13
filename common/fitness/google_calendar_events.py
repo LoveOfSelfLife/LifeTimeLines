@@ -4,7 +4,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
-from common.fitness.member_info import get_user_profile
+from common.fitness.member_entity import get_user_profile
 from common.vault import Vault
 from datetime import datetime, timedelta
 

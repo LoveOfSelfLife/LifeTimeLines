@@ -1,38 +1,28 @@
 <div class="container mt-5">
     <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
-            <h2>{{ ctx.entity_type }}</h2>
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h2>{{ entity_display_name }}</h2>
+            <button class="btn btn-light btn-sm"
+                hx-get="/admin/add/{{entity_name}}"
+                hx-target="#content"
+                hx-swap="innerHTML"
+                hx-push-url="/admin/add/{{ entity_name }}">
+                Add New {{ entity_display_name }}
+            </button>
         </div>
-        <div class="card-body">
-            <div class="table-responsive">            
-                <table class="table table-sm table-striped table-bordered">
-                    <thead class="thead-dark">
-                        <tr>
-                            {% for field in ctx.fields %}
-                            <th scope="col">{{ field }}</th>
-                            {% endfor %}
-                            <th scope="col">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for entity in ctx.entities %}
-                        <tr>
-                            {% for value in entity.val_list %}
-                            <td class="small">{{ value }}</td>
-                            {% endfor %}
-                            <td>
-                                <button class="btn btn-success btn-sm"
-                                    hx-get="/admin/edit?entity-type={{table_id}}&key={{ entity.key_val }}&partition={{ entity.partition_val }}"
-                                    hx-target="#content"
-                                    hx-swap="innerHTML"
-                                    hx-push-url="/admin/edit?entity-type={{table_id}}&key={{ entity.key_val }}&partition={{ entity.partition_val }}"
-                                >Edit</button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="w-50">
+                <input type="text" id="filter" name="filter" value="{{ filter_term }}" placeholder="Filter {{ entity_display_name }}s..."
+                class="form-control"
+                hx-get="/admin/entities-listing?entity-table={{entity_name}}""
+                hx-trigger="keyup changed delay:500ms"
+                hx-target="#entities-container"
+                hx-include="[name='filter']"
+                >
             </div>
-        </div>
-    </div>
+        </div> 
+    </div>        
+    <div id="entities-container">
+    {% include "entity_list_fragment.html" %}
+    </div>        
 </div>
