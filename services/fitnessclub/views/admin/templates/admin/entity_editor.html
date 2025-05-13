@@ -34,8 +34,8 @@
                 {# document.getElementById('save-status').textContent = '✅ Saved!'; #}
                 showToast("Entity was saved!");
 
-                # this is a hack to force the page to reload
-                # because the fetch results are not being intercepted by HTMX
+                // this is a hack to force the page to reload
+                // because the fetch results are not being intercepted by HTMX
                 window.location.replace("/admin/?entity-table={{table_id}}");
 
             } catch (err) {
