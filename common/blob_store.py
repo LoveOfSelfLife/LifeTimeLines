@@ -12,8 +12,8 @@ class BlobStore():
         if not self.connection_string:
             raise Exception("Table connection creds null")
         self.blob_service_client = BlobServiceClient.from_connection_string(conn_str=BlobStore.connection_string)
-        self.container_name = container_name
-        self.container_client = self.blob_service_client.get_container_client(container_name)
+        self.container_name = container_name.lower()
+        self.container_client = self.blob_service_client.get_container_client(container_name.lower())
         try:
             self.container_client.create_container()
             print("Created container")

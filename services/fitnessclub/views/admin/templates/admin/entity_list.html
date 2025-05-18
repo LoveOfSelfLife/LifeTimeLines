@@ -10,17 +10,6 @@
                 Add New {{ entity_display_name }}
             </button>
         </div>
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="w-50">
-                <input type="text" id="filter" name="filter" value="{{ filter_term }}" placeholder="Filter {{ entity_display_name }}s..."
-                class="form-control"
-                hx-get="/admin/entities-listing?entity-table={{entity_name}}""
-                hx-trigger="keyup changed delay:500ms"
-                hx-target="#entities-container"
-                hx-include="[name='filter']"
-                >
-            </div>
-        </div> 
     </div>        
     <div id="entities-container">
     {% include "entity_list_fragment.html" %}

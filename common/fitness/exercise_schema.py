@@ -12,7 +12,13 @@ schema = {
 		"mechanic",
 		"origin",
 		"primaryMuscles",
-		"secondaryMuscles"
+		"secondaryMuscles",
+		"setCompletionMeasure",
+		"images",
+		"videos",
+		"type",
+		"udf1",
+		"udf2"
 	],
 	"properties": {
 		"name": {
@@ -230,7 +236,13 @@ schema = {
 							"upload": {
 								"upload_handler": "realUploadHandler"
 							}
-						}
+						},
+						"links": [
+							{
+							"href": "{{self}}",
+							"rel": "view"
+							}
+						]                        
 					}
 				}
 			}
