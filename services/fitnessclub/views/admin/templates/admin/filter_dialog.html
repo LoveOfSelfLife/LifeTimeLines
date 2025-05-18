@@ -1,0 +1,72 @@
+<!--
+    This template is used to create a filter dialog for the entities listing page.
+    It uses HTMX to update the entities listing based on the selected filters.
+-->
+<form   hx-get="/admin/entities-listing?entity-table={{entity_name}}"
+        hx-target="#entities-container"
+        hx-swap="innerHTML"
+    class="modal-content">
+    <div class="modal-header text-black">
+        <h5 class="modal-title">Filter {{ entity_display_name }} list</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <input type="hidden" name="entity-table" value="{{ entity_name }}">
+        {# filters is a list with this value:  [
+                        {
+                            "type" : "choice",
+                            "label" : "Level",
+                            "options" : [
+                                { "label" : "All Levels", "value" : "" },
+                                { "label" : "Basic", "value" : "basic" },
+                                { "label" : "Intermediate", "value" : "intermediate" },
+                                { "label" : "Advanced", "value" : "advanced" }
+                            ]
+                        },
+                        {
+                            "label" : "Category",
+                            "options" : [
+                                { "label" : "warmup", "value" : "warmup" },
+                                { "label" : "core", "value" : "core" },
+                                { "label" : "power", "value" : "power" },
+                                { "label" : "strength", "value" : "strength" },
+                                { "label" : "cardio", "value" : "cardio" },
+                                { "label" : "stretching", "value" : "stretching" }
+                            ]
+                        },
+                        {
+                            "type" : "text",
+                            "label" : "Filter Text"
+                        }
+                        ]
+            iterate over this list to create the filter form
+            and use the values to create the filter form
+                         #}
+        {% for filter in filters %}
+        {% if filter.type == "choice" %}
+        <div class="mb-3">
+            <label for="{{ filter.id|lower }}" class="form-label">{{ filter.label }}:</label>
+            <select name="{{ filter.id|lower }}" id="{{ filter.id|lower }}" class="form-select form-select-sm">
+                {% for option in filter.options %}
+                <option value="{{ option.value }}" {% if args[filter.id|lower] == option.value %}selected{% endif %}>{{ option.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% elif filter.type == "text" %}
+        <div class="mb-3">
+            <label for="{{ filter.id|lower }}" class="form-label">{{ filter.label }}:</label>
+            <input name="{{ filter.id|lower }}" type="text" id="{{ filter.id|lower }}"
+                   class="form-control form-control-sm" placeholder="Filter…" value="{{ args[filter.id|lower] }}">
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+    <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            Cancel
+        </button>
+        <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">
+            Filter
+        </button>
+    </div>
+</form>

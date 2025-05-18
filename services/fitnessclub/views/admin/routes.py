@@ -3,7 +3,7 @@ import json
 from flask import Blueprint, jsonify, make_response, render_template, request, redirect
 import requests
 from auth import auth
-from common.fitness.active_fitness_registry import get_fitnessclub_listing_fields_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_entity_names
+from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_for_entity, get_fitnessclub_listing_fields_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_entity_names
 from common.env_context import Env
 from common.fitness.utils import generate_id
 from hx_common import hx_render_template
@@ -13,22 +13,10 @@ bp = Blueprint('admin', __name__, template_folder='templates')
 
 entity_store_cache_dict = {}
 
-def matches_filter(entity,term):
-    if term is None:
-        return True
-    term = term.lower()
-    terms = term.split()
-    for t in terms:
-        for field in entity.get_fields():
-            if field in entity and isinstance(entity[field], str):
-                if term in entity[field].lower():
-                    return True
-    return False
-
 def delete_entity(entity):
     entity_store_cache_dict[entity.get_table_name()].delete_item(entity)
 
-def get_list_of_entities(entity_name, filter_term=None):
+def get_list_of_entities(entity_name, filter_func=None, filter_term=None):
     global entity_store_cache_dict
     entity_type = get_fitnessclub_entity_type_for_entity(entity_name)
 
@@ -37,15 +25,15 @@ def get_list_of_entities(entity_name, filter_term=None):
     
     entities = entity_store_cache_dict[entity_name].get_items()
 
-    if filter_term:
-        return [e for e in entities if matches_filter(e, filter_term)]
+    if filter_func:
+        return filter_func(entities, filter_term)
     else:
         return entities
 
-def get_filtered_entities(entity_name, filter_term=None):
+def get_filtered_entities(entity_name, filter_func=None, filter_term=None):
     
     fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
-    filtered_entities = get_list_of_entities(entity_name, filter_term)
+    filtered_entities = get_list_of_entities(entity_name, filter_func, filter_term)
 
     entities = []
     for e in filtered_entities:
@@ -59,12 +47,11 @@ def get_filtered_entities(entity_name, filter_term=None):
 def table_listing(context=None):
 
     entity_name = request.args.get('entity-table')
-    filter_term = request.args.get('filter', '')
     page = int(request.args.get('page', 1))
 
     page_size = 10
 
-    entities = get_filtered_entities(entity_name, filter_term)
+    entities = get_filtered_entities(entity_name)
 
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
@@ -75,13 +62,15 @@ def table_listing(context=None):
         return "No entity name provided", 404
     entity_type = get_fitnessclub_entity_type_for_entity(entity_name)
     fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
+    
+    filter_terms = get_fitnessclub_entity_filters_for_entity(entity_name)
 
     return hx_render_template('admin/entity_list.html', 
                               fields_to_display=fields_to_display,
                               entities=current,
                               entity_name=entity_name,
                               entity_display_name=entity_type.get_display_name(),
-                              filter_term=filter_term,
+                              filter_terms=filter_terms,
                               page=page,
                               total_pages=total_pages,
                               context=context) 
@@ -89,14 +78,22 @@ def table_listing(context=None):
 @bp.route('/entities-listing')
 def entities_fragment():
     entity_name = request.args.get('entity-table')    
-    filter_term = request.args.get('filter', '')
     page = int(request.args.get('page', 1))
 
     page_size = 10
 
     fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
+    filters = get_fitnessclub_entity_filters_for_entity(entity_name)
 
-    entities = get_filtered_entities(entity_name, filter_term)
+    if filters:
+        filter_func  = get_fitnessclub_filter_func_for_entity(entity_name)
+        filter_term_func  = get_fitnessclub_filter_term_for_entity(entity_name)
+        filter_terms = filter_term_func(request.args)
+    else:
+        filter_func = None
+        filter_terms = None
+
+    entities = get_filtered_entities(entity_name, filter_func, filter_terms)
 
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
@@ -108,10 +105,28 @@ def entities_fragment():
         entity_name=entity_name,
         fields_to_display=fields_to_display,
         entities=current,
-        filter_term=filter_term,
+        filter_terms=filter_terms,
+        args=request.args,
         page=page,
         total_pages=total_pages
     )
+@bp.route('/filter-dialog')
+@auth.login_required
+def filter_dialog(context=None):
+    entity_name = request.args.get('entity-table', None)
+    if not entity_name:
+        return "No table id provided", 404
+    if entity_name not in get_fitnessclub_entity_names():
+        return "Table not allowed", 404
+    entity_type = get_fitnessclub_entity_type_for_entity(entity_name)
+    filters = get_fitnessclub_entity_filters_for_entity(entity_name)
+
+    return hx_render_template('admin/filter_dialog.html', 
+                              entity_display_name=entity_type.get_display_name(),                              
+                              entity_name=entity_name,
+                              filters=filters,
+                              args=request.args,
+                              context=context)
 
 @bp.route('/edit')
 @auth.login_required
