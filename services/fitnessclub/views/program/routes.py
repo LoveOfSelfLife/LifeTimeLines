@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request
-from hx_common import hx_render_template
+from common.fitness.hx_common import hx_render_template
 bp = Blueprint('program', __name__, template_folder='templates')
 from auth import auth
 

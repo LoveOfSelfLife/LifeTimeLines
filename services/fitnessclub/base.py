@@ -3,9 +3,9 @@ from flask import redirect, render_template, request, Blueprint, url_for, sessio
 from auth import auth
 from common.blob_store import BlobStore
 import os
-from hx_common import hx_render_template
+from common.fitness.hx_common import hx_render_template
 from common.fitness.member_entity import MembershipRegistry, get_user_info_from_token
-from hx_common import FirstTimeUserException, UnregisteredMemberException, is_admin_member, verify_registered_member
+from common.fitness.hx_common import FirstTimeUserException, UnregisteredMemberException, is_admin_member, verify_registered_member
 
 bp = Blueprint('/', __name__, template_folder='templates')  
 

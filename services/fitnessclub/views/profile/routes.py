@@ -1,5 +1,5 @@
 from flask import Blueprint, redirect, render_template, request, url_for
-from hx_common import hx_render_template
+from common.fitness.hx_common import hx_render_template
 from common.fitness.member_entity import get_user_info_from_token, get_user_profile, save_user_profile
 bp = Blueprint('profile', __name__, template_folder='templates')
 from auth import auth
