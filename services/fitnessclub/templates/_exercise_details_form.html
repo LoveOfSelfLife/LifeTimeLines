@@ -1,0 +1,65 @@
+<form   hx-get="/admin/entities-listing?entity-table={{entity_name}}"
+        hx-target="#entities-container"
+        hx-swap="innerHTML"
+    class="modal-content">
+
+    <div class="modal-body">
+        <input type="hidden" name="entity-table" value="{{ exercise.name }}">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h6 class="mb-0">{{ exercise.name }}</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="card-body">
+                {# exercise.primaryMuscles is a possibly empty list of musclse that this exercise affects.
+                Here we display the list of primary muscles, just before the instructions #}
+                {% if exercise.primaryMuscles %}
+                <span> <h6 class="mb-0">Muscles: </h6>
+                   <div class="text-muted small mt-0">
+                    {% for muscle in exercise.primaryMuscles %}
+                            {{ muscle }},  
+                    {% endfor %}
+                    {% for muscle in exercise.secondaryMuscles %}
+                           {{ muscle }}, 
+                    {% endfor %}
+                    </span>
+                {% endif %}
+                </div>                        
+                <h6 class="mt-2">Instructions: </h6>
+                <p class="small">{{ exercise.instructions }}</p>
+
+                {% if exercise.images %}
+                <h6>Images</h6>
+                <div class="row gx-2">
+                    {% for img in exercise.images %}
+                    <div class="col-12 mb-2">
+                        <img
+                        src="{{ img.url }}"
+                        alt="{{ img.description }}"
+                        data-full-url="{{ img.url }}"
+                        data-bs-toggle="modal"
+                        data-bs-target="#imageModal"
+                        class="img-fluid rounded"
+                        style="cursor:pointer;"
+                        >
+
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+
+                {% if exercise.videos %}
+                <h6>Video</h6>
+                {% for vid in exercise.videos %}
+                    <video controls class="w-100 mb-2">
+                    <source src="{{ vid.url }}" type="video/mp4">
+                    Your browser does not support embedded video.
+                    </video>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div> 
+
+</form>

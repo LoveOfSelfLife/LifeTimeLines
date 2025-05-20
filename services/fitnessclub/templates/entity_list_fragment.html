@@ -1,8 +1,8 @@
-<div class="card-body" hx-trigger="entityListChanged from:body" hx-get="/admin/entities-listing?entity-table={{entity_name}}" hx-target="#entities-container" hx-swap="outerHTML">
+<div class="card-body" hx-trigger="entityListChanged from:body" hx-get="{{ entities_listing_route }}" hx-target="#{{entities_container}}" hx-swap="outerHTML">
     {% if filter_terms %}
     <div class="d-flex justify-content-between align-items-center mb-0 p-2 bg-light border rounded">
         <button class="btn btn-outline-primary btn-sm"
-            hx-get="/admin/filter-dialog?entity-table={{entity_name}}"
+            hx-get="{{ filter_dialog_route }}"
             {% if args %}
             hx-vals='{{ args|tojson }}'
             {% endif %}            
@@ -24,7 +24,9 @@
                     {% for field in fields_to_display %}
                     <th scope="col">{{ field }}</th>
                     {% endfor %}
-                    <th scope="col">Actions</th>
+                    {% if entity_action_route %}
+                    <th scope="col" class="text-center">Action</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -34,7 +36,7 @@
                     {% if loop.index == 1 %}
                     <td>
                         <a href="#"
-                            hx-get="/admin/edit?entity-table={{entity_name}}&key={{ entity.key }}"
+                            hx-get="{{ entity_view_route }}&key={{ entity.key }}"
                             hx-target="#dialog"
                             hx-swap="innerHTML">
                             {{ value }}
@@ -44,15 +46,17 @@
                     <td>{{ value }}</td>
                     {% endif %}
                     {% endfor %}
-                    <td>
-                        <button class="btn btn-success btn-sm"
-                            hx-get="/admin/edit?entity-table={{entity_name}}&key={{ entity.key }}"
-                            hx-push-url="/admin/edit?entity-table={{entity_name}}&key={{ entity.key }}"                            
+                    {% if entity_action_route %}
+                    <td class="text-center">
+                        <button class="btn btn-outline-secondary btn-sm"
+                            hx-get="{{ entity_action_route }}&key={{ entity.key }}"
+                            hx-push-url="{{ entity_action_route }}&key={{ entity.key }}"                            
                             hx-target="#content"
                             hx-swap="innerHTML">
-                            <i class="bi bi-pencil-square"></i>
+                            <i class="bi {{ entity_action_icon}}"></i>
                         </button>
                     </td>
+                    {% endif %}
                 </tr>
                 {% endfor %}
             </tbody>
@@ -63,11 +67,11 @@
   <ul class="pagination justify-content-center">
     <li class="page-item {% if page <= 1 %}disabled{% endif %}">
       <a class="page-link" href="#"
-         hx-get="/admin/entities-listing?entity-table={{entity_name}}&page={{ page - 1 }}&filter={{ filter_terms }}"
+         hx-get="{{ entities_listing_route }}&page={{ page - 1 }}&filter={{ filter_terms }}"
          {% if args %}
          hx-vals='{{ args|tojson }}'
          {% endif %}
-         hx-target="#entities-container">
+         hx-target="#{{entities_container}}">
         Previous
       </a>
     </li>
@@ -78,11 +82,11 @@
     </li>
     <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
       <a class="page-link" href="#"
-         hx-get="/admin/entities-listing?entity-table={{entity_name}}&page={{ page + 1 }}&filter={{ filter_terms }}"
+         hx-get="{{ entities_listing_route }}&page={{ page + 1 }}&filter={{ filter_terms }}"
         {% if args %}
          hx-vals='{{ args|tojson }}'
         {% endif %}
-         hx-target="#entities-container">
+        hx-target="#{{entities_container}}">
         Next
       </a>
     </li>

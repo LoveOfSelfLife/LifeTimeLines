@@ -3,6 +3,7 @@ from common.fitness.member_entity import MemberEntity
 from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.member_entity import MemberEntity
 from common.fitness.workout_entity import WorkoutEntity
+from services.fitnessclub.hx_common import hx_render_template
 
 
 def exercise_entity_filter_term(args={}):
@@ -87,6 +88,21 @@ def matches_filter(entity,term):
                     return True
     return False
 
+def render_exercise_popup_viewer_html(context, entity):
+    return hx_render_template('_exercise_details_form.html', 
+                              exercise=entity,
+                            #   schema=schema,
+                            #   table_id=table_id, 
+                              errors={},
+                              context=context)    
+    
+
+# {'stretching', 'strength', '', 'strongman', 'plyometrics', 'powerlifting', 'cardio'}
+
+                                    # { "label" : "warmup", "value" : "warmup" },
+                                    # { "label" : "core", "value" : "core" },
+                                    # { "label" : "power", "value" : "power" },
+                                    
 editable_entities = {
     "MemberTable" : { "entity_class": MemberEntity, 
                       "listing_view_fields": ["name", "short_name", "email"]
@@ -100,9 +116,9 @@ editable_entities = {
                                 "label" : "Level",
                                 "options" : [
                                     { "label" : "All Levels", "value" : "" },
-                                    { "label" : "Basic", "value" : "basic" },
+                                    { "label" : "Basic", "value" : "beginner" },
                                     { "label" : "Intermediate", "value" : "intermediate" },
-                                    { "label" : "Advanced", "value" : "advanced" }
+                                    { "label" : "Advanced", "value" : "expert" }
                                 ]
                             },
                             {
@@ -110,13 +126,14 @@ editable_entities = {
                                 "id" : "category",
                                 "label" : "Category",
                                 "options" : [
-                                    { "label" : "All Categories", "value" : "" },                                    
-                                    { "label" : "warmup", "value" : "warmup" },
-                                    { "label" : "core", "value" : "core" },
-                                    { "label" : "power", "value" : "power" },
+                                    { "label" : "All categories", "value" : "" },                                    
                                     { "label" : "strength", "value" : "strength" },
                                     { "label" : "cardio", "value" : "cardio" },
-                                    { "label" : "stretching", "value" : "stretching" }
+                                    { "label" : "stretching", "value" : "stretching" },
+                                    { "label" : "plyometrics", "value" : "plyometrics" },
+                                    { "label" : "strongman", "value" : "strongman" },
+                                    { "label" : "powerlifting", "value" : "powerlifting" },
+                                    { "label" : "olympic weightlifting", "value" : "olympic weightlifting" }
                                 ]
                             },
                             {
@@ -126,8 +143,8 @@ editable_entities = {
                             }
                         ],
                         "filter_func" : exercise_entity_filter,
-
-                        "filter_term_func" : exercise_entity_filter_term
+                        "filter_term_func" : exercise_entity_filter_term,
+                        "entity_popup_viewer" : render_exercise_popup_viewer_html
                     },
     "ProgramTable" : { "entity_class": ProgramEntity,
                         "listing_view_fields": ["name"]
