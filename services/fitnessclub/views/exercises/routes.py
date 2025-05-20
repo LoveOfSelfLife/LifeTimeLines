@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_for_entity, get_fitnessclub_listing_fields_for_entity, render_exercise_popup_viewer_html
 from common.fitness.entities_getter import get_filtered_entities
-from hx_common import hx_render_template
+from common.fitness.hx_common import hx_render_template
 bp = Blueprint('exercises', __name__, template_folder='templates')
 from auth import auth
 

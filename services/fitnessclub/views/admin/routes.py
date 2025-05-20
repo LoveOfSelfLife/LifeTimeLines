@@ -7,7 +7,7 @@ from common.fitness.active_fitness_registry import render_exercise_popup_viewer_
 from common.env_context import Env
 from common.fitness.entities_getter import delete_entity
 from common.fitness.utils import generate_id
-from hx_common import hx_render_template
+from common.fitness.hx_common import hx_render_template
 from common.entity_store import EntityStore
 from common.fitness.entities_getter import get_filtered_entities
 bp = Blueprint('admin', __name__, template_folder='templates')

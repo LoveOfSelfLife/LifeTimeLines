@@ -3,7 +3,7 @@ from common.fitness.member_entity import MemberEntity
 from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.member_entity import MemberEntity
 from common.fitness.workout_entity import WorkoutEntity
-from services.fitnessclub.hx_common import hx_render_template
+from common.fitness.hx_common import hx_render_template
 
 
 def exercise_entity_filter_term(args={}):
