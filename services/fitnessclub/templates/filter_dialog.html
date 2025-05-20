@@ -2,7 +2,7 @@
     This template is used to create a filter dialog for the entities listing page.
     It uses HTMX to update the entities listing based on the selected filters.
 -->
-<form   hx-get="/admin/entities-listing?entity-table={{entity_name}}"
+<form   hx-get="{{ entities_listing_route }}"
         hx-target="#entities-container"
         hx-swap="innerHTML"
     class="modal-content">
@@ -21,17 +21,6 @@
                                 { "label" : "Basic", "value" : "basic" },
                                 { "label" : "Intermediate", "value" : "intermediate" },
                                 { "label" : "Advanced", "value" : "advanced" }
-                            ]
-                        },
-                        {
-                            "label" : "Category",
-                            "options" : [
-                                { "label" : "warmup", "value" : "warmup" },
-                                { "label" : "core", "value" : "core" },
-                                { "label" : "power", "value" : "power" },
-                                { "label" : "strength", "value" : "strength" },
-                                { "label" : "cardio", "value" : "cardio" },
-                                { "label" : "stretching", "value" : "stretching" }
                             ]
                         },
                         {
