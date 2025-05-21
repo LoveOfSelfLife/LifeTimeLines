@@ -84,6 +84,12 @@ def exercises_fragment():
         # entity_action_icon='bi-pencil-square'
     )
 
+
+@bp.route('/modal')
+@auth.login_required
+def show_modal(context=None):
+    return render_template('modal-here.html', context=context)
+
 @bp.route('/view')
 @auth.login_required
 def view_exercise_details(context=None):

@@ -1,37 +1,41 @@
-<form hx-post="{{ request.path }}"
-    class="modal-content">
-    <div class="modal-header text-black">
-        <h5 class="modal-title">{{ 'Modify your appointment' if event and event['id'] else 'Make appointment at gym' }}</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-    </div>
-
-    <div class="modal-body">
-        <!-- add hidden event for the id here-->
-        <input type="hidden" name="id" value="{{ event['id'] if event else '' }}">
-
-        <div class="mb-3">
-            <label for="date" class="form-label text-black">Date</label>
-            <input type="date" id="date" name="date" class="form-control" value="{{ event['date'] if event else '' }}"
-                required>
+<div id="dialog" class="modal-dialog modal-dialog-centered">
+    <form hx-post="{{ request.path }}"
+        class="modal-content">
+        <div class="modal-header text-black">
+            <h5 class="modal-title">{{ 'Modify your appointment' if event and event['id'] else 'Make appointment at gym' }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div class="mb-3">
-            <label for="time" class="form-label text-black">Time</label>
-            <input type="time" id="time" name="time" class="form-control" value="{{ event['time'] if event else '' }}"
-                required>
+
+        <div class="modal-body">
+            <!-- add hidden event for the id here-->
+            <input type="hidden" name="id" value="{{ event['id'] if event else '' }}">
+
+            <div class="mb-3">
+                <label for="date" class="form-label text-black">Date</label>
+                <input type="date" id="date" name="date" class="form-control" value="{{ event['date'] if event else '' }}"
+                    required>
+            </div>
+            <div class="mb-3">
+                <label for="time" class="form-label text-black">Time</label>
+                <input type="time" id="time" name="time" class="form-control" value="{{ event['time'] if event else '' }}"
+                    required>
+            </div>
         </div>
-    </div>
 
-    <div class="modal-footer">
-        <!-- here I only want to include this code if the event object is not empty and it has a non null 'id' attribute  -->
-        {% if event and event['id'] %}
-        <button type="button" class="btn btn-danger" hx-post="/schedule/delete_event/{{ event['id'] }}"
-            hx-confirm="Are you sure you want to remove you appointment at the gym?">Remove</button>
-        <span class="flex-grow-1"></span>
-        {% endif %}
+        <div class="modal-footer">
+            <!-- here I only want to include this code if the event object is not empty and it has a non null 'id' attribute  -->
+            {% if event and event['id'] %}
+            <button type="button" class="btn btn-danger" 
+                hx-post="/schedule/delete_event/{{ event['id'] }}" 
+                data-bs-dismiss="modal"
+                hx-confirm="Are you sure you want to remove you appointment at the gym?">Remove</button>
+            <span class="flex-grow-1"></span>
+            {% endif %}
 
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-            Cancel
-        </button>
-        <button type="submit" class="btn btn-primary">Save</button>
-    </div>
-</form>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">Save</button>
+        </div>
+    </form>
+</div>
