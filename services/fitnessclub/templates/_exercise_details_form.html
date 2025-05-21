@@ -1,8 +1,6 @@
-<form   hx-get="/admin/entities-listing?entity-table={{entity_name}}"
-        hx-target="#entities-container"
-        hx-swap="innerHTML"
-    class="modal-content">
 
+<div id="dialog" class="modal-dialog modal-dialog-centered">
+  <div class="modal-content">
     <div class="modal-body">
         <input type="hidden" name="entity-table" value="{{ exercise.name }}">
         <div class="card">
@@ -37,17 +35,13 @@
                         src="{{ img.url }}"
                         alt="{{ img.description }}"
                         data-full-url="{{ img.url }}"
-                        data-bs-toggle="modal"
-                        data-bs-target="#imageModal"
                         class="img-fluid rounded"
                         style="cursor:pointer;"
                         >
-
                     </div>
                     {% endfor %}
                 </div>
                 {% endif %}
-
 
                 {% if exercise.videos %}
                 <h6>Video</h6>
@@ -61,5 +55,6 @@
             </div>
         </div>
     </div> 
+  </div>
+</div> 
 
-</form>

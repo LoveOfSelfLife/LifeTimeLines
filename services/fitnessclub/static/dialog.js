@@ -1,5 +1,5 @@
 ;(function () {
-  const modal = new bootstrap.Modal(document.getElementById("modal"))
+  const modal = new bootstrap.Modal(document.getElementById("modals-here"))
 
   htmx.on("htmx:afterSwap", (e) => {
     // Response targeting #dialog => show the modal
@@ -18,6 +18,7 @@
 
   // Remove dialog content after hiding
   htmx.on("hidden.bs.modal", () => {
+    console.log("Modal hidden, removing content")
     document.getElementById("dialog").innerHTML = ""
   })
 })()

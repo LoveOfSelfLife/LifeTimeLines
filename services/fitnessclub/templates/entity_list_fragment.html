@@ -6,8 +6,11 @@
             {% if args %}
             hx-vals='{{ args|tojson }}'
             {% endif %}            
-            hx-target="#dialog"
-            hx-swap="innerHTML">
+            hx-target="#modals-here"
+            hx-swap="innerHTML"
+            data-bs-toggle="modal"
+            data-bs-target="#modals-here"
+           >
             <i class="bi bi-search"></i> Filter
         </button>
         <span class="text-muted small">
@@ -17,6 +20,10 @@
         </span>
     </div>
     {% endif %}
+
+{# <button hx-get="/exercises/modal" hx-target="#modals-here" hx-swap="innerHTML" hx-trigger="click" data-bs-toggle="modal" data-bs-target="#modals-here"
+    class="btn btn-primary">Open Modal</button> #}
+
     <div class="table-responsive">
         <table class="table table-sm table-striped table-bordered">
             <thead class="thead-dark">
@@ -37,8 +44,11 @@
                     <td>
                         <a href="#"
                             hx-get="{{ entity_view_route }}&key={{ entity.key }}"
-                            hx-target="#dialog"
-                            hx-swap="innerHTML">
+                            hx-target="#modals-here"
+                            hx-swap="innerHTML"
+                            data-bs-toggle="modal"
+                            data-bs-target="#modals-here"
+                            >
                             {{ value }}
                         </a>
                     </td>

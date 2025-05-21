@@ -166,6 +166,43 @@ body {
 .col-md-12 span.h3.card-title.level-2 {
   color: blue;
 }
+
+/* make all JSON-Editor labels a darker blue (or whatever you like) */
+.jsoneditor .jsoneditor-label .form-label{
+color: #2c3e50 !important;
+font-weight: 500;
+/* optional: bump up the font-size */
+font-size: 1rem;
+}
+
+/* if you want the field background lighter/darker */
+.jsoneditor .jsoneditor-tree {
+background: #f9f9f9;
+}
+
+
+.htmx-indicator {
+    opacity: 0;
+    transition: opacity 200ms ease-in;
+}
+
+.htmx-request .htmx-indicator {
+    opacity: 1;
+}
+
+.htmx-request.htmx-indicator {
+    opacity: 1;
+}
+/* create vertical spacing between each date-group */
+.table-custom {
+    border-collapse: separate;
+    border-spacing: 0 0.5rem;
+}
+/* date rows styling */
+.date-row td {
+    background-color: var(--bs-gray-200);
+}
+
 /* Responsive styling for tablets and smaller devices */
 @media (max-width: 768px) {
     .navbar-brand img {

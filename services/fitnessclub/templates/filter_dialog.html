@@ -2,6 +2,7 @@
     This template is used to create a filter dialog for the entities listing page.
     It uses HTMX to update the entities listing based on the selected filters.
 -->
+<div id="dialog" class="modal-dialog modal-dialog-centered">
 <form   hx-get="{{ entities_listing_route }}"
         hx-target="#entities-container"
         hx-swap="innerHTML"
@@ -59,3 +60,4 @@
         </button>
     </div>
 </form>
+</div>
