@@ -33,3 +33,10 @@ def get_filtered_entities(entity_name, fields_to_display, filter_func=None, filt
 
 def delete_entity(entity):
     entity_store_cache_dict[entity.get_table_name()].delete_item(entity)
+
+def get_entity(entity_name, key):
+    global entity_store_cache_dict
+    if entity_store_cache_dict.get(entity_name, None) is None:
+        entity_store_cache_dict[entity_name] = EntityStoreCache(get_fitnessclub_entity_type_for_entity(entity_name))
+
+    return entity_store_cache_dict[entity_name].get_item_by_key(key)

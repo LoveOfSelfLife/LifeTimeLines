@@ -25,6 +25,7 @@ class EntityStoreCache:
     def __init__(self, entity_to_cache:EntityObject):
         self.entity_to_cache = entity_to_cache
         self.items = []
+        self.items_map = {}
         self.entity_store = EntityStore()
         self.latest_item_updated_iso = None
         self._refresh_cache()  # Initialize the cache by loading items from the entity store
@@ -37,6 +38,9 @@ class EntityStoreCache:
         # Load items from the entity store and cache them
         self.items = self.entity_store.list_items(self.entity_to_cache)
         self.items = list(self.items)
+        # this makes the asumeption that the key value is unique, i.e. that the partition is the same for all items
+        # TODO: address this assumption
+        self.items_map = {item.get_key_value(): item for item in self.items}
 
     def get_items(self):
         """Get the cached items. If the latest item updated timestamp has changed, refresh the cache."""
@@ -46,6 +50,13 @@ class EntityStoreCache:
             self._refresh_cache()
         return self.items
 
+    def get_item_by_key(self, key):
+        """Get an item by its key from the cached items."""
+        if key in self.items_map:
+            return self.items_map[key]
+        else:
+            return None
+        
     def delete_item(self, item:EntityObject):
         """Delete an item from the entity store and refresh the cache."""
         self.entity_store.delete_items([item])
