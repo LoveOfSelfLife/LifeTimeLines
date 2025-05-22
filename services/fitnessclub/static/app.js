@@ -62,4 +62,48 @@
         });
       }
     }); 
-    
+
+    function initSortables() {
+    document.querySelectorAll('.section-list').forEach(listEl => {
+      Sortable.create(listEl, {
+        group: 'sections',         // ← allow cross‐list dragging
+        handle: '.drag-handle',
+        animation: 150,
+        onEnd(evt) {
+          const exId   = evt.item.dataset.exerciseId;
+          const workoutId   = evt.item.dataset.workoutId;
+          const from   = evt.from.dataset.section;
+          const to     = evt.to.dataset.section;
+          const order  = [...evt.to.children].map(li=>li.dataset.exerciseId);
+
+          if (from !== to) {
+            // 1) Tell the server “move” first
+            htmx.ajax('POST',
+                '/workouts/builder/'+ workoutId + '/move',
+              {
+                values: { exercise_id: exId, to_section: to },
+                target: '#canvas',
+                swap:   'innerHTML'
+              }
+            );
+          }
+
+          // 2) Then reorder the destination section to match the drop order
+          htmx.ajax('POST',
+            '/workouts/builder/' + workoutId + '/reorder',
+            {
+              values: { section: to, 'order[]': order },
+              target: '#canvas',
+              swap:   'innerHTML'
+            }
+          );
+        }
+      });
+    });
+  }
+
+  document.addEventListener('htmx:afterSwap', e => {
+    if (e.detail.target.id === 'canvas') {
+      initSortables();
+    }
+  });
