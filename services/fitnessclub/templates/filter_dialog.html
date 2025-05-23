@@ -2,9 +2,16 @@
     This template is used to create a filter dialog for the entities listing page.
     It uses HTMX to update the entities listing based on the selected filters.
 -->
+
+{% if filter_results_target %}
+        {% set filter_target = filter_results_target %}
+{% else %}
+        {% set filter_target = "#entities-container" %}
+{% endif %}
+
 <div id="dialog" class="modal-dialog modal-dialog-centered">
 <form   hx-get="{{ entities_listing_route }}"
-        hx-target="#entities-container"
+        hx-target="#{{ filter_target }}"
         hx-swap="innerHTML"
     class="modal-content">
     <div class="modal-header text-black">
@@ -12,7 +19,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
     <div class="modal-body">
-        <input type="hidden" name="entity-table" value="{{ entity_name }}">
+        <input type="hidden" name="entity_table" value="{{ entity_name }}">
         {# filters is a list with this value:  [
                         {
                             "type" : "choice",

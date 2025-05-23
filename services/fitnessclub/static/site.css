@@ -272,3 +272,43 @@ background: #f9f9f9;
         font-size: 1.5em;
     }
 }
+
+
+.accordion-button {
+  border: none;
+  border-radius: .5rem;
+  background: linear-gradient(135deg, #c2cb11 0%, #2575fc 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transition: background 0.3s, transform 0.2s;
+}
+.accordion-button:not(.collapsed) {
+  background: linear-gradient(135deg, #2575fc 0%, #6a11cb 100%);
+}
+.accordion-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 .25rem rgba(37,117,252,.5);
+}
+.accordion-button .accordion-header-icon {
+  margin-right: .5rem;
+  transition: transform 0.2s;
+}
+.accordion-button:not(.collapsed) .accordion-header-icon {
+  transform: rotate(180deg);
+}
+.accordion-body {
+  background: #f7f9fc;
+  border-left: 4px solid #2575fc;
+  border-bottom-left-radius: .5rem;
+  border-bottom-right-radius: .5rem;
+  padding: 1rem;
+}
+.accordion-button {
+  font-size: 1.1rem;
+  font-weight: 500;
+  padding: 1rem 1.25rem;
+}
+.accordion-body {
+  font-size: .95rem;
+  line-height: 1.5;
+}

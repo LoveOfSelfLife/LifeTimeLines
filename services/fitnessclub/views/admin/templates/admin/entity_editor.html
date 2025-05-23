@@ -37,7 +37,7 @@
                 // this is a hack to force the page to reload
                 // because the fetch results are not being intercepted by HTMX
                 // TODO: find a better way to do this
-                window.location.replace("/admin/?entity-table={{table_id}}");
+                window.location.replace("/admin/?entity_table={{table_id}}");
 
             } catch (err) {
                 console.error(err);
