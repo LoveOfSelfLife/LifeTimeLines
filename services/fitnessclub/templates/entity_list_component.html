@@ -1,0 +1,144 @@
+<div id="{{ main_content_container }}">
+    <div class="card-body" 
+            hx-trigger="entityListChanged from:body" 
+            hx-get="{{ entities_listing_route }}" 
+            hx-target="#{{main_content_container}}" 
+            hx-swap="innerHTML">
+
+            {% if entity_add_route %}
+            <button class="btn btn-light btn-sm"
+                hx-get="{{ entity_add_route}}"
+                hx-target="#{{ main_content_container }}"
+                hx-swap="innerHTML"
+                hx-push-url="{{ entity_add_route }}">
+                Add New {{ entity_display_name }}
+            </button>
+            {% endif %}
+
+            
+        {% if filter_dialog_route %}
+        <div class="d-flex justify-content-between align-items-center mb-0 p-2 bg-light border rounded">
+            <button class="btn btn-outline-primary btn-sm"
+                hx-get="{{ filter_dialog_route }}"
+                {% if args %}
+                hx-vals='{{ args|tojson }}'
+                {% endif %}            
+                hx-target="#modals-here"
+                hx-swap="innerHTML"
+                data-bs-toggle="modal"
+                data-bs-target="#modals-here"
+            >
+                <i class="bi bi-search"></i> Filter
+            </button>
+            {% if filter_terms %}
+            <span class="text-muted small">
+            {% for term in filter_terms %}
+            <strong>{{ term.label }}:</strong> {{ term.value }} |
+            {% endfor %}
+            </span>
+            {% endif %}
+            
+        </div>
+        {% endif %}
+
+        <div class="table-responsive">
+            <table class="table table-sm table-striped table-bordered">
+                <thead class="thead-dark">
+                    <tr>
+                        {% for field in fields_to_display %}
+                        <th scope="col">{{ field }}</th>
+                        {% endfor %}
+                        {% if entity_action_route %}
+                        <th scope="col" class="text-center">Action</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entity in entities %}
+                    <tr>
+                        {% for value in entity.field_values %}
+                        {% if loop.index == 1 %}
+                            {% if entity_view_route %}
+                            <td>
+                                <a href="#"
+                                    hx-get="{{ entity_view_route }}&key={{ entity.key }}"
+                                    hx-target="#modals-here"
+                                    hx-swap="innerHTML"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modals-here"
+                                    >
+                                    {{ value }}
+                                </a>
+                            </td>
+                            {% else %}
+                            <td>{{ value }}</td>
+                            {% endif %}
+                        {% else %}
+                            <td>{{ value }}</td>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% for field in fields_to_display %}
+                            {% if field == "description" %}
+                                <td class="text-truncate">{{ entity.description }}</td>
+                            {% endif %} 
+                        {% endfor %}
+                        {% if entity_action_route_method %}
+                                {% set action_method = entity_action_route_method %}
+                        {% else %}
+                            {% set action_method = "get" %}
+                        {% endif %}
+
+                        {% if entity_action_route_target %}
+                                {% set action_target = entity_action_route_target %}
+                        {% else %}
+                            {% set action_target = main_content_container %}
+                        {% endif %}
+
+                        {% if entity_action_route %}
+                        <td class="text-center">
+                            <button class="btn btn-outline-secondary btn-sm"
+                                hx-{{ action_method }}="{{ entity_action_route }}&key={{ entity.key }}"
+                                hx-push-url="{{ entity_action_route }}&key={{ entity.key }}"
+                                hx-target="#{{ action_target }}"
+                                hx-swap="innerHTML">
+                                <i class="bi {{ entity_action_icon}}"></i>
+                            </button>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <nav aria-label="Page navigation" class="mt-3">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+        <a class="page-link" href="#"
+            hx-get="{{ entities_listing_route }}&page={{ page - 1 }}&filter={{ filter_terms }}"
+            {% if args %}
+            hx-vals='{{ args|tojson }}'
+            {% endif %}
+            hx-target="#{{main_content_container}}">
+            Previous
+        </a>
+        </li>
+        <li class="page-item disabled">
+        <span class="page-link">
+            Page {{ page }} of {{ total_pages }}
+        </span>
+        </li>
+        <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+        <a class="page-link" href="#"
+            hx-get="{{ entities_listing_route }}&page={{ page + 1 }}&filter={{ filter_terms }}"
+            {% if args %}
+            hx-vals='{{ args|tojson }}'
+            {% endif %}
+            hx-target="#{{main_content_container}}">
+            Next
+        </a>
+        </li>
+    </ul>
+    </nav>
+</div>

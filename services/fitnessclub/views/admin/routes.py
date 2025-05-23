@@ -1,6 +1,6 @@
 import os
 import json
-from flask import Blueprint, jsonify, make_response, render_template, request, redirect
+from flask import Blueprint, jsonify, make_response, render_template, request, redirect, url_for
 import requests
 from auth import auth
 from common.fitness.active_fitness_registry import render_exercise_popup_viewer_html, get_fitnessclub_entity_filters_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_for_entity, get_fitnessclub_listing_fields_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_entity_names
@@ -14,46 +14,13 @@ bp = Blueprint('admin', __name__, template_folder='templates')
 
 @bp.route('/')
 @auth.login_required
-def table_listing(context=None):
-
-    entity_name = request.args.get('entity-table')
-    page = int(request.args.get('page', 1))
-
-    page_size = 10
-    fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
-    entities = get_filtered_entities(entity_name, fields_to_display)
-
-    total_pages = (len(entities) + page_size - 1) // page_size
-    start = (page - 1) * page_size
-    end = start + page_size
-    current = entities[start:end]
-
-    if not entity_name:
-        return "No entity name provided", 404
-    entity_type = get_fitnessclub_entity_type_for_entity(entity_name)
-    
-    filter_terms = get_fitnessclub_entity_filters_for_entity(entity_name)
-
-    return hx_render_template('entity_list.html', 
-                              fields_to_display=fields_to_display,
-                              entities_container="entities-container",
-                              entities=current,
-                              entity_name=entity_name,
-                              entity_display_name=entity_type.get_display_name(),
-                              filter_terms=filter_terms,
-                              page=page,
-                              total_pages=total_pages,
-                              entity_add_route=f'/admin/add/{entity_name}',
-                              filter_dialog_route=f'/admin/filter-dialog?entity-table={entity_name}',                                      
-                              entities_listing_route=f'/admin/entities-listing?entity-table={entity_name}',
-                              entity_view_route=f'/admin/view?entity-table={entity_name}',
-                              entity_action_route=f'/admin/edit?entity-table={entity_name}',
-                              entity_action_icon='bi-pencil-square',                              
-                              context=context) 
+def root(context=None):
+    entity_table = request.args.get('entity_table')    
+    return redirect(url_for('admin.entities_listing', entity_table=entity_table), 302)
 
 @bp.route('/entities-listing')
-def entities_fragment():
-    entity_name = request.args.get('entity-table')    
+def entities_listing():
+    entity_name = request.args.get('entity_table', None)    
     page = int(request.args.get('page', 1))
 
     page_size = 10
@@ -76,26 +43,27 @@ def entities_fragment():
     end = start + page_size
     current = entities[start:end]
 
-    return render_template(
-        "entity_list_fragment.html",
+    return hx_render_template(
+        "entity_list_component.html",
         entity_name=entity_name,
-        entities_container="entities-container",        
+        main_content_container="entities-container",        
         fields_to_display=fields_to_display,
         entities=current,
         filter_terms=filter_terms,
         args=request.args,
         page=page,
         total_pages=total_pages,
-        filter_dialog_route=f'/admin/filter-dialog?entity-table={entity_name}',
-        entities_listing_route=f'/admin/entities-listing?entity-table={entity_name}',
-        entity_view_route=f'/admin/view?entity-table={entity_name}',
-        entity_action_route=f'/admin/edit?entity-table={entity_name}',
+        entity_add_route=f'/admin/add/{entity_name}',
+        filter_dialog_route=f'/admin/filter-dialog?entity_table={entity_name}',
+        entities_listing_route=f'/admin/entities-listing?entity_table={entity_name}',
+        entity_view_route=f'/admin/view?entity_table={entity_name}',
+        entity_action_route=f'/admin/edit?entity_table={entity_name}',
         entity_action_icon='bi-pencil-square'
     )
 @bp.route('/filter-dialog')
 @auth.login_required
 def filter_dialog(context=None):
-    entity_name = request.args.get('entity-table', None)
+    entity_name = request.args.get('entity_table', None)
     if not entity_name:
         return "No table id provided", 404
     if entity_name not in get_fitnessclub_entity_names():
@@ -104,7 +72,7 @@ def filter_dialog(context=None):
     filters = get_fitnessclub_entity_filters_for_entity(entity_name)
 
     return hx_render_template('filter_dialog.html', 
-                              entities_listing_route=f'/admin/entities-listing?entity-table={entity_name}',
+                              entities_listing_route=f'/admin/entities-listing?entity_table={entity_name}',
                               entity_display_name=entity_type.get_display_name(),                              
                               entity_name=entity_name,
                               filters=filters,
@@ -114,7 +82,7 @@ def filter_dialog(context=None):
 @bp.route('/edit')
 @auth.login_required
 def edit_entity(context=None):
-    table_id = request.args.get('entity-table', None)
+    table_id = request.args.get('entity_table', None)
     if not table_id:
         return "No table id provided", 404
     if table_id not in get_fitnessclub_entity_names():
@@ -145,7 +113,7 @@ def edit_entity(context=None):
 @bp.route('/view')
 @auth.login_required
 def view_entity(context=None):
-    table_id = request.args.get('entity-table', None)
+    table_id = request.args.get('entity_table', None)
     if not table_id:
         return "No table id provided", 404
     if table_id not in get_fitnessclub_entity_names():
@@ -202,7 +170,7 @@ def delete_entity_from_table(context=None, table_id=None):
         "showMessage": f"selected item was deleted."
     })
     # return response
-    return redirect(f'/admin?entity-table={table_id}', 302, response)
+    return redirect(f'/admin?entity_table={table_id}', 302, response)
 
 @bp.route('/add/<table_id>', methods=['GET'])
 @auth.login_required
@@ -263,7 +231,6 @@ def update_entity_save_json(context=None, table_id=None):
         "entityListChanged": True,
         "showMessage": f"item was saved."
     })
-    response.headers['HX-Redirect'] = f'/admin?entity-table={table_id}'
+    response.headers['HX-Redirect'] = f'/admin?entity_table={table_id}'
     return response
-    # return redirect(f'/admin?entity-table={table_id}', 302, response)
-    # return redirect(f'/', 302, response)
+    
