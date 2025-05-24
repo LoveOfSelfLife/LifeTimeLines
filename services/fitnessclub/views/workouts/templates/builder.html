@@ -37,8 +37,17 @@
 
         <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
 
-
-            <h2>{{ workout.name }}</h2>
+            {# turn this static h2 into an input field that a user can enter or modify the workout name #}
+            {# <form hx-post="{{ url_for('workouts.update_workout_name', workout_id=workout.id) }}"
+                  hx-target="#canvas"
+                  hx-swap="innerHTML"> #}
+              <input type="text" name="name" class="form-control form-control-sm"
+                     value="{{ workout.name }}" placeholder="Workout Name"
+                     hx-trigger="change delay:500ms, focusout"
+                     hx-post="{{ url_for('workouts.update_workout_name', workout_id=workout.id) }}"
+                     hx-swap="none">
+            {# </form> #}
+            {# <h2>{{ workout.name }}</h2> #}
             <button class="btn btn-primary d-md-none"
                     data-bs-toggle="offcanvas"
                     data-bs-target="#libDrawer">
@@ -47,7 +56,7 @@
           <button class="btn btn-sm btn-success mt-auto"
                   hx-post="{{ url_for('workouts.save_workout', workout_id=workout.id) }}"
                   hx-vals='{"workuot_id":"{{ workout.id }}"}'
-                  hx-target="#canvas"
+                  hx-target="#content"
                   hx-swap="innerHTML">
               Save
             </button>

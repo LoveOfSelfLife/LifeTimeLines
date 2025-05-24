@@ -1,5 +1,5 @@
 from datetime import datetime
-from flask import Blueprint, render_template, request, current_app
+from flask import Blueprint, make_response, render_template, request, current_app
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_for_entity
 from common.fitness.entities_getter import get_filtered_entities
@@ -91,8 +91,6 @@ def filter_dialog(context=None):
 
     return hx_render_template('filter_dialog.html', 
                               entities_listing_route=f'/workouts/builder/exercises?entity_table={entity_name}&target={target}&workout_id={workout_id}',
-                            #   entities_listing_route=f'/workouts/exercises-listing?entity_table={entity_name}&target={target}',
-                            #   entities_listing_route=f'/exercises/exercises-listing?entity_table={entity_name}',
                               filter_results_target=target,
                               entity_display_name=entity_type.get_display_name(),                              
                               entity_name=entity_name,
@@ -172,9 +170,15 @@ def save_workout(context=None, workout_id=None):
     # remove from redis
     redis_client.delete('current_workout')
 
-    return redirect(url_for('workouts.index'))
+    # return redirect(url_for('workouts.index'))
 
+    response = make_response('')
+    response.headers['HX-Trigger'] = json.dumps({
+        "eventListChanged": True,
+        "showMessage": f"saved workout"
+    })
 
+    return redirect(url_for('workouts.index'), 302, response)
 
 
 @bp.route('/builder/new')
@@ -295,6 +299,21 @@ def remove_exercise(context=None, workout_id=None):
     exid = request.form['exercise_id']
     for s in w['sections']:
         s['exercises'] = [it for it in s['exercises'] if it['id']!=exid]
+
+    # here we save the workout to redis
+    redis_client.set('current_workout', json.dumps(w))
+    return workout_canvas2(context, workout_id)
+
+@bp.route('/builder/<workout_id>/updatename', methods=['POST'])
+@auth.login_required
+def update_workout_name(context=None, workout_id=None):
+
+    # retrieve the workut from redis
+    redis_client = current_app.config['SESSION_CACHELIB']
+    current_workout = redis_client.get('current_workout')
+    w = json.loads(current_workout)
+    
+    w['name'] = request.form['name']
 
     # here we save the workout to redis
     redis_client.set('current_workout', json.dumps(w))
@@ -421,7 +440,6 @@ def exercise_listing(context=None):
         return "No entity name provided", 404
     entity_type = get_fitnessclub_entity_type_for_entity(entity_name)
     
-    filter_terms = get_fitnessclub_entity_filters_for_entity(entity_name)    
     return hx_render_template('entity_list_component.html',
                               fields_to_display=fields_to_display,
                               main_content_container=div_id,
@@ -429,6 +447,7 @@ def exercise_listing(context=None):
                               entity_name=entity_name,
                               entity_display_name=entity_type.get_display_name(),
                               filter_terms=filter_terms,
+                              args=request.args,
                               page=page,
                               total_pages=total_pages,
                               filter_dialog_route=f'/workouts/filter-dialog?entity_table={entity_name}&target={target}&workout_id={workout_id}',
@@ -439,54 +458,6 @@ def exercise_listing(context=None):
                               entity_action_route_target="canvas",                              
                               entity_action_icon='bi-pencil-square',                              
                               context=context)      
-
-# @bp.route('/exercises-listing')
-# @auth.login_required
-# def exercises_listing_fragment(context=None):
-
-#     entity_name = "ExerciseTable"
-#     page = int(request.args.get('page', 1))
-#     target = request.args.get('target', None)
-#     workout_id = request.args.get('workout_id', None)
-#     page_size = 10
-
-#     fields_to_display  = ['name']
-#     filters = get_fitnessclub_entity_filters_for_entity(entity_name)
-
-#     if filters:
-#         filter_func  = get_fitnessclub_filter_func_for_entity(entity_name)
-#         filter_term_func  = get_fitnessclub_filter_term_for_entity(entity_name)
-#         filter_terms = filter_term_func(request.args)
-#     # else:
-#         filter_func = None
-#         filter_terms = None
-
-#     entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms)
-
-#     total_pages = (len(entities) + page_size - 1) // page_size
-#     start = (page - 1) * page_size
-#     end = start + page_size
-#     current = entities[start:end]
-
-#     # this displays the list of exercises at the top level
-#     return render_template(
-#         "entity_list_component.html",
-#         entity_name=entity_name,
-#         main_content_container=target,
-#         fields_to_display=fields_to_display,
-#         entities=current,
-#         filter_terms=filter_terms,
-#         args=request.args,
-#         page=page,
-#         total_pages=total_pages,
-#         filter_dialog_route=f'/workouts/filter-dialog?entity_table={entity_name}&target={target}',
-#         entities_listing_route=f'/workouts/exercises-listing?entity_table={entity_name}&target={target}&workout_id={workout_id}',
-#         entity_view_route=f'/workouts/view?entity_table={entity_name}',
-#         entity_action_route=f'/workouts/builder/{workout_id}/add?entity_table={entity_name}',
-#         entity_action_route_target="#canvas",
-#         entity_action_route_method='post',
-#         entity_action_icon='bi-pencil-square'
-#     )
 
 
 # ── Workout View ────────────────────────────────────────────────
