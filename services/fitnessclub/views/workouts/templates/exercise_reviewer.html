@@ -1,0 +1,74 @@
+<div class="container-fluid">
+  <div class="row">
+    <!-- exercise library list sidebar (md+) -->
+    <div class="col-md-4 d-none d-md-block border-end vh-100 overflow-auto">
+      <h4 class="mt-3">Exercise Reviewer</h4>
+      <div id="reviewer-list"
+           hx-get="{{ url_for('workouts.exercise_reviewer_listing', target='reviewer-list') }}"
+           hx-trigger="load"
+           hx-swap="innerHTML">
+        Loading…
+      </div>
+      <button class="btn btn-sm btn-outline-secondary mt-3"
+              data-bs-toggle="offcanvas"
+              data-bs-target="#libDrawer">
+        Filter/Search
+      </button>
+    </div>
+
+    <!-- Offcanvas for mobile library -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="libDrawer">
+      <div class="offcanvas-header">
+        <h5 class="offcanvas-title">Exercise Library</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+      </div>
+      <div class="offcanvas-body">
+        <div id="reviewer-list-mobile"
+             hx-get="{{ url_for('workouts.exercise_reviewer_listing', target='reviewer-list-mobile') }}"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+          Loading…
+        </div>
+      </div>
+    </div>
+      <div class="col-md-8 vh-100 overflow-auto">
+
+        <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+
+            <button class="btn btn-primary d-md-none"
+                    data-bs-toggle="offcanvas"
+                    data-bs-target="#libDrawer">
+              View Exercises
+            </button>
+
+        {% if exercise %}
+          <button class="btn btn-sm btn-success mt-auto"
+                  hx-post="{{ url_for('workouts.reviewer_save_exercise', exercise_id=exercise.id) }}"
+                  hx-vals='{"exercise_id":"{{ exercise.id }}"}'
+                  hx-swap="none">
+              Save
+            </button>
+        {% endif %}
+            {# <p class="text-white">exercise id: {{ exercise.id }}</p>  
+            <p class="text-white">exercise: {{ exercise }}</p>   #}
+
+        </div>
+
+        {% if exercise %}
+        <div id="canvas"
+            hx-get="{{ url_for('workouts.exercise_reviewer_editor_canvas', exercise_id=exercise.id) }}"
+            hx-trigger="load"
+            hx-swap="innerHTML">
+          Loading…
+        </div>
+        {% else %}
+        <div id="canvas"
+          class="card-body">
+          <p class="text-white
+              text-center p-3">No exercise selected. Please select an exercise from the library.</p>
+        </div>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+</div>

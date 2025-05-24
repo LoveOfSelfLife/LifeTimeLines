@@ -55,7 +55,7 @@
             </button>
           <button class="btn btn-sm btn-success mt-auto"
                   hx-post="{{ url_for('workouts.save_workout', workout_id=workout.id) }}"
-                  hx-vals='{"workuot_id":"{{ workout.id }}"}'
+                  hx-vals='{"workout_id":"{{ workout.id }}"}'
                   hx-target="#content"
                   hx-swap="innerHTML">
               Save

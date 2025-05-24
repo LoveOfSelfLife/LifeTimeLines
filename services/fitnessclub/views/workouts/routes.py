@@ -3,6 +3,7 @@ from flask import Blueprint, make_response, render_template, request, current_ap
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_for_entity
 from common.fitness.entities_getter import get_filtered_entities
+from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.hx_common import hx_render_template
 bp = Blueprint('workouts', __name__, template_folder='templates')
 from auth import auth
@@ -144,43 +145,6 @@ def edit_workout_details(context=None):
     return redirect(url_for('workouts.builder', workout_id=entity_type['id']))
 
 
-@bp.route('/builder/<workout_id>/save', methods=['POST'])
-@auth.login_required
-def save_workout(context=None, workout_id=None):
-    user = context.get('user', None)
-    member_id = user.get('sub', None) if user else None   
-    if not member_id:
-        abort(401)
-
-    WORKOUT_ENTITY_NAME = "WorkoutTable"
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_workout = redis_client.get('current_workout')
-    if current_workout:
-        workout = json.loads(current_workout)
-        if workout['id'] != workout_id:
-            abort(404)
-    workout_type : WorkoutEntity = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
-
-    print('Saving workout')
-    es = EntityStore()
-    workout['created_by'] = member_id
-    workout['created_ts'] = datetime.now().isoformat()
-    workout_type.initialize(workout)
-    es.upsert_item(workout_type)
-    # remove from redis
-    redis_client.delete('current_workout')
-
-    # return redirect(url_for('workouts.index'))
-
-    response = make_response('')
-    response.headers['HX-Trigger'] = json.dumps({
-        "eventListChanged": True,
-        "showMessage": f"saved workout"
-    })
-
-    return redirect(url_for('workouts.index'), 302, response)
-
-
 @bp.route('/builder/new')
 @auth.login_required
 def builder_new(context=None):
@@ -245,6 +209,7 @@ def workout_canvas2(context=None, workout_id=None):
     abort(404)
 
 # ── Actions ──────────────────────────────────────────────────────
+
 @bp.route('/builder/<workout_id>/add', methods=['POST'])
 @auth.login_required
 def add_exercise(context=None, workout_id=None):
@@ -388,11 +353,46 @@ def update_param(context=None, workout_id=None):
 
     return ('', 204)
 
-########################################
-# @bp.route('/builder/<workout_id>/exercises')
-# @auth.login_required
-# def exercise_library(context=None, workout_id=None):
 
+@bp.route('/builder/<workout_id>/save', methods=['POST'])
+@auth.login_required
+def save_workout(context=None, workout_id=None):
+    user = context.get('user', None)
+    member_id = user.get('sub', None) if user else None   
+    if not member_id:
+        abort(401)
+
+    WORKOUT_ENTITY_NAME = "WorkoutTable"
+    redis_client = current_app.config['SESSION_CACHELIB']
+    current_workout = redis_client.get('current_workout')
+    if current_workout:
+        workout = json.loads(current_workout)
+        if workout['id'] != workout_id:
+            abort(404)
+    workout_type : WorkoutEntity = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
+
+    print('Saving workout')
+    es = EntityStore()
+    workout['created_by'] = member_id
+    workout['created_ts'] = datetime.now().isoformat()
+    workout_type.initialize(workout)
+    es.upsert_item(workout_type)
+    # remove from redis
+    redis_client.delete('current_workout')
+
+    # return redirect(url_for('workouts.index'))
+
+    response = make_response('')
+    response.headers['HX-Trigger'] = json.dumps({
+        "eventListChanged": True,
+        "showMessage": f"saved workout"
+    })
+
+    return redirect(url_for('workouts.index'), 302, response)
+
+
+########################################
+# displays the exercise library within the workout builder
 
 @bp.route('/builder/exercises')
 @auth.login_required
@@ -429,8 +429,6 @@ def exercise_listing(context=None):
 
     entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms)
     
-    # entities = get_filtered_entities(entity_name, fields_to_display)
-
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
     end = start + page_size
@@ -456,8 +454,195 @@ def exercise_listing(context=None):
                               entity_action_route=f'/workouts/builder/{workout_id}/add?entity_table={entity_name}',
                               entity_action_route_method='post',
                               entity_action_route_target="canvas",                              
-                              entity_action_icon='bi-pencil-square',                              
+                              entity_action_icon='bi-arrow-right-square-fill',                              
                               context=context)      
+
+
+# ── Main exercise reviewer View ─────────────────────────────────────────────
+# this will display two panels, the one on the left will be the list of exercises
+# and the one on the right will be the details of whatever exercise is selected from the list on the left
+# whichever exercise is selected, will be added to the redis cache as the current exercise being reviewed
+# the action button on the exercise reviewer list will create a form with the exercise details, and the results
+# will targeted for the exercise reviewer details panel
+
+@bp.route('/exercise_reviewer')
+@auth.login_required
+def exercise_reviewer(context=None):
+
+    redis_client = current_app.config['SESSION_CACHELIB']
+    current_exercise = redis_client.get('current_exercise_being_reviewed')
+    if current_exercise:
+        exercise = json.loads(current_exercise)
+    else:
+        exercise = None
+    return hx_render_template('exercise_reviewer.html',
+                              exercise=exercise,
+                              context=context)
+
+@bp.route('/exercise_reviewer_listing')
+@auth.login_required
+def exercise_reviewer_listing(context=None):
+    exercise_id = request.args.get('exercise_id', None)
+    target = request.args.get('target', None)
+    redis_client = current_app.config['SESSION_CACHELIB']
+    current_exercise = redis_client.get('current_exercise_being_reviewed')
+    mobile = request.args.get('mobile', type=bool, default=False)
+    div_id = 'reviewer-list-mobile' if mobile else 'reviewer-list'
+    target = div_id
+    
+    # if current_exercise:
+    #     ex = json.loads(current_exercise)
+    #     if ex['id'] != exercise_id:
+    #         abort(404)
+    # else:
+    #         abort(404)     
+
+    entity_name = "ExerciseTable"
+    page = int(request.args.get('page', 1))
+    page_size = 10
+    fields_to_display  = ['name']
+
+    filters = get_fitnessclub_entity_filters_for_entity(entity_name)
+
+    if filters:
+        filter_func  = get_fitnessclub_filter_func_for_entity(entity_name)
+        filter_term_func  = get_fitnessclub_filter_term_for_entity(entity_name)
+        filter_terms = filter_term_func(request.args)
+    else:
+        filter_func = None
+        filter_terms = None
+
+    entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms)
+    
+    total_pages = (len(entities) + page_size - 1) // page_size
+    start = (page - 1) * page_size
+    end = start + page_size
+    current = entities[start:end]
+
+    if not entity_name:
+        return "No entity name provided", 404
+    entity_type = get_fitnessclub_entity_type_for_entity(entity_name)
+    
+    return hx_render_template('entity_list_component.html',
+                              fields_to_display=fields_to_display,
+                              main_content_container=div_id,
+                              entities=current,
+                              entity_name=entity_name,
+                              entity_display_name=entity_type.get_display_name(),
+                              filter_terms=filter_terms,
+                              args=request.args,
+                              page=page,
+                              total_pages=total_pages,
+                              filter_dialog_route=f'/workouts/exercise_reviewer/filter-dialog?entity_table={entity_name}&target={target}',
+                              entities_listing_route=f'/workouts/exercise_reviewer_listing?target={target}',
+                              entity_view_route=f'/exercises/view?entity_table={entity_name}',
+                              entity_action_route=f'/workouts/exercise_reviewer/review?target={target}',
+                              entity_action_route_method='post',
+                              entity_action_route_target="canvas",                              
+                              entity_action_icon='bi-arrow-right-square-fill',                            
+                              context=context)      
+
+@bp.route('/exercise_reviewer/filter-dialog')
+@auth.login_required
+def exercise_reviewer_filter_dialog(context=None):
+    target = request.args.get('target', None)
+    entity_name = "ExerciseTable"
+    entity_type = get_fitnessclub_entity_type_for_entity(entity_name)
+    filters = get_fitnessclub_entity_filters_for_entity(entity_name)
+
+    return hx_render_template('filter_dialog.html', 
+                              entities_listing_route=f'/workouts/exercise_reviewer_listing?target={target}',
+                              filter_results_target=target,
+                              entity_display_name=entity_type.get_display_name(),                              
+                              entity_name=entity_name,
+                              filters=filters,
+                              args=request.args,
+                              context=context)
+
+@bp.route('/exercise_reviewer/review', methods=['POST'])
+@auth.login_required
+def exercise_reviewer_review(context=None):
+
+    composite_key_str = request.args.get('key', None)
+    composite_key = eval(composite_key_str) if composite_key_str else None
+    es = EntityStore()
+    entity_instance = get_fitnessclub_entity_type_for_entity("ExerciseTable")
+    ex = es.get_item_by_composite_key(entity_instance, composite_key)
+    if not ex:
+        abort(404)
+    
+    exercise_id = ex['id']
+
+    # here we save the exercise to redis
+    redis_client = current_app.config['SESSION_CACHELIB']
+    redis_client.set('current_exercise_being_reviewed', json.dumps(ex))
+
+    return exercise_reviewer_editor_canvas2(context, exercise_id)
+
+
+@bp.route('/exercise_reviewer/<exercise_id>/canvas')
+@auth.login_required
+def exercise_reviewer_editor_canvas(context=None, exercise_id=None):
+    return exercise_reviewer_editor_canvas2(context, exercise_id)
+
+def exercise_reviewer_editor_canvas2(context=None, exercise_id=None):
+    redis_client = current_app.config['SESSION_CACHELIB']
+    current_exercise = redis_client.get('current_exercise_being_reviewed')
+
+    if not current_exercise:
+        abort(404)
+
+    ex = json.loads(current_exercise)
+    return hx_render_template('exercise_reviewer_editor_canvas.html',
+                            exercise=ex, cotext=context)
+@bp.route('/exercise_reviewer/<exercise_id>/updatename', methods=['POST'])
+@auth.login_required
+def update_exercise_name(context=None, exercise_id=None):
+
+    # retrieve the workut from redis
+    redis_client = current_app.config['SESSION_CACHELIB']
+    current_exercise = redis_client.get('current_exercise_being_reviewed')
+    ex = json.loads(current_exercise)
+    
+    ex['name'] = request.form['name']
+
+    # here we save the workout to redis
+    redis_client.set('current_exercise_being_reviewed', json.dumps(ex))
+    return exercise_reviewer_editor_canvas2(context, exercise_id)
+
+
+@bp.route('/exercise_reviewer/save', methods=['POST'])
+@auth.login_required
+def reviewer_save_exercise(context=None):
+    EXERCISE_ENTITY_NAME= "ExerciseTable"
+    user = context.get('user', None)
+    member_id = user.get('sub', None) if user else None   
+    if not member_id:
+        abort(401)
+    exercise_id = request.form['exercise_id']
+    
+    redis_client = current_app.config['SESSION_CACHELIB']
+    current_exercise = redis_client.get('current_exercise_being_reviewed')
+    if current_exercise:
+        ex = json.loads(current_exercise)
+        if ex['id'] != exercise_id:
+            abort(404)
+    exercise_type : ExerciseEntity = get_fitnessclub_entity_type_for_entity(EXERCISE_ENTITY_NAME)
+
+    print('Saving workout')
+    es = EntityStore()
+    exercise_type.initialize(ex)
+    es.upsert_item(exercise_type)
+    # remove from redis
+    redis_client.delete('current_exercise_being_reviewed')
+
+    response = make_response('')
+    response.headers['HX-Trigger'] = json.dumps({
+        "eventListChanged": True,
+        "showMessage": f"exercise changes saved"
+    })
+
+    return response
 
 
 # ── Workout View ────────────────────────────────────────────────
