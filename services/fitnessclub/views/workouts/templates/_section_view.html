@@ -22,14 +22,14 @@
           <!-- Feedback up/down -->
           <button
             class="btn btn-outline-primary"
-            hx-post="{{ url_for('workouts.exercise_feedback', exercise_id=ex.id) }}"
+            hx-post="{{ url_for('workouts.exercise_feedback', workout_id=workout.id, exercise_id=ex.id) }}"
             hx-vals='{"adjust":"up"}'
             hx-swap="none">
             🔼
           </button>
           <button
             class="btn btn-outline-primary"
-            hx-post="{{ url_for('workouts.exercise_feedback', exercise_id=ex.id) }}"
+            hx-post="{{ url_for('workouts.exercise_feedback', workout_id=workout.id, exercise_id=ex.id) }}"
             hx-vals='{"adjust":"down"}'
             hx-swap="none">
             🔽

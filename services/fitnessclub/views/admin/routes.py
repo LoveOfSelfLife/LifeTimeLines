@@ -1,6 +1,6 @@
 import os
 import json
-from flask import Blueprint, jsonify, make_response, render_template, request, redirect, url_for
+from flask import Blueprint, abort, jsonify, make_response, render_template, request, redirect, url_for
 import requests
 from auth import auth
 from common.fitness.active_fitness_registry import render_exercise_popup_viewer_html, get_fitnessclub_entity_filters_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_for_entity, get_fitnessclub_listing_fields_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_entity_names
@@ -212,6 +212,14 @@ def update_entity_save_json(context=None, table_id=None):
     # it also assumes that the entity has a fixed partition value
     # probably need to make this more generic in the future
     # TODO: fix this to be more generic
+    partition_field = entity.get_partition_field()
+    if partition_field:
+        if partition_field != 'member_id':
+            abort(400, "Only Partition field 'member_id' is supported at this time")
+        user = context.get('user', None)
+        if user:
+            member_id = user.get('sub', None)
+        data['member_id'] = member_id
 
     # if the entity does not have an id, then generate one
     if not data.get('id', None):
