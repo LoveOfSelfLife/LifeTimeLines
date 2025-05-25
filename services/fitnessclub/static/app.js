@@ -107,3 +107,40 @@
       initSortables();
     }
   });
+
+  document.addEventListener('DOMContentLoaded', function(){
+    var imageModal = document.getElementById('imageModal');
+    imageModal.addEventListener('show.bs.modal', function (event) {
+      // `event.relatedTarget` is the <img> that triggered the modal
+      var thumb     = event.relatedTarget;
+      var fullUrl   = thumb.getAttribute('data-full-url');
+      var description = thumb.getAttribute('alt') || '';
+      // Update modal contents
+      var modalImg   = document.getElementById('modalImage');
+      var modalTitle = document.getElementById('imageModalLabel');
+      modalImg.src   = fullUrl;
+      modalImg.alt   = description;
+      modalTitle.textContent = description;
+    });
+  });
+
+
+  // Call this to open/close the details panel
+  function toggleExerciseDetails(id) {
+    const container = document.getElementById('details-' + id);
+    // If it already has content, just clear it (close)
+    if (container.innerHTML.trim()) {
+      container.innerHTML = '';
+      return;
+    }
+    // Otherwise, close any other open panels
+    document.querySelectorAll('.exercise-details')
+      .forEach(el => {
+        if (el.id !== 'details-' + id) el.innerHTML = '';
+      });
+    // And fire an HTMX request to load this one
+    htmx.ajax('GET',
+      '/workouts/viewer/exercise/' + id + '/details',
+      { target: '#details-' + id, swap: 'innerHTML' }
+    );
+  }

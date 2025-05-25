@@ -1,4 +1,4 @@
-schema = {
+exercise_schema = {
 	"title": "Exercise",
 	"type": "object",
 	"required": [
@@ -263,6 +263,78 @@ schema = {
 		"udf2": {
 			"type": "string",
 			"default": ""
+		}
+	}
+}
+
+exercise_review_schema = {
+	"title": "Exercise Review",
+	"type": "object",
+	"required": [
+		"disposition",
+        "category",
+		"setCompletionMeasure",
+		"name",
+        "id"
+	],
+	"properties": {
+		"id": {
+			"type": "string",
+			"default": "",
+            "readOnly": True,
+		},
+		"name": {
+			"type": "string",
+			"minLength": 4,
+			"default": "",
+			"propertyOrder": 5
+		},
+		"category": {
+			"type": "array",
+			"title": "category",
+            "format": "checkbox",
+			"propertyOrder": 2,
+			"items": {
+				"type": "string",
+				"enum": [
+					"flexibility",
+					"mobility",
+					"balance",
+					"core",
+					"power",
+					"strength",
+					"cardio",
+					"endurance"
+				]
+			},
+			"uniqueItems": True,
+			"default": []
+		},
+		"disposition": {
+			"type": "array",
+			"title": "category",
+            "format": "checkbox",
+			"propertyOrder": 1,
+			"items": {
+				"type": "string",
+				"enum": [
+					"hide",
+					"popularr",
+					"staple"
+				]
+			},
+			"uniqueItems": True,
+			"default": []
+		},
+		"setCompletionMeasure": {
+			"type": "string",
+			"propertyOrder": 3,
+			"enum": [
+				"reps",
+				"time",
+				"distance",
+				"calories"
+			]
 		}
 	}
 }

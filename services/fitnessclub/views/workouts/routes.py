@@ -1,5 +1,5 @@
 from datetime import datetime
-from flask import Blueprint, make_response, render_template, request, current_app
+from flask import Blueprint, jsonify, make_response, render_template, request, current_app
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_for_entity
 from common.fitness.entities_getter import get_filtered_entities
@@ -12,6 +12,7 @@ import uuid
 import redis
 import json
 from common.fitness.workout_entity import WorkoutEntity
+from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity
 
 from common.fitness.entities_getter import get_filtered_entities, get_entity
 
@@ -476,7 +477,6 @@ def exercise_reviewer(context=None):
     else:
         exercise = None
     return hx_render_template('exercise_reviewer.html',
-                              exercise=exercise,
                               context=context)
 
 @bp.route('/exercise_reviewer_listing')
@@ -592,9 +592,56 @@ def exercise_reviewer_editor_canvas2(context=None, exercise_id=None):
     if not current_exercise:
         abort(404)
 
-    ex = json.loads(current_exercise)
+    es = EntityStore()
+    exercise = json.loads(current_exercise)
+    exercise_id = exercise['id']
+    
+    er = ExerciseReviewEntity({ "id": exercise_id })
+    exercise_review = es.get_item(er)
+    if not exercise_review:
+        exercise_review = ExerciseReviewEntity({ "id": exercise_id })
+        es.upsert_item(exercise_review)
+
     return hx_render_template('exercise_reviewer_editor_canvas.html',
-                            exercise=ex, cotext=context)
+                            exercise=exercise,
+                            exercise_review=exercise_review,
+                            exercise_review_schema=exercise_review.get_schema(),
+                            update_entity_url=url_for('workouts.update_exercise_review')
+                            )
+
+
+@bp.route('/exercise_reviewer/updatereview', methods=['POST'])
+@auth.login_required
+def update_exercise_review(context=None):
+    table_id = "ExerciseReviewTable"
+    data = request.get_json(silent=True)
+    if data is None:
+        return jsonify({"error": "Invalid or missing JSON"}), 400
+
+    print(f"Received JSON payload for table {table_id}: {data}")
+    entity = get_fitnessclub_entity_type_for_entity(table_id)        
+
+    es = EntityStore()
+    
+    # this assumes that the entity uses 'id' as the key field
+    # it also assumes that the entity has a fixed partition value
+    # probably need to make this more generic in the future
+    # TODO: fix this to be more generic
+
+    entity.initialize(data)
+    es.upsert_item(entity)
+
+    response = make_response('')
+    response.headers['HX-Trigger'] = json.dumps({
+        "entityListChanged": True,
+        "showMessage": f"item was saved."
+    })
+    # response.headers['HX-Redirect'] = f'/admin?entity_table={table_id}'
+    return response
+    
+
+
+
 @bp.route('/exercise_reviewer/<exercise_id>/updatename', methods=['POST'])
 @auth.login_required
 def update_exercise_name(context=None, exercise_id=None):
@@ -671,11 +718,13 @@ def view_workout(context=None):
         exercises=exercises,
         default_section=last
     )
+from common.fitness.entities_getter import get_entity
 
 @bp.route("/viewer/workout/<workout_id>/section/<section_name>")
 @auth.login_required
 def view_section(context=None, workout_id=None, section_name=None):
-    workout = workouts.get(workout_id)
+    workout = get_entity("WorkoutTable", workout_id)
+    exercises = get_exercises_from_workout(workout)
     if not workout:
         abort(404)
     section = next((s for s in workout["sections"] if s["name"] == section_name), None)
@@ -704,7 +753,8 @@ def set_last_section(context=None, workout_id=None, section_name=None):
 @bp.route("/viewer/exercise/<exercise_id>/details")
 @auth.login_required
 def exercise_details(context=None, exercise_id=None):
-    exercise = exercises.get(exercise_id)
+    exercise = get_entity("ExerciseTable", exercise_id)
+    # exercise = exercises.get(exercise_id)
     if not exercise:
         abort(404)
     # Render only the drill-in partial
@@ -714,12 +764,12 @@ def exercise_details(context=None, exercise_id=None):
 @bp.route("/viewer/exercise/<exercise_id>/feedback", methods=["POST"])
 @auth.login_required
 def exercise_feedback(context=None, exercise_id=None):
-    exercise = exercises.get(exercise_id)
+    exercise = get_entity("ExerciseTable", exercise_id)
     if not exercise:
         abort(404)
     data = request.get_json(silent=True) or {}
     adjust = data.get("adjust")
     # TODO: record feedback (e.g. save to DB, adjust next workout)
-    app.logger.info(f"Feedback for {exercise_id}: {adjust!r}")
+    current_app.logger.info(f"Feedback for {exercise_id}: {adjust!r}")
     # We return no content, HTMX hx-swap="none" will leave UI untouched
     return ("", 204)

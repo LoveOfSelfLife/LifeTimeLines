@@ -1,6 +1,6 @@
 from common.fitness.program_entity import ProgramEntity
 from common.fitness.member_entity import MemberEntity
-from common.fitness.exercise_entity import ExerciseEntity
+from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity
 from common.fitness.member_entity import MemberEntity
 from common.fitness.workout_entity import WorkoutEntity
 from common.fitness.hx_common import hx_render_template
@@ -151,6 +151,10 @@ editable_entities = {
                     },
     "WorkoutTable" : { "entity_class": WorkoutEntity,
                         "listing_view_fields": ["name"]
+                    },
+    "ExerciseReviewTable" : 
+                    { "entity_class": ExerciseReviewEntity,
+                      "listing_view_fields": ["name"]
                     }
     }
 

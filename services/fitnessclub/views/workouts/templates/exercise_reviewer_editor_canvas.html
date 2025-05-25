@@ -1,53 +1,99 @@
-<div class="card">
-  <div class="card-header d-flex justify-content-between align-items-center">
-    <h6 class="mb-0">Details</h6>
-  </div>
-  {% if exercise %}
-    <div class="card-body">
+<div class="row">
 
-        <input type="text" name="name" class="form-control form-control-sm"
-            value="{{ exercise.name }}" placeholder="Exercise Name"
-            hx-trigger="change delay:500ms, focusout"
-            hx-post="{{ url_for('workouts.update_exercise_name', exercise_id=exercise.id) }}"
-            hx-swap="none">
+    <div class="card col-8">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">Details</h6>
+        </div>
+        {% if exercise %}
+        <div class="card-body">
 
-        <p class="small">{{ exercise.instructions }}</p>
+          <button class="btn btn-sm btn-success mt-auto"
+                  hx-post="{{ url_for('workouts.reviewer_save_exercise', exercise_id=exercise.id) }}"
+                  hx-vals='{"exercise_id":"{{ exercise.id }}"}'
+                  hx-swap="none">
+              Save Exercise
+            </button>
 
-        {% if exercise.images %}
-        <h6>Images</h6>
-        <div class="row gx-2">
-            {% for img in exercise.images %}
-            <div class="col-6 mb-2">
-                <img
-                src="{{ img.url }}"
-                alt="{{ img.description }}"
-                data-full-url="{{ img.url }}"
-                data-bs-toggle="modal"
-                data-bs-target="#imageModal"
-                class="img-fluid rounded"
-                style="cursor:pointer;"
-                >
+            <input type="text" name="name" class="form-control form-control-sm" value="{{ exercise.name }}"
+                placeholder="Exercise Name" hx-trigger="change delay:500ms, focusout"
+                hx-post="{{ url_for('workouts.update_exercise_name', exercise_id=exercise.id) }}" hx-swap="none">
 
+            <p class="small">{{ exercise.instructions }}</p>
+
+            {% if exercise.images %}
+            <h6>Images</h6>
+            <div class="row gx-2">
+                {% for img in exercise.images %}
+                <div class="col-6 mb-2">
+                    <img src="{{ img.url }}" alt="{{ img.description }}" data-full-url="{{ img.url }}"
+                        data-bs-toggle="modal" data-bs-target="#imageModal" class="img-fluid rounded"
+                        style="cursor:pointer;">
+
+                </div>
+                {% endfor %}
             </div>
+            {% endif %}
+
+
+            {% if exercise.videos %}
+            <h6>Video</h6>
+            {% for vid in exercise.videos %}
+            <video controls class="w-100 mb-2">
+                <source src="{{ vid.url }}" type="video/mp4">
+                Your browser does not support embedded video.
+            </video>
             {% endfor %}
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="card-body">
+            <p class="text-muted
+            text-center p-3">No exercise selected. Please select an exercise from the library.</p>
         </div>
         {% endif %}
-
-
-        {% if exercise.videos %}
-        <h6>Video</h6>
-        {% for vid in exercise.videos %}
-            <video controls class="w-100 mb-2">
-            <source src="{{ vid.url }}" type="video/mp4">
-            Your browser does not support embedded video.
-            </video>
-        {% endfor %}
-        {% endif %}
     </div>
-    {% else %}
-    <div class="card-body">
-        <p class="text-muted
-            text-center p-3">No exercise selected. Please select an exercise from the library.</p>
-    </div> 
-    {% endif %}       
+
+    <div class="container col-4">
+        <button id="save-json" type="button" class="btn btn-primary">
+            Save Review
+        </button>
+
+        <div id="editor_holder" style="margin-bottom:1em;">
+        </div>
+            <script>
+                console.log('schema: ', {{ exercise_review_schema| tojson }});
+                console.log('entity: ', {{ exercise_review| tojson }});
+                var editor = new JSONEditor(document.getElementById('editor_holder'), {
+                    schema: {{ exercise_review_schema| tojson }},
+                    compact: true,
+                    disable_collapse: true,
+                    upload_end_point: '{{ upload_file_url }}',
+                    disable_properties: true,
+                    disable_array_delete_last_row: true,
+                    disable_array_delete_all_rows: true,
+                    disable_array_reorder: true,
+                    disable_edit_json: true,
+                    array_controls_top: false,
+                    iconlib: 'fontawesome5',
+                    startval: {{ exercise_review | tojson }}
+                });
+                document.getElementById('save-json').addEventListener('click', async () => {
+                    const payload = editor.getValue();
+                    try {
+                        const res = await fetch('{{ update_entity_url}}', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        if (!res.ok) throw new Error(res.statusText);
+                        showToast("Entity was saved!");
+
+                    } catch (err) {
+                        console.error(err);
+                        showToast("Entity failed to be saved!");
+                    }
+                });
+            </script>
+    </div>
 </div>

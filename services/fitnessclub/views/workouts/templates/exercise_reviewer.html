@@ -40,35 +40,13 @@
                     data-bs-target="#libDrawer">
               View Exercises
             </button>
-
-        {% if exercise %}
-          <button class="btn btn-sm btn-success mt-auto"
-                  hx-post="{{ url_for('workouts.reviewer_save_exercise', exercise_id=exercise.id) }}"
-                  hx-vals='{"exercise_id":"{{ exercise.id }}"}'
-                  hx-swap="none">
-              Save
-            </button>
-        {% endif %}
-            {# <p class="text-white">exercise id: {{ exercise.id }}</p>  
-            <p class="text-white">exercise: {{ exercise }}</p>   #}
-
         </div>
 
-        {% if exercise %}
-        <div id="canvas"
-            hx-get="{{ url_for('workouts.exercise_reviewer_editor_canvas', exercise_id=exercise.id) }}"
-            hx-trigger="load"
-            hx-swap="innerHTML">
-          Loading…
-        </div>
-        {% else %}
         <div id="canvas"
           class="card-body">
           <p class="text-white
               text-center p-3">No exercise selected. Please select an exercise from the library.</p>
         </div>
-        {% endif %}
       </div>
-    </form>
   </div>
 </div>
