@@ -180,6 +180,10 @@ font-size: 1rem;
 background: #f9f9f9;
 }
 
+.je-object__title {
+    font-weight: bold;
+    font-size: x-small;
+}
 
 .htmx-indicator {
     opacity: 0;
