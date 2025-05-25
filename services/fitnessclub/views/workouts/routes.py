@@ -764,11 +764,13 @@ def exercise_details(context=None, exercise_id=None):
 @bp.route("/viewer/exercise/<exercise_id>/feedback", methods=["POST"])
 @auth.login_required
 def exercise_feedback(context=None, exercise_id=None):
+    workout_id = request.args.get("workout_id", None)
     exercise = get_entity("ExerciseTable", exercise_id)
     if not exercise:
         abort(404)
     data = request.get_json(silent=True) or {}
-    adjust = data.get("adjust")
+    adjust = request.form.get("adjust")
+    # adjust = data.get("adjust")
     # TODO: record feedback (e.g. save to DB, adjust next workout)
     current_app.logger.info(f"Feedback for {exercise_id}: {adjust!r}")
     # We return no content, HTMX hx-swap="none" will leave UI untouched

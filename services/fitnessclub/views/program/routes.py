@@ -13,7 +13,60 @@ from auth import auth
 @bp.route('/')
 @auth.login_required
 def index(context=None):
-    return redirect(url_for('program.workouts_listing'), 302)
+    return redirect(url_for('program.programs_listing'), 302)
+
+@bp.route('/programs-listing')
+@auth.login_required
+def programs_listing(context=None):
+    PROGRAM_ENTITY_NAME = "ProgramTable"
+    page = int(request.args.get('page', 1))
+    page_size = 10
+
+    fields_to_display  = ['name']
+    filters = get_fitnessclub_entity_filters_for_entity(PROGRAM_ENTITY_NAME)
+
+    if filters:
+        filter_func  = get_fitnessclub_filter_func_for_entity(PROGRAM_ENTITY_NAME)
+        filter_term_func  = get_fitnessclub_filter_term_for_entity(PROGRAM_ENTITY_NAME)
+        filter_terms = filter_term_func(request.args)
+    else:
+        filter_func = None
+        filter_terms = None
+
+    entities = get_filtered_entities(PROGRAM_ENTITY_NAME, fields_to_display, filter_func, filter_terms)
+
+    total_pages = (len(entities) + page_size - 1) // page_size
+    start = (page - 1) * page_size
+    end = start + page_size
+    current = entities[start:end]
+
+    # displays workouts at the top level
+    return hx_render_template(
+        "entity_list_component.html",
+        entity_name=PROGRAM_ENTITY_NAME,
+        main_content_container="entities-container",        
+        fields_to_display=fields_to_display,
+        entities=current,
+        filter_terms=filter_terms,
+        args=request.args,
+        page=page,
+        total_pages=total_pages,
+        entities_listing_route=f'/program/programs-listing?entity_table={PROGRAM_ENTITY_NAME}',
+        entity_action_route=f'/program/viewer?entity_table={PROGRAM_ENTITY_NAME}',
+        entity_action_icon='bi-pencil-square',         
+        context=context)
+
+@bp.route('/viewer')
+@auth.login_required
+def program_viewer(context=None):
+    return hx_render_template(
+        "program_viewer.html",
+        entity_name="ProgramTable",
+        main_content_container="entities-container",
+        fields_to_display=['name', 'description', 'start_date', 'end_date', 'workouts'],
+        args=request.args,
+        context=context
+    )    
 
 @bp.route('/workouts-listing')
 @auth.login_required
@@ -41,7 +94,7 @@ def workouts_listing(context=None):
     current = entities[start:end]
 
     # displays workouts at the top level
-    return render_template(
+    return hx_render_template(
         "entity_list_component.html",
         entity_name=WORKOUT_ENTITY_NAME,
         main_content_container="entities-container",        
