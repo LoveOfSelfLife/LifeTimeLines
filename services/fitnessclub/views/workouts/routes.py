@@ -499,7 +499,7 @@ def exercise_reviewer_listing(context=None):
 
     entity_name = "ExerciseTable"
     page = int(request.args.get('page', 1))
-    page_size = 10
+    page_size = 15
     fields_to_display  = ['name']
 
     filters = get_fitnessclub_entity_filters_for_entity(entity_name)

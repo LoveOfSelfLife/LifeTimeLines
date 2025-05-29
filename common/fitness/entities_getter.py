@@ -1,9 +1,10 @@
 from common.entity_store_cache import EntityStoreCache
-from common.fitness.active_fitness_registry import get_fitnessclub_entity_type_for_entity, get_fitnessclub_listing_fields_for_entity
+
 
 entity_store_cache_dict = {}
 def get_list_of_entities(entity_name, filter_func=None, filter_term=None):
     global entity_store_cache_dict
+    from common.fitness.active_fitness_registry import get_fitnessclub_entity_type_for_entity
     entity_type = get_fitnessclub_entity_type_for_entity(entity_name)
 
     if entity_store_cache_dict.get(entity_name, None) is None:
@@ -36,6 +37,7 @@ def delete_entity(entity):
 
 def get_entity(entity_name, key):
     global entity_store_cache_dict
+    from common.fitness.active_fitness_registry import get_fitnessclub_entity_type_for_entity
     if entity_store_cache_dict.get(entity_name, None) is None:
         entity_store_cache_dict[entity_name] = EntityStoreCache(get_fitnessclub_entity_type_for_entity(entity_name))
 
