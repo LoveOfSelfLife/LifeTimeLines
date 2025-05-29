@@ -18,7 +18,9 @@ exercise_schema = {
 		"videos",
 		"type",
 		"udf1",
-		"udf2"
+		"udf2",
+        "physical_fitness_components",
+        "hide"
 	],
 	"properties": {
 		"name": {
@@ -29,7 +31,7 @@ exercise_schema = {
 		},
 		"category": {
 			"type": "string",
-			"propertyOrder": 2,
+			"propertyOrder": 20,
 			"enum": [
 				"strength",
 				"stretching",
@@ -46,6 +48,28 @@ exercise_schema = {
 				"assisted_bodyweight"
 			]
 		},
+		"physical_fitness_components": {
+			"type": "array",
+			"title": "Physical Fitness Components",
+            "format": "checkbox",
+			"propertyOrder": 2,
+			"items": {
+				"type": "string",
+				"enum": [
+					"flexibility",
+					"mobility",
+					"balance",
+					"core",
+					"power",
+					"strength",
+					"cardio",
+					"endurance"
+                    "myofascia"
+				]
+			},
+			"uniqueItems": True,
+			"default": []
+		},        
 		"equipment": {
 			"type": "string",
 			"propertyOrder": 3,
@@ -101,6 +125,12 @@ exercise_schema = {
 				"compound",
 				"isolation"
 			]
+		},
+        "hide": {
+            "type": "boolean",
+            "format": "checkbox",
+			"title": "Hide",
+            "default": False
 		},
 		"origin": {
 			"type": "string",
@@ -275,7 +305,8 @@ exercise_review_schema = {
         "category",
 		"setCompletionMeasure",
 		"name",
-        "id"
+        "id", 
+        "comments"
 	],
 	"properties": {
 		"id": {
@@ -289,6 +320,14 @@ exercise_review_schema = {
 			"default": "",
 			"propertyOrder": 5
 		},
+		"comments": {
+				"type": "string",
+				"title": "comments",
+				"format": "textarea",
+				"default": "",
+				"propertyOrder": 4,
+		},
+
 		"category": {
 			"type": "array",
 			"title": "category",

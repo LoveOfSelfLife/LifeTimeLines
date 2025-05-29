@@ -9,7 +9,19 @@ class ExerciseEntity (EntityObject):
     table_name="ExerciseTable"
     fields=["id", "type", "name", "force", "level", "mechanic", "equipment", "equipment_detail", 
             "origin",  "primaryMuscles", "secondaryMuscles", "instructions", "category", "images", "videos", 
-            "setCompletionMeasure", "udf1", "udf2"]
+            "setCompletionMeasure", "udf1", "udf2", "physical_fitness_components", "hide"]
+    key_field="id"
+    partition_value="exercise"
+    schema = exercise_schema
+
+    def __init__(self, d={}):
+        super().__init__(d)
+
+class ExerciseEntityBackup (EntityObject):
+    table_name="ExerciseBackupTable"
+    fields=["id", "type", "name", "force", "level", "mechanic", "equipment", "equipment_detail", 
+            "origin",  "primaryMuscles", "secondaryMuscles", "instructions", "category", "images", "videos", 
+            "setCompletionMeasure", "udf1", "udf2", "physical_fitness_components", "hide"]
     key_field="id"
     partition_value="exercise"
     schema = exercise_schema
@@ -19,7 +31,7 @@ class ExerciseEntity (EntityObject):
 
 class ExerciseReviewEntity (EntityObject):
     table_name="ExerciseReviewTable"
-    fields=["id", "name", "category", "disposition", "setCompletionMeasure"]
+    fields=["id", "name", "category", "disposition", "setCompletionMeasure", "comments"]
     key_field="id"
     partition_value="review"
     schema = exercise_review_schema
