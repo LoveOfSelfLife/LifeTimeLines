@@ -11,40 +11,56 @@ editable_entities = {
     "ExerciseTable" : { "entity_class": ExerciseEntity,
                         "listing_view_fields": ["name", "category"],
                         "filters": [
+                            # {
+                            #     "type" : "choice",
+                            #     "id" : "reviewed",
+                            #     "label" : "Reiewed?",
+                            #     "options" : [
+                            #         { "label" : "All", "value" : "" },
+                            #         { "label" : "Not Reviewed", "value" : "no" },
+                            #         { "label" : "Reviewed", "value" : "yes" }
+                            #     ]
+                            # },
                             {
                                 "type" : "choice",
-                                "id" : "reviewed",
-                                "label" : "Reiewed?",
+                                "id" : "physical_fitness_components",
+                                "label" : "Physical Fitness Component",
                                 "options" : [
-                                    { "label" : "All", "value" : "" },
-                                    { "label" : "Not Reviewed", "value" : "no" },
-                                    { "label" : "Reviewed", "value" : "yes" }
+                                    { "label" : "Any", "value" : "" },
+                                    { "label" : "Flexibility", "value" : "flexibility" },
+                                    { "label" : "Mobility", "value" : "mobility" },
+                                    { "label" : "Balance", "value" : "balance" },
+                                    { "label" : "Core", "value" : "core" },
+                                    { "label" : "Power", "value" : "power" },
+                                    { "label" : "Strength", "value" : "strength" },
+                                    { "label" : "Cardio", "value" : "cardio" },
+                                    { "label" : "Endurance", "value" : "endurance" },
+                                    { "label" : "Myofascia", "value" : "myofascia" }
                                 ]
                             },
                             {
                                 "type" : "choice",
-                                "id" : "level",
-                                "label" : "Level",
+                                "id" : "muscle",
+                                "label" : "Muscle involved",
                                 "options" : [
-                                    { "label" : "All Levels", "value" : "" },
-                                    { "label" : "Basic", "value" : "beginner" },
-                                    { "label" : "Intermediate", "value" : "intermediate" },
-                                    { "label" : "Advanced", "value" : "expert" }
-                                ]
-                            },
-                            {
-                                "type" : "choice",
-                                "id" : "category",
-                                "label" : "Category",
-                                "options" : [
-                                    { "label" : "All categories", "value" : "" },                                    
-                                    { "label" : "strength", "value" : "strength" },
-                                    { "label" : "cardio", "value" : "cardio" },
-                                    { "label" : "stretching", "value" : "stretching" },
-                                    { "label" : "plyometrics", "value" : "plyometrics" },
-                                    { "label" : "strongman", "value" : "strongman" },
-                                    { "label" : "powerlifting", "value" : "powerlifting" },
-                                    { "label" : "olympic weightlifting", "value" : "olympic weightlifting" }
+                                    { "label" : "Any", "value" : "" },
+                                    { "label" : "Abdominals", "value" : "abdominals" },
+                                    { "label" : "Adductors", "value" : "adductors" },
+                                    { "label" : "Abductors", "value" : "abductors" },                                    
+                                    { "label" : "Biceps", "value" : "biceps" },
+                                    { "label" : "Calves", "value" : "calves" },
+                                    { "label" : "Chest", "value" : "chest" },
+                                    { "label" : "Forearms", "value" : "forearms" },
+                                    { "label" : "Glutes", "value" : "glutes" },
+                                    { "label" : "Hamstrings", "value" : "hamstrings" },
+                                    { "label" : "Lats", "value" : "lats" },
+                                    { "label" : "Lower Back", "value" : "lower_back" },
+                                    { "label" : "Middle Back", "value" : "middle_back" },
+                                    { "label" : "Neck", "value" : "neck" },
+                                    { "label" : "Quadriceps", "value" : "quadriceps" },
+                                    { "label" : "Shoulders", "value" : "shoulders" },
+                                    { "label" : "Traps", "value" : "traps" },
+                                    { "label":  'Triceps', 'value': 'triceps' }
                                 ]
                             },
                             {

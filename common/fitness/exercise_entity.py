@@ -11,7 +11,7 @@ class ExerciseEntity (EntityObject):
     table_name="ExerciseTable"
     fields=["id", "type", "name", "force", "level", "mechanic", "equipment", "equipment_detail", 
             "origin",  "primaryMuscles", "secondaryMuscles", "instructions", "category", "images", "videos", 
-            "setCompletionMeasure", "udf1", "udf2"]
+            "setCompletionMeasure", "udf1", "udf2", "physical_fitness_components", "hide"]
     key_field="id"
     partition_value="exercise"
     schema = exercise_schema
@@ -57,15 +57,10 @@ def gen_exercise_id(exercise):
 
 
 def is_exercise_hidden(exercise):
-    """Filter out exercises that are marked as "hide" in the ExerciseReviewTable
+    """Filter out exercises that are marked as "hide" 
     """
-    review = get_entity("ExerciseReviewTable", exercise.get("id", ""))
-    if review is not None:
-        if "disposition" in review and "hide" in review["disposition"]:
-            return True  # This exercise is hidden
-
-    return False  # For now, we assume all exercises are visible.
-
+    hide = exercise.get("hide", None)
+    return hide
 
 def matches_filter(entity,term):
     if term is None:
@@ -109,42 +104,25 @@ def matches_all_terms_in_filter(entity, filter_term):
                     continue
                 else:
                     return False
-        if term.get("id") == "category":
+        if term.get("id") == "physical_fitness_components":
             if term_value and term_value != "":
-                # check the category field of the entity
-                entity_category = entity.get("category", None)
-                if entity_category is None:
+                # check the PF component field of the entity
+                entity_component = entity.get("physical_fitness_components", [])
+                if len(entity_component) == 0:
                     return False
-                if term_value not in entity_category.lower():
+                if term_value not in entity_component:
                     return False
                 continue
-        if term.get("id") == "reviewed":
+        if term.get("id") == "muscle":
             if term_value and term_value != "":
-                # check the reviewed field of the entity
-                # if the entity has a review, then it is considered reviewed
-                # if the entity does not have a review, then it is not considered reviewed
-                # if the term_value is "yes", then we check if the entity has a review
-                # if the term_value is "no", then we check if the entity does not have a review
-                if term_value not in ["yes", "no"]:
+                entity_prime_muscles = entity.get("primaryMuscles", [])
+                entity_secondary_muscles = entity.get("secondaryMuscles", [])
+                muscles = entity_prime_muscles + entity_secondary_muscles
+                if len(muscles) == 0:
                     return False
-                if term_value == "yes":
-                    # if the term_value is "yes", then we check if the entity has a review
-                    if not exercise_was_reviewed(entity):
-                        return False
-                elif term_value == "no":
-                    # if the term_value is "no", then we check if the entity does not have a review
-                    if exercise_was_reviewed(entity):
-                        return False
-                continue
-        if term.get("id") == "level":
-            if term_value and term_value != "":
-                entity_level = entity.get("level", None)
-                if entity_level is None:
-                    return False
-                if term_value not in entity_level.lower():
+                if term_value not in [m.lower() for m in muscles]:
                     return False
                 continue
-
     return True
 
 
@@ -177,19 +155,14 @@ def exercise_entity_filter_term(args={}):
             "value": args.get('text', ''),
         },
         {
-            "label": "Category",
-            "id": "category",
-            "value": args.get('category', ''),
+            "label": "Physical Fitness Component",
+            "id": "physical_fitness_components",
+            "value": args.get('physical_fitness_components', '')
         },
         {
-            "label": "Level",
-            "id": "level",
-            "value": args.get('level', ''),
-        },
-        {
-            "label": "Reviewed?",
-            "id": "reviewed",
-            "value": args.get('reviewed', ''),
+            "label": "Muscle",
+            "id": "muscle",
+            "value": args.get('muscle', '')
         }
     ]
 
@@ -197,7 +170,5 @@ def exercise_entity_filter_term(args={}):
 def render_exercise_popup_viewer_html(context, entity):
     return hx_render_template('_exercise_details_form.html',
                               exercise=entity,
-                            #   schema=schema,
-                            #   table_id=table_id, 
                               errors={},
                               context=context)
