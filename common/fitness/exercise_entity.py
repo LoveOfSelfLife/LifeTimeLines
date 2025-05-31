@@ -89,6 +89,89 @@ def exercise_was_reviewed(exercise):
             return True
     return False  # otherwise, the exercise does not have a review
 
+exercise_filters = [
+                    {
+                        "type" : "choice",
+                        "id" : "physical_fitness_components",
+                        "label" : "Physical Fitness Component",
+                        "shortlabel" : "Component",
+                        "options" : [
+                            { "label" : "Any", "value" : "" },
+                            { "label" : "Flexibility", "value" : "flexibility" },
+                            { "label" : "Mobility", "value" : "mobility" },
+                            { "label" : "Balance", "value" : "balance" },
+                            { "label" : "Core", "value" : "core" },
+                            { "label" : "Power", "value" : "power" },
+                            { "label" : "Strength", "value" : "strength" },
+                            { "label" : "Cardio", "value" : "cardio" },
+                            { "label" : "Endurance", "value" : "endurance" },
+                            { "label" : "Myofascia", "value" : "myofascia" }
+                        ]
+                    },
+                    {
+                        "type" : "choice",
+                        "id" : "muscle",
+                        "label" : "Muscle involved",
+                        "shortlabel" : "Muscle",
+                        "options" : [
+                            { "label" : "Any", "value" : "" },
+                            { "label" : "Abdominals", "value" : "abdominals" },
+                            { "label" : "Adductors", "value" : "adductors" },
+                            { "label" : "Abductors", "value" : "abductors" },                                    
+                            { "label" : "Biceps", "value" : "biceps" },
+                            { "label" : "Calves", "value" : "calves" },
+                            { "label" : "Chest", "value" : "chest" },
+                            { "label" : "Forearms", "value" : "forearms" },
+                            { "label" : "Glutes", "value" : "glutes" },
+                            { "label" : "Hamstrings", "value" : "hamstrings" },
+                            { "label" : "Lats", "value" : "lats" },
+                            { "label" : "Lower Back", "value" : "lower_back" },
+                            { "label" : "Middle Back", "value" : "middle_back" },
+                            { "label" : "Neck", "value" : "neck" },
+                            { "label" : "Quadriceps", "value" : "quadriceps" },
+                            { "label" : "Shoulders", "value" : "shoulders" },
+                            { "label" : "Traps", "value" : "traps" },
+                            { "label":  'Triceps', 'value': 'triceps' }
+                        ]
+                    },
+                    {
+                        "type" : "text",
+                        "id" : "text",
+                        "label" : "Filter Text",
+                        "shortlabel" : "Text"
+                    }
+                ]
+
+
+
+def exercise_entity_filter_term(args={}):
+    terms = [ {"id": f['id'], 
+               "label": f['label'], 
+               "shortlabel": f['shortlabel'],  
+               "value": args.get(f['id'], '')} for f in exercise_filters ]
+    return terms
+    
+    # return [
+    #     {
+    #         "label": "Filter Text",
+    #         "id": "text",
+    #         "value": args.get('text', ''),
+    #     },
+    #     {
+    #         "label": "Physical Fitness Component",
+    #         "id": "physical_fitness_components",
+    #         "value": args.get('physical_fitness_components', '')
+    #     },
+    #     {
+    #         "label": "Muscle",
+    #         "id": "muscle",
+    #         "value": args.get('muscle', '')
+    #     }
+    # ]
+
+
+
+
 def matches_all_terms_in_filter(entity, filter_term):
     for term in filter_term:
         term_value = term.get("value", None)
@@ -145,26 +228,6 @@ def exercise_entity_filter(entities, filter_term):
         if matches_all_terms_in_filter(entity, filter_term):
             filtered_entities.append(entity)
     return filtered_entities
-
-
-def exercise_entity_filter_term(args={}):
-    return [
-        {
-            "label": "Filter Text",
-            "id": "text",
-            "value": args.get('text', ''),
-        },
-        {
-            "label": "Physical Fitness Component",
-            "id": "physical_fitness_components",
-            "value": args.get('physical_fitness_components', '')
-        },
-        {
-            "label": "Muscle",
-            "id": "muscle",
-            "value": args.get('muscle', '')
-        }
-    ]
 
 
 def render_exercise_popup_viewer_html(context, entity):

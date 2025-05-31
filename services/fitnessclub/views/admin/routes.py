@@ -3,7 +3,7 @@ import json
 from flask import Blueprint, abort, jsonify, make_response, render_template, request, redirect, url_for
 import requests
 from auth import auth
-from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_for_entity, get_fitnessclub_listing_fields_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_entity_names
+from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_entity_names
 from common.env_context import Env
 from common.fitness.entities_getter import delete_entity
 from common.fitness.exercise_entity import render_exercise_popup_viewer_html
@@ -31,7 +31,7 @@ def entities_listing():
 
     if filters:
         filter_func  = get_fitnessclub_filter_func_for_entity(entity_name)
-        filter_term_func  = get_fitnessclub_filter_term_for_entity(entity_name)
+        filter_term_func  = get_fitnessclub_filter_term_func_for_entity(entity_name)
         filter_terms = filter_term_func(request.args)
     else:
         filter_func = None

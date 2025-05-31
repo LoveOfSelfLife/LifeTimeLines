@@ -1,7 +1,7 @@
 from datetime import datetime
 from flask import Blueprint, jsonify, make_response, render_template, request, current_app
 from common.entity_store import EntityStore
-from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_for_entity
+from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity
 from common.fitness.entities_getter import get_filtered_entities
 from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.hx_common import hx_render_template
@@ -50,7 +50,7 @@ def workouts_listing(context=None):
 
     if filters:
         filter_func  = get_fitnessclub_filter_func_for_entity(WORKOUT_ENTITY_NAME)
-        filter_term_func  = get_fitnessclub_filter_term_for_entity(WORKOUT_ENTITY_NAME)
+        filter_term_func  = get_fitnessclub_filter_term_func_for_entity(WORKOUT_ENTITY_NAME)
         filter_terms = filter_term_func(request.args)
     else:
         filter_func = None
@@ -244,7 +244,7 @@ def add_exercise(context=None, workout_id=None):
         if s['name']==sect:
             s['exercises'].append({
               'id':exid,
-              'parameters':{'sets':None,'reps':None,'weight':None,'weight-unit':'lbs'}
+              'parameters':{'sets':None,'reps':None,'weight':None, 'time':None,'weight_unit':'lbs'}
             })
             break
 
@@ -303,7 +303,7 @@ def move_exercise(context=None, workout_id=None):
         if s['name']==to:
             s['exercises'].append({
               'id':exid,
-              'parameters':{'sets':None,'reps':None,'weight':None,'weight-unit':'lbs'}
+              'parameters':{'sets':None,'reps':None,'weight':None,'time':None,'weight_unit':'lbs'}
             })
 
     # here we save the workout to redis
@@ -422,7 +422,7 @@ def exercise_listing(context=None):
 
     if filters:
         filter_func  = get_fitnessclub_filter_func_for_entity(entity_name)
-        filter_term_func  = get_fitnessclub_filter_term_for_entity(entity_name)
+        filter_term_func  = get_fitnessclub_filter_term_func_for_entity(entity_name)
         filter_terms = filter_term_func(request.args)
     else:
         filter_func = None
@@ -506,7 +506,7 @@ def exercise_reviewer_listing(context=None):
 
     if filters:
         filter_func  = get_fitnessclub_filter_func_for_entity(entity_name)
-        filter_term_func  = get_fitnessclub_filter_term_for_entity(entity_name)
+        filter_term_func  = get_fitnessclub_filter_term_func_for_entity(entity_name)
         filter_terms = filter_term_func(request.args)
     else:
         filter_func = None

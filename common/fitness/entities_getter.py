@@ -1,7 +1,9 @@
 from common.entity_store_cache import EntityStoreCache
 
-
 entity_store_cache_dict = {}
+
+# TODO: need to refactor this to combine filter_func and filter_term_func into a single function
+# and remove the need for filter_term
 def get_list_of_entities(entity_name, filter_func=None, filter_term=None):
     global entity_store_cache_dict
     from common.fitness.active_fitness_registry import get_fitnessclub_entity_type_for_entity
@@ -17,12 +19,9 @@ def get_list_of_entities(entity_name, filter_func=None, filter_term=None):
     else:
         return entities
 
-
 def get_filtered_entities(entity_name, fields_to_display, filter_func=None, filter_term=None):
 
     filtered_entities = get_list_of_entities(entity_name, filter_func, filter_term)
-    # if not fields_to_display:
-    #     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
 
     entities = []
     for e in filtered_entities:

@@ -1,293 +1,135 @@
-/* Reset & basic settings */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+
+/* Base styles and background */
 body {
-    font-family: 'Roboto', sans-serif;
-    color: #fff;
-    line-height: 1.6;
-    background: #222;
+  background: linear-gradient(to right, #2c3e50, #4ca1af);
+  color: #fff;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
 }
-
-/* Navigation styling */
+.modal-content {
+    background: linear-gradient(to right, #2c3e50, #4ca1af);
+    color: #fff;
+}
+.modal-title {
+    color: #fff;
+    /* make font bold */
+    font-weight: bold;
+}
 .navbar {
-    background: rgba(0, 0, 0, 0.85);
-    width: 100%;
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 1000;
-    padding: 10px 20px;
-}
-.navbar-brand img {
-    border-radius: 50%;
-}
-.navbar-nav .nav-link {
-    color: #fff;
-    transition: color 0.3s;
-}
-.navbar-nav .nav-link:hover {
-    color: #ddd;
-}
-.navbar-nav .dropdown-menu {
-    background: rgba(0, 0, 0, 0.85);
-    border: none;
-}
-.navbar-nav .dropdown-item {
-    color: #fff;
-    transition: background 0.3s, color 0.3s;
-}
-.navbar-nav .dropdown-item:hover {
-    background: #444;
-    color: #fff;
-}
-.navbar-nav .user-name {
-    font-size: 0.9em;
-    color: #ccc;
-    margin-right: 10px;
-}
-.nav-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-}
-.logo {
-    font-size: 1.8em;
-    font-weight: bold;
-}
-.nav-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-.nav-buttons a {
-    color: #fff;
-    text-decoration: none;
-    padding: 8px 16px;
-    border: 2px solid #fff;
-    border-radius: 5px;
-    transition: background 0.3s, color 0.3s;
-    font-size: 1em;
-}
-.nav-buttons a:hover {
-    background: #fff;
-    color: #000;
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  backdrop-filter: blur(10px);
 }
 
-/* Hero Section for public page */
+/* Main content padding */
+#content {
+  padding: 2rem;
+  position: relative;
+}
+@media (min-width: 576px) {
+  #content {
+    /* only enforce full-height on larger screens */
+    min-height: calc(100vh - 56px - 2rem);
+  }
+}
+
+/* Hero section */
 .hero {
-    height: 100vh;
-    background: url('/static/images/ymca-1.jpg') center/cover no-repeat;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    margin-top: 60px; /* account for fixed navbar */
-}
-.hero-overlay {
-    background: rgba(0, 0, 0, 0.5);
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    text-align: center;
-    border-radius: 10px;
-}
-.hero h1 {
-    font-size: 3em;
-    margin-bottom: 20px;
-}
-.hero p {
-    font-size: 1.2em;
-    margin-bottom: 30px;
-}
-.btn {
-    display: inline-block;
-    padding: 10px 20px;
-    border: 2px solid #fff;
-    border-radius: 5px;
-    text-decoration: none;
-    transition: background 0.3s, color 0.3s;
-}
-.btn:hover {
-    background: #fff;
-    color: #000;
+  min-height: 60vh;
+  background: url('/static/images/fitness_bg.jpg') no-repeat center center;
+  background-size: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.6);
 }
 
-/* Content Section for member page */
-.content {
-    padding: 20px;
-    min-height: calc(100vh - 60px); /* ensure content fills the viewport */
-    /* background: url('images/ymca-1.jpg') center/cover no-repeat;     */
-    /* background: #bc095a; */
-    /* background: #333; */
-    margin-top: 60px; /* account for fixed navbar */
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+/* Utility cards styling */
+.card {
+  border: none;
+  border-radius: 1rem;
+  background-color: rgba(255,255,255,0.1);
+  backdrop-filter: blur(5px);
+  color: #fff;
 }
 
-/* Form styling */
-.form-label {
-    color:blue;
-    font-weight: bold;
-    text-align: left; /* Ensure labels are left-justified */
-}
-.form-group .required {
-    color:blue;
-    font-weight: bold;
-    text-align: left; /* Ensure labels are left-justified */
-}
-.form-control {
-    border-color: black;
-    border-radius: 5px;
-    font-size:x-small;
-}
-.form-check-label {
-    margin-left: 5px;
-    color:black;
-    font-size: x-small;
-    text-align: left; /* Ensure labels are left-justified */
-}
-.form-check-input {
-    margin-right: 5px;
-    border-color:black;
-    width: 20px; /* Adjust size of checkbox */
-    height: 20px; /* Adjust size of checkbox */
-}
-.col-md-12 span.h3.card-title.level-2 {
-  color: blue;
+.filter-terms {
+  font-size: 80%;
 }
 
-/* make all JSON-Editor labels a darker blue (or whatever you like) */
-.jsoneditor .jsoneditor-label .form-label{
-color: #2c3e50 !important;
-font-weight: 500;
-/* optional: bump up the font-size */
-font-size: 1rem;
+/* Responsive font adjustments for mobile */
+@media (max-width: 576px) {
+  table.table td, table.table th {
+    font-size: 0.8rem;
+  }
+  .card h5 {
+    font-size: 1rem;
+  }
+  .card p {
+    font-size: 0.75rem;
+  }
 }
 
-/* if you want the field background lighter/darker */
-.jsoneditor .jsoneditor-tree {
-background: #f9f9f9;
+/* Exercises table styling */
+.table-responsive {
+  margin-top: 1rem;
+  padding-bottom: 3rem; /* space for bottom bar */
 }
 
-.je-object__title {
-    font-weight: bold;
-    font-size: x-small;
+.pagination-wrapper {
+  position: sticky;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 0.5rem 1rem;
+  backdrop-filter: blur(10px);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
 }
 
-.htmx-indicator {
-    opacity: 0;
-    transition: opacity 200ms ease-in;
+.pagination-wrapper .pagination {
+  margin: 0;
 }
 
-.htmx-request .htmx-indicator {
-    opacity: 1;
+.pagination-wrapper .pagination .page-link {
+  color: #fff;
+  background-color: transparent;
+  border-color: #555;
 }
 
-.htmx-request.htmx-indicator {
-    opacity: 1;
-}
-/* create vertical spacing between each date-group */
-.table-custom {
-    border-collapse: separate;
-    border-spacing: 0 0.5rem;
-}
-/* date rows styling */
-.date-row td {
-    background-color: var(--bs-gray-200);
+.pagination-wrapper .pagination .page-item.active .page-link {
+  background-color: #4ca1af;
+  border-color: #4ca1af;
 }
 
-/* Responsive styling for tablets and smaller devices */
-@media (max-width: 768px) {
-    .navbar-brand img {
-        width: 25px;
-        height: 25px;
-    }
-    .navbar-nav .nav-link {
-        font-size: 1.2em;
-    }
-    .logo {
-        font-size: 1.5em;
-    }
-    .nav-buttons a {
-        padding: 6px 12px;
-        font-size: 1.2em;
-    }
-    .hero h1 {
-        font-size: 2.5em;
-    }
-    .hero p {
-        font-size: 1.2em;
-    }
-    .content {
-        padding: 15px;
-    }
+/* Footer (if added) */
+footer {
+  text-align: center;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: #eee;
 }
 
-/* Responsive styling for mobile devices */
-@media (max-width: 480px) {
-    .navbar-brand img {
-        width: 30px;
-        height: 30px;
-    }
-    .navbar-nav .nav-link {
-        font-size: 1.5em;
-    }
-    .nav-container {
-        flex-direction: column;
-        align-items: center;
-    }
-    .nav-buttons {
-        justify-content: center;
-        width: 100%;
-        margin-top: 10px;
-    }
-    .nav-buttons a {
-        width: 100%;
-        text-align: center;
-        margin: 5px 0;
-    }
-    .hero h1 {
-        font-size: 2.5em;
-    }
-    .hero p {
-        font-size: 1.5em;
-    }
-    .content {
-        padding: 20px;
-    }
-    .form-label {
-        font-size: 1.5em;
-    }
-    .form-control {
-        font-size: 1.5em;
-    }
-    .form-check-label {
-        font-size: 1.5em;
-    }
+.exercise-details {
+  background: linear-gradient(to right, #2c3e50, #4ca1af);
+  /* padding: 20px;
+  border-radius: 10px; */
 }
-
 
 .accordion-button {
   border: none;
   border-radius: .5rem;
-  background: linear-gradient(135deg, #c2cb11 0%, #2575fc 100%);
+  background: linear-gradient(to right, #2c3e50, #4ca1af);
+  /* background: linear-gradient(135deg, #c2cb11 0%, #2575fc 100%); */
   color: #fff;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   transition: background 0.3s, transform 0.2s;
 }
 .accordion-button:not(.collapsed) {
-  background: linear-gradient(135deg, #2575fc 0%, #6a11cb 100%);
+  background: linear-gradient(to right, #daa9d9, #3eacbd);
+  /* background: linear-gradient(135deg, #2575fc 0%, #6a11cb 100%); */
 }
 .accordion-button:focus {
   outline: none;
@@ -301,7 +143,7 @@ background: #f9f9f9;
   transform: rotate(180deg);
 }
 .accordion-body {
-  background: #f7f9fc;
+  background: #abc7f1;
   border-left: 4px solid #2575fc;
   border-bottom-left-radius: .5rem;
   border-bottom-right-radius: .5rem;
@@ -312,7 +154,8 @@ background: #f9f9f9;
   font-weight: 500;
   padding: 1rem 1.25rem;
 }
-.accordion-body {
+/* .accordion-body {
   font-size: .95rem;
   line-height: 1.5;
-}
+  background-color: #daa9d9;
+} */

@@ -1,5 +1,5 @@
 from flask import Blueprint, redirect, render_template, request, url_for
-from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_for_entity
+from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity
 from common.fitness.entities_getter import get_filtered_entities
 from common.fitness.hx_common import hx_render_template
 bp = Blueprint('program', __name__, template_folder='templates')
@@ -27,7 +27,7 @@ def programs_listing(context=None):
 
     if filters:
         filter_func  = get_fitnessclub_filter_func_for_entity(PROGRAM_ENTITY_NAME)
-        filter_term_func  = get_fitnessclub_filter_term_for_entity(PROGRAM_ENTITY_NAME)
+        filter_term_func  = get_fitnessclub_filter_term_func_for_entity(PROGRAM_ENTITY_NAME)
         filter_terms = filter_term_func(request.args)
     else:
         filter_func = None
@@ -80,7 +80,7 @@ def workouts_listing(context=None):
 
     if filters:
         filter_func  = get_fitnessclub_filter_func_for_entity(WORKOUT_ENTITY_NAME)
-        filter_term_func  = get_fitnessclub_filter_term_for_entity(WORKOUT_ENTITY_NAME)
+        filter_term_func  = get_fitnessclub_filter_term_func_for_entity(WORKOUT_ENTITY_NAME)
         filter_terms = filter_term_func(request.args)
     else:
         filter_func = None
