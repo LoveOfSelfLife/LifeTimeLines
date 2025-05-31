@@ -3,8 +3,8 @@
         <tbody>
         {% for e in events %}
             {% if e.type == "date" %}
-                    <tr class="date-row">
-                    <td colspan="3" class="px-3 py-2 fw-bold small text-uppercase">
+                    <tr class="">
+                    <td colspan="3" class="px-3 py-2 fw-bold small text-uppercase date-row">
                         {{ e.dayOfWeek}} {{ e.display_date }}  
                         <button class="btn btn-sm btn-outline-primary float-end"
                         hx-get="/schedule/create_event?date={{ e.date }}" 
