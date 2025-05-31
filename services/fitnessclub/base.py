@@ -23,6 +23,9 @@ def privacy():
 def data_deletion():
     return render_template('data_deletion.html', context=None)
 
+@bp.route("/home")
+def home():
+    return redirect("/")
 
 @bp.route("/")
 @auth.login_required

@@ -26,21 +26,6 @@
 
             <!-- Reps, Sets, Weight all in one row -->
             <div class="d-flex gap-2 mt-2">
-              <!-- Reps -->
-              <form class="d-flex align-items-center"
-                    hx-post="{{ url_for('workouts.update_param', workout_id=workout.id) }}"
-                    hx-trigger="change delay:500ms, focusout"
-                    hx-swap="none">
-                <input type="hidden" name="exercise_id" value="{{ item.id }}">
-                <input type="hidden" name="param" value="reps">
-                <input
-                  type="number" name="value"
-                  class="form-control form-control-sm"
-                  style="width:4.5rem;"
-                  placeholder="Reps"
-                  value="{{ item.parameters.reps or '' }}"
-                >
-              </form>
 
               <!-- Sets -->
               <form class="d-flex align-items-center"
@@ -55,6 +40,22 @@
                   style="width:4.5rem;"
                   placeholder="Sets"
                   value="{{ item.parameters.sets or '' }}"
+                >
+              </form>
+
+              <!-- Reps -->
+              <form class="d-flex align-items-center"
+                    hx-post="{{ url_for('workouts.update_param', workout_id=workout.id) }}"
+                    hx-trigger="change delay:500ms, focusout"
+                    hx-swap="none">
+                <input type="hidden" name="exercise_id" value="{{ item.id }}">
+                <input type="hidden" name="param" value="reps">
+                <input
+                  type="number" name="value"
+                  class="form-control form-control-sm"
+                  style="width:4.5rem;"
+                  placeholder="Reps"
+                  value="{{ item.parameters.reps or '' }}"
                 >
               </form>
 
@@ -73,6 +74,36 @@
                   value="{{ item.parameters.weight or '' }}"
                 >
               </form>
+              <!-- weight-unit -->
+              <form class="d-flex align-items-center"
+                    hx-post="{{ url_for('workouts.update_param', workout_id=workout.id) }}"
+                    hx-trigger="change delay:500ms, focusout"
+                    hx-swap="none">
+                <input type="hidden" name="exercise_id" value="{{ item.id }}">
+                <input type="hidden" name="param" value="weight_unit">
+                <input
+                  type="number" name="value"
+                  class="form-control form-control-sm"
+                  style="width:4.5rem;"
+                  placeholder="lbs/kg"
+                  value="{{ item.parameters.weight_unit or '' }}"
+                >
+              </form>
+              <!-- Time -->
+              <form class="d-flex align-items-center"
+                    hx-post="{{ url_for('workouts.update_param', workout_id=workout.id) }}"
+                    hx-trigger="change delay:500ms, focusout"
+                    hx-swap="none">
+                <input type="hidden" name="exercise_id" value="{{ item.id }}">
+                <input type="hidden" name="param" value="time">
+                <input
+                  type="number" name="value"
+                  class="form-control form-control-sm"
+                  style="width:5rem;"
+                  placeholder="secs"
+                  value="{{ item.parameters.time or '' }}"
+                >
+              </form>              
             </div>
           </div>
 

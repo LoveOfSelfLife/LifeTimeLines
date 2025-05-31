@@ -6,7 +6,7 @@
             hx-swap="innerHTML">
 
             {% if entity_add_route %}
-            <button class="btn btn-light btn-sm"
+            <button class="btn btn-dark btn-sm"
                 hx-get="{{ entity_add_route}}"
                 hx-target="#{{ main_content_container }}"
                 hx-swap="innerHTML"
@@ -17,8 +17,8 @@
 
             
         {% if filter_dialog_route %}
-        <div class="d-flex justify-content-between align-items-center mb-0 p-2 bg-light border rounded">
-            <button class="btn btn-outline-primary btn-sm"
+        <div class="d-flex justify-content-between align-items-center mb-0 p-2 bg-dark border rounded">
+            <button class="btn btn-primary btn-sm"
                 hx-get="{{ filter_dialog_route }}"
                 {% if args %}
                 hx-vals='{{ args|tojson }}'
@@ -31,19 +31,28 @@
                 <i class="bi bi-search"></i> Filter
             </button>
             {% if filter_terms %}
-            <span class="text-muted small">
+            <span class="filter-terms">
             {% for term in filter_terms %}
-            <strong>{{ term.label }}:</strong> {{ term.value }} |
+                {% if term.value %}
+                    {{ term.shortlabel }}: {{ term.value }} |
+                {% endif %}
             {% endfor %}
             </span>
             {% endif %}
-            
+
+            <button class="btn btn-primary btn-sm"
+                hx-get="{{ entities_listing_route }}"
+                hx-target="#{{main_content_container}}"
+                hx-swap="innerHTML"
+            >
+                <i class="bi bi-x"></i> Clear
+            </button>            
         </div>
         {% endif %}
 
         <div class="table-responsive">
-            <table class="table table-sm table-striped table-bordered">
-                <thead class="thead-dark">
+	    <table class="table table-hover table-dark align-middle">
+                <thead>
                     <tr>
                         {% for field in fields_to_display %}
                         <th scope="col">{{ field }}</th>
@@ -61,6 +70,7 @@
                             {% if entity_view_route %}
                             <td>
                                 <a href="#"
+                                    class="text-white"
                                     hx-get="{{ entity_view_route }}&key={{ entity.key }}"
                                     hx-target="#modals-here"
                                     hx-swap="innerHTML"
@@ -97,7 +107,7 @@
 
                         {% if entity_action_route %}
                         <td class="text-center">
-                            <button class="btn btn-outline-secondary btn-sm"
+                            <button class="btn btn-sm btn-outline-light"
                                 hx-{{ action_method }}="{{ entity_action_route }}&key={{ entity.key }}"
                                 hx-push-url="{{ entity_action_route }}&key={{ entity.key }}"
                                 hx-target="#{{ action_target }}"
@@ -112,8 +122,9 @@
             </table>
         </div>
     </div>
-    <nav aria-label="Page navigation" class="mt-3">
-    <ul class="pagination justify-content-center">
+    
+    <nav aria-label="Page navigation" class="pagination-wrapper">
+    <ul class="pagination mb-0">
         <li class="page-item {% if page <= 1 %}disabled{% endif %}">
         <a class="page-link" href="#"
             hx-get="{{ entities_listing_route }}&page={{ page - 1 }}&filter={{ filter_terms }}"
@@ -121,13 +132,11 @@
             hx-vals='{{ args|tojson }}'
             {% endif %}
             hx-target="#{{main_content_container}}">
-            Previous
+        <span aria-hidden="true">&laquo;</span>
         </a>
         </li>
-        <li class="page-item disabled">
-        <span class="page-link">
+        <li class="d-flex align-items-center px-3 text-white">
             Page {{ page }} of {{ total_pages }}
-        </span>
         </li>
         <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
         <a class="page-link" href="#"
@@ -136,7 +145,7 @@
             hx-vals='{{ args|tojson }}'
             {% endif %}
             hx-target="#{{main_content_container}}">
-            Next
+        <span aria-hidden="true">&raquo;</span>
         </a>
         </li>
     </ul>

@@ -7,8 +7,18 @@
           <h6 class="mb-1">{{ ex.name }}</h6>
           <small class="text-muted">
             {{ ex.equipment_detail or ex.equipment | capitalize }} ·
-            {{ item.parameters.sets }} × {{ item.parameters.reps }} @
-            {{ item.parameters.weight }} {{ item.parameters['weight-unit'] }}
+            {% if item.parameters.sets %}
+            {{ item.parameters.sets }} sets 
+            {% endif %}
+            {% if item.parameters.reps %}
+              {{ item.parameters.reps }} reps
+            {% endif %}
+            {% if item.parameters.weight %}
+              @ {{ item.parameters.weight }} {{ item.parameters['weight_unit'] or 'kg' }}
+            {% endif %}
+            {% if item.parameters.time %}
+              for {{ item.parameters.time }} secs/set
+            {% endif %}
           </small>
         </div>
         <div class="btn-group btn-group-sm" role="group">
