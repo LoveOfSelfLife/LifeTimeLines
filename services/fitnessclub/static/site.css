@@ -53,6 +53,15 @@ body {
   color: #fff;
 }
 
+td.date-row {
+  background-color: #2c3e50;
+  color: white
+  /* display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem; */
+}
+
 .filter-terms {
   font-size: 80%;
 }
@@ -75,7 +84,9 @@ body {
   margin-top: 1rem;
   padding-bottom: 3rem; /* space for bottom bar */
 }
-
+.table-custom {
+  background-color: rgba(189, 96, 96, 0.1);
+}
 .pagination-wrapper {
   position: sticky;
   bottom: 0;

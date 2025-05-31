@@ -66,7 +66,7 @@ def create_new_event(context=None):
 
             response = make_response('', 204)
             response.headers['HX-Trigger'] = json.dumps({
-                "eventListChanged": None,
+                "eventListChanged": True,
                  "showMessage": f"workout event updated."
             })
             return response
@@ -110,7 +110,7 @@ def edit_event(context):
 
             response = make_response('', 204)
             response.headers['HX-Trigger'] = json.dumps({
-                "eventListChanged": None,
+                "eventListChanged": True,
                 "showMessage": f"event updated."
             })
             return response
@@ -130,7 +130,7 @@ def remove_workout_session(context=None, id=None):
 
     response = make_response('', 204)
     response.headers['HX-Trigger'] = json.dumps({
-        "eventListChanged": None,
+        "eventListChanged": True,
         "showMessage": f"Event deleted."
     })
     return response
