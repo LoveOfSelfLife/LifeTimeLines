@@ -4,7 +4,7 @@ entity_store_cache_dict = {}
 
 # TODO: need to refactor this to combine filter_func and filter_term_func into a single function
 # and remove the need for filter_term
-def get_list_of_entities(entity_name, filter_func=None, filter_term=None):
+def get_list_of_entities(entity_name, filter_func=None, filter_term=None, partition_key=None):
     global entity_store_cache_dict
     from common.fitness.active_fitness_registry import get_fitnessclub_entity_type_for_entity
     entity_type = get_fitnessclub_entity_type_for_entity(entity_name)
@@ -19,15 +19,15 @@ def get_list_of_entities(entity_name, filter_func=None, filter_term=None):
     else:
         return entities
 
-def get_filtered_entities(entity_name, fields_to_display, filter_func=None, filter_term=None):
+def get_filtered_entities(entity_name, fields_to_display, filter_func=None, filter_term=None, partition_key=None):
 
-    filtered_entities = get_list_of_entities(entity_name, filter_func, filter_term)
+    filtered_entities = get_list_of_entities(entity_name, filter_func, filter_term, partition_key)
 
     entities = []
     for e in filtered_entities:
         field_values = [e.get(f, None) for f in fields_to_display]
         key = e.get_composite_key()
-        entities.append({"key": key, "field_values": field_values})
+        entities.append({"key": key, "field_values": field_values, "entity": e})
     return entities
 
 

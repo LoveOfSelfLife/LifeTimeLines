@@ -370,14 +370,15 @@ def save_workout(context=None, workout_id=None):
         workout = json.loads(current_workout)
         if workout['id'] != workout_id:
             abort(404)
-    workout_type : WorkoutEntity = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
+    workout_instance : WorkoutEntity = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
 
+    # this is where we save the newly created workout
     print('Saving workout')
     es = EntityStore()
     workout['created_by'] = member_id
     workout['created_ts'] = datetime.now().isoformat()
-    workout_type.initialize(workout)
-    es.upsert_item(workout_type)
+    workout_instance.initialize(workout)
+    es.upsert_item(workout_instance)
     # remove from redis
     redis_client.delete('current_workout')
 

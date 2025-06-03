@@ -103,7 +103,7 @@ class LatestItemUpdatedTimeTracker (EntityObject):
     table_name='LatestItemsUpdatedTrackerTable'
     partition_value="all"
     key_field="table_name"
-    fields=["table_name", "latest_item_updated_iso"]
+    fields=["table_name", "latest_item_updated_iso", "partition_value"]
 
     def __init__(self, d={}):
         super().__init__(d)
@@ -111,7 +111,7 @@ class LatestItemUpdatedTimeTracker (EntityObject):
 def update_timestamp_of_latest_stored_item(eobj, last_item):
     es = EntityStore()    
     last_item_time_iso = _get_ts_from_metadata_etag(last_item)
-    latest_item_record = LatestItemUpdatedTimeTracker({"table_name": eobj.get_table_name(), "latest_item_updated_iso": last_item_time_iso})
+    latest_item_record = LatestItemUpdatedTimeTracker({"table_name": eobj.get_table_name(), "latest_item_updated_iso": last_item_time_iso, "partition_value": eobj.get_partition_value()})
     es.upsert_item(latest_item_record, track_last_updated_item=False)
             
 def _get_ts_from_metadata_etag(item):
@@ -176,7 +176,7 @@ class EntityStore :
                                    include_end_time=include_end_time):
                 yield self._loads_from_storage_format(r, type(eobj))
 
-    def list_items2(self, eobj:EntityObject, dfilter=None, select=None, start_time_iso=None, end_time_iso=None,
+    def list_items2(self, eobj:EntityObject, dfilter=[], select=None, start_time_iso=None, end_time_iso=None,
                    include_start_time=False, include_end_time=True):
         """return a iterator of objects from the underlying Table store
 
