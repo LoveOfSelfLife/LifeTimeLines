@@ -16,8 +16,8 @@
             {% endif %}
 
            <input type="hidden" name="view" value="{{ view }}">
-            <div>
-                <div class="btn-group" role="group">
+            <div class="d-flex justify-content-end">
+                <div class="btn-group" id="my-btn-group" role="group">
                 <button type="button" class="btn btn-outline-primary {% if view == 'card' %}active{% endif %}"
                     hx-get="{{ entities_listing_route }}&page={{ page }}&filter={{ filter_terms }}&view=card"
                     {% if args %}
@@ -25,7 +25,7 @@
                     {% endif %}
                     hx-target="#{{main_content_container}}"
                     hx-include="[name='view']">
-                    Card View
+                    <i class="bi bi-grid"></i>
                 </button>
                 <button type="button" class="btn btn-outline-primary {% if view == 'list' %}active{% endif %}"
                     hx-get="{{ entities_listing_route }}&page={{ page }}&filter={{ filter_terms }}&view=list"
@@ -34,10 +34,11 @@
                     {% endif %}
                     hx-target="#{{main_content_container}}"
                     hx-include="[name='view']">
-                    List View
+                    <i class="bi bi-list"></i>  
                 </button>
                 </div>
             </div>
+
 
         {% if filter_dialog_route %}
         <div class="d-flex justify-content-between align-items-center mb-0 p-2 bg-dark border rounded">
@@ -80,11 +81,29 @@
             
                 {% for entity in entities %}
                     <div class="col">
-                        <div class="card h-100">
-                            <img src="{{ entity.entity.images[0].url }}" class="card-img-top" alt="{{ entity.key }}">
-                            {# <img src="https://picsum.photos/200/300" class="card-img-top" alt="{{ entity.key }}"> #}
+                        <div class="card">
+                            {% if entity.card_view_fields.image_url %}
+
+                            <div class="img-wrapper">
+                                <img src="{{ entity.card_view_fields.image_url }}" 
+                                 {# class="img-fluid img-fixed"  #}
+                                    class="img-top-centered"
+                                alt="{{ entity.card_view_fields.title }}">
+                            </div>
+                                {% endif %}
                             <div class="card-body">
-                                <h5 class="card-title">{{ entity.entity.name }}</h5>
+                                <a href="#"
+                                    class="text-white"
+                                    hx-get="{{ entity_view_route }}&key={{ entity.key }}"
+                                    hx-target="#modals-here"
+                                    hx-swap="innerHTML"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#modals-here"
+                                    >
+                                    <h5 class="card-title">{{ entity.card_view_fields.title }}</h5>
+                                </a>
+                                <p class="card-text">{{ entity.card_view_fields.subtitle }}</p>
+                                <p class="card-text">{{ entity.card_view_fields.description }}</p>
                             </div>
                         </div>
                     </div>

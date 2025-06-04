@@ -94,5 +94,5 @@ if __name__ == '__main__':
     # transform_exercise_table(transform_add_setcompletionmeasure)
     # export_exercises()
     # transform_exercise_table(convert_image_id_to_url)
-    export_exercises("exercise_export_20250516.json")
+    export_exercises("exercise_export_20250604.json")
     

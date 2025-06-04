@@ -20,7 +20,7 @@ def exercises_fragment(context=None):
     view = request.args.get('view', 'list')
     page_size = 10
 
-    fields_to_display  = ['name']
+    fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
     filters = get_fitnessclub_entity_filters_for_entity(entity_name)
 
     if filters:

@@ -1,7 +1,7 @@
 from datetime import datetime
 from flask import Blueprint, jsonify, make_response, render_template, request, current_app
 from common.entity_store import EntityStore
-from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity
+from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
 from common.fitness.entities_getter import get_filtered_entities
 from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.hx_common import hx_render_template
@@ -43,9 +43,10 @@ def index(context=None):
 def workouts_listing(context=None):
     WORKOUT_ENTITY_NAME = "WorkoutTable"
     page = int(request.args.get('page', 1))
+    view = request.args.get('view', 'list')
     page_size = 10
 
-    fields_to_display  = ['name']
+    fields_to_display  = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
     filters = get_fitnessclub_entity_filters_for_entity(WORKOUT_ENTITY_NAME)
 
     if filters:
@@ -73,6 +74,7 @@ def workouts_listing(context=None):
         filter_terms=filter_terms,
         args=request.args,
         page=page,
+        view=view,
         total_pages=total_pages,
         entity_add_route=url_for('workouts.builder_new'),
         entities_listing_route=f'/workouts/workouts-listing?entity_table={WORKOUT_ENTITY_NAME}',
@@ -401,6 +403,7 @@ def save_workout(context=None, workout_id=None):
 def exercise_listing(context=None):
     workout_id = request.args.get('workout_id', None)
     target = request.args.get('target', None)
+    view= request.args.get('view', 'list')
 
     redis_client = current_app.config['SESSION_CACHELIB']
     current_workout = redis_client.get('current_workout')
@@ -417,7 +420,8 @@ def exercise_listing(context=None):
     entity_name = "ExerciseTable"
     page = int(request.args.get('page', 1))
     page_size = 10
-    fields_to_display  = ['name']
+    
+    fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
 
     filters = get_fitnessclub_entity_filters_for_entity(entity_name)
 
@@ -449,6 +453,7 @@ def exercise_listing(context=None):
                               filter_terms=filter_terms,
                               args=request.args,
                               page=page,
+                              view=view,
                               total_pages=total_pages,
                               filter_dialog_route=f'/workouts/filter-dialog?entity_table={entity_name}&target={target}&workout_id={workout_id}',
                               entities_listing_route=f'/workouts/builder/exercises?entity_table={entity_name}&target={target}&workout_id={workout_id}',
@@ -490,7 +495,7 @@ def exercise_reviewer_listing(context=None):
     mobile = request.args.get('mobile', type=bool, default=False)
     div_id = 'reviewer-list-mobile' if mobile else 'reviewer-list'
     target = div_id
-    
+    view = request.args.get('view', 'list')
     # if current_exercise:
     #     ex = json.loads(current_exercise)
     #     if ex['id'] != exercise_id:
@@ -501,7 +506,7 @@ def exercise_reviewer_listing(context=None):
     entity_name = "ExerciseTable"
     page = int(request.args.get('page', 1))
     page_size = 15
-    fields_to_display  = ['name']
+    fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
 
     filters = get_fitnessclub_entity_filters_for_entity(entity_name)
 
@@ -533,6 +538,7 @@ def exercise_reviewer_listing(context=None):
                               filter_terms=filter_terms,
                               args=request.args,
                               page=page,
+                              view=view,
                               total_pages=total_pages,
                               filter_dialog_route=f'/workouts/exercise_reviewer/filter-dialog?entity_table={entity_name}&target={target}',
                               entities_listing_route=f'/workouts/exercise_reviewer_listing?target={target}',

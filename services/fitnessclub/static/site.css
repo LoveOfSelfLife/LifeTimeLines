@@ -31,9 +31,51 @@ body {
   }
 }
 
+/* 1. On “desktop” (≥576px), make every wrapper exactly 180px tall */
+.img-wrapper {
+  width: 100%;                /* span full card width */
+  height: 180px;              /* fixed height */
+  overflow: hidden;           /* hide anything outside this box */
+  display: flex;              /* for centering the <img> */
+  justify-content: center;    /* center the <img> horizontally */
+  align-items: flex-start;    /* stick <img> to the top */
+}
+
+/* 2. Make the <img> exactly 100% of the wrapper’s height, width auto */
+.img-wrapper .img-top-centered {
+  height: 100%;
+  width: auto;
+  object-fit: cover;   /* (we’re letting the img itself size by its height) */
+  /* No object‐fit:cover here, because we want the full height visible, not cropped top/bottom */
+}
+
+/* 3. On small screens (≤576px), shrink that fixed height to, say, 100px */
+@media (max-width: 576px) {
+  .img-wrapper {
+    height: 150px;
+  }
+  .img-wrapper .img-top-centered {
+    /* height: 100%; */
+    /* width: auto; */
+    object-fit: cover;   /* (we’re letting the img itself size by its height) */
+    /* No object‐fit:cover here, because we want the full height visible, not cropped top/bottom */
+  }  
+}
+
+/* 1. Target only the outline-primary buttons that are NOT active */
+#my-btn-group .btn-outline-primary:not(.active) {
+  /* control text color */
+  color: #555;            
+  /* control background color */
+  background-color: #c0bfd9;
+  /* control border color */
+  border-color: #ccc;
+}
+
+
 /* Hero section */
 .hero {
-  min-height: 60vh;
+  min-height: 80vh;
   background: url('/static/images/fitness_bg.jpg') no-repeat center center;
   background-size: cover;
   display: flex;
@@ -42,6 +84,20 @@ body {
   text-align: center;
   color: #fff;
   text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+}
+.hero-overlay {
+  .hero-overlay.bg-dark.text-white& {
+        background-color: rgba(0, 0, 0, 0.5);
+  }
+  min-height: 175px;
+}
+.hero-btn {
+  background-color: #4ca1af;
+  color: #fff;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1.25rem;
+  transition: background-color 0.3s, transform 0.2s;
 }
 
 /* Utility cards styling */

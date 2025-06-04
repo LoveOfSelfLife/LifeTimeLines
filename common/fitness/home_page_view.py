@@ -2,7 +2,7 @@ from common.fitness.hx_common import hx_render_template
 from common.fitness.programs import get_members_program, get_next_workout_in_program
 from common.fitness.workouts import get_scheduled_workouts
 from datetime import datetime
-from flask import request, redirect, url_for
+from flask import render_template_string, request, redirect, url_for
 
 def generate_current_home_page_view(member):
     """
@@ -25,10 +25,8 @@ def generate_current_home_page_view(member):
     """
     # For now, we just return a simple welcome message
     
-    return hx_render_template(
-        template_string='<h1>You do not have any upcoming workouts scheduled</h1>',
-        ctx={'member_name': member.get('name', 'Unknown Member')}
-    )
+    return render_template_string(f'<h1>{member["name"]} you do not have any upcoming workouts scheduled</h1>' )
+
     # first check if the member has started a workout and it is in still in progress
     # if the member has a workout that is in progress, then we display that workout
     # retrieve the workut from redis
@@ -41,19 +39,12 @@ def generate_current_home_page_view(member):
     current_program = get_members_program(member.get('id', None), current_date=datetime.now())
     if not current_program:
         # The member does not have a program, so we display the no-program message
-        return hx_render_template(
-            template_string='<h1>You do not have a program assigned</h1>',
-            ctx={'member_name': member.get('name', 'Unknown Member')}
-        )
-
-    next_workout = get_next_workout_in_program(current_program, member.get('id', None))
+        return hx_render_template( template_string='<h1>You do not have a program assigned</h1>')
 
     list_of_scheduled_workout_sessions = get_scheduled_workout_sessions(member.get('id', None), date=datetime.now())
     if not list_of_scheduled_workout_sessions:
         hx_render_template(
-            template_string='<h1>You do not have any upcoming workouts scheduled</h1>',
-            ctx={'member_name': member.get('name', 'Member')}
-        )
+            template_string='<h1>You do not have any upcoming workouts scheduled</h1>')
     else:
         # calc time untile the next workout
         next_workout_session = list_of_scheduled_workout_sessions[0]
@@ -61,6 +52,5 @@ def generate_current_home_page_view(member):
         if time_until_next_workout < HOUR_IN_SECONDS:
             # The member has an upcoming workout scheduled in less than an hour
             return hx_render_template(
-                template_string='<h1>You have an upcoming workout scheduled in less than 1 hour</h1>',
-                ctx={'member_name': member.get('name', 'Member'), 'workout': next_workout}
-            )
+                template_string='<h1>You have an upcoming workout scheduled in less than 1 hour</h1>')
+

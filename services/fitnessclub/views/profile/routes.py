@@ -1,6 +1,6 @@
 from flask import Blueprint, redirect, render_template, request, url_for
 from common.fitness.hx_common import hx_render_template
-from common.fitness.member_entity import get_user_info_from_token, get_user_profile, save_user_profile
+from common.fitness.member_entity import get_member_detail_from_user_context, get_user_profile, save_user_profile
 bp = Blueprint('profile', __name__, template_folder='templates')
 from auth import auth
 
@@ -15,7 +15,7 @@ def profile(context=None):
         "mobile": "123-456-7890",
         "sms_consent": "agree" }
     
-    id = get_user_info_from_token(context).get('id')
+    id = get_member_detail_from_user_context(context).get('id')
 
     profile = get_user_profile(id)
 
@@ -35,7 +35,7 @@ def profile2(context=None):
         "mobile": "123-456-7890",
         "sms_consent": "agree" }
     
-    id = get_user_info_from_token(context).get('id')
+    id = get_member_detail_from_user_context(context).get('id')
 
     profile = get_user_profile(id)
 

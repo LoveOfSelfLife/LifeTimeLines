@@ -1,5 +1,5 @@
 from flask import Blueprint, redirect, render_template, request, url_for
-from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity
+from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
 from common.fitness.entities_getter import get_filtered_entities
 from common.fitness.hx_common import hx_render_template
 bp = Blueprint('program', __name__, template_folder='templates')
@@ -21,8 +21,8 @@ def programs_listing(context=None):
     PROGRAM_ENTITY_NAME = "ProgramTable"
     page = int(request.args.get('page', 1))
     page_size = 10
-
-    fields_to_display  = ['name']
+    view = request.args.get('view', 'list')
+    fields_to_display  = get_fitnessclub_listing_fields_for_entity(PROGRAM_ENTITY_NAME)
     filters = get_fitnessclub_entity_filters_for_entity(PROGRAM_ENTITY_NAME)
 
     if filters:
@@ -50,6 +50,7 @@ def programs_listing(context=None):
         filter_terms=filter_terms,
         args=request.args,
         page=page,
+        view=view,
         total_pages=total_pages,
         entities_listing_route=f'/program/programs-listing?entity_table={PROGRAM_ENTITY_NAME}',
         entity_action_route=f'/program/viewer?entity_table={PROGRAM_ENTITY_NAME}',
@@ -73,9 +74,10 @@ def program_viewer(context=None):
 def workouts_listing(context=None):
     WORKOUT_ENTITY_NAME = "WorkoutTable"
     page = int(request.args.get('page', 1))
+    view = request.args.get('view', 'list')
     page_size = 10
 
-    fields_to_display  = ['name']
+    fields_to_display  = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
     filters = get_fitnessclub_entity_filters_for_entity(WORKOUT_ENTITY_NAME)
 
     if filters:
@@ -103,6 +105,7 @@ def workouts_listing(context=None):
         filter_terms=filter_terms,
         args=request.args,
         page=page,
+        view=view,
         total_pages=total_pages,
         entities_listing_route=f'/program/workouts-listing?entity_table={WORKOUT_ENTITY_NAME}',
         entity_action_route=f'/workouts/viewer/workout?entity_table={WORKOUT_ENTITY_NAME}',

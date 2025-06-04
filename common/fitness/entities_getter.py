@@ -25,11 +25,16 @@ def get_filtered_entities(entity_name, fields_to_display, filter_func=None, filt
 
     entities = []
     for e in filtered_entities:
-        field_values = [e.get(f, None) for f in fields_to_display]
+        field_values = [e.get(f, None) for f in fields_to_display['listing_view']]
         key = e.get_composite_key()
-        entities.append({"key": key, "field_values": field_values, "entity": e})
-    return entities
 
+        card_view_field_values = None
+        if fields_to_display['card_view']:
+            card_view_field_values = {}
+            for field,lmbda in fields_to_display['card_view'].items():
+                card_view_field_values[field] = lmbda(e) if lmbda else None
+        entities.append({"key": key, "field_values": field_values, "entity": e, "card_view_fields": card_view_field_values})
+    return entities
 
 def delete_entity(entity):
     entity_store_cache_dict[entity.get_table_name()].delete_item(entity)
