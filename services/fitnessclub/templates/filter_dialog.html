@@ -8,9 +8,14 @@
 {% else %}
         {% set filter_target = "entities-container" %}
 {% endif %}
+{% if view %}
+    {% set view = view %}
+{% else %}
+    {% set view = "list" %}
+{% endif %}
 
 <div id="dialog" class="modal-dialog modal-dialog-centered">
-<form   hx-get="{{ entities_listing_route }}"
+<form   hx-get="{{ entities_listing_route }}&view={{ view }}"
         hx-target="#{{ filter_target }}"
         hx-swap="innerHTML"
     class="modal-content">

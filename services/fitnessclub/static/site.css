@@ -73,6 +73,17 @@ body {
 }
 
 
+/* 1. Target only the outline-primary buttons that are NOT active */
+#my-nav-tabs .btn-outline-primary:not(.active) {
+  /* control text color */
+  color: #555;            
+  /* control background color */
+  background-color: #c0bfd9;
+  /* control border color */
+  border-color: #ccc;
+}
+
+
 /* Hero section */
 .hero {
   min-height: 80vh;
@@ -226,3 +237,60 @@ footer {
   line-height: 1.5;
   background-color: #daa9d9;
 } */
+
+/* make all JSON-Editor labels a darker blue (or whatever you like) */
+.jsoneditor .jsoneditor-label .form-label{
+color: #2c3e50 !important;
+font-weight: 500;
+/* optional: bump up the font-size */
+font-size: 1rem;
+}
+
+/* if you want the field background lighter/darker */
+.jsoneditor .jsoneditor-tree {
+background: #f9f9f9;
+}
+
+.je-object__title {
+    font-weight: bold;
+    /* font-size: x-small; */
+}
+
+
+/* Form styling */
+.form-label {
+    color:blue;
+    font-weight: bold;
+    text-align: left; /* Ensure labels are left-justified */
+}
+.form-group .required {
+    color:blue;
+    font-weight: bold;
+    text-align: left; /* Ensure labels are left-justified */
+}
+.form-control {
+    border-color: black;
+    border-radius: 5px;
+    font-size: x-small;
+}
+.form-check-label {
+    margin-left: 5px;
+    color:black;
+    font-size: x-small;
+    text-align: left; /* Ensure labels are left-justified */
+}
+.form-check-input {
+    margin-right: 5px;
+    border-color:black;
+    width: 20px; /* Adjust size of checkbox */
+    height: 20px; /* Adjust size of checkbox */
+}
+.col-md-12 span.h3.card-title.level-2 {
+  color: blue;
+}
+#date {
+  font-size: medium;
+}
+#time {
+  font-size: medium;
+}

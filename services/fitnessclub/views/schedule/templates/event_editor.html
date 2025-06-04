@@ -11,12 +11,12 @@
             <input type="hidden" name="id" value="{{ event['id'] if event else '' }}">
 
             <div class="mb-3">
-                <label for="date" class="form-label text-black">Date</label>
+                <label for="date" class="form-label text-white">Date</label>
                 <input type="date" id="date" name="date" class="form-control" value="{{ event['date'] if event else '' }}"
                     required>
             </div>
             <div class="mb-3">
-                <label for="time" class="form-label text-black">Time</label>
+                <label for="time" class="form-label text-white">Time</label>
                 <input type="time" id="time" name="time" class="form-control" value="{{ event['time'] if event else '' }}"
                     required>
             </div>
