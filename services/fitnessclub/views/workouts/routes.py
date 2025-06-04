@@ -80,7 +80,8 @@ def workouts_listing(context=None):
         entities_listing_route=f'/workouts/workouts-listing?entity_table={WORKOUT_ENTITY_NAME}',
         entity_view_route=f'/workouts/viewer/workout?entity_table={WORKOUT_ENTITY_NAME}',
         entity_action_route=f'/workouts/edit?entity_table={WORKOUT_ENTITY_NAME}',
-        entity_action_icon='bi-pencil-square',         
+        entity_action_icon='bi-pencil-square',  
+        entity_action_label='Edit Workout',       
         # filter_dialog_route=f'/exercises/filter-dialog?entity_table={WORKOUT_ENTITY_NAME}',
         context=context)
 
@@ -461,7 +462,8 @@ def exercise_listing(context=None):
                               entity_action_route=f'/workouts/builder/{workout_id}/add?entity_table={entity_name}',
                               entity_action_route_method='post',
                               entity_action_route_target="canvas",                              
-                              entity_action_icon='bi-arrow-right-square-fill',                              
+                              entity_action_icon='bi-plus',
+                              entity_action_label='Add Exercise',
                               context=context)      
 
 

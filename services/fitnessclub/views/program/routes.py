@@ -54,7 +54,8 @@ def programs_listing(context=None):
         total_pages=total_pages,
         entities_listing_route=f'/program/programs-listing?entity_table={PROGRAM_ENTITY_NAME}',
         entity_action_route=f'/program/viewer?entity_table={PROGRAM_ENTITY_NAME}',
-        entity_action_icon='bi-pencil-square',         
+        entity_action_icon='bi-binoculars',  
+        entity_action_label='View Program',       
         context=context)
 
 @bp.route('/viewer')
@@ -109,5 +110,6 @@ def workouts_listing(context=None):
         total_pages=total_pages,
         entities_listing_route=f'/program/workouts-listing?entity_table={WORKOUT_ENTITY_NAME}',
         entity_action_route=f'/workouts/viewer/workout?entity_table={WORKOUT_ENTITY_NAME}',
-        entity_action_icon='bi-pencil-square',         
+        entity_action_icon='bi-pencil-square',  
+        entity_action_label='Edit Workout',       
         context=context)

@@ -81,12 +81,13 @@ def filter_dialog(context=None):
     entity_name = "ExerciseTable"
     entity_type = get_fitnessclub_entity_type_for_entity(entity_name)
     filters = get_fitnessclub_entity_filters_for_entity(entity_name)
-
+    view = request.args.get('view', 'list')
     return hx_render_template('filter_dialog.html', 
                               entities_listing_route=f'/exercises/exercises-listing?entity_table={entity_name}',
                               entity_display_name=entity_type.get_display_name(),                              
                               entity_name=entity_name,
                               filters=filters,
+                              view=view,
                               args=request.args,
                               context=context)
 

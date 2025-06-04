@@ -62,6 +62,7 @@ def entities_listing(context=None):
         entity_view_route=f'/admin/view?entity_table={entity_name}',
         entity_action_route=f'/admin/edit?entity_table={entity_name}',
         entity_action_icon='bi-pencil-square',
+        entity_action_label='Edit',
         context=context
     )
 @bp.route('/filter-dialog')
