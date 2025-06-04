@@ -20,10 +20,11 @@ def root(context=None):
     return redirect(url_for('admin.entities_listing', entity_table=entity_table), 302)
 
 @bp.route('/entities-listing')
-def entities_listing():
+@auth.login_required
+def entities_listing(context=None):
     entity_name = request.args.get('entity_table', None)    
     page = int(request.args.get('page', 1))
-
+    view = request.args.get('view', 'list')
     page_size = 10
 
     fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
@@ -53,13 +54,15 @@ def entities_listing():
         filter_terms=filter_terms,
         args=request.args,
         page=page,
+        view=view,
         total_pages=total_pages,
         entity_add_route=f'/admin/add/{entity_name}',
         filter_dialog_route=f'/admin/filter-dialog?entity_table={entity_name}',
         entities_listing_route=f'/admin/entities-listing?entity_table={entity_name}',
         entity_view_route=f'/admin/view?entity_table={entity_name}',
         entity_action_route=f'/admin/edit?entity_table={entity_name}',
-        entity_action_icon='bi-pencil-square'
+        entity_action_icon='bi-pencil-square',
+        context=context
     )
 @bp.route('/filter-dialog')
 @auth.login_required

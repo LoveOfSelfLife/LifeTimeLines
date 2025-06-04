@@ -17,10 +17,10 @@ def root(context=None):
 def exercises_fragment(context=None):
     entity_name = "ExerciseTable"
     page = int(request.args.get('page', 1))
-
+    view = request.args.get('view', 'list')
     page_size = 10
 
-    fields_to_display  = ['name']
+    fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
     filters = get_fitnessclub_entity_filters_for_entity(entity_name)
 
     if filters:
@@ -47,6 +47,7 @@ def exercises_fragment(context=None):
         filter_terms=filter_terms,
         args=request.args,
         page=page,
+        view=view,
         total_pages=total_pages,
         filter_dialog_route=f'/exercises/filter-dialog?entity_table={entity_name}',        
         entities_listing_route=f'/exercises/exercises-listing?entity_table={entity_name}',

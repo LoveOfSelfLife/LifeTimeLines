@@ -1,6 +1,16 @@
 {% for sec in workout.sections %}
   <div class="card mb-3">
-    <div class="card-header">{{ sec.name.title() }}</div>
+    <div class="card-header">{{ sec.name.title() }}
+      {# button to filter exercises in this section #}
+      <button class="btn btn-sm btn-outline-secondary float-end"
+              hx-get="{{ url_for('workouts.exercise_listing', workout_id=workout.id, section=sec.name) }}"
+              hx-target="#lib-list"
+              hx-swap="innerHTML"
+              data-bs-toggle="offcanvas"
+              data-bs-target="#libDrawer">
+        <i class="bi bi-funnel"></i> Filter Exercises
+      </button>
+    </div>
     <ul class="list-group list-group-flush section-list"
         data-section="{{ sec.name }}">
       {% for item in sec.exercises %}

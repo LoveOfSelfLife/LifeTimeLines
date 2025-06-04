@@ -4,8 +4,9 @@ from auth import auth
 from common.blob_store import BlobStore
 import os
 from common.fitness.hx_common import hx_render_template
-from common.fitness.member_entity import MembershipRegistry, get_user_info_from_token
-from common.fitness.hx_common import FirstTimeUserException, UnregisteredMemberException, is_admin_member, verify_registered_member
+from common.fitness.member_entity import MembershipRegistry, get_member_detail_from_user_context
+from common.fitness.hx_common import FirstTimeUserException, UnregisteredMemberException, is_admin_member, verify_member_registration
+from common.fitness.home_page_view import generate_current_home_page_view
 
 bp = Blueprint('/', __name__, template_folder='templates')  
 
@@ -30,23 +31,27 @@ def home():
 @bp.route("/")
 @auth.login_required
 def index(context = None):
+    member_registry = MembershipRegistry()
+    member_registry.refresh_members()   # always refresh members on index page load
 
-    user = get_user_info_from_token(context)
+    user = get_member_detail_from_user_context(context)
     try:
-        member = verify_registered_member(user)
-        return render_template("base.html", ctx = {"user": member.get('name'), 
-                                                   "short_name": member.get('short_name'), 
-                                                   "admin": is_admin_member(member) })
+        member = verify_member_registration(user)
+        home_page_view = generate_current_home_page_view(member)
+        return hx_render_template(template_string=home_page_view, context=context, member=member)
         
     except UnregisteredMemberException as e:
         print(f"User not registered: {e}")
-        return render_template("unregistered_member.html", ctx = { "user": user.get('name'), "email": user.get('email') })
+        member = member_registry.get_member(user['id'])
+        return render_template("unregistered_member.html",  member=member)
     
     except FirstTimeUserException as e:
-        members = MembershipRegistry()
-        members.add_member(user)
-        print(f"First time user: {e}")
-        return render_template("first_time_user.html", ctx = { "user": user.get('name'), "email": user.get('email') })
+        print(f"First time user exception: {e}")
+        member_registry.add_member(user)
+        member = member_registry.get_member(user['id'])
+        return render_template("first_time_user.html", member=member)
+
+    
 
 @bp.route("/logout")
 def logout():
@@ -73,7 +78,7 @@ def signout_callback():
 @auth.login_required
 def api_upload_photo(context, container_name):
     
-    user = get_user_info_from_token(context)
+    user = get_member_detail_from_user_context(context)
     # 1) get the uploaded file
     file = request.files.get("file")
     if not file:

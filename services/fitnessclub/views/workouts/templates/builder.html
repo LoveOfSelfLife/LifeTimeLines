@@ -3,7 +3,7 @@
   <div class="row">
     <!-- Library sidebar (md+) -->
     <div class="col-md-4 d-none d-md-block border-end vh-100 overflow-auto">
-      <h4 class="mt-3">Exercise Library</h4>
+      <!-- <h4 class="mt-3">Exercise Library</h4> -->
       <div id="lib-list"
            hx-get="{{ url_for('workouts.exercise_listing', workout_id=workout.id, target='lib-list') }}"
            hx-trigger="load"

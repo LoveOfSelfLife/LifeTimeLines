@@ -22,10 +22,12 @@ class EntityStoreCache:
     initialization.be to     
     """
     
-    def __init__(self, entity_to_cache:EntityObject):
+    def __init__(self, entity_to_cache:EntityObject, partition_key=None):
         self.entity_to_cache = entity_to_cache
+        self.partition_key = partition_key
         self.items = []
         self.items_map = {}
+        # self.items_composite_key_map = {}
         self.entity_store = EntityStore()
         self.latest_item_updated_iso = None
         self._refresh_cache()  # Initialize the cache by loading items from the entity store
@@ -41,6 +43,7 @@ class EntityStoreCache:
         # this makes the asumeption that the key value is unique, i.e. that the partition is the same for all items
         # TODO: address this assumption
         self.items_map = {item.get_key_value(): item for item in self.items}
+        # self.items_composite_key_map = {item.get_composite_key(): item for item in self.items}
 
     def get_items(self):
         """Get the cached items. If the latest item updated timestamp has changed, refresh the cache."""
@@ -50,12 +53,14 @@ class EntityStoreCache:
             self._refresh_cache()
         return self.items
 
-    def get_item_by_key(self, key):
+    def get_item_by_key(self, key, partition_key=None):
         """Get an item by its key from the cached items."""
-        if key in self.items_map:
-            return self.items_map[key]
+        if not partition_key:
+            return self.items_map.get(key, None)
         else:
-            return None
+            """Get an item by its composite key from the cached items."""
+            composite_key = (key, partition_key)
+            return self.items_composite_key_map.get(composite_key, None)
         
     def delete_item(self, item:EntityObject):
         """Delete an item from the entity store and refresh the cache."""

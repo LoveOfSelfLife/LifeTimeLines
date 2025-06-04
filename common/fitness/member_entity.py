@@ -43,15 +43,17 @@ def save_user_profile(profile, request_files):
     MembershipRegistry().refresh_members()
     return profile
 
-def get_user_info_from_token(token):
+# returns a dict with "id", "email", "name"
+# "id" is the user id, "email" is the primary email, "name" is the name of the user
+def get_member_detail_from_user_context(user_context):
     member = dict()
-    user = token.get('user')
+    user = user_context.get('user')
     member['id'] = user.get('sub')
     member['email'] = user.get('emails')[0]
     if user.get('idp', None) == 'google.com':
         member['name'] = user.get('name')
     else:
-        if user.get('name', None) != 'uknown':
+        if user.get('name', None) != 'unknown':
             member['name'] = user.get('name')
         else:
             member['name'] = member['email']
@@ -67,13 +69,10 @@ class MembershipRegistry:
             self._load_members()
 
     def _load_members(self):
-        MembershipRegistry._members = dict()
-        for m in EntityStore().list_items(MemberEntity()):
-            member_id = m.get_key_value()
-            MembershipRegistry._members[member_id] = m
+        MembershipRegistry._members = {m.get_key_value(): m for m in EntityStore().list_items(MemberEntity())}
         
     def check_if_member(self, member_id):
-        return MembershipRegistry._members.get(member_id) is not None
+        return MembershipRegistry._members.get(member_id, None) is not None
     
     def add_member(self, member):
         member['level'] = 0
@@ -81,7 +80,7 @@ class MembershipRegistry:
         self._load_members()
 
     def get_member(self, member_id):
-        return MembershipRegistry._members.get(member_id)
+        return MembershipRegistry._members.get(member_id, None)
     
     def refresh_members(self):
         self._load_members()
