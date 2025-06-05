@@ -44,7 +44,8 @@ def workouts_listing(context=None):
     WORKOUT_ENTITY_NAME = "WorkoutTable"
     page = int(request.args.get('page', 1))
     view = request.args.get('view', 'list')
-    page_size = 10
+    target = request.args.get('target', None)    
+
 
     fields_to_display  = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
     filters = get_fitnessclub_entity_filters_for_entity(WORKOUT_ENTITY_NAME)
@@ -59,6 +60,7 @@ def workouts_listing(context=None):
 
     entities = get_filtered_entities(WORKOUT_ENTITY_NAME, fields_to_display, filter_func, filter_terms)
 
+    page_size = 10
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
     end = start + page_size
@@ -77,7 +79,7 @@ def workouts_listing(context=None):
         view=view,
         total_pages=total_pages,
         entity_add_route=url_for('workouts.builder_new'),
-        entities_listing_route=f'/workouts/workouts-listing?entity_table={WORKOUT_ENTITY_NAME}',
+        entities_listing_route=f'/workouts/workouts-listing?entity_table={WORKOUT_ENTITY_NAME}&target={target}',
         entity_view_route=f'/workouts/viewer/workout?entity_table={WORKOUT_ENTITY_NAME}',
         entity_action_route=f'/workouts/edit?entity_table={WORKOUT_ENTITY_NAME}',
         entity_action_icon='bi-pencil-square',  

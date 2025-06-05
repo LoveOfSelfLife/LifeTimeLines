@@ -5,7 +5,7 @@
     <div class="col-md-4 d-none d-md-block border-end vh-100 overflow-auto">
       <!-- <h4 class="mt-3">Exercise Library</h4> -->
       <div id="lib-list"
-           hx-get="{{ url_for('workouts.exercise_listing', workout_id=workout.id, target='lib-list') }}"
+           hx-get="{{ url_for('program.workouts_listing',program_id=program.id, target='lib-list') }}"
            hx-trigger="load"
            hx-swap="innerHTML">
         Loading…
@@ -25,7 +25,7 @@
       </div>
       <div class="offcanvas-body">
         <div id="lib-list-mobile"
-             hx-get="{{ url_for('workouts.exercise_listing', workout_id=workout.id, target='lib-list-mobile') }}"
+             hx-get="{{ url_for('program.workouts_listing', program_id=program.id, target='lib-list-mobile') }}"
              hx-trigger="load"
              hx-swap="innerHTML">
           Loading…
@@ -37,28 +37,33 @@
 
         <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
 
+            {# turn this static h2 into an input field that a user can enter or modify the workout name #}
+            {# <form hx-post="{{ url_for('program.update_program_name', program_id=program.id) }}"
+                  hx-target="#program-canvas"
+                  hx-swap="innerHTML"> #}
               <input type="text" name="name" class="form-control form-control-sm"
-                     value="{{ workout.name }}" placeholder="Workout Name"
+                     value="{{ program.name }}" placeholder="Program Name"
                      hx-trigger="change delay:500ms, focusout"
-                     hx-post="{{ url_for('workouts.update_workout_name', workout_id=workout.id) }}"
+                     hx-post="{{ url_for('program.update_program_name', program_id=program.id) }}"
                      hx-swap="none">
-
+            {# </form> #}
+            {# <h2>{{ program.name }}</h2> #}
             <button class="btn btn-primary d-md-none"
                     data-bs-toggle="offcanvas"
                     data-bs-target="#libDrawer">
-              + Add Exercise
+              + Add workout
             </button>
           <button class="btn btn-sm btn-success mt-auto"
-                  hx-post="{{ url_for('workouts.save_workout', workout_id=workout.id) }}"
-                  hx-vals='{"workout_id":"{{ workout.id }}"}'
+                  hx-post="{{ url_for('program.save_program', program_id=program.id) }}"
+                  hx-vals='{"program_id":"{{ program.id }}"}'
                   hx-target="#content"
                   hx-swap="innerHTML">
               Save
             </button>
 
         </div>
-        <div id="canvas"
-            hx-get="{{ url_for('workouts.workout_canvas', workout_id=workout.id) }}"
+        <div id="program-canvas"
+            hx-get="{{ url_for('program.program_canvas', program_id=program.id) }}"
             hx-trigger="load"
             hx-swap="innerHTML">
           Loading…

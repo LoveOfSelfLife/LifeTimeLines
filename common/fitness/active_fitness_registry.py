@@ -27,9 +27,10 @@ editable_entities = {
                         "entity_popup_viewer" : render_exercise_popup_viewer_html
                     },
     "ProgramTable" : { "entity_class": ProgramEntity,
-                        "listing_view_fields": ["name"],
+                        "listing_view_fields": ["name", "start_date", "end_date"],
                         "card_view_fields": { "title" : lambda e: e['name'] if 'name' in e else "",
-                                              "subtitle" : lambda e: "Start Date: " + e['start_date'] if 'start_date' in e else "",
+                                              "subtitle" : lambda e: (("Start Date: " + (e['start_date'] if 'start_date' in e and e['start_date'] else "?")) + \
+                                                                      (" End Date: " + (e['end_date'] if 'end_date' in e and e['end_date'] else "?"))),
                                               "image_url" : None,
                                               "description" : lambda e: ""
                                              }                        
