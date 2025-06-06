@@ -38,7 +38,7 @@ def your_schedule(context = None):
     today = datetime.now()
     start_date = today.strftime("%Y-%m-%d")
     end_date = (today + timedelta(days=14)).strftime("%Y-%m-%d")
-    events = cal.get_dates_and_events_stream(date_min=start_date, date_max=end_date)
+    events, _ = cal.get_dates_and_events_stream(date_min=start_date, date_max=end_date)
     return render_template('your_schedule.html', context=context, member_short_name=member_short_name, events=events)
 
 @bp.route('/create_event', methods=['GET','POST'])
