@@ -44,7 +44,8 @@ def workouts_listing(context=None):
     WORKOUT_ENTITY_NAME = "WorkoutTable"
     page = int(request.args.get('page', 1))
     view = request.args.get('view', 'list')
-    page_size = 10
+    target = request.args.get('target', None)    
+
 
     fields_to_display  = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
     filters = get_fitnessclub_entity_filters_for_entity(WORKOUT_ENTITY_NAME)
@@ -59,6 +60,7 @@ def workouts_listing(context=None):
 
     entities = get_filtered_entities(WORKOUT_ENTITY_NAME, fields_to_display, filter_func, filter_terms)
 
+    page_size = 10
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
     end = start + page_size
@@ -77,7 +79,7 @@ def workouts_listing(context=None):
         view=view,
         total_pages=total_pages,
         entity_add_route=url_for('workouts.builder_new'),
-        entities_listing_route=f'/workouts/workouts-listing?entity_table={WORKOUT_ENTITY_NAME}',
+        entities_listing_route=f'/workouts/workouts-listing?entity_table={WORKOUT_ENTITY_NAME}&target={target}',
         entity_view_route=f'/workouts/viewer/workout?entity_table={WORKOUT_ENTITY_NAME}',
         entity_action_route=f'/workouts/edit?entity_table={WORKOUT_ENTITY_NAME}',
         entity_action_icon='bi-pencil-square',  
@@ -121,7 +123,7 @@ def view_workout_details(context=None):
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
-    entity_to_view = es.get_item_by_composite_key(entity_instance, composite_key)
+    entity_to_view = es.get_item_by_composite_key2(composite_key)
     entity_type = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
     entity_type.initialize(entity_to_view)
 
@@ -139,7 +141,7 @@ def edit_workout_details(context=None):
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
-    entity_to_view = es.get_item_by_composite_key(entity_instance, composite_key)
+    entity_to_view = es.get_item_by_composite_key2(composite_key)
     entity_type = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
     entity_type.initialize(entity_to_view)
     print(f"editing workoug: {json.dumps(entity_to_view, indent=4)}")
@@ -235,7 +237,7 @@ def add_exercise(context=None, workout_id=None):
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
     entity_instance = get_fitnessclub_entity_type_for_entity("ExerciseTable")
-    ex = es.get_item_by_composite_key(entity_instance, composite_key)
+    ex = es.get_item_by_composite_key2(composite_key)
     if not ex:
         abort(404)
     
@@ -576,7 +578,7 @@ def exercise_reviewer_review(context=None):
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
     entity_instance = get_fitnessclub_entity_type_for_entity("ExerciseTable")
-    ex = es.get_item_by_composite_key(entity_instance, composite_key)
+    ex = es.get_item_by_composite_key2(composite_key)
     if not ex:
         abort(404)
     
@@ -712,7 +714,7 @@ def view_workout(context=None):
     workout_composite_key = eval(workout_key_str) if workout_key_str else None
     es = EntityStore()
     entity_instance = get_fitnessclub_entity_type_for_entity("WorkoutTable")
-    workout = es.get_item_by_composite_key(entity_instance, workout_composite_key)
+    workout = es.get_item_by_composite_key2(workout_composite_key)
 
     wrkout_exercises = get_exercises_from_workout(workout)
     exercises = { ex.get('id', None): ex for ex in wrkout_exercises }

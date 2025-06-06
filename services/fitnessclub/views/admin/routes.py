@@ -99,7 +99,7 @@ def edit_entity(context=None):
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
-    entity_to_edit = es.get_item_by_composite_key(entity_instance, composite_key)
+    entity_to_edit = es.get_item_by_composite_key2(composite_key)
     
     if 'Timestamp' in entity_to_edit:
         del(entity_to_edit['Timestamp'])
@@ -130,7 +130,7 @@ def view_entity(context=None):
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
-    entity_to_view = es.get_item_by_composite_key(entity_instance, composite_key)
+    entity_to_view = es.get_item_by_composite_key2(composite_key)
     
     return render_exercise_popup_viewer_html(context, entity_to_view)
 
@@ -161,7 +161,7 @@ def delete_entity_from_table(context=None, table_id=None):
     composite_key = eval(composite_key_str) if composite_key_str else None
 
     es = EntityStore()
-    entity_to_delete = es.get_item_by_composite_key(entity, composite_key)
+    entity_to_delete = es.get_item_by_composite_key2(composite_key)
     
     if not entity_to_delete:
         return "Entity not found", 404
@@ -188,7 +188,7 @@ def existing_entity_editor(context=None, table_id=None):
     es = EntityStore()
     entity_to_edit = {}
     schema = entity.get_schema()
-
+    composite_key = (entity_to_edit.get('id', None), entity_to_edit.get('partition_value', None), table_id)
     return hx_render_template('admin/entity_editor.html', 
                             entity=entity_to_edit, 
                             schema=schema,
@@ -196,7 +196,7 @@ def existing_entity_editor(context=None, table_id=None):
                             errors={},
                             upload_file_url=f'/api/upload/{table_id}',
                             update_entity_url=f'/admin/update/{table_id}',
-                            delete_entity_url=f'/admin/delete/{table_id}?key={entity_to_edit.get("id")}&partition={entity_to_edit.get("partition_value")}',
+                            delete_entity_url=f'/admin/delete/{table_id}?key={composite_key}',
                             context=context)
         
 @bp.route('/update/<table_id>', methods=['POST'])

@@ -53,7 +53,11 @@ class EntityObject (dict):
         else:
             return self.get_table_name()
             
-    
+    def set_partition_value(self, partition_value):
+        if self.get_static_partition_value():
+            print("Cannot set partition value for this entity, it is static")
+        self[self.get_partition_field()] = partition_value
+
     def get_key_field(self):
         return type(self).key_field
     
@@ -69,7 +73,7 @@ class EntityObject (dict):
         return self.get(self.get_partition_field(), None)
     
     def get_composite_key(self):
-        return (self.get_key_value(), self.get_partition_value())
+        return (self.get_key_value(), self.get_partition_value(), self.get_table_name())
 
     def get_static_partition_value(self):
         if type(self).partition_value:
@@ -230,6 +234,11 @@ class EntityStore :
     def get_item_by_composite_key(self, eobj, composite_key):
         (key, partition) = composite_key
         return self.get_item_by_key(eobj, key, partition)
+    
+    def get_item_by_composite_key2(self, composite_key):
+        (key, partition, entity_name) = composite_key
+        eobj = EntityObject.get_entity_class_from_table_name(entity_name)()
+        return self.get_item_by_key(eobj, key, partition)    
     
     def get_item_by_key(self, eobj, key_value, partition_value=None):
         try:
