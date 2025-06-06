@@ -727,7 +727,8 @@ def view_workout(context=None):
         "workout_view.html",
         workout=workout,
         exercises=exercises,
-        default_section=last
+        default_section=last,
+        show_finish_button=False
     )
 from common.fitness.entities_getter import get_entity
 
