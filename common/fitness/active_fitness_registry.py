@@ -3,7 +3,7 @@ from common.fitness.member_entity import MemberEntity
 from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity, exercise_entity_filter, exercise_entity_filter_term, render_exercise_popup_viewer_html
 from common.fitness.exercise_entity import exercise_filters
 from common.fitness.member_entity import MemberEntity
-from common.fitness.workout_entity import WorkoutEntity
+from common.fitness.workout_entity import ProgramWorkoutEntity, WorkoutEntity
 
 editable_entities = {
     "MemberTable" : { "entity_class": MemberEntity, 
@@ -51,6 +51,8 @@ editable_entities = {
                                               "image_url" : None,
                                               "description" : lambda e: ""
                                              }
+                    },
+    "ProgramWorkoutTable" : { "entity_class": ProgramWorkoutEntity
                     }
     }
 

@@ -123,7 +123,7 @@ def view_workout_details(context=None):
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
-    entity_to_view = es.get_item_by_composite_key(entity_instance, composite_key)
+    entity_to_view = es.get_item_by_composite_key2(composite_key)
     entity_type = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
     entity_type.initialize(entity_to_view)
 
@@ -141,7 +141,7 @@ def edit_workout_details(context=None):
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
-    entity_to_view = es.get_item_by_composite_key(entity_instance, composite_key)
+    entity_to_view = es.get_item_by_composite_key2(composite_key)
     entity_type = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
     entity_type.initialize(entity_to_view)
     print(f"editing workoug: {json.dumps(entity_to_view, indent=4)}")
@@ -237,7 +237,7 @@ def add_exercise(context=None, workout_id=None):
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
     entity_instance = get_fitnessclub_entity_type_for_entity("ExerciseTable")
-    ex = es.get_item_by_composite_key(entity_instance, composite_key)
+    ex = es.get_item_by_composite_key2(composite_key)
     if not ex:
         abort(404)
     
@@ -578,7 +578,7 @@ def exercise_reviewer_review(context=None):
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
     entity_instance = get_fitnessclub_entity_type_for_entity("ExerciseTable")
-    ex = es.get_item_by_composite_key(entity_instance, composite_key)
+    ex = es.get_item_by_composite_key2(composite_key)
     if not ex:
         abort(404)
     
@@ -714,7 +714,7 @@ def view_workout(context=None):
     workout_composite_key = eval(workout_key_str) if workout_key_str else None
     es = EntityStore()
     entity_instance = get_fitnessclub_entity_type_for_entity("WorkoutTable")
-    workout = es.get_item_by_composite_key(entity_instance, workout_composite_key)
+    workout = es.get_item_by_composite_key2(workout_composite_key)
 
     wrkout_exercises = get_exercises_from_workout(workout)
     exercises = { ex.get('id', None): ex for ex in wrkout_exercises }

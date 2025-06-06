@@ -4,10 +4,11 @@ import uuid
 from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, url_for
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
-from common.fitness.entities_getter import get_entity, get_filtered_entities
+from common.fitness.entities_getter import get_entity, get_entity2, get_filtered_entities
 from common.fitness.hx_common import hx_render_template
 from common.fitness.member_entity import MembershipRegistry, get_member_detail_from_user_context
 from common.fitness.program_entity import ProgramEntity
+from common.fitness.workout_entity import ProgramWorkoutEntity
 bp = Blueprint('program', __name__, template_folder='templates')
 from auth import auth
 
@@ -137,9 +138,9 @@ def workouts_listing(context=None):
         context=context)
 
 def new_program(name='New workout program', member_id=None):
-    wid = str(uuid.uuid4())
+    program_id = str(uuid.uuid4())
     return {
-        'id': wid,
+        'id': program_id,
         'member_id': member_id,
         'name': name,
         'start_date': None,
@@ -155,7 +156,7 @@ def edit_program_details(context=None):
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
-    entity_to_view = es.get_item_by_composite_key(entity_instance, composite_key)
+    entity_to_view = es.get_item_by_composite_key2(composite_key)
     entity_type = get_fitnessclub_entity_type_for_entity(PROGRAM_ENTITY_NAME)
     entity_type.initialize(entity_to_view)
     print(f"editing program: {json.dumps(entity_to_view, indent=4)}")
@@ -231,7 +232,8 @@ def program_canvas2(context=None, program_id=None):
 
         program_workouts = get_workouts_from_program(p)
         workouts = { wk.get('id', None): wk for wk in program_workouts }
-
+        # workouts = p['workouts'] if 'workouts' in p else []
+        # workouts = { wk.get('id', None): wk for wk in p['workouts'] if 'id' in wk}
         if p['id'] == program_id:
             return hx_render_template('_program_canvas.html',
                                         program=p,
@@ -241,9 +243,11 @@ def program_canvas2(context=None, program_id=None):
 
 def get_workouts_from_program(program):
     workouts = []
+    es = EntityStore()
     for w in program['workouts']:
-        ek = get_entity("WorkoutTable", w['id'])
-        workouts.append(ek)
+        e = es.get_item_by_composite_key2(w['key'])
+        # ek = get_entity2(ProgramWorkoutEntity(), w['id'], partition_key=program['id'])
+        workouts.append(e)
     return workouts
 
 @bp.route('/builder/<program_id>/save', methods=['POST'])
@@ -260,14 +264,39 @@ def save_program(context=None, program_id=None):
         program = json.loads(current_program)
         if program['id'] != program_id:
             abort(404)
+
+    # the workouts in the program.workouts list are from teh WorkoutTable
+    # we will copy thos workout objects into the ProgramWorkoutTable, then use the id & Program_id of that copy to populate the program.workouts list
+
+    # create a new program instance
     program_instance : ProgramEntity = get_fitnessclub_entity_type_for_entity(PROGRAM_ENTITY_NAME)
+    program_instance.initialize(program)    
+    program_instance['created_ts'] = datetime.now().isoformat()
+    es = EntityStore()
+    workouts_in_program = []
+    for wk in program['workouts']:
+        wk_id = wk['id']
+        # get the workout entity
+        # wk_entity = get_entity("WorkoutTable", wk_id)
+        wk_entity = es.get_item_by_composite_key2(wk['key'])
+        if not wk_entity:
+            abort(404)
+        wk_entity['id'] = str(uuid.uuid4())  # generate a new id for the program workout
+        wk_entity['program_id'] = program['id']  # set the program id for the workout
+        wk_entity['parent_workout_id'] = wk_id  # keep the original workout id for reference
+        workout_copy = ProgramWorkoutEntity(wk_entity)
+        workouts_in_program.append(workout_copy)
+        
+    # add the IDs of the newly copied workouts to the new program's workouts list
+    program_instance['workouts'] = [{'id': workout_copy['id'], 'program_id': program['id'], 'key' : workout_copy.get_composite_key()} for workout_copy in workouts_in_program]
+
+
+    es = EntityStore()
 
     # this is where we save the newly created progrm
+    # first save the program workouts to the ProgramWorkoutTable
     print('Saving program')
-    es = EntityStore()
-    program['created_by'] = member_id
-    program['created_ts'] = datetime.now().isoformat()
-    program_instance.initialize(program)
+    es.upsert_items(workouts_in_program)
     es.upsert_item(program_instance)
     # remove from redis
     redis_client.delete('current_program')
@@ -314,8 +343,8 @@ def add_workout(context=None, program_id=None):
         if p['id'] != program_id:
             abort(404)
 
-    # here we get the key of the exercise from the query parameters
-    # and we look it up in the exercise catalog
+    # here we get the key of the workout from the query parameters
+    # and we look it up in the workouts table
     # if it is not found we abort with a 404
     # if it is found we add it to the workout
     # and we save the workout to redis
@@ -323,15 +352,15 @@ def add_workout(context=None, program_id=None):
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
     entity_instance = get_fitnessclub_entity_type_for_entity("WorkoutTable")
-    wk = es.get_item_by_composite_key(entity_instance, composite_key)
+    wk = es.get_item_by_composite_key2(composite_key)
     if not wk:
         abort(404)
     
-    wk_id = wk['id']
+    # wk_id = wk['id']
 
-    if wk_id not in p['workouts']:
+    if wk['id'] not in p['workouts']:
         # add the workout to the program
-        p['workouts'].append({'id':wk_id})
+        p['workouts'].append({'key': wk.get_composite_key(), 'id':wk['id'], "name": wk['name']})
 
 
     # here we save the program to redis
