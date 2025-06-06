@@ -46,11 +46,12 @@
       </div>
     </div>
   {% endfor %}
-</div>
 
+{% if show_finish_button %}
   <!-- Optional “Finish Workout” button -->
   <form method="post" action="{{ url_for('workouts.finish_workout', workout_id=workout.id) }}">
     <button type="submit" class="btn btn-success mt-3">Finish Workout</button>
   </form>
+{% endif %}
 </div>
 
