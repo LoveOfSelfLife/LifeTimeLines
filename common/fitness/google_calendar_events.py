@@ -270,7 +270,8 @@ class GoogleCalendarService:
             }
             events_list.append(date_dict)
             date_cursor += timedelta(days=1)        
-        return events_list
+        return events_list, sorted_events
+
 
 
     def add_workout_event(self, member_id, event_date, event_time, location='', description='workout session'):
