@@ -3,17 +3,11 @@ from flask import Blueprint, abort, make_response, render_template, request
 from common.fitness.member_entity import get_user_profile
 from common.fitness.hx_common import hx_render_template
 from common.fitness.workout_sessions import WorkoutSessionEntity, EventTypes, create_new_workout_session, list_workout_sessions, get_workout_session, store_workout_session, delete_workout_session, generate_id
+from common.fitness.get_calendar_service import get_calendar_service
 bp = Blueprint('schedule', __name__, template_folder='templates')
 from auth import auth
 from datetime import datetime, timedelta
-from common.fitness.google_calendar_events import GoogleCalendarService
-calendar_service = None 
 
-def get_calendar_service():
-    global calendar_service
-    if calendar_service is None:
-        calendar_service = GoogleCalendarService()
-    return calendar_service
 
 @bp.route('/')
 @auth.login_required

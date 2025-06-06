@@ -4,7 +4,7 @@ from common.fitness.workouts import get_scheduled_workouts
 from datetime import datetime, timedelta, timezone
 from flask import render_template_string, request, redirect, url_for
 
-from services.fitnessclub.views.schedule.routes import get_calendar_service
+from common.fitness.get_calendar_service import get_calendar_service
 
 def generate_current_home_page_view(member):
     """
