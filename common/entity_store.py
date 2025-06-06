@@ -28,6 +28,7 @@ class EntityObject (dict):
         for k,v in d.items():
             self[k] = v
         self.validate()
+        print(f"EntityObject: adding { self.get_table_name() } to entity_name_to_entity_class_map")
         EntityObject.entity_name_to_entity_class_map[self.get_table_name()] = self.__class__
     
     @staticmethod
@@ -129,6 +130,20 @@ def _get_ts_from_metadata_etag(item):
         ts = urllib.parse.unquote(ts_url_encoded)
         
     return ts
+
+def instatiate_all_entity_objects():
+    for cls in recursive_subclasses(EntityObject):
+        cls()
+
+def recursive_subclasses(klass):
+    """Yield all subclasses of the given class, recursively."""
+    seen = set()
+    for subclass in klass.__subclasses__():
+        yield subclass
+        for subsubclass in recursive_subclasses(subclass):
+            if subsubclass not in seen:
+                seen.add(subsubclass)
+                yield subsubclass
 
 class EntityStore :
     storage_map = {}
@@ -236,7 +251,8 @@ class EntityStore :
         return self.get_item_by_key(eobj, key, partition)
     
     def get_item_by_composite_key2(self, composite_key):
-        (key, partition, entity_name) = composite_key
+        (key, partition, entity_name) = tuple(composite_key)
+        # eobj = EntityObject.get_entity_class_from_table_name(entity_name)()
         eobj = EntityObject.get_entity_class_from_table_name(entity_name)()
         return self.get_item_by_key(eobj, key, partition)    
     
