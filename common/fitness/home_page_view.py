@@ -107,24 +107,24 @@ def generate_current_home_page_view(member):
         return render_template("no_program_assigned.html", member=member)
     
     current_program_key = current_program.get_composite_key()
-    next_workout = get_next_workout_in_program(current_program, member_id)
-    workout_key = next_workout.get_composite_key()
+    next_workout_key = get_next_workout_in_program(current_program, member_id)
+    if next_workout_key is None:
+        return render_template("no_program_assigned.html", member=member)
+    
     if event:
-
-        # The member has an upcoming workout scheduled in less than an hour
-        
+        # The member has an upcoming workout scheduled
         return render_template("upcoming_workout.html", 
                                 program_name=current_program.get('name', 'No Program Assigned'),
                                 next_workout_datetime=workout_datetime,
                                     member=member, 
-                                    workout=next_workout,
+                                    workout=next_workout_key,
                                     time_until=format_seconds(time_until_workout), 
-                                    workout_key=workout_key,
+                                    workout_key=next_workout_key,
                                     scheduled_workout_event_id=event.get('id', None),
                                     program_key=current_program_key,
                                     event=event)
     else:
-        return render_template("no_workouts_scheduled.html", member=member, program_key=current_program_key, workout_key=workout_key)
+        return render_template("no_workouts_scheduled.html", member=member, program_key=current_program_key, workout_key=next_workout_key)
 
 def get_next_workout_event(events, member_id):
     for event in events:
