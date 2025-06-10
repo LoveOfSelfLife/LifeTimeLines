@@ -46,6 +46,16 @@
                      hx-trigger="change delay:500ms, focusout"
                      hx-post="{{ url_for('program.update_program_name', program_id=program.id) }}"
                      hx-swap="none">
+              <input type="date" name="start_date" class="form-control form-control-sm"
+                     value="{{ program.start_date }}" placeholder="Start Date"
+                     hx-trigger="change delay:500ms, focusout"
+                     hx-post="{{ url_for('program.update_dates', program_id=program.id, date_type='start') }}"
+                     hx-swap="none">                     
+              <input type="date" name="end_date" class="form-control form-control-sm"
+                     value="{{ program.end_date }}" placeholder="End Date"
+                     hx-trigger="change delay:500ms, focusout"
+                     hx-post="{{ url_for('program.update_dates', program_id=program.id, date_type='end') }}"
+                     hx-swap="none">                     
             {# </form> #}
             {# <h2>{{ program.name }}</h2> #}
             <button class="btn btn-primary d-md-none"

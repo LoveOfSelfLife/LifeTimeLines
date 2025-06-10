@@ -49,7 +49,15 @@
 
 {% if show_finish_button %}
   <!-- Optional “Finish Workout” button -->
-  <form method="post" action="{{ url_for('workouts.finish_workout', workout_id=workout.id) }}">
+  <form hx-post="{{ finish_workout_url }}"
+          hx-target="#content"
+        hx-swap="innerHTML">
+
+    <input type="hidden" name="workout_id" value="{{ workout.id }}">
+    <input type="hidden" name="program_id" value="{{ program.id }}">
+    <input type="hidden" name="scheduled_workout_event_id" value="{{ scheduled_workout_event_id }}">
+    <input type="hidden" name="workout_key" value="{{ workout_key }}">
+    <input type="hidden" name="program_key" value="{{ program_key }}">
     <button type="submit" class="btn btn-success mt-3">Finish Workout</button>
   </form>
 {% endif %}

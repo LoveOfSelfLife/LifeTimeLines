@@ -294,3 +294,23 @@ background: #f9f9f9;
 #time {
   font-size: medium;
 }
+
+/* Home-page content templates */
+.no-program-assigned .card,
+.no-workouts-scheduled .card,
+.upcoming-workout .card {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.home-buttons .btn {
+  margin: 0.5rem;
+}
+
+#workout-datetime {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}

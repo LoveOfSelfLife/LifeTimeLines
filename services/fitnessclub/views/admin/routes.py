@@ -172,7 +172,7 @@ def delete_entity_from_table(context=None, table_id=None):
     response = make_response('')
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": None,
-        "showMessage": f"selected item was deleted."
+        "showMessage": { "value" : f"selected item was deleted.", "target": "body" }
     })
     # return response
     return redirect(f'/admin?entity_table={table_id}', 302, response)
@@ -242,7 +242,7 @@ def update_entity_save_json(context=None, table_id=None):
     response = make_response('')
     response.headers['HX-Trigger'] = json.dumps({
         "entityListChanged": True,
-        "showMessage": f"item was saved."
+        "showMessage": { "value" : f"item was saved.", "target": "body" }
     })
     response.headers['HX-Redirect'] = f'/admin?entity_table={table_id}'
     return response

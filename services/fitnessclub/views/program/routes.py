@@ -1,14 +1,15 @@
 from datetime import datetime
 import json
 import uuid
-from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, url_for
+from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, session, url_for
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
 from common.fitness.entities_getter import get_entity, get_entity2, get_filtered_entities
+from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import hx_render_template
 from common.fitness.member_entity import MembershipRegistry, get_member_detail_from_user_context
 from common.fitness.program_entity import ProgramEntity
-from common.fitness.workout_entity import ProgramWorkoutEntity
+from common.fitness.workout_entity import ProgramWorkoutEntity, ProgramWorkoutInstanceEntity, get_exercises_from_workout
 bp = Blueprint('program', __name__, template_folder='templates')
 from auth import auth
 
@@ -224,6 +225,27 @@ def update_program_name(context=None, program_id=None):
     redis_client.set('current_program', json.dumps(p))
     return program_canvas2(context, program_id)
 
+@bp.route('/builder/<program_id>/updatedate/<date_type>', methods=['POST'])
+@auth.login_required
+def update_dates(context=None, program_id=None, date_type=None):
+    # retrieve the workut from redis
+    redis_client = current_app.config['SESSION_CACHELIB']
+    current_program = redis_client.get('current_program')
+    p = json.loads(current_program)
+    
+    if date_type not in ['start', 'end']:
+        abort(400, description="Invalid date type. Must be 'start' or 'end'.")
+    if date_type == 'start':
+        p['start_date'] = request.form['start_date']
+    else:
+        p['end_date'] = request.form['end_date']
+
+    # here we save the workout to redis
+    redis_client.set('current_program', json.dumps(p))
+    
+    response = make_response('', 200)
+    return response
+
 def program_canvas2(context=None, program_id=None):
     redis_client = current_app.config['SESSION_CACHELIB']
     current_program = redis_client.get('current_program')
@@ -304,7 +326,7 @@ def save_program(context=None, program_id=None):
     response = make_response('')
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": True,
-        "showMessage": f"saved program"
+        "showMessage": { "value" : f"saved program", "target": "body" }
     })
 
     return redirect(url_for('program.index'), 302, response)
@@ -368,3 +390,162 @@ def add_workout(context=None, program_id=None):
 
     return program_canvas2(context, program_id)
 
+
+@bp.route('/start_workout/<workout_key>', methods=['POST'])
+@auth.login_required
+def start_workout(context=None, workout_key=None):
+
+    scheduled_workout_event_id = request.form.get('scheduled_workout_event_id', None)
+    workout_composite_key = eval(workout_key) if workout_key else None
+    program_composite_key_str = request.form.get('program_key', None)
+    program_composite_key = eval(program_composite_key_str) if program_composite_key_str else None
+
+    workout_instance, exercises, program_entity, workout_instance_key = _start_workout_logic(workout_key, program_composite_key_str, scheduled_workout_event_id)
+
+  
+    last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
+
+    return render_template(
+        "workout_view.html",
+        workout=workout_instance,
+        exercises=exercises,
+        default_section=last,
+        program=program_entity,
+        program_key=program_composite_key,
+        workout_instance_key=workout_instance_key,
+        scheduled_workout_event_id=scheduled_workout_event_id,
+        finish_workout_url=url_for('program.finish_workout', workout_instance_key=workout_instance_key),
+        show_finish_button=True
+    )
+ 
+@bp.route('/finish_workout/<workout_instance_key>', methods=['POST'])
+@auth.login_required
+def finish_workout(context=None, workout_instance_key=None):
+
+    es = EntityStore()
+    workout_composite_key = eval(workout_instance_key) if workout_instance_key else None
+    workout_instance = es.get_item_by_composite_key2(workout_composite_key)
+
+    program_composite_key_str = request.form.get('program_key', None)
+    program_composite_key = eval(program_composite_key_str) if program_composite_key_str else None
+    program_entity = es.get_item_by_composite_key2(program_composite_key)
+    
+    # post to the google calenard service that the workout is finished
+    scheduled_workout_event_id = request.form.get('scheduled_workout_event_id', None)
+
+    # clear the 'current_workout_instance_state' from the session
+    session.pop('current_workout_instance_state', None)
+    session.pop(f"last_section_{workout_instance['id']}", None)
+
+    workout_entity = es.get_item_by_composite_key2(workout_composite_key)    
+    program_entity = es.get_item_by_composite_key2(program_composite_key)    
+
+    list_of_workout_instances = program_entity.get('workout_instances', [])
+    # find the workout instance in the program's workout_instances list
+    for instance in list_of_workout_instances:
+        if instance.get('program_workout_instance_id') == workout_instance['id']:
+            # update the finished timestamp for the workout instance
+            instance['finished_ts'] = datetime.now().isoformat()
+            # update the workout instance in the program's workout_instances list
+            program_entity['workout_instances'] = list_of_workout_instances
+            es.upsert_item(program_entity)    
+            break
+    else:
+        # if we didn't find the workout instance, we can log an error or raise an exception
+        current_app.logger.error(f"Workout instance {workout_instance_key} not found in program {program_composite_key}")
+        abort(404)
+    cal = get_calendar_service()
+    cal.update_status_of_workout_event(scheduled_workout_event_id, 'done')
+
+    return redirect('/')
+
+@bp.route('/schedule_and_start', methods=['POST'])
+@auth.login_required
+def schedule_and_start(context=None):
+    member = get_member_detail_from_user_context(context)
+    # This function is called when the user does not have a workout scheduled on their calendar
+    # and they click on the "Start Workout" button
+    # It will schedule the workout for now and then start it
+    # It will also update the current state in the session
+    # and return the workout view with the exercises
+
+    # workout_key = eval(workout_instance_key) if workout_instance_key else None
+    # es = EntityStore()
+    # workout_instance = es.get_item_by_composite_key2(workout_key)
+    
+    # if not workout_instance:
+    #     abort(404)
+
+    # post to the google calendar service that the workout is finished
+
+    program_key_str = request.form.get('program_key', None)
+    workout_key_str = request.form.get('workout_key', None)
+
+    calendar_service = get_calendar_service()
+    current_date = datetime.now().date().strftime("%Y-%m-%d")
+    current_time = datetime.now().time().strftime("%H:%M")
+    scheduled_workout_event_id = calendar_service.add_workout_event(member_short_name=member.get('short_name', member.get('id')),
+                                               event_date=current_date, event_time=current_time,
+                                               location="YMCA", metadata=f'#id={member.get("id")}')
+    
+    workout_instance, exercises, program_entity, workout_instance_key = _start_workout_logic(workout_key_str, program_key_str, scheduled_workout_event_id)
+  
+    last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
+
+    return render_template(
+        "workout_view.html",
+        workout=workout_instance,
+        exercises=exercises,
+        default_section=last,
+        program=program_entity,
+        program_key=program_key_str,
+        workout_instance_key=workout_instance_key,
+        scheduled_workout_event_id=scheduled_workout_event_id,
+        finish_workout_url=url_for('program.finish_workout', workout_instance_key=workout_instance_key),
+        show_finish_button=True
+    )
+
+def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id):
+    """
+    Encapsulates the logic for starting a workout, including copying the workout,
+    updating the program, and setting the session state.
+    """
+    es = EntityStore()
+    workout_composite_key = eval(workout_key) if workout_key else None
+    program_composite_key = eval(program_key) if program_key else None
+
+    workout_entity = es.get_item_by_composite_key2(workout_composite_key)
+    program_entity = es.get_item_by_composite_key2(program_composite_key)
+
+    # copy the workout to the ProgramWorkoutInstanceTable
+    # then get the ID of the newly created workout instance and populate it into the program's workout_instances list
+    workout_instance = ProgramWorkoutInstanceEntity(workout_entity.copy())
+    workout_instance.update({
+        'id': str(uuid.uuid4()),
+        'program_workout_id': workout_entity['id']
+    })
+    es.upsert_item(workout_instance)
+    workout_instance_key = workout_instance.get_composite_key()
+
+    # add the workout instance to the program's workout_instances list
+    program_entity['workout_instances'] = program_entity.get('workout_instances', []) + [{'program_workout_instance_id': workout_instance.get('id'),
+                                                                                          'program_workout_instance_key': workout_instance_key,
+                                                                                          "started_ts": datetime.now().isoformat(),
+                                                                                          "finished_ts": "",
+                                                                                          "scheduled_workout_event_id": scheduled_workout_event_id}]
+    es.upsert_item(program_entity)
+
+    wrkout_exercises = get_exercises_from_workout(workout_instance)
+    exercises = {ex.get('id', None): ex for ex in wrkout_exercises}
+
+    current_state = {
+        'state': 'workout_started',
+        'workout_instance_key': workout_instance_key,
+        'program_key': program_composite_key,
+        'scheduled_workout_event_id': scheduled_workout_event_id
+    }
+    current_state_str = json.dumps(current_state)
+    session['current_workout_instance_state'] = current_state_str
+
+    return workout_instance, exercises, program_entity, workout_instance_key
+     

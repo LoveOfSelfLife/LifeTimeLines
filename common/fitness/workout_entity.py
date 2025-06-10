@@ -1,5 +1,6 @@
 
 from common.entity_store import EntityObject
+from common.fitness.entities_getter import get_entity
 
 class WorkoutEntity (EntityObject):
     table_name="WorkoutTable"
@@ -19,12 +20,23 @@ class ProgramWorkoutEntity (EntityObject):
     def __init__(self, d={}):
         super().__init__(d)
 
-class WorkoutInstanceEntity (EntityObject):
-    table_name="MemberWorkoutTable"
-    fields=["id", "member_id", "name", "sections", "created_ts", "created_by", "done_at_ts"]
+class ProgramWorkoutInstanceEntity (EntityObject):
+    table_name="ProgramWorkoutInstanceTable"
+    fields=["id", "program_workout_id", "name", "sections"]
     key_field="id"
-    partition_field="member_id"
+    partition_field="program_workout_id"
 
     def __init__(self, d={}):
         super().__init__(d)
+
+
+def get_exercises_from_workout(workout):
+    exercises = []
+    for s in workout['sections']:
+        for it in s['exercises']:
+            ex = get_entity("ExerciseTable", it['id'])
+            if ex:
+                ex['parameters'] = it['parameters']
+                exercises.append(ex)
+    return exercises
 

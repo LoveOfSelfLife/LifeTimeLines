@@ -4,6 +4,7 @@
   const toast = new bootstrap.Toast(toastElement, { delay: 3000 })
 
   htmx.on("showMessage", (e) => {
+    console.log("🔔 HTMX showMessage:", e.detail);
     toastBody.innerText = e.detail.value
     toast.show()
   });
@@ -15,4 +16,4 @@
     toast.show();
   }  
 
-})()
+})();
