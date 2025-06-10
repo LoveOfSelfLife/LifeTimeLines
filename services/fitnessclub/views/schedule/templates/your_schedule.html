@@ -21,7 +21,7 @@
                     <tr>
                     <td class="px-3 small text-muted" style="width: 20%;">{{ e.display_time }}</td>
                     <td class="px-3 small" style="width: 60%;">{{ e.summary }}</td>
-                    {% if e.summary == "Rich_K" %}  
+                    {% if e.member_id == member_id %}  
                     <td class="px-3 text-end" style="width: 20%;">
                         <button class="btn btn-sm btn-outline-secondary" 
                         hx-get="/schedule/edit_event?id={{ e.id }}&date={{ e.date }}&time={{ e.time }}" 

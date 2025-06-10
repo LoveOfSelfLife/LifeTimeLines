@@ -63,6 +63,24 @@ class GoogleCalendarService:
             except Exception as error:
                 print(f"An error occurred on retry: {error}")
                 return []
+            
+    def get_event(self, event_id:str):
+        """
+        Fetches a specific event from the Google Calendar by its ID.
+
+        Args:
+            event_id (str): The ID of the event to fetch.
+
+        Returns:
+            dict: The event details if found, otherwise None.
+        """
+        try:
+            event = self.service.events().get(calendarId=self.calendar_id, eventId=event_id).execute()
+            return event
+        except Exception as error:
+            print(f"An error occurred: {error}")
+            return None
+        
 
     def get_dates_and_events_stream(self, date_min:str=None, date_max:str=None):
         """
@@ -243,6 +261,18 @@ class GoogleCalendarService:
             event_summary = event.get('summary', '')
             event_id = event.get('id', '')
             event_type = 'event'
+            event_metadata = event.get('description', '')
+            # if the event has a description, we can extract the member id and created by id from it
+            metadata = extract_id_and_status(event_metadata)
+            event['member_id'] = metadata.get('id', '')
+            event['event_status'] = metadata.get('status', '')
+            event['member_name'] = metadata.get('name', '')
+
+            # if the event status is done, then we know the workout is completed
+            # reflect that in the summmary
+            if event['event_status'] == 'done':
+                event_summary = f"{event_summary} (Completed)"
+                
             event_dict = {
                 'id': event_id,
                 'type': event_type,
@@ -253,6 +283,9 @@ class GoogleCalendarService:
                 'monthDay': event_month_day,
                 'time': event_time,
                 'display_time': event_display_time,
+                'member_id': metadata.get('id', ''),
+                'status': metadata.get('status', ''),
+                'name': metadata.get('name', ''),
                 'summary': event_summary
             }
             events_list.append(event_dict)
@@ -273,8 +306,7 @@ class GoogleCalendarService:
         return events_list, sorted_events
 
 
-
-    def add_workout_event(self, member_id, event_date, event_time, location='', description='workout session'):
+    def add_workout_event(self, member_short_name, event_date, event_time, location, metadata):
         """
         Adds an event to the Google Calendar.
 
@@ -292,16 +324,11 @@ class GoogleCalendarService:
         event_datetime = datetime.combine(event_date, event_time)
         #end time is 1 hour later
         event_datetime_end = event_datetime + timedelta(hours=1)
-        profile = get_user_profile(member_id)
-        if profile:
-            member_short_name = profile.get('short_name', member_id)
-        else:
-            print(f"Unable to get profile for member id {member_id}")
 
         event = {
             'summary': f'{member_short_name}',
             'location': location,
-            'description': description,
+            'description': metadata,
             'start': {
                 'dateTime': f'{event_datetime.isoformat()}',
                 'timeZone': 'America/New_York'
@@ -315,11 +342,12 @@ class GoogleCalendarService:
         try:
             event = self.service.events().insert(calendarId=self.calendar_id, body=event).execute()
             print("Event created: %s" % (event.get("htmlLink")))
+            return event.get('id', None)  # Return the event ID for further processing
         except Exception as error:
             print(f"An error occurred: {error}")
-
-    def update_workout_event(self, id, event_date, event_time, member_id, location='', description='workout session'):
-        print(f"Updating event {id} to {event_date} at {event_time} for member {member_id}")
+            return None  # Return None if the event creation fails
+        
+    def update_workout_event(self, event_id, member_short_name, event_date, event_time, location, metadata):
         """
         Adds an event to the Google Calendar.
 
@@ -335,17 +363,11 @@ class GoogleCalendarService:
         event_datetime = datetime.combine(event_date, event_time)
         #end time is 1 hour later
         event_datetime_end = event_datetime + timedelta(hours=1)
-
-        profile = get_user_profile(member_id)
-        if profile:
-            member_short_name = profile.get('short_name', member_id)
-        else:
-            print(f"Unable to get profile for member id {member_id}")
-
+    
         event = {
             'summary': f'{member_short_name}',
             'location': location,
-            'description': description,
+            'description': metadata,
             'start': {
                 'dateTime': f'{event_datetime.isoformat()}',
                 'timeZone': 'America/New_York'
@@ -357,18 +379,69 @@ class GoogleCalendarService:
         }
 
         try:
-            event = self.service.events().update(calendarId=self.calendar_id, eventId=id, body=event).execute()
+            event = self.service.events().update(calendarId=self.calendar_id, eventId=event_id, body=event).execute()
             print("Event created: %s" % (event.get("htmlLink")))
         except Exception as error:
             print(f"An error occurred: {error}")
 
-    def delete_workout_event(self, id):
+    def delete_workout_event(self, event_id):
         try:
-            event = self.service.events().delete(calendarId=self.calendar_id, eventId=id).execute()
+            event = self.service.events().delete(calendarId=self.calendar_id, eventId=event_id).execute()
             print("Event deleted: %s" % (event.get("htmlLink"))) 
         except Exception as error:
             print(f"An error occurred: {error}")
 
+    def update_status_of_workout_event(self, event_id, status, name=None):
+        """
+        Updates the status of a workout event in the Google Calendar.
+
+        Args:
+            event_id (str): The ID of the event to update.
+            status (str): The new status of the event.
+            name (str): The name of the person updating the status. Defaults to None.
+        """
+        calendar_service = GoogleCalendarService()
+        # first we get the currrent workout event
+        event = calendar_service.get_event(event_id)
+        if not event:
+            print(f"Event with ID {event_id} not found.")
+            return
+        # then we update the metadata of the event with the new status
+        # metadata is a string that contains the member ID, status and name
+        event_metadata = event.get('description', '')
+        # if the event has a description, we can extract the member id and created by id from it
+        metadata = extract_id_and_status(event_metadata)
+        member_id = metadata.get('id', '')
+        event_status = metadata.get('status', '')
+        member_name = metadata.get('name', '')    
+        
+        #format the metadata string with the new status
+        update_metadata = ""
+        if member_id:
+            update_metadata += f"#id={member_id}\n#status={status}"
+        if name:
+            update_metadata += f"\n#name={name}"
+        event['description'] = update_metadata
+        try:
+            event = self.service.events().update(calendarId=self.calendar_id, eventId=event_id, body=event).execute()
+            print("Event updated")
+            
+        except Exception as error:
+            print(f"An error occurred attempting to update the event: {error}")
+
+import re
+def extract_id_and_status(s):
+    # Use regex to find id and status, allowing for newlines
+    id_match = re.search(r'#id=([^\n#]+)', s)
+    status_match = re.search(r'#status=([^\n#]+)', s)
+    name_match = re.search(r'#name=([^\n#]+)', s)
+
+    # Extract the values or return None if not found
+    id_value = id_match.group(1) if id_match else None
+    status_value = status_match.group(1) if status_match else None
+    name_value = name_match.group(1) if name_match else None
+    # print(f"Extracted: id={id_value}, status={status_value}, name={name_value}")
+    return { "id": id_value, "status": status_value, "name": name_value }
 
 
 def get_date_of_event(event):

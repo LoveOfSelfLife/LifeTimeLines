@@ -28,7 +28,6 @@ class EntityObject (dict):
         for k,v in d.items():
             self[k] = v
         self.validate()
-        print(f"EntityObject: adding { self.get_table_name() } to entity_name_to_entity_class_map")
         EntityObject.entity_name_to_entity_class_map[self.get_table_name()] = self.__class__
     
     @staticmethod

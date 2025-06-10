@@ -1,10 +1,29 @@
+import json
+from common.entity_store import EntityStore
 from common.fitness.hx_common import hx_render_template
 from common.fitness.programs import get_members_program, get_next_workout_in_program
+from common.fitness.workout_entity import get_exercises_from_workout
 from common.fitness.workouts import get_scheduled_workouts
 from datetime import datetime, timedelta, timezone
-from flask import render_template_string, request, redirect, url_for
+from flask import render_template, render_template_string, request, redirect, session, url_for
 
 from common.fitness.get_calendar_service import get_calendar_service
+
+def format_seconds(N: int) -> str:
+    days, rem   = divmod(N, 86400)
+    hours, rem  = divmod(rem, 3600)
+    minutes     = rem // 60
+
+    parts = []
+    if days:
+        parts.append(f"{int(days)} day{'s' if days != 1 else ''}")
+    if hours:
+        parts.append(f"{int(hours)} hour{'s' if hours != 1 else ''}")
+    parts.append(f"{int(minutes)} minute{'s' if minutes != 1 else ''}")
+
+    if len(parts) > 1:
+        return ", ".join(parts[:-1]) + " and " + parts[-1]
+    return parts[0]
 
 def generate_current_home_page_view(member):
     """
@@ -24,20 +43,72 @@ def generate_current_home_page_view(member):
         that allows the member to start the workout", at which point the page would display the workout to the member."
     4. if the member has a workout that has stated, then we display the workout that they started. that view will also have a button that 
        allows the member to cancel, pause, resume, or finish the workout.
+
+    current_state = {
+        'state': 'workout_started',
+        'workout_instance_key': workout_instance_key,
+        'program_key': program_composite_key,
+        'scheduled_workout_event_id': scheduled_workout_event_id
+    }
+
     """
-    # For now, we just return a simple welcome message
+
+    current_state_str = session.get('current_workout_instance_state', None)
+    if current_state_str:
+        current_state = json.loads(current_state_str)
+        if current_state.get('state', None) == 'workout_started':
+            # render the workout that is in progress
+            workout_instance_key = current_state.get('workout_instance_key', None)
+            program_composite_key = current_state.get('program_key', None)
+            scheduled_workout_event_id = current_state.get('scheduled_workout_event_id', None)
+            es = EntityStore()
+            workout_instance = es.get_item_by_composite_key2(workout_instance_key)
+            if not workout_instance:
+                # The workout instance is not found, so we display an error message
+                return render_template_string('<h1>Workout in progress not found</h1>')
+            program_entity = es.get_item_by_composite_key2(program_composite_key)
+
+            # only use the session value if it exists
+            last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
+            # The member has a workout in progress
+            wrkout_exercises = get_exercises_from_workout(workout_instance)
+            exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
+            
+            return render_template(
+                "workout_view.html",
+                workout=workout_instance,
+                exercises=exercises,
+                default_section=last,
+                program=program_entity,
+                program_key=program_composite_key,
+                workout_key=workout_instance_key,
+                scheduled_workout_event_id=scheduled_workout_event_id,
+                finish_workout_url=url_for('program.finish_workout', 
+                                        workout_instance_key=workout_instance_key),
+                show_finish_button=True
+            )
+
+        
+    
     HOUR_IN_SECONDS = 3600  # 1 hour in seconds
     cal = get_calendar_service()
     today = datetime.now(timezone.utc)  # Make 'today' timezone-aware
     start_date = today.strftime("%Y-%m-%d")
     end_date = (today + timedelta(days=14)).strftime("%Y-%m-%d")    
-    _, sorted_events = cal.get_dates_and_events_stream(date_min=start_date, date_max=end_date)
+    events_list, sorted_events = cal.get_dates_and_events_stream(date_min=start_date, date_max=end_date)
+    member_id = member.get('id', None)
     member_short_name = member.get('short_name', 'Member')
     if sorted_events:
         # find the first event in the list where the 'summary' contains the mmember's short_name
         for event in sorted_events:
-            if member_short_name in event['summary']:
-                # we found the first event that matches the member's short name
+            event_member_id = event.get('member_id', None)
+            # if member_short_name in event['summary']:
+            if member_id == event_member_id:
+                event_status = event.get('event_status', '')
+                if event_status in ['cancelled', 'done']:
+                    continue
+
+                # we found the first event that is for this member
                 # we can display the event details
                 workout_dt = event["start"]["dateTime"]
                 # calculate how many dates and hours until the workout
@@ -46,50 +117,33 @@ def generate_current_home_page_view(member):
                 time_until_workout = (workout_datetime - now).total_seconds()
                 if time_until_workout < 0:
                     continue
-                if time_until_workout < HOUR_IN_SECONDS:
-                    # The member has an upcoming workout scheduled in less than an hour
-                    return render_template_string(
-                        f'<h2>you have an upcoming workout scheduled in less than 1 hour</h2>'
-                        f'<p>Workout: {event["summary"]}</p>'
-                        f'<button onclick="location.href=\'/start_workout\'">Start Workout</button>'
-                    )
-                else:
-                    # The member has an upcoming workout scheduled in more than an hour
-                    days_until_workout = time_until_workout // (24 * 3600)
-                    hours_until_workout = (time_until_workout % (24 * 3600)) // 3600
-                    return render_template_string(
-                        f'<h2>you have an upcoming workout scheduled in {int(days_until_workout)} days and {int(hours_until_workout)} hours</h2>'
-                        f'<p>Workout: {event["summary"]}</p>'
-                    )
-        # If we reach here, it means we did not find any events that match the member's short name
+                # if time_until_workout < HOUR_IN_SECONDS:
+                # get this member current active program
+                # and find the next workout in this member's program
+                current_program = get_members_program(member_id, current_date_dt=datetime.now())
+                if not current_program:
+                    # The member does not have a program, so we display the no-program message
+                    return render_template("no_program_assigned.html", member=member)
+                
+                current_program_key = current_program.get_composite_key()
+                next_workout = get_next_workout_in_program(current_program, member_id)
+                # es = EntityStore()
+                # es.get
+                key = next_workout.get_composite_key()
+                # The member has an upcoming workout scheduled in less than an hour
+                
+                return render_template("upcoming_workout.html", 
+                                        program_name=current_program.get('name', 'No Program Assigned'),
+                                        next_workout_datetime=workout_datetime,
+                                            member=member, 
+                                            workout=next_workout,
+                                            time_until=format_seconds(time_until_workout), 
+                                            workout_key=key,
+                                            scheduled_workout_event_id=event.get('id', None),
+                                            program_key=current_program_key,
+                                            event=event)
 
     # If there are no events, we display a message that the member does not have any upcoming workouts scheduled
-    return render_template_string(f'<h1>{member["name"]} you do not have any upcoming workouts scheduled</h1>' )
+    # return render_template_string(f'<h1>{member["name"]} you do not have any upcoming workouts scheduled</h1>' )
 
-    # first check if the member has started a workout and it is in still in progress
-    # if the member has a workout that is in progress, then we display that workout
-    # retrieve the workut from redis
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_workout = redis_client.get('current_workout')
-    if current_workout:
-        w = json.loads(current_workout)
-
-    # otherwise, we do the other checks
-    current_program = get_members_program(member.get('id', None), current_date=datetime.now())
-    if not current_program:
-        # The member does not have a program, so we display the no-program message
-        return hx_render_template( template_string='<h1>You do not have a program assigned</h1>')
-
-    list_of_scheduled_workout_sessions = get_scheduled_workout_sessions(member.get('id', None), date=datetime.now())
-    if not list_of_scheduled_workout_sessions:
-        hx_render_template(
-            template_string='<h1>You do not have any upcoming workouts scheduled</h1>')
-    else:
-        # calc time untile the next workout
-        next_workout_session = list_of_scheduled_workout_sessions[0]
-        seconds_until_next_workout = calc_time_until_workout_session(next_workout_session, datetime.now())
-        if time_until_next_workout < HOUR_IN_SECONDS:
-            # The member has an upcoming workout scheduled in less than an hour
-            return hx_render_template(
-                template_string='<h1>You have an upcoming workout scheduled in less than 1 hour</h1>')
-
+    return render_template("no_workouts_scheduled.html", member=member)

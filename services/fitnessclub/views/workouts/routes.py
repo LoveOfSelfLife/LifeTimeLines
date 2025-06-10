@@ -5,6 +5,7 @@ from common.fitness.active_fitness_registry import get_fitnessclub_entity_filter
 from common.fitness.entities_getter import get_filtered_entities
 from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.hx_common import hx_render_template
+from common.fitness.workout_entity import get_exercises_from_workout
 bp = Blueprint('workouts', __name__, template_folder='templates')
 from auth import auth
 from flask import Flask, render_template, request, redirect, url_for, session, abort
@@ -189,15 +190,6 @@ def builder(context=None, workout_id=None):
 @auth.login_required
 def workout_canvas(context=None, workout_id=None):
     return workout_canvas2(context, workout_id)
-def get_exercises_from_workout(workout):
-    exercises = []
-    for s in workout['sections']:
-        for it in s['exercises']:
-            ex = get_entity("ExerciseTable", it['id'])
-            if ex:
-                ex['parameters'] = it['parameters']
-                exercises.append(ex)
-    return exercises
 
 def workout_canvas2(context=None, workout_id=None):
     redis_client = current_app.config['SESSION_CACHELIB']
@@ -392,7 +384,7 @@ def save_workout(context=None, workout_id=None):
     response = make_response('')
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": True,
-        "showMessage": f"saved workout"
+        "showMessage": { "value" : f"saved workout", "target": "body" }
     })
 
     return redirect(url_for('workouts.index'), 302, response)
@@ -645,7 +637,7 @@ def update_exercise_review(context=None):
     response = make_response('')
     response.headers['HX-Trigger'] = json.dumps({
         "entityListChanged": True,
-        "showMessage": f"item was saved."
+        "showMessage": { "value": f"item was saved.", "target": "body" }
     })
     # response.headers['HX-Redirect'] = f'/admin?entity_table={table_id}'
     return response
@@ -697,7 +689,7 @@ def reviewer_save_exercise(context=None):
     response = make_response('')
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": True,
-        "showMessage": f"exercise changes saved"
+        "showMessage": { "value" : f"exercise changes saved", "target": "body" }
     })
 
     return response
@@ -748,12 +740,12 @@ def view_section(context=None, workout_id=None, section_name=None):
                            section=section,
                            exercises=exercises)
 
-@bp.route("/viewer/workout/<workout_id>/finish", methods=["POST"])
-@auth.login_required
-def finish_workout(context=None, workout_id=None):
-    # Called when the workout is done
-    session.pop(f"last_section_{workout_id}", None)
-    return redirect(url_for("view_workout", key=workout_id))
+# @bp.route("/viewer/workout/<workout_id>/finish", methods=["POST"])
+# @auth.login_required
+# def finish_workout(context=None, workout_id=None):
+#     # Called when the workout is done
+#     session.pop(f"last_section_{workout_id}", None)
+#     return redirect(url_for("view_workout", key=workout_id))
 
 @bp.route("/viewer/workout/<workout_id>/set_section/<section_name>", methods=["POST"])
 @auth.login_required

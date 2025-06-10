@@ -1,0 +1,25 @@
+{# templates/no_workouts_scheduled.html #}
+<div class="no-workouts-scheduled">
+  <div class="card">
+    <h3 class="mb-2">{{ program_name }}</h3>
+    <p class="mb-4">
+      Your next workout <strong>{{ workout_name }}</strong> isn’t on the calendar yet.
+    </p>
+    <div class="home-buttons">
+      <button
+        class="btn hero-btn"
+        hx-get="{{ url_for('schedule.index') }}"
+        hx-target="#content"
+        hx-swap="innerHTML">
+        Schedule a workout for later
+      </button>
+      <button
+        class="btn hero-btn"
+        hx-post="{{ url_for('program.schedule_and_start', workout_id=workout_id) }}"
+        hx-vals='{"program_key":"{{ program_key }}", "workout_key":"{{ workout_key }}"}''
+        hx-swap="outerHTML">
+        Start a workout now
+      </button>
+    </div>
+  </div>
+</div>

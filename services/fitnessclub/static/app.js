@@ -138,21 +138,21 @@ document.addEventListener('htmx:afterSwap', e => {
   };
 });
 
-document.addEventListener('DOMContentLoaded', function () {
-  var imageModal = document.getElementById('imageModal');
-  imageModal.addEventListener('show.bs.modal', function (event) {
-    // `event.relatedTarget` is the <img> that triggered the modal
-    var thumb = event.relatedTarget;
-    var fullUrl = thumb.getAttribute('data-full-url');
-    var description = thumb.getAttribute('alt') || '';
-    // Update modal contents
-    var modalImg = document.getElementById('modalImage');
-    var modalTitle = document.getElementById('imageModalLabel');
-    modalImg.src = fullUrl;
-    modalImg.alt = description;
-    modalTitle.textContent = description;
-  });
-});
+// document.addEventListener('DOMContentLoaded', function () {
+//   var imageModal = document.getElementById('imageModal');
+//   imageModal.addEventListener('show.bs.modal', function (event) {
+//     // `event.relatedTarget` is the <img> that triggered the modal
+//     var thumb = event.relatedTarget;
+//     var fullUrl = thumb.getAttribute('data-full-url');
+//     var description = thumb.getAttribute('alt') || '';
+//     // Update modal contents
+//     var modalImg = document.getElementById('modalImage');
+//     var modalTitle = document.getElementById('imageModalLabel');
+//     modalImg.src = fullUrl;
+//     modalImg.alt = description;
+//     modalTitle.textContent = description;
+//   });
+// });
 
 
 // Call this to open/close the details panel

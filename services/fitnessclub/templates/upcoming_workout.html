@@ -1,0 +1,17 @@
+{# templates/upcoming_workout.html #}
+<div class="upcoming-workout">
+  <div class="card">
+    <h3 class="mb-2">Current Program:  {{ program_name }}</h3>
+    <p>Your next scheduled workout is at:</p>
+    <p id="workout-datetime">{{ next_workout_datetime.strftime('%A, %B %d, %Y at %I:%M %p') }}</p>
+    <p class="text-muted mb-4">Starts in {{ time_until }}</p>
+    <button
+        class="btn hero-btn"
+        hx-post="{{ url_for('program.start_workout', workout_key=workout_key) }}"
+        hx-vals='{"program_key":"{{ program_key }}", "scheduled_workout_event_id":"{{ scheduled_workout_event_id }}"}'
+        hx-target="#content",
+        hx-swap="innerHTML"
+        title="Start workout"
+    >Start your workout now</button>
+  </div>
+</div>
