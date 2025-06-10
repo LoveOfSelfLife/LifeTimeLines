@@ -463,7 +463,9 @@ def finish_workout(context=None, workout_instance_key=None):
 @auth.login_required
 def schedule_and_start(context=None):
     member = get_member_detail_from_user_context(context)
-    # This function is called when the user does not have a workout scheduled on their calendar
+    mr = MembershipRegistry()
+    short_name = mr.get_member(member.get('id', None)).get('short_name', member.get('id'))
+# This function is called when the user does not have a workout scheduled on their calendar
     # and they click on the "Start Workout" button
     # It will schedule the workout for now and then start it
     # It will also update the current state in the session
@@ -484,7 +486,7 @@ def schedule_and_start(context=None):
     calendar_service = get_calendar_service()
     current_date = datetime.now().date().strftime("%Y-%m-%d")
     current_time = datetime.now().time().strftime("%H:%M")
-    scheduled_workout_event_id = calendar_service.add_workout_event(member_short_name=member.get('short_name', member.get('id')),
+    scheduled_workout_event_id = calendar_service.add_workout_event(member_short_name=member.get('short_name', short_name),
                                                event_date=current_date, event_time=current_time,
                                                location="YMCA", metadata=f'#id={member.get("id")}')
     
