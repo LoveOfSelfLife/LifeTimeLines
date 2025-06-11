@@ -17,7 +17,8 @@
         class="btn hero-btn"
         hx-post="{{ url_for('program.schedule_and_start', workout_id=workout_id) }}"
         hx-vals='{"program_key":"{{ program_key }}", "workout_key":"{{ workout_key }}"}''
-        hx-swap="outerHTML">
+        hx-target="#content"
+        hx-swap="innerHTML">
         Start a workout now
       </button>
     </div>
