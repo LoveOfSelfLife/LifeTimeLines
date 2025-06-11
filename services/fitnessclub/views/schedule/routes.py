@@ -35,6 +35,32 @@ def your_schedule(context = None):
     events, _ = cal.get_dates_and_events_stream(date_min=start_date, date_max=end_date)
     return render_template('your_schedule.html', context=context, member_short_name=member_short_name, events=events, member_id=member_id)
 
+def prepare_schedule(entries):
+    sorted_sched = sorted(entries, key=lambda x: x['datetime'])
+    return [{**e, 'date': e['datetime'].date()} for e in sorted_sched]
+
+# @bp.template_filter('format_datetime')
+def format_datetime(value, fmt="%A, %b %d, %I:%M %p"):
+    return value.strftime(fmt)
+bp.add_app_template_filter(format_datetime, name='format_datetime')
+
+@bp.route('/members-schedule')
+@auth.login_required
+def members_schedule(context = None):
+    member = get_member_detail_from_user_context(context)
+    member_id = member.get('id', None)
+    member_short_name = get_user_profile(member_id).get('short_name', None)
+    # here we figure out the date range for the calendar
+    # the start date is today, and the end date is 14 days from today
+    cal = get_calendar_service()
+    today = datetime.now()
+    start_date = today.strftime("%Y-%m-%d")
+    end_date = (today + timedelta(days=14)).strftime("%Y-%m-%d")
+    schedules = cal.get_scheduled_events(date_min=start_date, date_max=end_date)
+    schedules_grouped = prepare_schedule(schedules)
+    return render_template('member_schedule.html', schedules=schedules_grouped, context=context, member_short_name=member_short_name, member_id=member_id)
+
+
 @bp.route('/create_event', methods=['GET','POST'])
 @auth.login_required
 def create_new_event(context=None):

@@ -1,0 +1,48 @@
+<!-- templates/partials/schedule_list.html -->
+{% set grouped = schedules|groupby('date') %}
+<div class="agenda-container">
+  {% for date, items in grouped %}
+    {% for e in items %}
+      <div class="agenda-row">
+        <div class="agenda-date">
+          {% if loop.index0 == 0 %}
+            <div class="weekday">{{ date.strftime('%a') }}</div>
+            <div class="daynum">{{ date.strftime('%d') }}</div>
+          {% endif %}
+        </div>
+        <div class="agenda-event d-flex justify-content-between align-items-center">
+          <div class="event-info">
+            <span class="event-time">{{ e.datetime|format_datetime('%I:%M %p') }}</span>
+            <span class="event-user">{{ e.user }}</span>
+          </div>
+          {% if e.member_id == member_id %}            
+          <div class="event-actions btn-group btn-group-sm">
+            <button class="btn "
+            hx-get="/schedule/edit_event?id={{ e.id }}&date={{ e.date }}&time={{ e.time }}" 
+            hx-target="#modals-here"
+            hx-swap="innerHTML"
+            data-bs-toggle="modal"
+            data-bs-target="#modals-here"                        
+            >
+                <i class="bi bi-pencil-square"></i>
+            </button>            
+            <button class="btn " 
+                    hx-post="/schedule/delete_event/{{ e.id }}" hx-target="#schedule-list"
+                    hx-confirm="Are you sure you want to remove your appointment at the gym?"
+                    hx-trigger="click" hx-swap="none"
+                    aria-label="Delete">
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  {% endfor %}
+  {% if schedules|length == 0 %}
+    <p class="text-muted">
+      No slots scheduled yet. Click <i class="bi bi-plus-lg"></i> to get started.
+    </p>
+  {% endif %}
+</div>
+

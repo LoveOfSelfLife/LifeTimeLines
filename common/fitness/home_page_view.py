@@ -111,6 +111,12 @@ def generate_current_home_page_view(member):
     if next_workout_key is None:
         return render_template("no_program_assigned.html", member=member)
     
+    # completed_workouts = [
+    #     {'name': 'Workout 1', 'date': '2023-10-01'},
+    #     {'name': 'Workout 2', 'date': '2023-10-05'},
+    #     {'name': 'Workout 3', 'date': '2023-10-10'}
+    # ]
+    completed_workouts = get_completed_workouts(member_id, current_program_key)
     if event:
         # The member has an upcoming workout scheduled
         return render_template("upcoming_workout.html", 
@@ -122,7 +128,8 @@ def generate_current_home_page_view(member):
                                     workout_key=next_workout_key,
                                     scheduled_workout_event_id=event.get('id', None),
                                     program_key=current_program_key,
-                                    event=event)
+                                    event=event,
+                                    completed_workouts=completed_workouts)
     else:
         return render_template("no_workouts_scheduled.html", member=member, program_key=current_program_key, workout_key=next_workout_key)
 
@@ -144,3 +151,21 @@ def get_next_workout_event(events, member_id):
             # we found the first event that is for this member
             return event, workout_datetime, time_until_workout
     return None, None, None
+
+def get_completed_workouts(member_id, current_program_key):
+    workouts = []
+    es = EntityStore()
+    current_program = es.get_item_by_composite_key2(current_program_key)
+    if not current_program:
+        return []
+    workout_instances = current_program.get('workout_instances', [])
+    if not workout_instances:
+        return []
+    for wi in workout_instances:
+        workout_instance = es.get_item_by_composite_key2(wi.get('program_workout_instance_key', None))
+        workouts.append({
+            'name': workout_instance.get('name', 'Unknown Workout'),
+            'date': workout_instance.get('started_ts', datetime.now(timezone.utc)).strftime('%Y-%m-%d %H:%M:%S'),
+            'workout_instance_key': workout_instance.get_composite_key()
+        })
+    return workouts

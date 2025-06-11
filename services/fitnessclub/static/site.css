@@ -314,3 +314,100 @@ background: #f9f9f9;
   font-weight: bold;
   margin-bottom: 0.5rem;
 }
+
+/* Schedule (Agenda) View Overrides */
+.agenda-container {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.agenda-row {
+  display: grid;
+  grid-template-columns: 3rem 3rem 1fr;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.agenda-date {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+/* Add extra top spacing before each new date group */
+.agenda-row:has(.weekday) {
+  margin-top: 1.5rem;
+}
+
+/* Don’t apply that extra spacing to the very first row */
+.agenda-container > .agenda-row:first-child {
+  margin-top: 0;
+}
+.weekday {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #eaecef;
+}
+.daynum {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #8d97a5;
+  line-height: 1;
+}
+.agenda-event {
+  grid-column: 2 / span 2;
+  background-color : rgba(242, 237, 238, 0.747);
+  border-radius: 0.5rem;
+}
+.event-info {
+  display: inline-flex;
+  gap: 0.5rem;
+  color: #212529;
+}
+
+.event-time {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.event-user {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.event-actions {
+  margin-left: auto;
+  gap: 0.25rem;
+}
+.btn i {
+  vertical-align: middle;
+}
+
+.nav-link:not(.active) p {
+      color: white;
+    }
+
+/* Completed Workouts Card */
+.completed-workouts .card {
+  max-width: 700px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+}
+
+.completed-workouts table {
+  width: 100%;
+}
+
+.completed-workouts th {
+  font-weight: 600;
+}
+
+.completed-workouts .clickable-row {
+  cursor: pointer;
+}
+
+.completed-workouts .workout-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.completed-workouts .workout-link:hover {
+  text-decoration: underline;
+}
