@@ -81,6 +81,72 @@ class GoogleCalendarService:
             print(f"An error occurred: {error}")
             return None
         
+    def get_scheduled_events(self, date_min:str=None, date_max:str=None):
+        """
+        result should have at least this structure:
+                [
+                    {"id": str(uuid.uuid4()), "user": "Alice", "datetime": datetime(2025, 6, 11, 6, 0)},
+                    {"id": str(uuid.uuid4()), "user": "Bob",   "datetime": datetime(2025, 6, 11, 7, 30)},
+                    {"id": str(uuid.uuid4()), "user": "Carol", "datetime": datetime(2025, 6, 12, 18, 0)},
+                ]
+ 
+        """        
+        events = self.get_events(date_min=date_min, date_max=date_max)
+        sorted_events = sorted(events, key=lambda x: x['start'].get('dateTime', x['start'].get('date')))
+        events_list = []
+        date_cursor = event_date_dt = datetime.fromisoformat(date_min).date()
+        end_date = datetime.fromisoformat(date_max).date()
+
+        for event in sorted_events:
+            event_date_dt = get_date_of_event(event)
+            event_date = event['start'].get('dateTime', event['start'].get('date'))
+            event_date_dt = datetime.fromisoformat(event_date).date()
+            event_time = event['start'].get('dateTime', event['start'].get('date'))
+            event_time = datetime.fromisoformat(event_time).time()
+            event_display_time = event_time.strftime("%I:%M %p")
+            event_time = event_time.strftime("%H:%M")
+            event_day_of_week = event_date_dt.strftime("%a")
+            event_month = event_date_dt.strftime("%B")
+            event_month_day = event_date_dt.strftime("%d")
+            event_month_day = int(event_month_day)
+            event_date = event_date_dt.strftime("%Y-%m-%d")
+            # display date as month name and day of month
+            event_display_date = event_date_dt.strftime("%B %d")
+            event_summary = event.get('summary', '')
+            event_id = event.get('id', '')
+            event_type = 'event'
+            event_metadata = event.get('description', '')
+            # if the event has a description, we can extract the member id and created by id from it
+            metadata = extract_id_and_status(event_metadata)
+            event['member_id'] = metadata.get('id', '')
+            event['event_status'] = metadata.get('status', '')
+            event['member_name'] = metadata.get('name', '')
+            event_datetime_dt = datetime.fromisoformat(event['start'].get('dateTime'))
+            # if the event status is done, then we know the workout is completed
+            # reflect that in the summmary
+            if event['event_status'] == 'done':
+                event_summary = f"{event_summary} (Done)"
+                
+            event_dict = {
+                'id': event_id,
+                "datetime": event_datetime_dt,
+                "user": event_summary,                
+                'type': event_type,
+                'date': event_date_dt,
+                'display_date': event_display_date,
+                'dayOfWeek': event_day_of_week,
+                'month': event_month,
+                'monthDay': event_month_day,
+                'time': event_time,
+                'display_time': event_display_time,
+                'member_id': metadata.get('id', ''),
+                'status': metadata.get('status', ''),
+                'name': metadata.get('name', ''),
+                'summary': event_summary
+            }
+            events_list.append(event_dict)
+        return events_list
+
 
     def get_dates_and_events_stream(self, date_min:str=None, date_max:str=None):
         """
@@ -267,7 +333,7 @@ class GoogleCalendarService:
             event['member_id'] = metadata.get('id', '')
             event['event_status'] = metadata.get('status', '')
             event['member_name'] = metadata.get('name', '')
-
+            event_datetime_dt = event['start']
             # if the event status is done, then we know the workout is completed
             # reflect that in the summmary
             if event['event_status'] == 'done':

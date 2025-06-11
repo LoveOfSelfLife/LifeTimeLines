@@ -1,7 +1,7 @@
 {# templates/upcoming_workout.html #}
 <div class="upcoming-workout">
   <div class="card">
-    <h3 class="mb-2">Current Program:  {{ program_name }}</h3>
+    <h3 class="mb-2">{{ program_name }}</h3>
     <p>Your next scheduled workout is at:</p>
     <p id="workout-datetime">{{ next_workout_datetime.strftime('%A, %B %d, %Y at %I:%M %p') }}</p>
     <p class="text-muted mb-4">Starts in {{ time_until }}</p>
@@ -14,4 +14,39 @@
         title="Start workout"
     >Start your workout now</button>
   </div>
+
+
+  <div class="completed-workouts">
+    <div class="card">
+      <h3 class="mb-3">Workouts already completed in this program</h3>
+
+      {% if completed_workouts %}
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Workout</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for w in completed_workouts %}
+              <tr
+                hx-get="/workouts/viewer/workout?key={{ w.workout_instance_key }}"
+                class="clickable-row"
+                hx-target="#modals-here"
+                hx-swap="innerHTML"
+                data-bs-toggle="modal"
+                data-bs-target="#modals-here"                        
+              >
+                <td>{{ w.date }}</td>
+                <td>{{ w.name }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="mb-0">You haven’t completed any workouts yet.</p>
+      {% endif %}
+    </div>
+  </div>  
 </div>
