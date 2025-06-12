@@ -707,9 +707,11 @@ def view_workout(context=None):
     es = EntityStore()
     entity_instance = get_fitnessclub_entity_type_for_entity("WorkoutTable")
     workout = es.get_item_by_composite_key2(workout_composite_key)
-
+    import json
+    # print(json.dumps(workout, indent=4))
     wrkout_exercises = get_exercises_from_workout(workout)
     exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
+    print(json.dumps(exercises, indent=4))
 
     if not workout:
         abort(404)
@@ -779,3 +781,22 @@ def exercise_feedback(context=None, exercise_id=None):
     current_app.logger.info(f"Feedback for {exercise_id}: {adjust!r}")
     # We return no content, HTMX hx-swap="none" will leave UI untouched
     return ("", 204)
+
+@bp.route('/view_workout_detail')
+@auth.login_required
+def view_workout_detail(context):
+    es = EntityStore()
+    workout_key_str = request.args.get("workout_key", None)
+    workout_key = eval(workout_key_str) if workout_key_str else None
+    workout = es.get_item_by_composite_key2(workout_key)
+    wrkout_exercises = get_exercises_from_workout(workout)
+    exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
+
+    # parse ISO timestamp → datetime for nicer formatting
+    workout['Timestamp'] = datetime.fromisoformat(workout['Timestamp'])
+    # {{ workout.Timestamp.strftime('%A, %B %d, %Y at %-I:%M %p') }}
+    return render_template(
+        'workout_detail.html',
+        workout=workout,
+        exercises=exercises
+    )

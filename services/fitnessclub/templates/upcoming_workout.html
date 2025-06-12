@@ -2,9 +2,9 @@
 <div class="upcoming-workout">
   <div class="card">
     <h3 class="mb-2">{{ program_name }}</h3>
-    <p>Your next scheduled workout is at:</p>
-    <p id="workout-datetime">{{ next_workout_datetime.strftime('%A, %B %d, %Y at %I:%M %p') }}</p>
-    <p class="text-muted mb-4">Starts in {{ time_until }}</p>
+    <p>Your next scheduled workout is on:</p>
+    <p id="workout-datetime">{{ next_workout_datetime.strftime('%A, %B %d @ %I:%M %p') }}</p>
+    <p class="text-muted mb-4">which is {{ time_until }} from now</p>
     <button
         class="btn hero-btn"
         hx-post="{{ url_for('program.start_workout', workout_key=workout_key) }}"
@@ -22,16 +22,33 @@
 
       {% if completed_workouts %}
         <table class="table table-hover mb-0">
-          <thead>
+          <thead class="thead-completed-workouts-table">
             <tr>
               <th scope="col">Date</th>
               <th scope="col">Workout</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="completed-workouts-table-body">
+            {# {% if completed_workouts|length > 0 and completed_workouts|length <= 5 %}
+              <tr>
+                <td colspan="2" class="text-center">You have completed {{ completed_workouts|length }} workout{{ 's' if completed_workouts|length > 1 else '' }} in this program.</td>
+              </tr>
+            {% endif %}
+            {% if completed_workouts|length == 0 %}
+              <tr>
+                <td colspan="2" class="text-center">No workouts completed yet.</td>
+              </tr>
+            {% endif %}
+            {% if completed_workouts|length > 5 %}
+              <tr>
+                <td colspan="2" class="text-center">
+                  <a href="{{ url_for('program.completed_workouts', program_key=program_key) }}">View all completed workouts</a>
+                </td>
+              </tr>
+            {% endif %} #}
             {% for w in completed_workouts %}
               <tr
-                hx-get="/workouts/viewer/workout?key={{ w.workout_instance_key }}"
+                hx-get="/workouts/view_workout_detail?workout_key={{ w.workout_instance_key }}"
                 class="clickable-row"
                 hx-target="#modals-here"
                 hx-swap="innerHTML"
