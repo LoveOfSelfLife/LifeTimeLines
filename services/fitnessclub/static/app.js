@@ -174,6 +174,26 @@ function toggleExerciseDetails(id) {
     { target: '#details-' + id, swap: 'innerHTML' }
   );
 }
+// Call this to open/close the details panel
+function toggleWorkoutDetails(id, key, programId) {
+
+  const container = document.getElementById('workout-details-' + id);
+  // If it already has content, just clear it (close)
+  if (container.innerHTML.trim()) {
+    container.innerHTML = '';
+    return;
+  }
+  // Otherwise, close any other open panels
+  document.querySelectorAll('.workout-details')
+    .forEach(el => {
+      if (el.id !== 'workout-details-' + id) el.innerHTML = '';
+    });
+  // And fire an HTMX request to load this one
+  htmx.ajax('GET',
+    '/program/viewer/workout2/' + id + '?keyStrPipeDelimited=' + key + '&program_id=' + programId,
+    { target: '#workout-details-' + id, swap: 'innerHTML' }
+  );
+}
 
 /* facebook login support */
 

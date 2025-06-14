@@ -39,7 +39,7 @@
                 <td colspan="2" class="text-center">No workouts completed yet.</td>
               </tr>
             {% endif %}
-            {% if completed_workouts|length > 5 %}
+            {% if completed_workouts|length >= 1 %}
               <tr>
                 <td colspan="2" class="text-center">
                   <a href="{{ url_for('program.completed_workouts', program_key=program_key) }}">View all completed workouts</a>

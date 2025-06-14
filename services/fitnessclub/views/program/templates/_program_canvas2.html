@@ -1,0 +1,38 @@
+  <div class="card mb-3">
+
+    <ul class="list-group list-group-flush workout-list"
+        data-section="workouts">
+
+      {% for workout in program.workouts %}
+        {% set wk = workouts[workout.id] %}
+        <li class="list-group-item py-2 d-flex align-items-center"
+            data-workout-id="{{ workout.id }}" data-program-id="{{ program.id }}">
+
+          <!-- Drag handle -->
+          <span class="drag-handle me-3" style="cursor:grab;">☰</span>
+
+          <div class="flex-fill">
+            <div class="d-flex justify-content-between align-items-center">
+              <button
+                type="button"
+                class="btn btn-outline-secondary"
+                onclick="toggleWorkoutDetails('{{ wk.id }}', '{{ wk.key_str }}', '{{ program.id }}')"
+              >
+              edit workout details
+              </button>              
+              <strong>{{ wk.name }}</strong>
+              <button
+                class="btn btn-link btn-sm text-danger p-0"
+                hx-post="{{ url_for('program.remove_workout', program_id=program.id) }}"
+                hx-vals='{"workout_id":"{{ workout.id }}"}'
+                hx-target="#program-canvas"
+                hx-swap="innerHTML"
+                title="Remove"
+              >&times;</button>
+            </div>
+        </li>
+      <!-- Placeholder for workout -->
+      <div id="workout-details-{{ wk.id }}" class="mt-2 workout-details"></div>
+      {% endfor %}
+    </ul>
+  </div>

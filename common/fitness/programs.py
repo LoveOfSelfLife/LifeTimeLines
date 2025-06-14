@@ -40,9 +40,13 @@ def get_next_workout_in_program(program, member_id):
         return None
     # Get the program workout entity using the key
     program_workouts = program.get('workouts', [])
+    if not program_workouts:
+        return None  # No workouts in the program
     workouts_list = [e['id'] for e in program_workouts]
     next_workout_index = find_index_of_element_after_target(workouts_list, program_workout)
-    return tuple(program_workouts[next_workout_index]['key']) if next_workout_index != -1 else None
+    if next_workout_index == -1:
+        next_workout_index = 0
+    return tuple(program_workouts[next_workout_index]['key'])
 
 def find_index_of_element_after_target(elements, target):
     try:

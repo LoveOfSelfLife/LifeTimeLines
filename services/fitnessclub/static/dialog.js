@@ -18,7 +18,8 @@
 
   // Remove dialog content after hiding
   htmx.on("hidden.bs.modal", () => {
-    console.log("Modal hidden, removing content")
-    document.getElementById("dialog").innerHTML = ""
+    console.log("Modal hidden, removing content");
+    elem =  document.getElementById("dialog");
+    if (elem) elem.innerHTML = "";
   })
 })()
