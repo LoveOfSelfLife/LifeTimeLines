@@ -232,7 +232,7 @@ def add_exercise(context=None, workout_id=None):
         if s['name']==sect:
             s['exercises'].append({
               'id':exid,
-              'parameters':{'sets':None,'reps':None,'weight':None, 'time':None,'weight_unit':'lbs'}
+              'parameters':{'sets':None,'reps':None,'weight':None, 'time':None,'weight_unit':'lbs', 'tempo': None}
             })
             break
 
@@ -278,7 +278,7 @@ def move_exercise(context=None, workout_id=None):
         if s['name']==to:
             s['exercises'].append({
               'id':exid,
-              'parameters':{'sets':None,'reps':None,'weight':None,'time':None,'weight_unit':'lbs'}
+              'parameters':{'sets':None,'reps':None,'weight':None,'time':None,'weight_unit':'lbs', 'tempo': None}
             })
 
     set_cache_value('current_workout', w)

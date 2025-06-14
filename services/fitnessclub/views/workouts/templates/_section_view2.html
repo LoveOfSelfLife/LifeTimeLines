@@ -80,8 +80,9 @@
                     hx-swap="none">
                 <input type="hidden" name="exercise_id" value="{{ item.id }}">
                 <input type="hidden" name="param" value="weight_unit">
+                {# this input will allow a user to select either nothing, or the "lbs" or "kgs" #}
                 <input
-                  type="string" name="value"
+                  type="text" name="value"
                   class="form-control form-control-sm"
                   style="width:4.5rem;"
                   placeholder="lbs/kg"
@@ -113,7 +114,7 @@
                 <input type="hidden" name="exercise_id" value="{{ item.id }}">
                 <input type="hidden" name="param" value="tempo">
                 <input
-                  type="string" name="value"
+                  type="text" name="value"
                   class="form-control form-control-sm"
                   style="width:5rem;"
                   placeholder="Tempo"
