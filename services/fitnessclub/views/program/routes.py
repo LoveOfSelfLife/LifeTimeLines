@@ -4,6 +4,7 @@ import uuid
 from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, session, url_for
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
+from common.fitness.cacher import delete_from_cache, get_cache_value, set_cache_value
 from common.fitness.entities_getter import get_entity, get_entity2, get_filtered_entities
 from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import hx_render_template
@@ -87,16 +88,13 @@ def workouts_listing(context=None):
     target = request.args.get('target')
     fields_to_display  = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
     filters = get_fitnessclub_entity_filters_for_entity(WORKOUT_ENTITY_NAME)
-
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_program = redis_client.get('current_program')
     mobile = request.args.get('mobile', type=bool, default=False)
     div_id = 'lib-list-mobile' if mobile else 'lib-list'
     target = div_id
+    current_program = get_cache_value('current_program')
 
     if current_program:
-        p = json.loads(current_program)
-        if p['id'] != program_id:
+        if current_program['id'] != program_id:
             abort(404)
     else:
             abort(404)     
@@ -148,24 +146,6 @@ def new_program(name='New workout program', member_id=None):
         'end_date': None,
         'workouts': []
     }
-@bp.route('/edit')
-@auth.login_required
-def edit_program_details(context=None):
-    PROGRAM_ENTITY_NAME = "ProgramTable"
-    entity_instance = get_fitnessclub_entity_type_for_entity(PROGRAM_ENTITY_NAME)
-
-    composite_key_str = request.args.get('key', None)
-    composite_key = eval(composite_key_str) if composite_key_str else None
-    es = EntityStore()
-    entity_to_view = es.get_item_by_composite_key2(composite_key)
-    entity_type = get_fitnessclub_entity_type_for_entity(PROGRAM_ENTITY_NAME)
-    entity_type.initialize(entity_to_view)
-    print(f"editing program: {json.dumps(entity_to_view, indent=4)}")
-    redis_client = current_app.config['SESSION_CACHELIB']
-    redis_client.set('current_program', json.dumps(entity_type))
-
-    return redirect(url_for('program.builder', program_id=entity_type['id']))
-
 
 @bp.route('/builder/new')
 @auth.login_required
@@ -173,40 +153,130 @@ def builder_new(context=None):
     member = get_member_detail_from_user_context(context)
     p = new_program(member_id=member['id'])
 
-    redis_client = current_app.config['SESSION_CACHELIB']
-    redis_client.set('current_program', json.dumps(p))
+    set_cache_value('current_program', p)
+    delete_from_cache('current_program_workouts')
+    return redirect(url_for('program.builder'))
 
-    return redirect(url_for('program.builder', program_id=p['id']))
+@bp.route('/edit')
+@auth.login_required
+def edit_program_details(context=None):
+    es = EntityStore()
+
+    composite_key_str = request.args.get('key', None)
+    composite_key = eval(composite_key_str) if composite_key_str else None
+    program = ProgramEntity(es.get_item_by_composite_key2(composite_key))
+    
+    set_cache_value('current_program', program)
+    delete_from_cache('current_program_workouts')
+    return redirect(url_for('program.builder'))
 
 # ── Main Builder View ─────────────────────────────────────────────
-@bp.route('/builder/<program_id>')
+@bp.route('/builder')
 @auth.login_required
-def builder(context=None, program_id=None):
-    member = get_member_detail_from_user_context(context)
-
-    PROGRAM_ENTITY_NAME = "ProgramTable"
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_program = redis_client.get('current_program')
+def builder(context=None):
+    current_program = get_cache_value('current_program')
     if current_program:
-        program = json.loads(current_program)
-        if program['id'] == program_id:
-            return hx_render_template('program_builder.html', program=program, context=context)
+        return hx_render_template('program_builder.html', program=current_program, context=context)
     abort(404)
+
+@bp.route('/builder/<program_id>/canvas')
+@auth.login_required
+def program_canvas(context=None, program_id=None):
+    return program_canvas2(context, program_id)
+
+def program_canvas2(context=None, program_id=None):
+    p = get_cache_value('current_program')
+    if p:
+        # we only want to populate the current_program_workouts cache the first time
+        # if it is already populated, we will use that
+        if not get_cache_value('current_program_workouts'):
+            # get the workouts from the program
+            program_workouts = get_workouts_from_program(p)
+            workouts = { wk.get('id', None): wk for wk in program_workouts }
+            for wk in workouts.values():
+                wk['key'] = wk.get_composite_key()
+                wk['key_str'] = '|'.join(wk.get_composite_key())
+            # store the workouts in the cache as well
+            set_cache_value('current_program_workouts', workouts)
+        else:
+            workouts = get_cache_value('current_program_workouts')
+
+        if p['id'] == program_id:
+            return hx_render_template('_program_canvas2.html',
+                                        program=p,
+                                        workouts=workouts,
+                                        context=context)
+    abort(404)
+
+
+@bp.route("/viewer/workout2/<workout_id>")
+@auth.login_required
+def view_workout2(context=None, workout_id=None):
+    member_id = get_member_detail_from_user_context(context).get('id', None)
+
+    current_program = get_cache_value('current_program')
+    current_program_workouts = get_cache_value('current_program_workouts')
+    
+    workout = current_program_workouts.get(workout_id, None)
+
+    # workout_key_pipe_delimited_str = request.args.get('keyStrPipeDelimited', None)
+    # # Convert pipe-delimited string to a list
+    # workout_composite_key = workout_key_pipe_delimited_str.split('|')
+    # workout = EntityStore().get_item_by_composite_key2(workout_composite_key)
+    # if not workout:
+    #     abort(404)
+    
+    program_id = request.args.get('program_id', None)
+
+    wrkout_exercises = get_exercises_from_workout(workout)
+    exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
+
+    return render_template(
+        "workout_view2.html",
+        program=None,  # No program context in this view
+        workout=workout,
+        exercises=exercises,
+        program_id=program_id,
+        member_id=member_id
+    )
+
+@bp.route('/builder/<workout_id>/update_param', methods=['POST'])
+@auth.login_required
+def update_param(context=None, workout_id=None):
+
+    workouts = get_cache_value('current_program_workouts')
+    current_workout = workouts.get(workout_id, None)
+    if not current_workout:
+        abort(404)
+
+    exid  = request.form['exercise_id']
+
+    program_id = request.form.get('program_id', None)
+    param = request.form['param']
+    value = request.form['value'] or None
+    for s in current_workout['sections']:
+        for it in s['exercises']:
+            if it['id']==exid:
+                it['parameters'][param] = value
+
+    workouts[workout_id] = current_workout
+    set_cache_value('current_program_workouts', workouts)
+
+    return ('', 204)
+
 
 @bp.route('/builder/<program_id>/reorder', methods=['POST'])
 @auth.login_required
 def reorder_workouts(context=None, program_id=None):
-    # retrieve the workut from redis
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_program = redis_client.get('current_program')
-    p = json.loads(current_program)
+
+    p = get_cache_value('current_program')
 
     order = request.form.getlist('order[]')
     lookup = {it['id']:it for it in p['workouts']}
     p['workouts'] = [lookup[i] for i in order if i in lookup]
 
-    # here we save the program to redis
-    redis_client.set('current_program', json.dumps(p))
+    # here we save the program to the cache
+    set_cache_value('current_program', p)
     
     return program_canvas2(context, program_id)
 
@@ -214,24 +284,19 @@ def reorder_workouts(context=None, program_id=None):
 @auth.login_required
 def update_program_name(context=None, program_id=None):
 
-    # retrieve the workut from redis
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_program = redis_client.get('current_program')
-    p = json.loads(current_program)
+    # retrieve the workut from caache
+    p = get_cache_value('current_program')
     
     p['name'] = request.form['name']
 
-    # here we save the workout to redis
-    redis_client.set('current_program', json.dumps(p))
+    set_cache_value('current_program', p)
     return program_canvas2(context, program_id)
 
 @bp.route('/builder/<program_id>/updatedate/<date_type>', methods=['POST'])
 @auth.login_required
 def update_dates(context=None, program_id=None, date_type=None):
-    # retrieve the workut from redis
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_program = redis_client.get('current_program')
-    p = json.loads(current_program)
+
+    p = get_cache_value('current_program')
     
     if date_type not in ['start', 'end']:
         abort(400, description="Invalid date type. Must be 'start' or 'end'.")
@@ -240,35 +305,16 @@ def update_dates(context=None, program_id=None, date_type=None):
     else:
         p['end_date'] = request.form['end_date']
 
-    # here we save the workout to redis
-    redis_client.set('current_program', json.dumps(p))
+    set_cache_value('current_program', p)
     
     response = make_response('', 200)
     return response
-
-def program_canvas2(context=None, program_id=None):
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_program = redis_client.get('current_program')
-    if current_program:
-        p = json.loads(current_program)
-
-        program_workouts = get_workouts_from_program(p)
-        workouts = { wk.get('id', None): wk for wk in program_workouts }
-        # workouts = p['workouts'] if 'workouts' in p else []
-        # workouts = { wk.get('id', None): wk for wk in p['workouts'] if 'id' in wk}
-        if p['id'] == program_id:
-            return hx_render_template('_program_canvas.html',
-                                        program=p,
-                                        workouts=workouts,
-                                        context=context)
-    abort(404)
 
 def get_workouts_from_program(program):
     workouts = []
     es = EntityStore()
     for w in program['workouts']:
         e = es.get_item_by_composite_key2(w['key'])
-        # ek = get_entity2(ProgramWorkoutEntity(), w['id'], partition_key=program['id'])
         workouts.append(e)
     return workouts
 
@@ -280,48 +326,33 @@ def save_program(context=None, program_id=None):
         abort(401)    
 
     PROGRAM_ENTITY_NAME = "ProgramTable"
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_program = redis_client.get('current_program')
+    current_program = get_cache_value('current_program')
     if current_program:
-        program = json.loads(current_program)
-        if program['id'] != program_id:
+        if current_program['id'] != program_id:
             abort(404)
 
-    # the workouts in the program.workouts list are from teh WorkoutTable
-    # we will copy thos workout objects into the ProgramWorkoutTable, then use the id & Program_id of that copy to populate the program.workouts list
-
-    # create a new program instance
-    program_instance : ProgramEntity = get_fitnessclub_entity_type_for_entity(PROGRAM_ENTITY_NAME)
-    program_instance.initialize(program)    
-    program_instance['created_ts'] = datetime.now().isoformat()
-    es = EntityStore()
-    workouts_in_program = []
-    for wk in program['workouts']:
-        wk_id = wk['id']
-        # get the workout entity
-        # wk_entity = get_entity("WorkoutTable", wk_id)
-        wk_entity = es.get_item_by_composite_key2(wk['key'])
-        if not wk_entity:
-            abort(404)
-        wk_entity['id'] = str(uuid.uuid4())  # generate a new id for the program workout
-        wk_entity['program_id'] = program['id']  # set the program id for the workout
-        wk_entity['parent_workout_id'] = wk_id  # keep the original workout id for reference
-        workout_copy = ProgramWorkoutEntity(wk_entity)
-        workouts_in_program.append(workout_copy)
+    # # create a new program instance
+    # program_instance = ProgramEntity(current_program)  # create a new instance of ProgramEntity with the current program data
+    # program_instance['id'] = str(uuid.uuid4())  # generate a new id for the program
+    # program_instance['created_ts'] = datetime.now().isoformat()
         
-    # add the IDs of the newly copied workouts to the new program's workouts list
-    program_instance['workouts'] = [{'id': workout_copy['id'], 'program_id': program['id'], 'key' : workout_copy.get_composite_key()} for workout_copy in workouts_in_program]
-
+    # # add the IDs of the newly copied workouts to the new program's workouts list
+    # program_instance['workouts'] = [{'id': workout_copy['id'], 
+    #                                  'program_id': current_program['id'], 
+    #                                  'key' : workout_copy.get_composite_key()} for workout_copy in workouts_in_program]
 
     es = EntityStore()
 
-    # this is where we save the newly created progrm
-    # first save the program workouts to the ProgramWorkoutTable
-    print('Saving program')
+    workouts_in_program = []
+    current_program_workouts = get_cache_value('current_program_workouts')
+    for p in current_program_workouts.values():
+        workouts_in_program.append(ProgramWorkoutEntity(p))
+
     es.upsert_items(workouts_in_program)
-    es.upsert_item(program_instance)
-    # remove from redis
-    redis_client.delete('current_program')
+    es.upsert_item(ProgramEntity(current_program))
+
+    delete_from_cache('current_program')
+    delete_from_cache('current_program_workouts')
 
     response = make_response('')
     response.headers['HX-Trigger'] = json.dumps({
@@ -335,58 +366,56 @@ def save_program(context=None, program_id=None):
 @auth.login_required
 def remove_workout(context=None, program_id=None):
 
-    # retrieve the workut from redis
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_program = redis_client.get('current_program')
-    p = json.loads(current_program)
+    p = get_cache_value('current_program')
 
     wk_id = request.form['workout_id']
     
     p['workouts'] = [it for it in p['workouts'] if it['id']!=wk_id]
 
-    # here we save the workout to redis
-    redis_client.set('current_program', json.dumps(p))
+    set_cache_value('current_program', p)
     return program_canvas2(context, program_id)
 
-@bp.route('/builder/<program_id>/canvas')
-@auth.login_required
-def program_canvas(context=None, program_id=None):
-    return program_canvas2(context, program_id)
 
 @bp.route('/builder/<program_id>/add', methods=['POST'])
 @auth.login_required
 def add_workout(context=None, program_id=None):
 
-    # retrieve the workut from redis
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_program = redis_client.get('current_program')
+    current_program = get_cache_value('current_program')
+    current_program_workouts = get_cache_value('current_program_workouts')
     if current_program:
-        p = json.loads(current_program)
-        if p['id'] != program_id:
+        if current_program['id'] != program_id:
             abort(404)
 
     # here we get the key of the workout from the query parameters
     # and we look it up in the workouts table
     # if it is not found we abort with a 404
-    # if it is found we add it to the workout
-    # and we save the workout to redis
+    # if it is found we:
+    # create a copy of the workout from the WorkoutTable and give it a new id
+    # laster when we save the program, we will save the workout copy to the ProgramWorkoutTable
+    # the workouts in the program.workouts list are from teh WorkoutTable
+    # we will copy thos workout objects into the ProgramWorkoutTable, then use the id & Program_id of that copy to populate the program.workouts list
+
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
-    es = EntityStore()
-    entity_instance = get_fitnessclub_entity_type_for_entity("WorkoutTable")
-    wk = es.get_item_by_composite_key2(composite_key)
-    if not wk:
+
+    added_workout = EntityStore().get_item_by_composite_key2(composite_key)
+    if not added_workout:
         abort(404)
-    
-    # wk_id = wk['id']
 
-    if wk['id'] not in p['workouts']:
-        # add the workout to the program
-        p['workouts'].append({'key': wk.get_composite_key(), 'id':wk['id'], "name": wk['name']})
+    added_workout_id = added_workout['id']
+    added_workout['id'] = str(uuid.uuid4())  # generate a new id for the program workout
+    added_workout['program_id'] = current_program['id']  # set the program id for the workout
+    added_workout['parent_workout_id'] = added_workout_id  # keep the original workout id for reference
+    workout_copy = ProgramWorkoutEntity(added_workout)
 
+    workout_copy['key'] = workout_copy.get_composite_key()
+    workout_copy['key_str'] = '|'.join(workout_copy.get_composite_key())    
 
-    # here we save the program to redis
-    redis_client.set('current_program', json.dumps(p))
+    current_program['workouts'].append({'key': workout_copy.get_composite_key(), 'id':workout_copy['id'], "name": workout_copy['name']})
+    current_program_workouts[workout_copy['id']] = workout_copy
+
+    set_cache_value('current_program', current_program)
+    set_cache_value('current_program_workouts', current_program_workouts)
 
     return program_canvas2(context, program_id)
 

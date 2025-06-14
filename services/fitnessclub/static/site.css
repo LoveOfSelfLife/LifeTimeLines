@@ -394,9 +394,15 @@ background: #f9f9f9;
 .completed-workouts table {
   width: 100%;
 }
-
 .completed-workouts th {
   font-weight: 600;
+}
+.thead-completed-workouts-table th {
+  color:#fff;
+  background-color: #2c3e50;
+}
+.completed-workouts-table-body td{
+  background-color: #9dd5de;
 }
 
 .completed-workouts .clickable-row {

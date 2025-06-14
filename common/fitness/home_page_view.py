@@ -161,11 +161,22 @@ def get_completed_workouts(member_id, current_program_key):
     workout_instances = current_program.get('workout_instances', [])
     if not workout_instances:
         return []
+    workout_instances = sorted(workout_instances, key=lambda x: x.get('started_ts', ''), reverse=True)  # Sort by started_ts
     for wi in workout_instances:
         workout_instance = es.get_item_by_composite_key2(wi.get('program_workout_instance_key', None))
+        st = wi.get('started_ts' , None)
+        if st:
+            # format the time to this:
+            # Mon - Mar 1 at 12:00 PM
+            # Convert the ISO format string to a datetime object
+            started_when = datetime.fromisoformat(st.replace('Z', '+00:00'))  # Parse with timezone info
+            started_when = started_when.strftime('%a - %b %d at %I:%M %p')
+        else:
+            started_when = 'unknown'
+
         workouts.append({
             'name': workout_instance.get('name', 'Unknown Workout'),
-            'date': workout_instance.get('started_ts', datetime.now(timezone.utc)).strftime('%Y-%m-%d %H:%M:%S'),
+            'date': started_when,
             'workout_instance_key': workout_instance.get_composite_key()
         })
     return workouts

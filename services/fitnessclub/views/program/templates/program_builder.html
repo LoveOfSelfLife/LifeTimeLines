@@ -37,40 +37,33 @@
 
         <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
 
-            {# turn this static h2 into an input field that a user can enter or modify the workout name #}
-            {# <form hx-post="{{ url_for('program.update_program_name', program_id=program.id) }}"
-                  hx-target="#program-canvas"
-                  hx-swap="innerHTML"> #}
-              <input type="text" name="name" class="form-control form-control-sm"
-                     value="{{ program.name }}" placeholder="Program Name"
-                     hx-trigger="change delay:500ms, focusout"
-                     hx-post="{{ url_for('program.update_program_name', program_id=program.id) }}"
-                     hx-swap="none">
-              <input type="date" name="start_date" class="form-control form-control-sm"
-                     value="{{ program.start_date }}" placeholder="Start Date"
-                     hx-trigger="change delay:500ms, focusout"
-                     hx-post="{{ url_for('program.update_dates', program_id=program.id, date_type='start') }}"
-                     hx-swap="none">                     
-              <input type="date" name="end_date" class="form-control form-control-sm"
-                     value="{{ program.end_date }}" placeholder="End Date"
-                     hx-trigger="change delay:500ms, focusout"
-                     hx-post="{{ url_for('program.update_dates', program_id=program.id, date_type='end') }}"
-                     hx-swap="none">                     
-            {# </form> #}
-            {# <h2>{{ program.name }}</h2> #}
-            <button class="btn btn-primary d-md-none"
-                    data-bs-toggle="offcanvas"
-                    data-bs-target="#libDrawer">
-              + Add workout
-            </button>
+          <input type="text" name="name" class="form-control form-control-sm"
+                  value="{{ program.name }}" placeholder="Program Name"
+                  hx-trigger="change delay:500ms, focusout"
+                  hx-post="{{ url_for('program.update_program_name', program_id=program.id) }}"
+                  hx-swap="none">
+          <input type="date" name="start_date" class="form-control form-control-sm"
+                  value="{{ program.start_date }}" placeholder="Start Date"
+                  hx-trigger="change delay:500ms, focusout"
+                  hx-post="{{ url_for('program.update_dates', program_id=program.id, date_type='start') }}"
+                  hx-swap="none">                     
+          <input type="date" name="end_date" class="form-control form-control-sm"
+                  value="{{ program.end_date }}" placeholder="End Date"
+                  hx-trigger="change delay:500ms, focusout"
+                  hx-post="{{ url_for('program.update_dates', program_id=program.id, date_type='end') }}"
+                  hx-swap="none">                     
+          <button class="btn btn-primary d-md-none"
+                  data-bs-toggle="offcanvas"
+                  data-bs-target="#libDrawer">
+            + Add workout
+          </button>
           <button class="btn btn-sm btn-success mt-auto"
                   hx-post="{{ url_for('program.save_program', program_id=program.id) }}"
                   hx-vals='{"program_id":"{{ program.id }}"}'
                   hx-target="#content"
                   hx-swap="innerHTML">
-              Save
-            </button>
-
+            Save
+          </button>
         </div>
         <div id="program-canvas"
             hx-get="{{ url_for('program.program_canvas', program_id=program.id) }}"
@@ -78,7 +71,6 @@
             hx-swap="innerHTML">
           Loading…
         </div>
-
       </div>
     </form>
   </div>

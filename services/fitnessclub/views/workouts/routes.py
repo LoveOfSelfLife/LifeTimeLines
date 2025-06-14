@@ -2,6 +2,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, make_response, render_template, request, current_app
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
+from common.fitness.cacher import get_cache_value, set_cache_value, delete_from_cache
 from common.fitness.entities_getter import get_filtered_entities
 from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.hx_common import hx_render_template
@@ -10,7 +11,6 @@ bp = Blueprint('workouts', __name__, template_folder='templates')
 from auth import auth
 from flask import Flask, render_template, request, redirect, url_for, session, abort
 import uuid
-import redis
 import json
 from common.fitness.workout_entity import WorkoutEntity
 from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity
@@ -128,9 +128,7 @@ def view_workout_details(context=None):
     entity_type = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
     entity_type.initialize(entity_to_view)
 
-    redis_client = current_app.config['SESSION_CACHELIB']
-    redis_client.set('current_workout', json.dumps(entity_type))
-
+    set_cache_value('current_workout', entity_type)
     return redirect(url_for('workouts.builder', workout_id=entity_type['id']))
 
 @bp.route('/edit')
@@ -146,9 +144,8 @@ def edit_workout_details(context=None):
     entity_type = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
     entity_type.initialize(entity_to_view)
     print(f"editing workoug: {json.dumps(entity_to_view, indent=4)}")
-    redis_client = current_app.config['SESSION_CACHELIB']
-    redis_client.set('current_workout', json.dumps(entity_type))
-
+    set_cache_value('current_workout', entity_type)
+    
     return redirect(url_for('workouts.builder', workout_id=entity_type['id']))
 
 
@@ -156,8 +153,7 @@ def edit_workout_details(context=None):
 @auth.login_required
 def builder_new(context=None):
     w = new_workout()
-    redis_client = current_app.config['SESSION_CACHELIB']
-    redis_client.set('current_workout', json.dumps(w))
+    set_cache_value('current_workout', w)
 
     return redirect(url_for('workouts.builder', workout_id=w['id']))
 
@@ -166,11 +162,8 @@ def builder_new(context=None):
 @auth.login_required
 def builder(context=None, workout_id=None):
     WORKOUT_ENTITY_NAME = "WorkoutTable"
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_workout = redis_client.get('current_workout')
-    if current_workout:
-        workout = json.loads(current_workout)
-        if workout['id'] == workout_id:
+    workout = get_cache_value('current_workout')
+    if workout and workout['id'] == workout_id:
             return hx_render_template('builder.html', workout=workout, context=context)
 
     entity_type = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
@@ -180,7 +173,7 @@ def builder(context=None, workout_id=None):
     if not workout:
         abort(404)
 
-    redis_client.set('current_workout', json.dumps(workout))
+    set_cache_value('current_workout', workout)
     return hx_render_template('builder.html', workout=workout, context=context)
 
 # ── Fragments ────────────────────────────────────────────────────
@@ -192,11 +185,8 @@ def workout_canvas(context=None, workout_id=None):
     return workout_canvas2(context, workout_id)
 
 def workout_canvas2(context=None, workout_id=None):
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_workout = redis_client.get('current_workout')
-    if current_workout:
-        w = json.loads(current_workout)
-
+    w =  get_cache_value('current_workout')
+    if w:
         wrkout_exercises = get_exercises_from_workout(w)
         exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
 
@@ -212,19 +202,20 @@ def workout_canvas2(context=None, workout_id=None):
 @auth.login_required
 def add_exercise(context=None, workout_id=None):
 
-    # retrieve the workut from redis
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_workout = redis_client.get('current_workout')
-    if current_workout:
-        w = json.loads(current_workout)
+    w = get_cache_value('current_workout')
+    if w:
         if w['id'] != workout_id:
             abort(404)
+    else:
+        # if there is no workout in the cache, we create a new one
+        w = new_workout()
+        set_cache_value('current_workout', w)
 
     # here we get the key of the exercise from the query parameters
     # and we look it up in the exercise catalog
     # if it is not found we abort with a 404
     # if it is found we add it to the workout
-    # and we save the workout to redis
+    # and we save the workout to the redis cache
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
@@ -241,12 +232,11 @@ def add_exercise(context=None, workout_id=None):
         if s['name']==sect:
             s['exercises'].append({
               'id':exid,
-              'parameters':{'sets':None,'reps':None,'weight':None, 'time':None,'weight_unit':'lbs'}
+              'parameters':{'sets':None,'reps':None,'weight':None, 'time':None,'weight_unit':'lbs', 'tempo': None}
             })
             break
 
-    # here we save the workout to redis
-    redis_client.set('current_workout', json.dumps(w))
+    set_cache_value('current_workout', w)
 
     return workout_canvas2(context, workout_id)
 
@@ -254,41 +244,29 @@ def add_exercise(context=None, workout_id=None):
 @auth.login_required
 def remove_exercise(context=None, workout_id=None):
 
-    # retrieve the workut from redis
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_workout = redis_client.get('current_workout')
-    w = json.loads(current_workout)
+    w = get_cache_value('current_workout')
 
     exid = request.form['exercise_id']
     for s in w['sections']:
         s['exercises'] = [it for it in s['exercises'] if it['id']!=exid]
 
-    # here we save the workout to redis
-    redis_client.set('current_workout', json.dumps(w))
+    set_cache_value('current_workout', w)
     return workout_canvas2(context, workout_id)
 
 @bp.route('/builder/<workout_id>/updatename', methods=['POST'])
 @auth.login_required
 def update_workout_name(context=None, workout_id=None):
 
-    # retrieve the workut from redis
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_workout = redis_client.get('current_workout')
-    w = json.loads(current_workout)
-    
+    w = get_cache_value('current_workout')
     w['name'] = request.form['name']
-
-    # here we save the workout to redis
-    redis_client.set('current_workout', json.dumps(w))
+    set_cache_value('current_workout', w)
     return workout_canvas2(context, workout_id)
 
 @bp.route('/builder/<workout_id>/move', methods=['POST'])
 @auth.login_required
 def move_exercise(context=None, workout_id=None):
-    # retrieve the workut from redis
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_workout = redis_client.get('current_workout')
-    w = json.loads(current_workout)
+
+    w = get_cache_value('current_workout')
 
     exid = request.form['exercise_id']
     to = request.form['to_section']
@@ -300,21 +278,17 @@ def move_exercise(context=None, workout_id=None):
         if s['name']==to:
             s['exercises'].append({
               'id':exid,
-              'parameters':{'sets':None,'reps':None,'weight':None,'time':None,'weight_unit':'lbs'}
+              'parameters':{'sets':None,'reps':None,'weight':None,'time':None,'weight_unit':'lbs', 'tempo': None}
             })
 
-    # here we save the workout to redis
-    redis_client.set('current_workout', json.dumps(w))
-
+    set_cache_value('current_workout', w)
     return workout_canvas2(context, workout_id)
 
 @bp.route('/builder/<workout_id>/reorder', methods=['POST'])
 @auth.login_required
 def reorder_exercises(context=None, workout_id=None):
-    # retrieve the workut from redis
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_workout = redis_client.get('current_workout')
-    w = json.loads(current_workout)
+
+    w = get_cache_value('current_workout')
 
     sec = request.form['section']
     order = request.form.getlist('order[]')
@@ -324,8 +298,7 @@ def reorder_exercises(context=None, workout_id=None):
             s['exercises'] = [lookup[i] for i in order if i in lookup]
             break
 
-    # here we save the workout to redis
-    redis_client.set('current_workout', json.dumps(w))
+    set_cache_value('current_workout', w)
     
     return workout_canvas2(context, workout_id)
 
@@ -333,10 +306,7 @@ def reorder_exercises(context=None, workout_id=None):
 @auth.login_required
 def update_param(context=None, workout_id=None):
 
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_workout = redis_client.get('current_workout')
-    w = json.loads(current_workout)
-
+    w = get_cache_value('current_workout')
 
     exid  = request.form['exercise_id']
     param = request.form['param']
@@ -346,11 +316,9 @@ def update_param(context=None, workout_id=None):
             if it['id']==exid:
                 it['parameters'][param] = value
 
-    # here we save the workout to redis
-    redis_client.set('current_workout', json.dumps(w))
+    set_cache_value('current_workout', w)
 
     return ('', 204)
-
 
 @bp.route('/builder/<workout_id>/save', methods=['POST'])
 @auth.login_required
@@ -361,12 +329,11 @@ def save_workout(context=None, workout_id=None):
         abort(401)
 
     WORKOUT_ENTITY_NAME = "WorkoutTable"
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_workout = redis_client.get('current_workout')
-    if current_workout:
-        workout = json.loads(current_workout)
-        if workout['id'] != workout_id:
-            abort(404)
+
+    workout = get_cache_value('current_workout')
+    if not workout or workout['id'] != workout_id:
+        abort(404)
+
     workout_instance : WorkoutEntity = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
 
     # this is where we save the newly created workout
@@ -376,10 +343,8 @@ def save_workout(context=None, workout_id=None):
     workout['created_ts'] = datetime.now().isoformat()
     workout_instance.initialize(workout)
     es.upsert_item(workout_instance)
-    # remove from redis
-    redis_client.delete('current_workout')
 
-    # return redirect(url_for('workouts.index'))
+    delete_from_cache('current_workout')
 
     response = make_response('')
     response.headers['HX-Trigger'] = json.dumps({
@@ -400,17 +365,13 @@ def exercise_listing(context=None):
     target = request.args.get('target', None)
     view= request.args.get('view', 'list')
 
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_workout = redis_client.get('current_workout')
     mobile = request.args.get('mobile', type=bool, default=False)
     div_id = 'lib-list-mobile' if mobile else 'lib-list'
     target = div_id
-    if current_workout:
-        w = json.loads(current_workout)
-        if w['id'] != workout_id:
-            abort(404)
-    else:
-            abort(404)     
+
+    # w = get_from_cache('current_workout')
+    # if not w or w['id'] != workout_id:
+    #         abort(404)
 
     entity_name = "ExerciseTable"
     page = int(request.args.get('page', 1))
@@ -472,12 +433,6 @@ def exercise_listing(context=None):
 @auth.login_required
 def exercise_reviewer(context=None):
 
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_exercise = redis_client.get('current_exercise_being_reviewed')
-    if current_exercise:
-        exercise = json.loads(current_exercise)
-    else:
-        exercise = None
     return hx_render_template('exercise_reviewer.html',
                               context=context)
 
@@ -486,18 +441,11 @@ def exercise_reviewer(context=None):
 def exercise_reviewer_listing(context=None):
     exercise_id = request.args.get('exercise_id', None)
     target = request.args.get('target', None)
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_exercise = redis_client.get('current_exercise_being_reviewed')
+
     mobile = request.args.get('mobile', type=bool, default=False)
     div_id = 'reviewer-list-mobile' if mobile else 'reviewer-list'
     target = div_id
     view = request.args.get('view', 'list')
-    # if current_exercise:
-    #     ex = json.loads(current_exercise)
-    #     if ex['id'] != exercise_id:
-    #         abort(404)
-    # else:
-    #         abort(404)     
 
     entity_name = "ExerciseTable"
     page = int(request.args.get('page', 1))
@@ -569,16 +517,14 @@ def exercise_reviewer_review(context=None):
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
-    entity_instance = get_fitnessclub_entity_type_for_entity("ExerciseTable")
+
     ex = es.get_item_by_composite_key2(composite_key)
     if not ex:
         abort(404)
     
     exercise_id = ex['id']
 
-    # here we save the exercise to redis
-    redis_client = current_app.config['SESSION_CACHELIB']
-    redis_client.set('current_exercise_being_reviewed', json.dumps(ex))
+    set_cache_value('current_exercise_being_reviewed', ex)
 
     return exercise_reviewer_editor_canvas2(context, exercise_id)
 
@@ -589,14 +535,12 @@ def exercise_reviewer_editor_canvas(context=None, exercise_id=None):
     return exercise_reviewer_editor_canvas2(context, exercise_id)
 
 def exercise_reviewer_editor_canvas2(context=None, exercise_id=None):
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_exercise = redis_client.get('current_exercise_being_reviewed')
+    es = EntityStore()
 
-    if not current_exercise:
+    exercise =  get_cache_value('current_exercise_being_reviewed')
+    if not exercise:
         abort(404)
 
-    es = EntityStore()
-    exercise = json.loads(current_exercise)
     exercise_id = exercise['id']
     
     er = ExerciseReviewEntity({ "id": exercise_id })
@@ -639,25 +583,21 @@ def update_exercise_review(context=None):
         "entityListChanged": True,
         "showMessage": { "value": f"item was saved.", "target": "body" }
     })
-    # response.headers['HX-Redirect'] = f'/admin?entity_table={table_id}'
-    return response
-    
 
+    return response
 
 
 @bp.route('/exercise_reviewer/<exercise_id>/updatename', methods=['POST'])
 @auth.login_required
 def update_exercise_name(context=None, exercise_id=None):
 
-    # retrieve the workut from redis
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_exercise = redis_client.get('current_exercise_being_reviewed')
-    ex = json.loads(current_exercise)
-    
+    ex = get_cache_value('current_exercise_being_reviewed')
+    if not ex:
+        abort(404)    
     ex['name'] = request.form['name']
 
-    # here we save the workout to redis
-    redis_client.set('current_exercise_being_reviewed', json.dumps(ex))
+    set_cache_value('current_exercise_being_reviewed', ex)
+
     return exercise_reviewer_editor_canvas2(context, exercise_id)
 
 
@@ -671,20 +611,17 @@ def reviewer_save_exercise(context=None):
         abort(401)
     exercise_id = request.form['exercise_id']
     
-    redis_client = current_app.config['SESSION_CACHELIB']
-    current_exercise = redis_client.get('current_exercise_being_reviewed')
-    if current_exercise:
-        ex = json.loads(current_exercise)
-        if ex['id'] != exercise_id:
-            abort(404)
+    ex = get_cache_value('current_exercise_being_reviewed')
+    if not ex or ex['id'] != exercise_id:
+        abort(404)
+
     exercise_type : ExerciseEntity = get_fitnessclub_entity_type_for_entity(EXERCISE_ENTITY_NAME)
 
     print('Saving workout')
     es = EntityStore()
     exercise_type.initialize(ex)
     es.upsert_item(exercise_type)
-    # remove from redis
-    redis_client.delete('current_exercise_being_reviewed')
+    delete_from_cache('current_exercise_being_reviewed')
 
     response = make_response('')
     response.headers['HX-Trigger'] = json.dumps({
@@ -697,7 +634,6 @@ def reviewer_save_exercise(context=None):
 
 # ── Workout View ────────────────────────────────────────────────
 
-
 @bp.route("/viewer/workout")
 @auth.login_required
 def view_workout(context=None):
@@ -707,9 +643,11 @@ def view_workout(context=None):
     es = EntityStore()
     entity_instance = get_fitnessclub_entity_type_for_entity("WorkoutTable")
     workout = es.get_item_by_composite_key2(workout_composite_key)
-
+    import json
+    # print(json.dumps(workout, indent=4))
     wrkout_exercises = get_exercises_from_workout(workout)
     exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
+    print(json.dumps(exercises, indent=4))
 
     if not workout:
         abort(404)
@@ -722,6 +660,7 @@ def view_workout(context=None):
         default_section=last,
         show_finish_button=False
     )
+
 from common.fitness.entities_getter import get_entity
 
 @bp.route("/viewer/workout/<workout_id>/section/<section_name>")
@@ -779,3 +718,22 @@ def exercise_feedback(context=None, exercise_id=None):
     current_app.logger.info(f"Feedback for {exercise_id}: {adjust!r}")
     # We return no content, HTMX hx-swap="none" will leave UI untouched
     return ("", 204)
+
+@bp.route('/view_workout_detail')
+@auth.login_required
+def view_workout_detail(context):
+    es = EntityStore()
+    workout_key_str = request.args.get("workout_key", None)
+    workout_key = eval(workout_key_str) if workout_key_str else None
+    workout = es.get_item_by_composite_key2(workout_key)
+    wrkout_exercises = get_exercises_from_workout(workout)
+    exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
+
+    # parse ISO timestamp → datetime for nicer formatting
+    workout['Timestamp'] = datetime.fromisoformat(workout['Timestamp'])
+    # {{ workout.Timestamp.strftime('%A, %B %d, %Y at %-I:%M %p') }}
+    return render_template(
+        'workout_detail.html',
+        workout=workout,
+        exercises=exercises
+    )

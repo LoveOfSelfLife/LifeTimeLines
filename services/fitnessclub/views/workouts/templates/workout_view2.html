@@ -1,0 +1,48 @@
+
+<div class="container py-3">
+
+<!-- <h2 class="mb-4 text-center">{{ workout.name }}</h2> -->
+
+<div class="accordion" id="sectionsAccordion">
+  {% for section in workout.sections %}
+    {% if section.exercises|length  == 0 %}
+      
+    {% else %}
+
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="hdr-{{ section.name }}">
+
+      <button
+        class="accordion-button collapsed"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#collapse-{{ section.name }}"
+        aria-expanded="false"
+        aria-controls="collapse-{{ section.name }}"
+      >
+        <span class="accordion-header-icon">
+          <!-- simple chevron icon: you can also use FontAwesome or similar -->
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path fill-rule="evenodd"
+                  d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 
+                    .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+          </svg>
+        </span>
+        {{ section.name.title() }} ({{ section.exercises|length }})
+      </button>
+
+      </h2>
+      <div
+        id="collapse-{{ section.name }}"
+        class="accordion-collapse collapse"
+        data-bs-parent="#sectionsAccordion"
+      >
+        <div class="accordion-body p-0">
+          {% include "_section_view2.html" %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+</div>
+
