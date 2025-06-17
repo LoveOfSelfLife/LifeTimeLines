@@ -189,32 +189,33 @@
         </div>
 
     {% endif %}
-    
-    <nav aria-label="Page navigation" class="pagination-wrapper">
-    <ul class="pagination mb-0">
-        <li class="page-item {% if page <= 1 %}disabled{% endif %}">
-        <a class="page-link" href="#"
-            hx-get="{{ entities_listing_route }}&page={{ page - 1 }}&filter={{ filter_terms }}"
-            {% if args %}
-            hx-vals='{{ args|tojson }}'
-            {% endif %}
-            hx-target="#{{main_content_container}}">
-        <span aria-hidden="true">&laquo;</span>
-        </a>
-        </li>
-        <li class="d-flex align-items-center px-3 text-white">
-            Page {{ page }} of {{ total_pages }}
-        </li>
-        <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
-        <a class="page-link" href="#"
-            hx-get="{{ entities_listing_route }}&page={{ page + 1 }}&filter={{ filter_terms }}"
-            {% if args %}
-            hx-vals='{{ args|tojson }}'
-            {% endif %}
-            hx-target="#{{main_content_container}}">
-        <span aria-hidden="true">&raquo;</span>
-        </a>
-        </li>
-    </ul>
-    </nav>
+    {% if total_pages > 1 %}
+        <nav aria-label="Page navigation" class="pagination-wrapper">
+        <ul class="pagination mb-0">
+            <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+            <a class="page-link" href="#"
+                hx-get="{{ entities_listing_route }}&page={{ page - 1 }}&filter={{ filter_terms }}"
+                {% if args %}
+                hx-vals='{{ args|tojson }}'
+                {% endif %}
+                hx-target="#{{main_content_container}}">
+            <span aria-hidden="true">&laquo;</span>
+            </a>
+            </li>
+            <li class="d-flex align-items-center px-3 text-white">
+                Page {{ page }} of {{ total_pages }}
+            </li>
+            <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+            <a class="page-link" href="#"
+                hx-get="{{ entities_listing_route }}&page={{ page + 1 }}&filter={{ filter_terms }}"
+                {% if args %}
+                hx-vals='{{ args|tojson }}'
+                {% endif %}
+                hx-target="#{{main_content_container}}">
+            <span aria-hidden="true">&raquo;</span>
+            </a>
+            </li>
+        </ul>
+        </nav>
+    {% endif %}
 </div>
