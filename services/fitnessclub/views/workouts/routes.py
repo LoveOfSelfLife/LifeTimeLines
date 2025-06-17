@@ -365,13 +365,11 @@ def exercise_listing(context=None):
     target = request.args.get('target', None)
     view= request.args.get('view', 'list')
 
-    mobile = request.args.get('mobile', type=bool, default=False)
-    div_id = 'lib-list-mobile' if mobile else 'lib-list'
-    target = div_id
+    # mobile = request.args.get('mobile', type=bool, default=False)
+    # div_id = 'lib-list-mobile' if mobile else 'lib-list'
+    # target = div_id
+    div_id = target
 
-    # w = get_from_cache('current_workout')
-    # if not w or w['id'] != workout_id:
-    #         abort(404)
 
     entity_name = "ExerciseTable"
     page = int(request.args.get('page', 1))
