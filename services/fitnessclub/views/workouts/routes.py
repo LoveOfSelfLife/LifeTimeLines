@@ -44,9 +44,14 @@ def index(context=None):
 def workouts_listing(context=None):
     WORKOUT_ENTITY_NAME = "WorkoutTable"
     page = int(request.args.get('page', 1))
-    view = request.args.get('view', 'list')
+    # view = request.args.get('view', 'list')
     target = request.args.get('target', None)    
 
+    view = request.args.get('view', None)
+    if view:
+        session['view_preference'] = view
+    else:
+        view = session.get('view_preference', 'list')
 
     fields_to_display  = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
     filters = get_fitnessclub_entity_filters_for_entity(WORKOUT_ENTITY_NAME)
@@ -363,7 +368,12 @@ def save_workout(context=None, workout_id=None):
 def exercise_listing(context=None):
     workout_id = request.args.get('workout_id', None)
     target = request.args.get('target', None)
-    view= request.args.get('view', 'list')
+    # view= request.args.get('view', 'list')
+    view = request.args.get('view', None)
+    if view:
+        session['view_preference'] = view
+    else:
+        view = session.get('view_preference', 'list')
 
     # mobile = request.args.get('mobile', type=bool, default=False)
     # div_id = 'lib-list-mobile' if mobile else 'lib-list'
@@ -443,7 +453,13 @@ def exercise_reviewer_listing(context=None):
     mobile = request.args.get('mobile', type=bool, default=False)
     div_id = 'reviewer-list-mobile' if mobile else 'reviewer-list'
     target = div_id
-    view = request.args.get('view', 'list')
+    
+    # view = request.args.get('view', 'list')
+    view = request.args.get('view', None)
+    if view:
+        session['view_preference'] = view
+    else:
+        view = session.get('view_preference', 'list')
 
     entity_name = "ExerciseTable"
     page = int(request.args.get('page', 1))

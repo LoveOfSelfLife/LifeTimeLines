@@ -1,4 +1,4 @@
-from flask import Blueprint, redirect, render_template, request, url_for
+from flask import Blueprint, redirect, render_template, request, session, url_for
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
 from common.fitness.entities_getter import get_filtered_entities
@@ -17,9 +17,14 @@ def root(context=None):
 def exercises_fragment(context=None):
     entity_name = "ExerciseTable"
     page = int(request.args.get('page', 1))
-    view = request.args.get('view', 'list')
     page_size = 10
 
+    view = request.args.get('view', None)
+    if view:
+        session['view_preference'] = view
+    else:
+        view = session.get('view_preference', 'list')
+    
     fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
     filters = get_fitnessclub_entity_filters_for_entity(entity_name)
 

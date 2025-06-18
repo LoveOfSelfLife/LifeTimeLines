@@ -26,7 +26,13 @@ def programs_listing(context=None):
     PROGRAM_ENTITY_NAME = "ProgramTable"
     page = int(request.args.get('page', 1))
     page_size = 10
-    view = request.args.get('view', 'list')
+
+    view = request.args.get('view', None)
+    if view:
+        session['view_preference'] = view
+    else:
+        view = session.get('view_preference', 'list')
+
     fields_to_display  = get_fitnessclub_listing_fields_for_entity(PROGRAM_ENTITY_NAME)
     filters = get_fitnessclub_entity_filters_for_entity(PROGRAM_ENTITY_NAME)
 
@@ -83,7 +89,13 @@ def workouts_listing(context=None):
     WORKOUT_ENTITY_NAME = "WorkoutTable"
     program_id = request.args.get('program_id')
     page = int(request.args.get('page', 1))
-    view = request.args.get('view', 'list')
+
+    view = request.args.get('view', None)
+    if view:
+        session['view_preference'] = view
+    else:
+        view = session.get('view_preference', 'list')
+
     page_size = 10
     target = request.args.get('target')
     fields_to_display  = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
