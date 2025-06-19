@@ -29,25 +29,30 @@ def get_next_workout_in_program(program, member_id):
     # then this function will return the next workout in the program after the last one that was done.
     # if we reach teh end of the list, then return the first workout in the program.
     workout_instances = program.get('workout_instances', [])
-    if not workout_instances:
-        return None  # No workouts have been done yet
-    # Get the last workout instance
-    last_workout_instance = workout_instances[-1]  # Assuming the last one is the most recent
-    program_workout_instance_key = last_workout_instance.get('program_workout_instance_key')
-    # the program workout will be the 2nd item in the instance key list
-    program_workout = program_workout_instance_key[1] if len(program_workout_instance_key) > 1 else None
-    if not program_workout:
-        return None
-    # Get the program workout entity using the key
-    program_workouts = program.get('workouts', [])
-    if not program_workouts:
-        return None  # No workouts in the program
-    workouts_list = [e['id'] for e in program_workouts]
-    next_workout_index = find_index_of_element_after_target(workouts_list, program_workout)
-    if next_workout_index == -1:
-        next_workout_index = 0
-    return tuple(program_workouts[next_workout_index]['key'])
-
+    if workout_instances:
+        # Get the last workout instance
+        last_workout_instance = workout_instances[-1]  # Assuming the last one is the most recent
+        program_workout_instance_key = last_workout_instance.get('program_workout_instance_key')
+        # the program workout will be the 2nd item in the instance key list
+        program_workout = program_workout_instance_key[1] if len(program_workout_instance_key) > 1 else None
+        if not program_workout:
+            return None
+        # Get the program workout entity using the key
+        program_workouts = program.get('workouts', [])
+        if not program_workouts:
+            return None  # No workouts in the program
+        workouts_list = [e['id'] for e in program_workouts]
+        next_workout_index = find_index_of_element_after_target(workouts_list, program_workout)
+        if next_workout_index == -1:
+            next_workout_index = 0
+        return tuple(program_workouts[next_workout_index]['key'])
+    else:
+        # otherwise we just use the first workout in the program
+        program_workouts = program.get('workouts', [])
+        if not program_workouts:
+            return None  # No workouts in the program
+        return tuple(program_workouts[0]['key'])
+    
 def find_index_of_element_after_target(elements, target):
     try:
         index = elements.index(target)
