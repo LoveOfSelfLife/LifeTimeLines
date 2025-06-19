@@ -44,9 +44,14 @@ def index(context=None):
 def workouts_listing(context=None):
     WORKOUT_ENTITY_NAME = "WorkoutTable"
     page = int(request.args.get('page', 1))
-    view = request.args.get('view', 'list')
+    # view = request.args.get('view', 'list')
     target = request.args.get('target', None)    
 
+    view = request.args.get('view', None)
+    if view:
+        session['view_preference'] = view
+    else:
+        view = session.get('view_preference', 'list')
 
     fields_to_display  = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
     filters = get_fitnessclub_entity_filters_for_entity(WORKOUT_ENTITY_NAME)
@@ -164,7 +169,7 @@ def builder(context=None, workout_id=None):
     WORKOUT_ENTITY_NAME = "WorkoutTable"
     workout = get_cache_value('current_workout')
     if workout and workout['id'] == workout_id:
-            return hx_render_template('builder.html', workout=workout, context=context)
+            return hx_render_template('builder.html', workout=workout, context=context, source='exercises')
 
     entity_type = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
     entity_type['id'] = workout_id
@@ -174,7 +179,7 @@ def builder(context=None, workout_id=None):
         abort(404)
 
     set_cache_value('current_workout', workout)
-    return hx_render_template('builder.html', workout=workout, context=context)
+    return hx_render_template('builder.html', workout=workout, context=context, source='exercises')
 
 # ── Fragments ────────────────────────────────────────────────────
 
@@ -239,6 +244,57 @@ def add_exercise(context=None, workout_id=None):
     set_cache_value('current_workout', w)
 
     return workout_canvas2(context, workout_id)
+
+@bp.route('/builder/<workout_id>/add_workout', methods=['POST'])
+@auth.login_required
+def add_workout(context=None, workout_id=None):
+
+    current_workout = get_cache_value('current_workout')
+    if current_workout:
+        if current_workout['id'] != workout_id:
+            abort(404)
+    else:
+        # if there is no workout in the cache, we create a new one
+        current_workout = new_workout()
+        set_cache_value('current_workout', current_workout)
+
+    # here we get the key of the workout from the query parameters
+    # and we look it up in the workouts catalog
+    # if it is not found we abort with a 404
+    # if it is found we add the workout to the workout
+    # and we save the workout to the redis cache
+    composite_key_str = request.args.get('key', None)
+    composite_key = eval(composite_key_str) if composite_key_str else None
+    es = EntityStore()
+    
+    source_workout = es.get_item_by_composite_key2(composite_key)
+    if not source_workout:
+        abort(404)
+    
+    # current_workout is the current workout from the cache
+    # source_workout is the workout we are adding to the current workout, i.e. is the source of the exercises
+    # we will add the exercises from the source to the current, including the parameters of each exercise
+    for src_sect in source_workout['sections']:
+        src_sect_name = src_sect['name']
+        # find the section in the current workout and add the exercises to it
+        for curr_sect in current_workout['sections']:
+            if curr_sect['name']==src_sect_name:
+                # add the exercises from the wk section to the current workout section
+                for ex in src_sect['exercises']:
+                    curr_sect['exercises'].append({
+                      'id':ex['id'],
+                      'parameters':{'sets':ex['parameters'].get('sets', None),
+                                    'reps':ex['parameters'].get('reps', None),
+                                    'weight':ex['parameters'].get('weight', None),
+                                    'time': ex['parameters'].get('time', None),
+                                    'weight_unit': ex['parameters'].get('weight_unit', 'lbs'),
+                                    'tempo': ex['parameters'].get('tempo', None)}
+                    })
+                break
+
+    set_cache_value('current_workout', current_workout)
+    return workout_canvas2(context, workout_id)
+
 
 @bp.route('/builder/<workout_id>/remove', methods=['POST'])
 @auth.login_required
@@ -363,14 +419,14 @@ def save_workout(context=None, workout_id=None):
 def exercise_listing(context=None):
     workout_id = request.args.get('workout_id', None)
     target = request.args.get('target', None)
-    view= request.args.get('view', 'list')
 
-    # mobile = request.args.get('mobile', type=bool, default=False)
-    # div_id = 'lib-list-mobile' if mobile else 'lib-list'
-    # target = div_id
+    view = request.args.get('view', None)
+    if view:
+        session['view_preference'] = view
+    else:
+        view = session.get('view_preference', 'list')
+
     div_id = target
-
-
     entity_name = "ExerciseTable"
     page = int(request.args.get('page', 1))
     page_size = 10
@@ -419,6 +475,59 @@ def exercise_listing(context=None):
                               entity_action_label='Add Exercise',
                               context=context)      
 
+@bp.route('/builder/workouts-listing')
+@auth.login_required
+def builder_workouts_listing(context=None):
+    WORKOUT_ENTITY_NAME = "WorkoutTable"
+    workout_id = request.args.get('workout_id', None)    
+    page = int(request.args.get('page', 1))
+    target = request.args.get('target', None)    
+
+    view = request.args.get('view', None)
+    if view:
+        session['view_preference'] = view
+    else:
+        view = session.get('view_preference', 'list')
+    div_id = target
+    fields_to_display  = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
+    filters = get_fitnessclub_entity_filters_for_entity(WORKOUT_ENTITY_NAME)
+
+    if filters:
+        filter_func  = get_fitnessclub_filter_func_for_entity(WORKOUT_ENTITY_NAME)
+        filter_term_func  = get_fitnessclub_filter_term_func_for_entity(WORKOUT_ENTITY_NAME)
+        filter_terms = filter_term_func(request.args)
+    else:
+        filter_func = None
+        filter_terms = None
+
+    entities = get_filtered_entities(WORKOUT_ENTITY_NAME, fields_to_display, filter_func, filter_terms)
+
+    page_size = 10
+    total_pages = (len(entities) + page_size - 1) // page_size
+    start = (page - 1) * page_size
+    end = start + page_size
+    current = entities[start:end]
+
+    # displays workouts at the top level
+    return render_template(
+        "entity_list_component.html",
+        entity_name=WORKOUT_ENTITY_NAME,
+        main_content_container=div_id,
+        fields_to_display=fields_to_display,
+        entities=current,
+        filter_terms=filter_terms,
+        args=request.args,
+        page=page,
+        view=view,
+        total_pages=total_pages,
+        entities_listing_route=f'/workouts/builder/workouts-listing?entity_table={WORKOUT_ENTITY_NAME}&target={target}',
+        entity_view_route=f'/workouts/viewer/workout?entity_table={WORKOUT_ENTITY_NAME}',
+        entity_action_route=f'/workouts/builder/{workout_id}/add_workout?entity_table={WORKOUT_ENTITY_NAME}',
+        entity_action_route_method='post',
+        entity_action_route_target="canvas",                              
+        entity_action_icon='bi-plus',  
+        entity_action_label='Add Workout',       
+        context=context)
 
 # ── Main exercise reviewer View ─────────────────────────────────────────────
 # this will display two panels, the one on the left will be the list of exercises
@@ -443,7 +552,13 @@ def exercise_reviewer_listing(context=None):
     mobile = request.args.get('mobile', type=bool, default=False)
     div_id = 'reviewer-list-mobile' if mobile else 'reviewer-list'
     target = div_id
-    view = request.args.get('view', 'list')
+    
+    # view = request.args.get('view', 'list')
+    view = request.args.get('view', None)
+    if view:
+        session['view_preference'] = view
+    else:
+        view = session.get('view_preference', 'list')
 
     entity_name = "ExerciseTable"
     page = int(request.args.get('page', 1))

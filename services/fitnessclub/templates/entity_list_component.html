@@ -90,20 +90,50 @@
                                     class="img-top-centered"
                                 alt="{{ entity.card_view_fields.title }}">
                             </div>
-                                {% endif %}
+                            {% endif %}
                             <div class="card-body">
-                                <a href="#"
-                                    class="text-white"
-                                    hx-get="{{ entity_view_route }}&key={{ entity.key }}"
-                                    hx-target="#modals-here"
-                                    hx-swap="innerHTML"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#modals-here"
-                                    >
+                                {% if entity_view_route %}
+                                    <a href="#"
+                                        class="text-white"
+                                        hx-get="{{ entity_view_route }}&key={{ entity.key }}"
+                                        hx-target="#modals-here"
+                                        hx-swap="innerHTML"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modals-here"
+                                        >
+                                        <h5 class="card-title">{{ entity.card_view_fields.title }}</h5>
+                                    </a>
+                                {% else %}
                                     <h5 class="card-title">{{ entity.card_view_fields.title }}</h5>
-                                </a>
-                                <p class="card-text">{{ entity.card_view_fields.subtitle }}</p>
-                                <p class="card-text">{{ entity.card_view_fields.description }}</p>
+                                {% endif %}
+                                    <p class="card-text">{{ entity.card_view_fields.subtitle }}</p>
+                                    <p class="card-text">{{ entity.card_view_fields.description }}</p>
+
+                                {% if entity_action_route_method %}
+                                        {% set action_method = entity_action_route_method %}
+                                {% else %}
+                                    {% set action_method = "get" %}
+                                {% endif %}
+
+                                {% if entity_action_route_target %}
+                                        {% set action_target = entity_action_route_target %}
+                                {% else %}
+                                    {% set action_target = main_content_container %}
+                                {% endif %}
+
+                                {% if entity_action_route %}
+
+                                    <button class="btn btn-sm btn-outline-light"
+                                        hx-{{ action_method }}="{{ entity_action_route }}&key={{ entity.key }}"
+                                        hx-push-url="{{ entity_action_route }}&key={{ entity.key }}"
+                                        hx-target="#{{ action_target }}"
+                                        hx-swap="innerHTML">
+                                        <i class="bi {{ entity_action_icon}}"></i>
+                                    </button>
+
+                                {% endif %}
+
+
                             </div>
                         </div>
                     </div>

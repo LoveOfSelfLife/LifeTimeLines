@@ -4,11 +4,26 @@
     <!-- Library sidebar (md+) -->
     <div class="col-md-4 d-none d-md-block border-end vh-100 overflow-auto">
       <!-- <h4 class="mt-3">Exercise Library</h4> -->
+
+      <input type="hidden" name="source" value="{{ source }}">
+      <div class="d-flex justify-content-end">
+          <div class="btn-group" id="my-btn-group" role="group">
+            <button type="button" class="btn btn-outline-primary active"
+                hx-get="{{ url_for('workouts.exercise_listing', workout_id=workout.id, target='lib-list') }}"
+                hx-target="#lib-list"
+                hx-trigger="load, click"
+                >Use Exercises
+            </button>
+            <button type="button" class="btn btn-outline-primary active"
+                hx-get="{{ url_for('workouts.builder_workouts_listing', workout_id=workout.id, target='lib-list') }}"
+                hx-target="#lib-list"
+                hx-trigger="click"
+                >Use Workouts
+            </button>
+          </div>
+      </div>
       
-      <div id="lib-list"
-           hx-get="{{ url_for('workouts.exercise_listing', workout_id=workout.id, target='lib-list') }}"
-           hx-trigger="load"
-           hx-swap="innerHTML">
+      <div id="lib-list">
         Loading…
       </div>
       <button class="btn btn-sm btn-outline-secondary mt-3"
@@ -25,11 +40,26 @@
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
       </div>
       <div class="offcanvas-body">
-      <!-- Mobile library list -->
-        <div id="lib-list-mobile"
-             hx-get="{{ url_for('workouts.exercise_listing', workout_id=workout.id, target='lib-list-mobile') }}"
-             hx-trigger="load"
-             hx-swap="innerHTML">
+        <input type="hidden" name="source" value="{{ source }}">
+        <div class="d-flex justify-content-end">
+            <div class="btn-group" id="my-btn-group" role="group">
+              <button type="button" class="btn btn-outline-primary active"
+                  hx-get="{{ url_for('workouts.exercise_listing', workout_id=workout.id, target='lib-list-mobile') }}"
+                  hx-target="#lib-list-mobile"
+                  hx-trigger="load, click"
+                  >Use Exercises
+              </button>
+              <button type="button" class="btn btn-outline-primary active"
+                  hx-get="{{ url_for('workouts.builder_workouts_listing', workout_id=workout.id, target='lib-list-mobile') }}"
+                  hx-target="#lib-list-mobile"
+                  hx-trigger="click"
+                  >Use Workouts
+              </button>
+            </div>
+        </div>
+        
+        <!-- Mobile library list -->
+        <div id="lib-list-mobile">
           Loading…
         </div>
       </div>
