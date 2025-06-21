@@ -4,7 +4,10 @@ from common.fitness.entities_getter import get_entity
 
 class WorkoutEntity (EntityObject):
     table_name="WorkoutTable"
-    fields=["id", "name", "sections", "created_ts", "created_by"]
+    # type is used to differentiate between full workouts vs partial workouts that are specific to one section, e.g. warmups or core workouts
+    # type is set to "full" for full workouts, and "section" for section-specific workouts
+    # default is "full"
+    fields=["id", "name", "sections", "created_ts", "created_by", "type"]
     key_field="id"
     partition_value="workout"
 

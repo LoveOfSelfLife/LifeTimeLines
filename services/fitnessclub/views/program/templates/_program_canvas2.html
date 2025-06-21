@@ -1,4 +1,4 @@
-  <div class="card mb-3">
+<div class="card mb-3">
 
     <ul class="list-group list-group-flush workout-list"
         data-section="workouts">
@@ -15,12 +15,16 @@
             <div class="d-flex justify-content-between align-items-center">
               <button
                 type="button"
-                class="btn btn-outline-secondary"
+                class="btn btn-outline-secondary btn-xs p-0"
                 onclick="toggleWorkoutDetails('{{ wk.id }}', '{{ wk.key_str }}', '{{ program.id }}')"
+                title="Edit Workout Details"
               >
-              edit workout details
-              </button>              
-              <strong>{{ wk.name }}</strong>
+                <i class="bi bi-pencil-square"></i>
+              </button>
+              <div>
+                <label class="form-label small">Workout:</label>
+                <strong>{{ wk.name }}</strong>
+              </div>
               <button
                 class="btn btn-link btn-sm text-danger p-0"
                 hx-post="{{ url_for('program.remove_workout', program_id=program.id) }}"

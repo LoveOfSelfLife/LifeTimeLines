@@ -1,3 +1,5 @@
+from flask import url_for
+from common.entity_store import EntityObject
 from common.fitness.program_entity import ProgramEntity
 from common.fitness.member_entity import MemberEntity
 from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity, exercise_entity_filter, exercise_entity_filter_term, render_exercise_popup_viewer_html
@@ -6,7 +8,7 @@ from common.fitness.member_entity import MemberEntity
 from common.fitness.workout_entity import ProgramWorkoutEntity, WorkoutEntity
 
 editable_entities = {
-    "MemberTable" : { "entity_class": MemberEntity, 
+    "MemberTable" : { 
                       "listing_view_fields": ["name", "short_name", "email"],
                         "card_view_fields": { "title" : lambda e: e['name'] if 'name' in e else "",
                                               "subtitle" : lambda e: e['short_name'] if 'short_name' in e else "",
@@ -14,7 +16,7 @@ editable_entities = {
                                               "description" : lambda e: e['email'] if 'email' in e else ""
                                              }
                     },
-    "ExerciseTable" : { "entity_class": ExerciseEntity,
+    "ExerciseTable" : { 
                         "listing_view_fields": ["name", "category"],
                         "card_view_fields": { "title" : lambda e: e['name'],
                                               "subtitle" : lambda e: "Muscles: " + (", ".join(e['primaryMuscles']) if 'primaryMuscles' in e else ""),
@@ -26,7 +28,7 @@ editable_entities = {
                         "filter_term_func" : exercise_entity_filter_term,
                         "entity_popup_viewer" : render_exercise_popup_viewer_html
                     },
-    "ProgramTable" : { "entity_class": ProgramEntity,
+    "ProgramTable" : { 
                         "listing_view_fields": ["name", "start_date", "end_date"],
                         "card_view_fields": { "title" : lambda e: e['name'] if 'name' in e else "",
                                               "subtitle" : lambda e: (("Start Date: " + (e['start_date'] if 'start_date' in e and e['start_date'] else "?")) + \
@@ -35,16 +37,16 @@ editable_entities = {
                                               "description" : lambda e: ""
                                              }                        
                     },
-    "WorkoutTable" : { "entity_class": WorkoutEntity,
+    "WorkoutTable" : { 
                         "listing_view_fields": ["name"],
                         "card_view_fields": { "title" : lambda e: e['name'] if 'name' in e else "",
                                               "subtitle" : lambda e: "",
-                                              "image_url" : None,
+                                              "image_url" : lambda e: url_for('static', filename='images/workout_image.png'),
                                               "description" : lambda e: ""
                                              }
                     },
     "ExerciseReviewTable" : 
-                    { "entity_class": ExerciseReviewEntity,
+                    { 
                       "listing_view_fields": ["name"],
                         "card_view_fields": { "title" : lambda e: e['name'] if 'name' in e else "",
                                               "subtitle" : lambda e: "",
@@ -52,7 +54,8 @@ editable_entities = {
                                               "description" : lambda e: ""
                                              }
                     },
-    "ProgramWorkoutTable" : { "entity_class": ProgramWorkoutEntity
+    "ProgramWorkoutTable" : { 
+
                     }
     }
 
@@ -60,10 +63,7 @@ def get_fitnessclub_entity_names():
     return list(editable_entities.keys())
 
 def get_fitnessclub_entity_type_for_entity(entity_name):
-    entry = editable_entities.get(entity_name, None)
-    if entry:
-        return entry["entity_class"]()
-    return None, None
+    return EntityObject.get_entity_class_from_table_name(entity_name)()
 
 def get_fitnessclub_listing_fields_for_entity(entity_name):
     entry = editable_entities.get(entity_name, None)

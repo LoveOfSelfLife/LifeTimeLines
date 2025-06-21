@@ -89,7 +89,7 @@ def workouts_listing(context=None):
     WORKOUT_ENTITY_NAME = "WorkoutTable"
     program_id = request.args.get('program_id')
     page = int(request.args.get('page', 1))
-
+    target = request.args.get('target')
     view = request.args.get('view', None)
     if view:
         session['view_preference'] = view
@@ -97,12 +97,12 @@ def workouts_listing(context=None):
         view = session.get('view_preference', 'list')
 
     page_size = 10
-    target = request.args.get('target')
+
     fields_to_display  = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
     filters = get_fitnessclub_entity_filters_for_entity(WORKOUT_ENTITY_NAME)
     mobile = request.args.get('mobile', type=bool, default=False)
-    div_id = 'lib-list-mobile' if mobile else 'lib-list'
-    target = div_id
+    # div_id = 'lib-list-mobile' if mobile else 'lib-list'
+    div_id = target
     current_program = get_cache_value('current_program')
 
     if current_program:

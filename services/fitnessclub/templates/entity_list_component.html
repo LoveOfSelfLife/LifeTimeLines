@@ -41,7 +41,7 @@
 
 
         {% if filter_dialog_route %}
-        <div class="d-flex justify-content-between align-items-center mb-0 p-2 bg-dark border rounded">
+        <div class="filter-bar d-flex justify-content-between align-items-center mb-0 p-2 border rounded">
             <button class="btn btn-primary btn-sm"
                 hx-get="{{ filter_dialog_route }}"
                 {% if args %}
@@ -94,7 +94,6 @@
                             <div class="card-body">
                                 {% if entity_view_route %}
                                     <a href="#"
-                                        class="text-white"
                                         hx-get="{{ entity_view_route }}&key={{ entity.key }}"
                                         hx-target="#modals-here"
                                         hx-swap="innerHTML"
@@ -147,7 +146,7 @@
         {% endif %}
 
         <div class="table-responsive">
-	    <table class="table table-hover table-dark align-middle">
+	    <table class="table table-hover entity-table align-middle">
                 <thead>
                     <tr>
                         {% for field in fields_to_display.listing_view %}
@@ -166,7 +165,6 @@
                             {% if entity_view_route %}
                             <td>
                                 <a href="#"
-                                    class="text-white"
                                     hx-get="{{ entity_view_route }}&key={{ entity.key }}"
                                     hx-target="#modals-here"
                                     hx-swap="innerHTML"
@@ -232,7 +230,7 @@
             <span aria-hidden="true">&laquo;</span>
             </a>
             </li>
-            <li class="d-flex align-items-center px-3 text-white">
+            <li class="d-flex align-items-center px-3">
                 Page {{ page }} of {{ total_pages }}
             </li>
             <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
