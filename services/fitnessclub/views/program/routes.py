@@ -456,6 +456,7 @@ def start_workout(context=None, workout_key=None):
         workout_instance_key=workout_instance_key,
         scheduled_workout_event_id=scheduled_workout_event_id,
         finish_workout_url=url_for('program.finish_workout', workout_instance_key=workout_instance_key),
+        cancel_workout_url=url_for('program.cancel_workout', workout_instance_key=workout_instance_key),
         show_finish_button=True
     )
  
@@ -499,6 +500,50 @@ def finish_workout(context=None, workout_instance_key=None):
     cal.update_status_of_workout_event(scheduled_workout_event_id, 'done')
 
     return redirect('/')
+
+@bp.route('/cancel_workout/<workout_instance_key>', methods=['POST'])
+@auth.login_required
+def cancel_workout(context=None, workout_instance_key=None):
+
+    # this method is called when a user accidentally starts a workout
+    # and wants to cancel it before finishing it
+    # it will remove the entities that were created when the workout was started
+    # and redirect to the home page
+    es = EntityStore()
+    workout_composite_key = eval(workout_instance_key) if workout_instance_key else None
+    workout_instance = es.get_item_by_composite_key2(workout_composite_key)
+    if not workout_instance:
+        abort(404)
+    program_composite_key_str = request.form.get('program_key', None)
+    program_composite_key = eval(program_composite_key_str) if program_composite_key_str else None
+    program_entity = es.get_item_by_composite_key2(program_composite_key)
+    if not program_entity:
+        abort(404)
+    # do not need to make any updates to the google calendar service
+    # just remove the workout instance from the program's workout_instances list
+    list_of_workout_instances = program_entity.get('workout_instances', [])
+
+    # find the workout instance in the program's workout_instances list
+    for instance in list_of_workout_instances:
+        if instance.get('program_workout_instance_id') == workout_instance['id']:
+            # remove the workout instance from the program's workout_instances list
+            program_entity['workout_instances'] = [i for i in list_of_workout_instances if i.get('program_workout_instance_id') != workout_instance['id']]
+            es.upsert_item(program_entity)
+            break
+    else:
+        # if we didn't find the workout instance, we can log an error or raise an exception
+        current_app.logger.error(f"Workout instance {workout_instance_key} not found in program {program_composite_key}")
+        abort(404)
+
+    # clear the 'current_workout_instance_state' from the session
+    session.pop('current_workout_instance_state', None)
+    session.pop(f"last_section_{workout_instance['id']}", None)
+
+    # remove the workout_instance from the entity store
+    es.delete_item(workout_instance)
+
+    return redirect('/', 302)
+
 
 @bp.route('/schedule_and_start', methods=['POST'])
 @auth.login_required
@@ -545,6 +590,7 @@ def schedule_and_start(context=None):
         workout_instance_key=workout_instance_key,
         scheduled_workout_event_id=scheduled_workout_event_id,
         finish_workout_url=url_for('program.finish_workout', workout_instance_key=workout_instance_key),
+        cancel_workout_url=url_for('program.cancel_workout', workout_instance_key=workout_instance_key),
         show_finish_button=True
     )
 

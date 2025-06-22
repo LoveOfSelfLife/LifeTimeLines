@@ -312,17 +312,19 @@ class EntityStore :
         for rk in row_keys:
             storage.delete_item(partition_key=entity_class.partition_value, row_key=rk)
 
+    def delete_item(self, item):
+        if item.get_partition_value() is None:
+            raise Exception("partition value not defined")
+        storage = EntityStore._get_storage_by_table_name(item.get_table_name())
+        storage.delete_item(partition_key=item.get_partition_value(), row_key=item.get_key_value())    
+
     def delete_items(self, items_list):
         for item in items_list:
-            if item.get_partition_value() is None:
-                raise Exception("partition value not defined")
-            storage = EntityStore._get_storage_by_table_name(item.get_table_name())
-            storage.delete_item(partition_key=item.get_partition_value(), row_key=item.get_key_value())
+            self.delete_item(item)
 
     def delete_all_in_partition(self, entity_class, partition_value):
         storage = EntityStore._get_storage_by_table_name(entity_class.table_name)
         storage.delete(partition_value, None)  
-
 
     def delete_all(self, entity_class):
         storage = EntityStore._get_storage_by_table_name(entity_class.table_name)
