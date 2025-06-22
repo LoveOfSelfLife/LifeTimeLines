@@ -85,6 +85,8 @@ def generate_current_home_page_view(member):
                 scheduled_workout_event_id=scheduled_workout_event_id,
                 finish_workout_url=url_for('program.finish_workout', 
                                         workout_instance_key=workout_instance_key),
+                cancel_workout_url=url_for('program.cancel_workout',
+                                        workout_instance_key=workout_instance_key),
                 show_finish_button=True
             )
 
