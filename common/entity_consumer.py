@@ -91,7 +91,7 @@ def _extract_sorted_timestamps_from_entity_table(table_name, start_time_iso, end
     # here we choose to use the TableStore directly, instead of the EntityStore, because we only need the timestamps
     tblstore : TableStore = TableStore(table_name)
     ts_list=[]
-    for mi in tblstore.query(select=["Timestamp"], 
+    for mi in tblstore.query2(select=["Timestamp"], 
                              start_time_iso=start_time_iso, 
                              end_time_iso=end_time_iso):
         ts_list.append(mi.metadata["timestamp"])

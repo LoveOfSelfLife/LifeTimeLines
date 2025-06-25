@@ -6,7 +6,9 @@
         type="button"
         class="btn-close"
         aria-label="Close"
-        onclick="document.getElementById('details-{{ exercise.id }}').innerHTML=''"
+        onclick="toggleExerciseDetails('{{ exercise.id }}', '{{allow_popups}}')"
+        {% if allow_popups == 'false'%}disabled{% endif %}
+        {# onclick="document.getElementById('details-{{ exercise.id }}').innerHTML=''" #}
       ></button>
     </div>
     <div class="card-body">
@@ -20,13 +22,14 @@
               <img
               src="{{ img.url }}"
               alt="{{ img.description }}"
-              data-full-url="{{ img.url }}"
-              data-bs-toggle="modal"
-              data-bs-target="#imageModal"
+              {% if allow_popups == 'true'%}
+                data-full-url="{{ img.url }}"
+                data-bs-toggle="modal"
+                data-bs-target="#imageModal"
+                style="cursor:pointer;"
+              {% endif %}
               class="img-fluid rounded"
-              style="cursor:pointer;"
               >
-
           </div>
           {% endfor %}
       </div>

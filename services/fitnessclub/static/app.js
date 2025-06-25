@@ -154,9 +154,25 @@ document.addEventListener('htmx:afterSwap', e => {
 //   });
 // });
 
+document.addEventListener('DOMContentLoaded', function(){
+  var imageModal = document.getElementById('imageModal');
+  imageModal.addEventListener('show.bs.modal', function (event) {
+    // `event.relatedTarget` is the <img> that triggered the modal
+    var thumb     = event.relatedTarget;
+    var fullUrl   = thumb.getAttribute('data-full-url');
+    var description = thumb.getAttribute('alt') || '';
+    // Update modal contents
+    var modalImg   = document.getElementById('modalImage');
+    var modalTitle = document.getElementById('imageModalLabel');
+    modalImg.src   = fullUrl;
+    modalImg.alt   = description;
+    modalTitle.textContent = description;
+  });
+});
 
 // Call this to open/close the details panel
-function toggleExerciseDetails(id) {
+function toggleExerciseDetails(id, allow_popups = 'false') {
+  console.log('toggleExerciseDetails called for id:', id, 'allow_popups: <', allow_popups, '>');
   const container = document.getElementById('details-' + id);
   // If it already has content, just clear it (close)
   if (container.innerHTML.trim()) {
@@ -170,7 +186,7 @@ function toggleExerciseDetails(id) {
     });
   // And fire an HTMX request to load this one
   htmx.ajax('GET',
-    '/workouts/viewer/exercise/' + id + '/details',
+    '/workouts/viewer/exercise/' + id + '/details?allow_popups=' + allow_popups,
     { target: '#details-' + id, swap: 'innerHTML' }
   );
 }

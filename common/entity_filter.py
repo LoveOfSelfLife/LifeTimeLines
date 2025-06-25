@@ -8,6 +8,12 @@ class Filter:
     def __str__(self):
         return f"{self.attr} {self.op} @{self.attr}"
     
+def partition_filter(partition_value):
+    """
+    Creates a filter for partition key.
+    """
+    return [ Filter("PartitionKey", partition_value, "eq") ]
+
 def create_filter_and_params(filters):
     """
     """

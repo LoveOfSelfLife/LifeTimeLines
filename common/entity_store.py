@@ -158,67 +158,34 @@ class EntityStore :
             EntityStore.storage_map[table_name] = storage
         return storage
 
-    def list_items(self, eobj:EntityObject, filter=None, dfilter=None, select=None, start_time_iso=None, end_time_iso=None,
+    def list_items(self, eobj:EntityObject, filter=[], select=None, start_time_iso=None, end_time_iso=None,
+                   include_start_time=False, include_end_time=True):
+        return self.list_items2(eobj, filter, select, start_time_iso, end_time_iso, include_start_time, include_end_time)
+
+    def list_items2(self, eobj:EntityObject, filter=[], select=None, start_time_iso=None, end_time_iso=None,
                    include_start_time=False, include_end_time=True):
         """return a iterator of objects from the underlying Table store
-
         Args:
-            entity_class (EntityObject instance): used to determine the table name that this method will query
+            eobj (EntityObject instance): used to determine the table name that this method will query
             filter (string, optional): used to filter the results to only include items that satisfy the filter. Defaults to None.
-            newer_than_cutoff_ts_iso (ios formatter string, optional): used to return only those items that were updated in the table after the cutoff time. Defaults to None.
         Yields:
             EntityObject : an iterator of entity objects of the desiried type
         """
+
+        storage = EntityStore._get_storage_by_table_name(eobj.get_table_name())
+
         # if entity_class has a value for the "items_list_field" attribute, then any entity
         # may possily be spread out across multiple Table storage rows.   In that case, we only 
         # want to retrieve the base entity objects, which can be identified as have a Null value
         # in the underlying row's _Parent attribute.  To make sure this occurs, we add a filter
-
-        storage = EntityStore._get_storage_by_table_name(eobj.get_table_name())
-        if eobj.get_items_list_field() is not None:
-            pass
-            # filter = filter
-            # TODO: complete this
-        if eobj.get_static_partition_value():
-            for r in storage.query(eobj.get_partition_value(), filter=filter, dfilter=dfilter, select=select, 
-                                   start_time_iso=start_time_iso, 
-                                   end_time_iso=end_time_iso,
-                                   include_start_time=include_start_time, 
-                                   include_end_time=include_end_time):
-                yield self._loads_from_storage_format(r, type(eobj))
-        else:
-            for r in storage.query(eobj.get_partition_value(), filter=filter, dfilter=dfilter, select=select, 
-                                   start_time_iso=start_time_iso, 
-                                   end_time_iso=end_time_iso,
-                                   include_start_time=include_start_time, 
-                                   include_end_time=include_end_time):
-                yield self._loads_from_storage_format(r, type(eobj))
-
-    def list_items2(self, eobj:EntityObject, dfilter=[], select=None, start_time_iso=None, end_time_iso=None,
-                   include_start_time=False, include_end_time=True):
-        """return a iterator of objects from the underlying Table store
-
-        Args:
-            entity_class (EntityObject instance): used to determine the table name that this method will query
-            filter (string, optional): used to filter the results to only include items that satisfy the filter. Defaults to None.
-            newer_than_cutoff_ts_iso (ios formatter string, optional): used to return only those items that were updated in the table after the cutoff time. Defaults to None.
-        Yields:
-            EntityObject : an iterator of entity objects of the desiried type
-        """
-        # if entity_class has a value for the "items_list_field" attribute, then any entity
-        # may possily be spread out across multiple Table storage rows.   In that case, we only 
-        # want to retrieve the base entity objects, which can be identified as have a Null value
-        # in the underlying row's _Parent attribute.  To make sure this occurs, we add a filter
-
-        storage = EntityStore._get_storage_by_table_name(eobj.get_table_name())
         if eobj.get_items_list_field() is not None:
             pass
             # filter = filter
             # TODO: complete this
         if eobj.get_partition_value():
-            dfilter.append(Filter("PartitionKey", eobj.get_partition_value(), op="eq"))
+            filter.append(Filter("PartitionKey", eobj.get_partition_value(), op="eq"))
 
-        for r in storage.query2(dfilter=dfilter, select=select, 
+        for r in storage.query2(filter=filter, select=select, 
                                 start_time_iso=start_time_iso, 
                                 end_time_iso=end_time_iso,
                                 include_start_time=include_start_time, 
@@ -324,7 +291,7 @@ class EntityStore :
 
     def delete_all_in_partition(self, entity_class, partition_value):
         storage = EntityStore._get_storage_by_table_name(entity_class.table_name)
-        storage.delete(partition_value, None)  
+        storage.delete(partition_value)  
 
     def delete_all(self, entity_class):
         storage = EntityStore._get_storage_by_table_name(entity_class.table_name)
