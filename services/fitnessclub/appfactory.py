@@ -9,13 +9,13 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 from common.discovery import get_service_port
 from base import bp as base_bp
-from services.fitnessclub.views.schedule.schedule_routes import bp as schedule_bp
-from services.fitnessclub.views.program.programs_routes import bp as program_bp
-from services.fitnessclub.views.exercises.exercise_routes import bp as exercises_bp
-from services.fitnessclub.views.profile.profile_routes import bp as profile_bp
-from services.fitnessclub.views.admin.admin_routes import bp as admin_bp
-from services.fitnessclub.views.members.exercises_routes import bp as members_bp
-from services.fitnessclub.views.workouts.workout_routes import bp as workouts_bp
+from views.schedule.schedule_routes import bp as schedule_bp
+from views.program.programs_routes import bp as program_bp
+from views.exercises.exercise_routes import bp as exercises_bp
+from views.profile.profile_routes import bp as profile_bp
+from views.admin.admin_routes import bp as admin_bp
+from views.members.exercises_routes import bp as members_bp
+from views.workouts.workout_routes import bp as workouts_bp
 from common.env_init import initialize_environment
 from common.env_context import Env
 from auth import auth
