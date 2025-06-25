@@ -132,6 +132,14 @@ td.date-row {
   justify-content: space-between;
   margin-bottom: 1rem; */
 }
+/* this will allow the close button in the card header to be clickable */
+.modal-dialog .card-header.d-flex.justify-content-between.align-items-center {
+      pointer-events: auto;
+    }
+
+.modal-dialog .card-body {
+      pointer-events: auto;
+    }
 
 .filter-terms {
   font-size: 80%;
@@ -457,4 +465,10 @@ background: #f9f9f9;
 }
 .bi {
   color: #060606;
+}
+
+.clickable-text {
+  cursor: pointer;
+  color: #007bff;
+  text-decoration: underline;
 }

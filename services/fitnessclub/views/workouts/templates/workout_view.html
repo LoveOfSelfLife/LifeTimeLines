@@ -3,6 +3,12 @@
 
 <h2 class="mb-4 text-center">{{ workout.name }}</h2>
 
+{% if show_finish_button %}
+  {% set allow_popups = 'true' %}
+{% else %}
+  {% set allow_popups = 'false' %}
+{% endif %}
+
 <div class="accordion" id="sectionsAccordion">
   {% for section in workout.sections %}
     <div class="accordion-item">

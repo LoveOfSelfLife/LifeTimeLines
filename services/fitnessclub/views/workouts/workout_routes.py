@@ -810,12 +810,14 @@ def set_last_section(context=None, workout_id=None, section_name=None):
 @auth.login_required
 def exercise_details(context=None, exercise_id=None):
     exercise = get_entity("ExerciseTable", exercise_id)
+    allow_popups = request.args.get("allow_popups", default='false')
     # exercise = exercises.get(exercise_id)
     if not exercise:
         abort(404)
     # Render only the drill-in partial
     return render_template("_exercise_details_view.html",
-                           exercise=exercise)
+                           exercise=exercise,
+                           allow_popups=allow_popups, context=context)
 
 @bp.route("/viewer/exercise/<exercise_id>/feedback", methods=["POST"])
 @auth.login_required

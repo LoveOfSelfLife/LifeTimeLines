@@ -4,14 +4,19 @@
     <div class="list-group-item">
       <div class="d-flex justify-content-between align-items-center">
         <div>
-          <h6 class="mb-1">{{ ex.name }}</h6>
-          <small class="text-muted">
-            {{ ex.equipment_detail or ex.equipment | capitalize }} ·
+          {# <h6 class="mb-1"></h6>
+            <a href="#" hx-on::click="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')">{{ ex.name }}</a></h6> #}
+          {# <h6 class="mb-1">
+            <input type="button" onclick="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')" value="{{ ex.name }}"/></h6> #}
+          <h6 class="mb-1 clickable-text" onclick="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')">{{ ex.name }}</h6>
+
+          <strong class="font-weight-bold">
+            <!-- {{ ex.equipment_detail or ex.equipment | capitalize }} · -->
             {% if item.parameters.sets %}
-            {{ item.parameters.sets }} sets 
+            Sets: {{ item.parameters.sets }}
             {% endif %}
             {% if item.parameters.reps %}
-              {{ item.parameters.reps }} reps
+              Reps: {{ item.parameters.reps }}
             {% endif %}
             {% if item.parameters.weight %}
               @ {{ item.parameters.weight }} {{ item.parameters['weight_unit'] or 'kg' }}
@@ -19,16 +24,26 @@
             {% if item.parameters.time %}
               for {{ item.parameters.time }} secs/set
             {% endif %}
-          </small>
+          </strong>
         </div>
+
         <div class="btn-group btn-group-sm" role="group">
-          <button
-            type="button"
-            class="btn btn-outline-secondary"
-            onclick="toggleExerciseDetails('{{ ex.id }}')"
-          >
-            Details
-          </button>
+          {% if ex.images and ex.images|length > 0 %}
+          {# this is not showing the image in the modal, fix this #}
+
+          <img
+              src="{{ ex.images[-1].url }}"
+              {% if allow_popups == 'true' %}
+                data-full-url="{{ ex.images[-1].url }}"
+                data-bs-toggle="modal"
+                data-bs-target="#imageModal"
+                style="max-height: 50px; max-width: 50px; cursor:pointer;"
+              {% else %}
+                style="max-height: 50px; max-width: 50px;"
+              {% endif %}
+              class="img-fluid rounded"
+            >
+          {% endif %} 
           <!-- Feedback up/down -->
           <button
             class="btn btn-outline-primary"
