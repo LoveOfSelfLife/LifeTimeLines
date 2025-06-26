@@ -76,7 +76,7 @@ def view_exercise_details(context=None):
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
-    entity_to_view = es.get_item_by_composite_key2(composite_key)
+    entity_to_view = es.get_item_by_composite_key(composite_key)
     
     return render_exercise_popup_viewer_html(context, entity_to_view)
 

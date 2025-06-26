@@ -34,24 +34,35 @@ def get_next_workout_in_program(program, member_id):
         last_workout_instance = workout_instances[-1]  # Assuming the last one is the most recent
         program_workout_instance_key = last_workout_instance.get('program_workout_instance_key')
         # the program workout will be the 2nd item in the instance key list
-        program_workout = program_workout_instance_key[1] if len(program_workout_instance_key) > 1 else None
-        if not program_workout:
+        last_program_workout = program_workout_instance_key[1] if len(program_workout_instance_key) > 1 else None
+        if not last_program_workout:
             return None
         # Get the program workout entity using the key
         program_workouts = program.get('workouts', [])
         if not program_workouts:
             return None  # No workouts in the program
         workouts_list = [e['id'] for e in program_workouts]
-        next_workout_index = find_index_of_element_after_target(workouts_list, program_workout)
+        next_workout_index = find_index_of_element_after_target(workouts_list, last_program_workout)
         if next_workout_index == -1:
             next_workout_index = 0
-        return tuple(program_workouts[next_workout_index]['key'])
+        next_workout_key = tuple(program_workouts[next_workout_index]['key'])
+        # now we need to look through the workout instances in reverse, starting with the last instance, 
+        # in order to find the last workout instance that was done that had a workout key that matches the next workout key.
+        last_workout_instance_key = None
+        adjustments_for_next_workout = {}
+        for instance in reversed(workout_instances):
+            pikey = instance.get('program_workout_instance_key') 
+            if pikey[1] == next_workout_key[0]:
+                last_workout_instance_key = pikey
+                adjustments_for_next_workout = instance.get('adjustments_for_next_workout', {})
+                break
+        return { "next_workout_key": next_workout_key, "last_workout_instance_key": last_workout_instance_key, "adjustments_for_next_workout": adjustments_for_next_workout }
     else:
         # otherwise we just use the first workout in the program
         program_workouts = program.get('workouts', [])
         if not program_workouts:
             return None  # No workouts in the program
-        return tuple(program_workouts[0]['key'])
+        return { "next_workout_key": tuple(program_workouts[0]['key']), "last_workout_instance": None, "adjustments_for_next_workout": {} }
     
 def find_index_of_element_after_target(elements, target):
     try:

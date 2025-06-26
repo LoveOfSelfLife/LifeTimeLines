@@ -212,11 +212,8 @@ class EntityStore :
         except Exception:
             return None
         
-    def get_item_by_composite_key(self, eobj, composite_key):
-        (key, partition) = composite_key
-        return self.get_item_by_key(eobj, key, partition)
     
-    def get_item_by_composite_key2(self, composite_key):
+    def get_item_by_composite_key(self, composite_key):
         (key, partition, entity_name) = tuple(composite_key)
         # eobj = EntityObject.get_entity_class_from_table_name(entity_name)()
         eobj = EntityObject.get_entity_class_from_table_name(entity_name)()

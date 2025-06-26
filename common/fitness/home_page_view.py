@@ -3,6 +3,7 @@ from common.entity_store import EntityStore
 from common.fitness.hx_common import hx_render_template
 from common.fitness.programs import get_members_program, get_next_workout_in_program
 from common.fitness.workout_entity import get_exercises_from_workout
+from common.fitness.workout_state import get_active_workout_state
 from common.fitness.workouts import get_scheduled_workouts
 from datetime import datetime, timedelta, timezone
 from flask import render_template, render_template_string, request, redirect, session, url_for
@@ -52,21 +53,20 @@ def generate_current_home_page_view(member):
     }
 
     """
-
-    current_state_str = session.get('current_workout_instance_state', None)
-    if current_state_str:
-        current_state = json.loads(current_state_str)
+    current_state = get_active_workout_state()
+    if current_state:
         if current_state.get('state', None) == 'workout_started':
             # render the workout that is in progress
             workout_instance_key = current_state.get('workout_instance_key', None)
-            program_composite_key = current_state.get('program_key', None)
+            program_key = current_state.get('program_key', None)
+            program_composite_key = eval(program_key) if program_key else None
             scheduled_workout_event_id = current_state.get('scheduled_workout_event_id', None)
             es = EntityStore()
-            workout_instance = es.get_item_by_composite_key2(workout_instance_key)
+            workout_instance = es.get_item_by_composite_key(workout_instance_key)
             if not workout_instance:
                 # The workout instance is not found, so we display an error message
                 return render_template_string('<h1>Workout in progress not found</h1>')
-            program_entity = es.get_item_by_composite_key2(program_composite_key)
+            program_entity = es.get_item_by_composite_key(program_composite_key)
 
             # only use the session value if it exists
             last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
@@ -87,6 +87,7 @@ def generate_current_home_page_view(member):
                                         workout_instance_key=workout_instance_key),
                 cancel_workout_url=url_for('program.cancel_workout',
                                         workout_instance_key=workout_instance_key),
+                adjustments=current_state.get('adjustments', {}),
                 show_finish_button=True
             )
 
@@ -109,7 +110,10 @@ def generate_current_home_page_view(member):
         return render_template("no_program_assigned.html", member=member)
     
     current_program_key = current_program.get_composite_key()
-    next_workout_key = get_next_workout_in_program(current_program, member_id)
+    next_workout = get_next_workout_in_program(current_program, member_id)
+    next_workout_key = next_workout.get('next_workout_key', None)
+    last_program_workout_instance_key = next_workout.get('last_workout_instance_key', None)
+    adjustments_for_next_workout = next_workout.get('adjustments_for_next_workout', {})
     if next_workout_key is None:
         return render_template("no_program_assigned.html", member=member)
     
@@ -124,16 +128,23 @@ def generate_current_home_page_view(member):
         return render_template("upcoming_workout.html", 
                                 program_name=current_program.get('name', 'No Program Assigned'),
                                 next_workout_datetime=workout_datetime,
-                                    member=member, 
-                                    workout=next_workout_key,
-                                    time_until=format_seconds(time_until_workout), 
-                                    workout_key=next_workout_key,
-                                    scheduled_workout_event_id=event.get('id', None),
-                                    program_key=current_program_key,
-                                    event=event,
-                                    completed_workouts=completed_workouts)
+                                last_program_workout_instance_key=last_program_workout_instance_key,
+                                adjustments_for_next_workout=adjustments_for_next_workout,
+                                member=member, 
+                                workout=next_workout_key,
+                                time_until=format_seconds(time_until_workout), 
+                                workout_key=next_workout_key,
+                                scheduled_workout_event_id=event.get('id', None),
+                                program_key=current_program_key,
+                                event=event,
+                                completed_workouts=completed_workouts)
     else:
-        return render_template("no_workouts_scheduled.html", member=member, program_key=current_program_key, workout_key=next_workout_key)
+        return render_template("no_workouts_scheduled.html", 
+                               member=member, 
+                               program_key=current_program_key, 
+                               workout_key=next_workout_key, 
+                               last_program_workout_instance_key=last_program_workout_instance_key,
+                               adjustments_for_next_workout=adjustments_for_next_workout)
 
 def get_next_workout_event(events, member_id):
     for event in events:
@@ -157,7 +168,7 @@ def get_next_workout_event(events, member_id):
 def get_completed_workouts(member_id, current_program_key):
     workouts = []
     es = EntityStore()
-    current_program = es.get_item_by_composite_key2(current_program_key)
+    current_program = es.get_item_by_composite_key(current_program_key)
     if not current_program:
         return []
     workout_instances = current_program.get('workout_instances', [])
@@ -165,7 +176,7 @@ def get_completed_workouts(member_id, current_program_key):
         return []
     workout_instances = sorted(workout_instances, key=lambda x: x.get('started_ts', ''), reverse=True)  # Sort by started_ts
     for wi in workout_instances:
-        workout_instance = es.get_item_by_composite_key2(wi.get('program_workout_instance_key', None))
+        workout_instance = es.get_item_by_composite_key(wi.get('program_workout_instance_key', None))
         st = wi.get('started_ts' , None)
         if st:
             # format the time to this:

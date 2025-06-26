@@ -105,7 +105,7 @@ def edit_entity(context=None):
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
-    entity_to_edit = es.get_item_by_composite_key2(composite_key)
+    entity_to_edit = es.get_item_by_composite_key(composite_key)
     
     if 'Timestamp' in entity_to_edit:
         del(entity_to_edit['Timestamp'])
@@ -136,7 +136,7 @@ def view_entity(context=None):
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
-    entity_to_view = es.get_item_by_composite_key2(composite_key)
+    entity_to_view = es.get_item_by_composite_key(composite_key)
     
     return render_exercise_popup_viewer_html(context, entity_to_view)
 
@@ -167,7 +167,7 @@ def delete_entity_from_table(context=None, table_id=None):
     composite_key = eval(composite_key_str) if composite_key_str else None
 
     es = EntityStore()
-    entity_to_delete = es.get_item_by_composite_key2(composite_key)
+    entity_to_delete = es.get_item_by_composite_key(composite_key)
     
     if not entity_to_delete:
         return "Entity not found", 404

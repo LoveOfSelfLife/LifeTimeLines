@@ -53,7 +53,7 @@ def index(context = None):
 
     
 
-@bp.route("/logout")
+@bp.route("/logout2")
 def logout():
     print("logout")
     session.clear()  # Wipe out user and its token cache from session
@@ -67,7 +67,7 @@ def logout():
     AUTHORITY_URL = authority_template.format(tenant=b2c_tenant, user_flow=signupsignin_user_flow)
 
     return redirect(  # Also logout from your tenant's web session
-        AUTHORITY_URL + "/oauth2/v2.0/logout" + "?post_logout_redirect_uri=" + url_for("/signout_callback", _external=True))
+        AUTHORITY_URL + "/oauth2/v2.0/logout" + "?post_logout_redirect_uri=" + url_for(".signout_callback", _external=True))
 
 @bp.route("/signout_callback")
 def signout_callback():
