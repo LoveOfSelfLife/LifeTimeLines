@@ -7,6 +7,7 @@ from common.fitness.entities_getter import get_filtered_entities
 from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.hx_common import hx_render_template
 from common.fitness.workout_entity import get_exercises_from_workout
+from common.fitness.workout_state import get_active_workout_state, update_active_workout_state
 bp = Blueprint('workouts', __name__, template_folder='templates')
 from auth import auth
 from flask import Flask, render_template, request, redirect, url_for, session, abort
@@ -129,7 +130,7 @@ def view_workout_details(context=None):
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
-    entity_to_view = es.get_item_by_composite_key2(composite_key)
+    entity_to_view = es.get_item_by_composite_key(composite_key)
     entity_type = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
     entity_type.initialize(entity_to_view)
 
@@ -145,7 +146,7 @@ def edit_workout_details(context=None):
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
-    entity_to_view = es.get_item_by_composite_key2(composite_key)
+    entity_to_view = es.get_item_by_composite_key(composite_key)
     entity_type = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
     entity_type.initialize(entity_to_view)
     print(f"editing workoug: {json.dumps(entity_to_view, indent=4)}")
@@ -225,7 +226,7 @@ def add_exercise(context=None, workout_id=None):
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
     entity_instance = get_fitnessclub_entity_type_for_entity("ExerciseTable")
-    ex = es.get_item_by_composite_key2(composite_key)
+    ex = es.get_item_by_composite_key(composite_key)
     if not ex:
         abort(404)
     
@@ -267,7 +268,7 @@ def add_workout(context=None, workout_id=None):
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
     
-    source_workout = es.get_item_by_composite_key2(composite_key)
+    source_workout = es.get_item_by_composite_key(composite_key)
     if not source_workout:
         abort(404)
     
@@ -631,7 +632,7 @@ def exercise_reviewer_review(context=None):
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
 
-    ex = es.get_item_by_composite_key2(composite_key)
+    ex = es.get_item_by_composite_key(composite_key)
     if not ex:
         abort(404)
     
@@ -755,7 +756,7 @@ def view_workout(context=None):
     workout_composite_key = eval(workout_key_str) if workout_key_str else None
     es = EntityStore()
     entity_instance = get_fitnessclub_entity_type_for_entity("WorkoutTable")
-    workout = es.get_item_by_composite_key2(workout_composite_key)
+    workout = es.get_item_by_composite_key(workout_composite_key)
     import json
     # print(json.dumps(workout, indent=4))
     wrkout_exercises = get_exercises_from_workout(workout)
@@ -831,8 +832,23 @@ def exercise_feedback(context=None, exercise_id=None):
     # adjust = data.get("adjust")
     # TODO: record feedback (e.g. save to DB, adjust next workout)
     current_app.logger.info(f"Feedback for {exercise_id}: {adjust!r}")
-    # We return no content, HTMX hx-swap="none" will leave UI untouched
-    return ("", 204)
+
+    current_workout_state = get_active_workout_state()
+
+    adjustments = current_workout_state.get('adjustments', {})
+    exercise_adjustment = adjustments.get(exercise_id, 0)
+    if adjust == 'up':
+        exercise_adjustment += 5
+    elif adjust == 'down':
+        exercise_adjustment -= 5
+    adjustments[exercise_id] = exercise_adjustment
+    current_workout_state['adjustments'] = adjustments
+    update_active_workout_state(current_workout_state)
+
+    adjust_str = format_exercise_adjustment(exercise_adjustment)
+
+    return f'<p id="adjust-{exercise_id}-{workout_id}" hx-swap-oob="true" style="text-align: right;">{adjust_str}</p>'
+
 
 @bp.route('/view_workout_detail')
 @auth.login_required
@@ -840,7 +856,7 @@ def view_workout_detail(context):
     es = EntityStore()
     workout_key_str = request.args.get("workout_key", None)
     workout_key = eval(workout_key_str) if workout_key_str else None
-    workout = es.get_item_by_composite_key2(workout_key)
+    workout = es.get_item_by_composite_key(workout_key)
     wrkout_exercises = get_exercises_from_workout(workout)
     exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
 
@@ -852,3 +868,19 @@ def view_workout_detail(context):
         workout=workout,
         exercises=exercises
     )
+
+def format_exercise_adjustment(exercise_adjustment=None):
+    try:
+        if exercise_adjustment is None:
+            return ''
+        if int(exercise_adjustment) > 0:
+            adjust_str = f'next workout: +{exercise_adjustment}'
+        elif int(exercise_adjustment) < 0:
+            adjust_str = f'next workout: - {abs(exercise_adjustment)}'
+        else:
+            adjust_str = ''
+    except Exception as e:
+        adjust_str = ''
+    return adjust_str
+
+bp.add_app_template_filter(format_exercise_adjustment, name='format_adjustment')

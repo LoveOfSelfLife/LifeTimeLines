@@ -1,68 +1,62 @@
 <div class="list-group">
   {% for item in section.exercises %}
-    {% set ex = exercises[item.id] %}
-    <div class="list-group-item">
-      <div class="d-flex justify-content-between align-items-center">
-        <div>
-          {# <h6 class="mb-1"></h6>
-            <a href="#" hx-on::click="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')">{{ ex.name }}</a></h6> #}
-          {# <h6 class="mb-1">
-            <input type="button" onclick="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')" value="{{ ex.name }}"/></h6> #}
-          <h6 class="mb-1 clickable-text" onclick="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')">{{ ex.name }}</h6>
+  {% set ex = exercises[item.id] %}
+  <div class="list-group-item">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
 
-          <strong class="font-weight-bold">
-            <!-- {{ ex.equipment_detail or ex.equipment | capitalize }} · -->
-            {% if item.parameters.sets %}
-            Sets: {{ item.parameters.sets }}
-            {% endif %}
-            {% if item.parameters.reps %}
-              Reps: {{ item.parameters.reps }}
-            {% endif %}
-            {% if item.parameters.weight %}
-              @ {{ item.parameters.weight }} {{ item.parameters['weight_unit'] or 'kg' }}
-            {% endif %}
-            {% if item.parameters.time %}
-              for {{ item.parameters.time }} secs/set
-            {% endif %}
-          </strong>
+        <h6 class="mb-1 clickable-text" onclick="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')">{{ ex.name }}
+        </h6>
+
+        <strong class="font-weight-bold">
+          <!-- {{ ex.equipment_detail or ex.equipment | capitalize }} · -->
+          {% if item.parameters.sets %}
+          Sets: {{ item.parameters.sets }}
+          {% endif %}
+          {% if item.parameters.reps %}
+          Reps: {{ item.parameters.reps }}
+          {% endif %}
+          {% if item.parameters.weight %}
+          @ {{ item.parameters.weight }} {{ item.parameters['weight_unit'] or 'kg' }}
+          {% endif %}
+          {% if item.parameters.time %}
+          for {{ item.parameters.time }} secs/set
+          {% endif %}
+        </strong>
+      </div>
+      <div>
+        <div class="row">
+          <!-- display the adjustment -->
+          <p id="adjust-{{ ex.id }}-{{ workout.id }}" style="text-align: right;">{{
+            adjustments[ex.id]|format_adjustment() }}</p>
         </div>
-
         <div class="btn-group btn-group-sm" role="group">
           {% if ex.images and ex.images|length > 0 %}
           {# this is not showing the image in the modal, fix this #}
 
-          <img
-              src="{{ ex.images[-1].url }}"
-              {% if allow_popups == 'true' %}
-                data-full-url="{{ ex.images[-1].url }}"
-                data-bs-toggle="modal"
-                data-bs-target="#imageModal"
-                style="max-height: 50px; max-width: 50px; cursor:pointer;"
-              {% else %}
-                style="max-height: 50px; max-width: 50px;"
-              {% endif %}
-              class="img-fluid rounded"
-            >
-          {% endif %} 
+          <img src="{{ ex.images[-1].url }}" {% if allow_popups=='true' %} data-full-url="{{ ex.images[-1].url }}"
+            data-bs-toggle="modal" data-bs-target="#imageModal"
+            style="max-height: 50px; max-width: 50px; cursor:pointer;" {% else %}
+            style="max-height: 50px; max-width: 50px;" {% endif %} class="img-fluid rounded">
+          {% endif %}
           <!-- Feedback up/down -->
-          <button
-            class="btn btn-outline-primary"
+
+          <button class="btn btn-outline-primary"
             hx-post="{{ url_for('workouts.exercise_feedback', workout_id=workout.id, exercise_id=ex.id) }}"
-            hx-vals='{"adjust":"up"}'
-            hx-swap="none">
+            hx-vals='{"adjust":"up"}' hx-swap="none">
             🔼
           </button>
-          <button
-            class="btn btn-outline-primary"
+          <button class="btn btn-outline-primary"
             hx-post="{{ url_for('workouts.exercise_feedback', workout_id=workout.id, exercise_id=ex.id) }}"
-            hx-vals='{"adjust":"down"}'
-            hx-swap="none">
+            hx-vals='{"adjust":"down"}' hx-swap="none">
             🔽
           </button>
+
         </div>
       </div>
-      <!-- Placeholder for details -->
-      <div id="details-{{ ex.id }}" class="mt-2 exercise-details"></div>
     </div>
+    <!-- Placeholder for details -->
+    <div id="details-{{ ex.id }}" class="mt-2 exercise-details"></div>
+  </div>
   {% endfor %}
 </div>
