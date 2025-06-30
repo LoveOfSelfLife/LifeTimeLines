@@ -13,8 +13,8 @@ def get_members_program(member_id, current_date_dt=None):
     # current_date_dt is a datetime object, but start_date and end_date are likely strings, so we need to convert them to datetime objects
     
     for program in programs:
-        start_date = dt.fromisoformat(program.get('start_date'))
-        end_date = dt.fromisoformat(program.get('end_date'))
+        start_date = dt.fromisoformat(program.get('start_date'))if program.get('start_date') else None
+        end_date = dt.fromisoformat(program.get('end_date')) if program.get('end_date') else None
         if start_date and end_date:
             if start_date <= current_date_dt <= end_date:
                 return program
