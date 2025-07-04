@@ -99,6 +99,7 @@ def generate_current_home_page_view(member):
     end_date = (today + timedelta(days=14)).strftime("%Y-%m-%d")    
     _, sorted_events = cal.get_dates_and_events_stream(date_min=start_date, date_max=end_date)
     member_id = member.get('id', None)
+    event = None
     if sorted_events:
         event, workout_datetime, time_until_workout = get_next_workout_event(sorted_events, member_id)
     
