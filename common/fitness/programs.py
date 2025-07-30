@@ -17,7 +17,10 @@ def get_members_program(member_id, current_date_dt=None):
         end_date = dt.fromisoformat(program.get('end_date')) if program.get('end_date') else None
         if start_date and end_date:
             if start_date <= current_date_dt <= end_date:
-                return program
+                # only return the program if it has workouts
+                if program.get('workouts', []):
+                    print(f"Found active program for member {member_id}: {program}")
+                    return program
     return None
 
 def get_next_workout_in_program(program, member_id):
