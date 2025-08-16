@@ -7,7 +7,7 @@ from common.fitness.workout_state import get_active_workout_state
 from common.fitness.workouts import get_scheduled_workouts
 from datetime import datetime, timedelta, timezone
 from flask import render_template, render_template_string, request, redirect, session, url_for
-
+from common.fitness.hx_common import rm_spaces
 from common.fitness.get_calendar_service import get_calendar_service
 
 def format_seconds(N: int) -> str:
@@ -88,7 +88,8 @@ def generate_current_home_page_view(member):
                 cancel_workout_url=url_for('program.cancel_workout',
                                         workout_instance_key=workout_instance_key),
                 adjustments=current_state.get('adjustments', {}),
-                show_finish_button=True
+                show_finish_button=True,
+                rs=rm_spaces
             )
 
     

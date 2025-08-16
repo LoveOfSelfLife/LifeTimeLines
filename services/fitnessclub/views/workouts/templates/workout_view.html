@@ -12,15 +12,15 @@
 <div class="accordion" id="sectionsAccordion">
   {% for section in workout.sections %}
     <div class="accordion-item">
-      <h2 class="accordion-header" id="hdr-{{ section.name }}">
+      <h2 class="accordion-header" id="hdr-{{ rs(section.name) }}">
 
       <button
-        class="accordion-button {% if section.name!=default_section %}collapsed{% endif %}"
+        class="accordion-button {% if rs(section.name)!=rs(default_section) %}collapsed{% endif %}"
         type="button"
         data-bs-toggle="collapse"
-        data-bs-target="#collapse-{{ section.name }}"
-        aria-expanded="{{ 'true' if section.name==default_section else 'false' }}"
-        aria-controls="collapse-{{ section.name }}"
+        data-bs-target="#collapse-{{ rs(section.name) }}"
+        aria-expanded="{{ 'true' if rs(section.name)==rs(default_section) else 'false' }}"
+        aria-controls="collapse-{{ rs(section.name) }}"
       >
         <span class="accordion-header-icon">
           <!-- simple chevron icon: you can also use FontAwesome or similar -->
@@ -35,8 +35,8 @@
 
       </h2>
       <div
-        id="collapse-{{ section.name }}"
-        class="accordion-collapse collapse{% if section.name==default_section %} show{% endif %}"
+        id="collapse-{{ rs(section.name) }}"
+        class="accordion-collapse collapse{% if rs(section.name)==rs(default_section) %} show{% endif %}"
         data-bs-parent="#sectionsAccordion"
 
 

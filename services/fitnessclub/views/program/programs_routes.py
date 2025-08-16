@@ -8,6 +8,7 @@ from common.fitness.cacher import delete_from_cache, get_cache_value, set_cache_
 from common.fitness.entities_getter import get_entity, get_entity2, get_filtered_entities
 from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import hx_render_template
+from common.fitness.hx_common import rm_spaces
 from common.fitness.member_entity import MembershipRegistry, get_member_detail_from_user_context
 from common.fitness.program_entity import ProgramEntity
 from common.fitness.workout_entity import ProgramWorkoutEntity, ProgramWorkoutInstanceEntity, get_exercises_from_workout
@@ -454,7 +455,7 @@ def start_workout(context=None, workout_key=None):
                                                                                                           adjustments_for_next_workout)
   
     last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
-
+    
     return render_template(
         "workout_view.html",
         workout=workout_instance,
@@ -467,7 +468,8 @@ def start_workout(context=None, workout_key=None):
         finish_workout_url=url_for('program.finish_workout', workout_instance_key=workout_instance_key),
         cancel_workout_url=url_for('program.cancel_workout', workout_instance_key=workout_instance_key),
         adjustments=adjustments,
-        show_finish_button=True
+        show_finish_button=True,
+        rs=rm_spaces
     )
  
 
@@ -514,7 +516,7 @@ def schedule_and_start(context=None):
                                                                                                           adjustments_for_next_workout)
   
     last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
-
+    
     return render_template(
         "workout_view.html",
         workout=workout_instance,
@@ -527,7 +529,8 @@ def schedule_and_start(context=None):
         finish_workout_url=url_for('program.finish_workout', workout_instance_key=workout_instance_key),
         cancel_workout_url=url_for('program.cancel_workout', workout_instance_key=workout_instance_key),
         adjustments=adjustments,
-        show_finish_button=True
+        show_finish_button=True,
+        rs=rm_spaces
     )
 
 def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, last_program_workout_instance_key, adjustments_for_next_workout_str):
