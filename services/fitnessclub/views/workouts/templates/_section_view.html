@@ -25,10 +25,13 @@
         </strong>
       </div>
       <div>
+
         <div class="row">
+          {% if adjustments %}
           <!-- display the adjustment -->
           <p id="adjust-{{ ex.id }}-{{ workout.id }}" style="text-align: right;">{{
             adjustments[ex.id]|format_adjustment() }}</p>
+            {% endif %}
         </div>
         <div class="btn-group btn-group-sm" role="group">
           {% if ex.images and ex.images|length > 0 %}

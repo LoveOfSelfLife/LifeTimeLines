@@ -6,6 +6,7 @@ from common.fitness.cacher import get_cache_value, set_cache_value, delete_from_
 from common.fitness.entities_getter import get_filtered_entities
 from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.hx_common import hx_render_template
+from common.fitness.hx_common import rm_spaces
 from common.fitness.workout_entity import get_exercises_from_workout
 from common.fitness.workout_state import get_active_workout_state, update_active_workout_state
 bp = Blueprint('workouts', __name__, template_folder='templates')
@@ -26,10 +27,14 @@ def new_workout(name='New Workout'):
         'name': name,
         'sections': [
             {'name':'warmup','exercises':[]},
+            {'name':'ramp','exercises':[]},
             {'name':'core','exercises':[]},
+            {'name':'power','exercises':[]},            
+            {'name':'core-power','exercises':[]},
             {'name':'combination','exercises':[]},
             {'name':'strength','exercises':[]},
-            {'name':'cardio','exercises':[]},
+            {'name':'resistance','exercises':[]},
+            {'name':'cardio','exercises':[]}
         ]
     }
 
@@ -767,12 +772,14 @@ def view_workout(context=None):
         abort(404)
     # new: only use the session value if it exists
     last = session.get(f"last_section_{workout_key_str}")  # no fallback
+    
     return render_template(
         "workout_view.html",
         workout=workout,
         exercises=exercises,
         default_section=last,
-        show_finish_button=False
+        show_finish_button=False,
+        rs=rm_spaces
     )
 
 from common.fitness.entities_getter import get_entity

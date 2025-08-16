@@ -5,6 +5,8 @@ class FirstTimeUserException(Exception):
     def __init__(self):
         super().__init__("First time user")
 
+def rm_spaces(s):
+    return s.replace(' ', '_').lower() if s else s
 
 class UnregisteredMemberException(Exception):
     def __init__(self):
