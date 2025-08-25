@@ -12,16 +12,16 @@
           <!-- {{ ex.equipment_detail or ex.equipment | capitalize }} · -->
           <span id="params-{{ ex.id }}-{{ workout.id }}">
           {% if item.parameters.sets %}
-          Sets: {{ current_parameters[ex.id].sets if current_parameters and current_parameters[ex.id] else item.parameters.sets }}
+             {{ current_parameters[ex.id].sets if current_parameters and current_parameters[ex.id] else item.parameters.sets }} set,
           {% endif %}
           {% if item.parameters.reps %}
-          Reps: {{ current_parameters[ex.id].reps if current_parameters and current_parameters[ex.id] else item.parameters.reps }}
+             {{ current_parameters[ex.id].reps if current_parameters and current_parameters[ex.id] else item.parameters.reps }} reps,
           {% endif %}
           {% if item.parameters.weight %}
-          @ {{ current_parameters[ex.id].weight if current_parameters and current_parameters[ex.id] else item.parameters.weight }} {{ (current_parameters[ex.id].weight_unit if current_parameters and current_parameters[ex.id] else item.parameters['weight_unit']) or 'kg' }}
+             at {{ current_parameters[ex.id].weight if current_parameters and current_parameters[ex.id] else item.parameters.weight }} {{ (current_parameters[ex.id].weight_unit if current_parameters and current_parameters[ex.id] else item.parameters['weight_unit']) or 'kg' }}
           {% endif %}
           {% if item.parameters.time %}
-          for {{ current_parameters[ex.id].time if current_parameters and current_parameters[ex.id] else item.parameters.time }} secs/set
+             for {{ current_parameters[ex.id].time if current_parameters and current_parameters[ex.id] else item.parameters.time }} secs/set
           {% endif %}
           </span>
           <button class="btn btn-sm btn-outline-secondary ms-2" 
