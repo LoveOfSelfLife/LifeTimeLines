@@ -39,7 +39,6 @@ def new_workout(name='New Workout'):
     }
 
 # ──────────────────────────────────────────────────
-
 @bp.route('/')
 @auth.login_required
 def index(context=None):
@@ -117,30 +116,6 @@ def filter_dialog(context=None):
                               args=request.args,
                               context=context)
 
-@bp.route('/view')
-@auth.login_required
-def view_workout_details(context=None):
-    # table_id = "WorkoutTable"
-    # entity_instance = get_fitnessclub_entity_type_for_entity(table_id)
-
-    # composite_key_str = request.args.get('key', None)
-    # composite_key = eval(composite_key_str) if composite_key_str else None
-    # es = EntityStore()
-    # entity_to_view = es.get_item_by_composite_key(entity_instance, composite_key)
-    
-    # return render_workout_popup_viewer_html(context, entity_to_view)
-    WORKOUT_ENTITY_NAME = "WorkoutTable"
-    entity_instance = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
-
-    composite_key_str = request.args.get('key', None)
-    composite_key = eval(composite_key_str) if composite_key_str else None
-    es = EntityStore()
-    entity_to_view = es.get_item_by_composite_key(composite_key)
-    entity_type = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
-    entity_type.initialize(entity_to_view)
-
-    set_cache_value('current_workout', entity_type)
-    return redirect(url_for('workouts.builder', workout_id=entity_type['id']))
 
 @bp.route('/edit')
 @auth.login_required
@@ -770,6 +745,13 @@ def view_workout(context=None):
 
     if not workout:
         abort(404)
+    
+    # Get current workout state to see if there are any parameter overrides
+    current_workout_state = get_active_workout_state()
+    current_parameters = {}
+    if current_workout_state:
+        current_parameters = current_workout_state.get('exercise_parameters', {})
+    
     # new: only use the session value if it exists
     last = session.get(f"last_section_{workout_key_str}")  # no fallback
     
@@ -777,6 +759,7 @@ def view_workout(context=None):
         "workout_view.html",
         workout=workout,
         exercises=exercises,
+        current_parameters=current_parameters,
         default_section=last,
         show_finish_button=False,
         rs=rm_spaces
@@ -794,18 +777,20 @@ def view_section(context=None, workout_id=None, section_name=None):
     section = next((s for s in workout["sections"] if s["name"] == section_name), None)
     if not section:
         abort(404)
-    # Persist the user’s current section in session
+    
+    # Get current workout state to see if there are any parameter overrides
+    current_workout_state = get_active_workout_state()
+    current_parameters = {}
+    if current_workout_state:
+        current_parameters = current_workout_state.get('exercise_parameters', {})
+    
+    # Persist the user's current section in session
     session[f"last_section_{workout_id}"] = section_name
     return render_template("_section_view.html",
                            section=section,
-                           exercises=exercises)
-
-# @bp.route("/viewer/workout/<workout_id>/finish", methods=["POST"])
-# @auth.login_required
-# def finish_workout(context=None, workout_id=None):
-#     # Called when the workout is done
-#     session.pop(f"last_section_{workout_id}", None)
-#     return redirect(url_for("view_workout", key=workout_id))
+                           workout=workout,
+                           exercises=exercises,
+                           current_parameters=current_parameters)
 
 @bp.route("/viewer/workout/<workout_id>/set_section/<section_name>", methods=["POST"])
 @auth.login_required
@@ -856,7 +841,9 @@ def exercise_feedback(context=None, exercise_id=None):
 
     return f'<p id="adjust-{exercise_id}-{workout_id}" hx-swap-oob="true" style="text-align: right;">{adjust_str}</p>'
 
-
+# this route is used to display the details of workouts that have been completed
+# it is used in the workout history page, and it displays the details of a workout, including date & time of the workout, 
+# the exercises performed, and the parameters used for each exercise
 @bp.route('/view_workout_detail')
 @auth.login_required
 def view_workout_detail(context):
@@ -891,3 +878,144 @@ def format_exercise_adjustment(exercise_adjustment=None):
     return adjust_str
 
 bp.add_app_template_filter(format_exercise_adjustment, name='format_adjustment')
+
+
+
+@bp.route("/viewer/exercise/edit_params")
+@auth.login_required
+def edit_exercise_parameters(context=None):
+    """Display the parameter edit dialog for an exercise in the current workout"""
+    current_app.logger.info(f"=== EDIT PARAMS ROUTE CALLED ===")
+    exercise_id = request.args.get("exercise_id", None)
+    workout_id = request.args.get("workout_id", None)
+    workout_instance_key = request.args.get("workout_instance_key", None)
+    current_app.logger.info(f"exercise_id from args: {exercise_id}")
+    current_app.logger.info(f"workout_id from args: {workout_id}")
+    current_app.logger.info(f"workout_instance_key from args: {workout_instance_key}")
+    current_app.logger.info(f"request.args: {request.args}")
+    current_app.logger.info(f"request.url: {request.url}")
+    
+    if not exercise_id:
+        abort(400, "exercise_id is required")
+    if not workout_instance_key:
+        abort(400, "workout_key is required")
+    
+    # Get the exercise details
+    exercise = get_entity("ExerciseTable", exercise_id)
+    current_app.logger.info(f"exercise found: {exercise is not None}")
+    if not exercise:
+        abort(404)
+    es = EntityStore()
+    # Get the workout details to find the exercise parameters
+    workout_instance = es.get_item_by_composite_key(workout_instance_key)
+    # workout = get_entity("WorkoutTable", workout_id)
+    if not workout_instance:
+        abort(404)
+    
+    # Find the exercise item in the workout to get original parameters
+    item = None
+    current_app.logger.info(f"Looking for exercise_id '{exercise_id}' in workout sections...")
+    current_app.logger.info(f"Workout sections: {[s.get('name') for s in workout_instance.get('sections', [])]}")
+    
+    for section in workout_instance.get("sections", []):
+        section_name = section.get("name", "unknown")
+        current_app.logger.info(f"Checking section '{section_name}' with {len(section.get('exercises', []))} exercises")
+        for ex_item in section.get("exercises", []):
+            ex_item_id = ex_item.get("id")
+            current_app.logger.info(f"  Comparing '{ex_item_id}' with '{exercise_id}' - match: {ex_item_id == exercise_id}")
+            if ex_item_id == exercise_id:
+                item = ex_item
+                current_app.logger.info(f"Found exercise in section '{section_name}'!")
+                break
+        if item:
+            break
+    
+    if not item:
+        current_app.logger.error(f"Exercise '{exercise_id}' not found in any workout section!")
+        current_app.logger.error(f"Available exercise IDs in workout: {[ex.get('id') for section in workout.get('sections', []) for ex in section.get('exercises', [])]}")
+        abort(404, "Exercise not found in workout")
+    
+    # Get current workout state to see if there are any parameter overrides
+    current_workout_state = get_active_workout_state()
+    current_parameters = {}
+    if current_workout_state:
+        exercise_parameters = current_workout_state.get('exercise_parameters', {})
+        current_parameters = exercise_parameters.get(exercise_id, {})
+    
+    return render_template("_exercise_parameters_edit.html",
+                           exercise=exercise,
+                           workout=workout_instance,
+                           workout_id=workout_id,
+                           workout_instance_key=workout_instance_key,
+                           item=item,
+                           current_parameters=current_parameters)
+
+@bp.route("/viewer/exercise/save_params", methods=["POST"])
+@auth.login_required
+def save_exercise_parameters(context=None):
+    """Save updated exercise parameters for the current workout"""
+    exercise_id = request.args.get("exercise_id", None)
+    workout_id = request.args.get("workout_id", None)
+    workout_instance_key = request.args.get("workout_instance_key", None)
+    if not exercise_id:
+        abort(400, "exercise_id is required")
+    if not workout_id:
+        abort(400, "workout_id is required")
+    
+    # Get the exercise details
+    exercise = get_entity("ExerciseTable", exercise_id)
+    if not exercise:
+        abort(404)
+    
+    es = EntityStore()
+    # Get the workout details to find the exercise parameters
+    workout_instance = es.get_item_by_composite_key(workout_instance_key)
+    # workout = get_entity("WorkoutTable", workout_id)
+    if not workout_instance :
+        abort(404)
+    
+    # Find the exercise item in the workout to get original parameters
+    item = None
+    for section in workout_instance.get("sections", []):
+        for ex_item in section.get("exercises", []):
+            if ex_item.get("id") == exercise_id:
+                item = ex_item
+                break
+        if item:
+            break
+    
+    if not item:
+        abort(404, "Exercise not found in workout")
+    
+    # Get form data for new parameters
+    new_parameters = {}
+    if request.form.get("sets"):
+        new_parameters["sets"] = int(request.form.get("sets"))
+    if request.form.get("reps"):
+        new_parameters["reps"] = int(request.form.get("reps"))
+    if request.form.get("weight"):
+        new_parameters["weight"] = float(request.form.get("weight"))
+    if request.form.get("weight_unit"):
+        new_parameters["weight_unit"] = request.form.get("weight_unit")
+    if request.form.get("time"):
+        new_parameters["time"] = int(request.form.get("time"))
+    
+    current_app.logger.info(f"Saving exercise parameters for {exercise_id}: {new_parameters}")
+    
+    # Update workout state with new parameters
+    current_workout_state = get_active_workout_state()
+    if not current_workout_state:
+        current_workout_state = {}
+    
+    exercise_parameters = current_workout_state.get('exercise_parameters', {})
+    exercise_parameters[exercise_id] = new_parameters
+    current_workout_state['exercise_parameters'] = exercise_parameters
+    update_active_workout_state(current_workout_state)
+    
+    # Return updated parameter display HTML
+    return render_template("_exercise_parameters_display.html",
+                           exercise_id=exercise_id,
+                           workout_id=workout_id,
+                           workout_instance_key=workout_instance_key,
+                           item=item,
+                           current_parameters=new_parameters)

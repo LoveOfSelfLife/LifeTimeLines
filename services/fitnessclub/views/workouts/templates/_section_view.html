@@ -10,18 +10,30 @@
 
         <strong class="font-weight-bold">
           <!-- {{ ex.equipment_detail or ex.equipment | capitalize }} · -->
+          <span id="params-{{ ex.id }}-{{ workout.id }}">
           {% if item.parameters.sets %}
-          Sets: {{ item.parameters.sets }}
+          Sets: {{ current_parameters[ex.id].sets if current_parameters and current_parameters[ex.id] else item.parameters.sets }}
           {% endif %}
           {% if item.parameters.reps %}
-          Reps: {{ item.parameters.reps }}
+          Reps: {{ current_parameters[ex.id].reps if current_parameters and current_parameters[ex.id] else item.parameters.reps }}
           {% endif %}
           {% if item.parameters.weight %}
-          @ {{ item.parameters.weight }} {{ item.parameters['weight_unit'] or 'kg' }}
+          @ {{ current_parameters[ex.id].weight if current_parameters and current_parameters[ex.id] else item.parameters.weight }} {{ (current_parameters[ex.id].weight_unit if current_parameters and current_parameters[ex.id] else item.parameters['weight_unit']) or 'kg' }}
           {% endif %}
           {% if item.parameters.time %}
-          for {{ item.parameters.time }} secs/set
+          for {{ current_parameters[ex.id].time if current_parameters and current_parameters[ex.id] else item.parameters.time }} secs/set
           {% endif %}
+          </span>
+          <button class="btn btn-sm btn-outline-secondary ms-2" 
+                  hx-get="/workouts/viewer/exercise/edit_params?exercise_id={{ ex.id }}&workout_instance_key={{ workout_instance_key }}&workout_id={{ workout.id }}"
+                  {# hx-get="{{ url_for('workouts.edit_exercise_parameters') }}?exercise_id={{ ex.id|urlencode }}&workout_id={{ workout.id|urlencode }}" #}
+                  hx-target="#modals-here"
+                  hx-swap="innerHTML"
+                  data-bs-toggle="modal"
+                  data-bs-target="#modals-here"
+                  title="Edit parameters for this workout">
+            ✏️
+          </button>
         </strong>
       </div>
       <div>
@@ -31,7 +43,9 @@
           <!-- display the adjustment -->
           <p id="adjust-{{ ex.id }}-{{ workout.id }}" style="text-align: right;">{{
             adjustments[ex.id]|format_adjustment() }}</p>
-            {% endif %}
+          {% else %}
+          <p id="adjust-{{ ex.id }}-{{ workout.id }}" style="text-align: right;"></p>
+          {% endif %}
         </div>
         <div class="btn-group btn-group-sm" role="group">
           {% if ex.images and ex.images|length > 0 %}

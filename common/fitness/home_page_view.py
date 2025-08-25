@@ -78,6 +78,7 @@ def generate_current_home_page_view(member):
                 "workout_view.html",
                 workout=workout_instance,
                 exercises=exercises,
+                current_parameters=current_state.get('exercise_parameters', {}),
                 default_section=last,
                 program=program_entity,
                 program_key=program_composite_key,

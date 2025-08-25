@@ -214,6 +214,9 @@ class EntityStore :
         
     
     def get_item_by_composite_key(self, composite_key):
+        # if composite_key is a string, then split it into its components
+        if composite_key and isinstance(composite_key, str):
+            composite_key = eval(composite_key)
         (key, partition, entity_name) = tuple(composite_key)
         # eobj = EntityObject.get_entity_class_from_table_name(entity_name)()
         eobj = EntityObject.get_entity_class_from_table_name(entity_name)()

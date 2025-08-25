@@ -12,7 +12,8 @@ def initialize_active_workout_state(workout_instance_key, program_key, scheduled
         'workout_instance_key': workout_instance_key,
         'program_key': program_key,
         'scheduled_workout_event_id': scheduled_workout_event_id,
-        'workout_adjustments': {}
+        'workout_adjustments': {},
+        'exercise_parameters': {}
     }
     session['current_workout_instance_state'] = json.dumps(current_state)
 
