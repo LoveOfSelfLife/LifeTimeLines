@@ -456,10 +456,17 @@ def start_workout(context=None, workout_key=None):
   
     last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
     
+    # Get current workout state to see if there are any parameter overrides
+    current_workout_state = get_active_workout_state()
+    current_parameters = {}
+    if current_workout_state:
+        current_parameters = current_workout_state.get('exercise_parameters', {})
+    
     return render_template(
         "workout_view.html",
         workout=workout_instance,
         exercises=exercises,
+        current_parameters=current_parameters,
         default_section=last,
         program=program_entity,
         program_key=program_composite_key,
@@ -517,10 +524,17 @@ def schedule_and_start(context=None):
   
     last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
     
+    # Get current workout state to see if there are any parameter overrides
+    current_workout_state = get_active_workout_state()
+    current_parameters = {}
+    if current_workout_state:
+        current_parameters = current_workout_state.get('exercise_parameters', {})
+    
     return render_template(
         "workout_view.html",
         workout=workout_instance,
         exercises=exercises,
+        current_parameters=current_parameters,
         default_section=last,
         program=program_entity,
         program_key=program_key_str,
@@ -613,8 +627,18 @@ def finish_workout(context=None, workout_instance_key=None):
 
     current_workout_state = get_active_workout_state()
     adjustments_for_next_workout = current_workout_state.get('adjustments', {})
-    
+    exercise_parameters = current_workout_state.get('exercise_parameters', {})
+
+    # here we want to update the parameters of the exercises in the workout instance
+    # with the parameters from the current workout state
     # clear the 'current_workout_instance_state' from the session
+    for exercise, params in exercise_parameters.items():
+        for section in workout_instance.get('sections', []):
+            for ex in section.get('exercises', []):
+                if ex.get('id', None) == exercise:
+                    ex['parameters'] = params
+    es.upsert_item(workout_instance)
+    
     clear_active_workout_state()
     # session.pop('current_workout_instance_state', None)
     session.pop(f"last_section_{workout_instance['id']}", None)

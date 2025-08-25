@@ -11,47 +11,52 @@
 
 <div class="accordion" id="sectionsAccordion">
   {% for section in workout.sections %}
-    <div class="accordion-item">
-      <h2 class="accordion-header" id="hdr-{{ rs(section.name) }}">
+    {% set section_length = section.exercises|length %}
+      {% if section_length > 0 %}
+        {% set default_section = workout.sections[0].name if loop.first else default_section %}
+        {# Render each section with its exercises #}
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="hdr-{{ rs(section.name) }}">
 
-      <button
-        class="accordion-button {% if rs(section.name)!=rs(default_section) %}collapsed{% endif %}"
-        type="button"
-        data-bs-toggle="collapse"
-        data-bs-target="#collapse-{{ rs(section.name) }}"
-        aria-expanded="{{ 'true' if rs(section.name)==rs(default_section) else 'false' }}"
-        aria-controls="collapse-{{ rs(section.name) }}"
-      >
-        <span class="accordion-header-icon">
-          <!-- simple chevron icon: you can also use FontAwesome or similar -->
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path fill-rule="evenodd"
-                  d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 
-                    .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
-          </svg>
-        </span>
-        {{ section.name.title() }} ({{ section.exercises|length }})
-      </button>
+          <button
+            class="accordion-button {% if rs(section.name)!=rs(default_section) %}collapsed{% endif %}"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#collapse-{{ rs(section.name) }}"
+            aria-expanded="{{ 'true' if rs(section.name)==rs(default_section) else 'false' }}"
+            aria-controls="collapse-{{ rs(section.name) }}"
+          >
+            <span class="accordion-header-icon">
+              <!-- simple chevron icon: you can also use FontAwesome or similar -->
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path fill-rule="evenodd"
+                      d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 
+                        .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+              </svg>
+            </span>
+            {{ section.name.title() }} ({{ section.exercises|length }})
+          </button>
 
-      </h2>
-      <div
-        id="collapse-{{ rs(section.name) }}"
-        class="accordion-collapse collapse{% if rs(section.name)==rs(default_section) %} show{% endif %}"
-        data-bs-parent="#sectionsAccordion"
+          </h2>
+          <div
+            id="collapse-{{ rs(section.name) }}"
+            class="accordion-collapse collapse{% if rs(section.name)==rs(default_section) %} show{% endif %}"
+            data-bs-parent="#sectionsAccordion"
 
 
-        hx-post="{{ url_for('workouts.set_last_section',
-                             workout_id=workout.id,
-                             section_name=section.name) }}"
-        hx-trigger="show.bs.collapse"
-        hx-swap="none"
-      >
-        <div class="accordion-body p-0">
-          {% include "_section_view.html" %}
+            hx-post="{{ url_for('workouts.set_last_section',
+                                workout_id=workout.id,
+                                section_name=section.name) }}"
+            hx-trigger="show.bs.collapse"
+            hx-swap="none"
+          >
+            <div class="accordion-body p-0">
+              {% include "_section_view.html" %}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-  {% endfor %}
+      {% endif %}
+    {% endfor %}
 
 {% if show_finish_button %}
   <!-- Optional “Finish Workout” button -->
@@ -62,7 +67,7 @@
     <input type="hidden" name="workout_id" value="{{ workout.id }}">
     <input type="hidden" name="program_id" value="{{ program.id }}">
     <input type="hidden" name="scheduled_workout_event_id" value="{{ scheduled_workout_event_id }}">
-    <input type="hidden" name="workout_key" value="{{ workout_key }}">
+    <input type="hidden" name="workout_instance_key" value="{{ workout_instance_key }}">
     <input type="hidden" name="program_key" value="{{ program_key }}">
     <button type="submit" class="btn btn-success mt-3">Finish Workout</button>
     {# add a cancel workout button #}

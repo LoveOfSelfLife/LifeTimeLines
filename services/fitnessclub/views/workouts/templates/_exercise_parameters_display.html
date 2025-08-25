@@ -1,0 +1,14 @@
+<span id="params-{{ exercise_id }}-{{ workout_id }}">
+{% if item.parameters.sets %}
+Sets: {{ current_parameters.sets if current_parameters.sets is not none else item.parameters.sets }}
+{% endif %}
+{% if item.parameters.reps %}
+Reps: {{ current_parameters.reps if current_parameters.reps is not none else item.parameters.reps }}
+{% endif %}
+{% if item.parameters.weight %}
+@ {{ current_parameters.weight if current_parameters.weight is not none else item.parameters.weight }} {{ (current_parameters.weight_unit if current_parameters.weight_unit else item.parameters.weight_unit) or 'kg' }}
+{% endif %}
+{% if item.parameters.time %}
+for {{ current_parameters.time if current_parameters.time is not none else item.parameters.time }} secs/set
+{% endif %}
+</span>
