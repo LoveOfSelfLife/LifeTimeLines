@@ -24,14 +24,15 @@
              for {{ current_parameters[ex.id].time if current_parameters and current_parameters[ex.id] else item.parameters.time }} secs/set
           {% endif %}
           </span>
-          <button class="btn btn-sm btn-outline-secondary ms-2" 
-                  hx-get="/workouts/viewer/exercise/edit_params?exercise_id={{ ex.id }}&workout_instance_key={{ workout_instance_key }}&workout_id={{ workout.id }}"
-                  {# hx-get="{{ url_for('workouts.edit_exercise_parameters') }}?exercise_id={{ ex.id|urlencode }}&workout_id={{ workout.id|urlencode }}" #}
-                  hx-target="#modals-here"
-                  hx-swap="innerHTML"
-                  data-bs-toggle="modal"
-                  data-bs-target="#modals-here"
-                  title="Edit parameters for this workout">
+          {% if show_finish_button %}          
+            <button class="btn btn-sm btn-outline-secondary ms-2" 
+                    hx-get="/workouts/viewer/exercise/edit_params?exercise_id={{ ex.id }}&workout_instance_key={{ workout_instance_key }}&workout_id={{ workout.id }}"
+                    hx-target="#modals-here"
+                    hx-swap="innerHTML"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modals-here"
+                    title="Edit parameters for this workout">
+          {% endif %}
             ✏️
           </button>
         </strong>
@@ -58,17 +59,18 @@
           {% endif %}
           <!-- Feedback up/down -->
 
-          <button class="btn btn-outline-primary"
-            hx-post="{{ url_for('workouts.exercise_feedback', workout_id=workout.id, exercise_id=ex.id) }}"
-            hx-vals='{"adjust":"up"}' hx-swap="none">
-            🔼
-          </button>
-          <button class="btn btn-outline-primary"
-            hx-post="{{ url_for('workouts.exercise_feedback', workout_id=workout.id, exercise_id=ex.id) }}"
-            hx-vals='{"adjust":"down"}' hx-swap="none">
-            🔽
-          </button>
-
+          {% if show_finish_button %}
+            <button class="btn btn-outline-primary"
+              hx-post="{{ url_for('workouts.exercise_feedback', workout_id=workout.id, exercise_id=ex.id) }}"
+              hx-vals='{"adjust":"up"}' hx-swap="none">
+              🔼
+            </button>
+            <button class="btn btn-outline-primary"
+              hx-post="{{ url_for('workouts.exercise_feedback', workout_id=workout.id, exercise_id=ex.id) }}"
+              hx-vals='{"adjust":"down"}' hx-swap="none">
+              🔽
+            </button>
+          {% endif %}
         </div>
       </div>
     </div>

@@ -82,7 +82,7 @@ def generate_current_home_page_view(member):
                 default_section=last,
                 program=program_entity,
                 program_key=program_composite_key,
-                workout_key=workout_instance_key,
+                workout_instance_key=workout_instance_key,
                 scheduled_workout_event_id=scheduled_workout_event_id,
                 finish_workout_url=url_for('program.finish_workout', 
                                         workout_instance_key=workout_instance_key),

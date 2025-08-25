@@ -10,25 +10,25 @@
       <div class="modal-body">
         <h6 class="mb-3">{{ exercise.name }}</h6>
         
-        {% if current_parameters.sets is not none or item.parameters.sets %}
+        {# {% if current_parameters.sets is not none or item.parameters.sets %} #}
         <div class="mb-3">
           <label for="sets" class="form-label">Sets</label>
           <input type="number" class="form-control" id="sets" name="sets" 
                  value="{{ current_parameters.sets if current_parameters.sets is not none else item.parameters.sets }}" 
                  min="1" max="20">
         </div>
-        {% endif %}
+        {# {% endif %} #}
 
-        {% if current_parameters.reps is not none or item.parameters.reps %}
+        {# {% if current_parameters.reps is not none or item.parameters.reps %} #}
         <div class="mb-3">
           <label for="reps" class="form-label">Reps</label>
           <input type="number" class="form-control" id="reps" name="reps" 
                  value="{{ current_parameters.reps if current_parameters.reps is not none else item.parameters.reps }}" 
                  min="1" max="100">
         </div>
-        {% endif %}
+        {# {% endif %} #}
 
-        {% if current_parameters.weight is not none or item.parameters.weight %}
+        {# {% if current_parameters.weight is not none or item.parameters.weight %} #}
         <div class="mb-3">
           <label for="weight" class="form-label">Weight</label>
           <div class="input-group">
@@ -41,16 +41,16 @@
             </select>
           </div>
         </div>
-        {% endif %}
+        {# {% endif %} #}
 
-        {% if current_parameters.time is not none or item.parameters.time %}
+        {# {% if current_parameters.time is not none or item.parameters.time %} #}
         <div class="mb-3">
           <label for="time" class="form-label">Time (seconds per set)</label>
           <input type="number" class="form-control" id="time" name="time" 
                  value="{{ current_parameters.time if current_parameters.time is not none else item.parameters.time }}" 
                  min="1" max="600">
         </div>
-        {% endif %}
+        {# {% endif %} #}
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
