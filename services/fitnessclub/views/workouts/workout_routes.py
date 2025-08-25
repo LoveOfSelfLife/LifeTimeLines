@@ -937,10 +937,15 @@ def edit_exercise_parameters(context=None):
     
     # Get current workout state to see if there are any parameter overrides
     current_workout_state = get_active_workout_state()
-    current_parameters = {}
+    current_parameters = {'sets':'','reps':'','weight':'','time':'','weight_unit':'lbs', 'tempo': ''}
+    p = item.get('parameters', {})
+    current_parameters.update(p)
+
     if current_workout_state:
         exercise_parameters = current_workout_state.get('exercise_parameters', {})
-        current_parameters = exercise_parameters.get(exercise_id, {})
+        p = exercise_parameters.get(exercise_id, {})
+        if p:
+            current_parameters.update(p)
     
     return render_template("_exercise_parameters_edit.html",
                            exercise=exercise,
