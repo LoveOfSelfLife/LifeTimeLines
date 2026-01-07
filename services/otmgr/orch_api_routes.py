@@ -11,7 +11,7 @@ from common.env_context import Env
 
 ns = Namespace('orch', description='orchestration api')
 
-orch_def_resource_fields = ns.model('Resource', {
+orch_def_resource_fields = ns.model('Orch_Definition', {
     'definition': fields.String
 })
 
@@ -55,7 +55,7 @@ class SingleDefinition(Resource):
         else:
             return "not found", 404
 
-orch_instance_resource_fields = ns.model('Resource', {
+orch_instance_resource_fields = ns.model('Orch_Instance', {
     'id': fields.String,
     "context": fields.Raw
 })    
@@ -106,10 +106,11 @@ class SingleInstances(Resource):
         else:
             return "not found", 404    
 
-exec_instance_resource_fields = ns.model('Resource', {
-    'num_steps': fields.Integer
-    })
-orch_cmd_resource_fields = ns.model('Resource', {
+# exec_instance_resource_fields = ns.model('Orch_', {
+#     'num_steps': fields.Integer
+#})
+
+orch_cmd_resource_fields = ns.model('Orch_Command', {
     'command': fields.String,
     'id': fields.String,
     'arg': fields.Raw
