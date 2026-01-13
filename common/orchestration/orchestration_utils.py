@@ -7,23 +7,22 @@ from azure.storage.queue import QueueClient
 from common.env_context import Env
 from common.orchestration.orchestration_queue import OrchestrationQueue
 
-    
-class OrchestrationDefinition (EntityObject):
-    """ this table 
-    """
-    table_name='OrchestrationDefTable'
-    fields=["id", "version", "context", "tasks", "flow"]
-    key_field="id"
-    partition_value="orch_def"
+# class OrchestrationDefinition (EntityObject):
+#     """ this table 
+#     """
+#     table_name='OrchestrationDefTable'
+#     fields=["id", "version", "context", "tasks", "flow"]
+#     key_field="id"
+#     partition_value="orch_def"
 
-    def __init__(self, d={}):
-        super().__init__(d)
+#     def __init__(self, d={}):
+#         super().__init__(d)
 
 class OrchestrationCommand (EntityObject):
     """ this table 
     """
     table_name='OrchestrationCommandTable'
-    fields=["id", "command", "orch_instance_id", "arg", "status"]
+    fields=["id", "command", "orch_instance_id", "step_index", "task_id", "params", "status"]
 
     key_field="id"
     partition_field="orch_instance_id"
@@ -56,6 +55,12 @@ class OrchestrationTaskInstance (EntityObject):
 class AbstratctOrchDataStore:
     def get_orch_data(self, id):
         pass
+    def get_orch_version(self, instance_id):
+        pass
+    def get_orch_definition(self, instance_id):
+        pass
+    def get_orch_instance(self, instance_id):
+        pass
     def persist_instance(self, instance):
         pass
 
@@ -66,6 +71,7 @@ class OrchTaskDefDataStore (AbstratctOrchDataStore):
     def get_orch_data(self, orch_instance_id):
         instances = list(self.es.list_items(OrchestrationTaskInstance({"parent_instance_id": orch_instance_id})))
         instance = None
+        definition = None
         tasks = []
         for inst in instances:
             if inst.get('is_parent', None):
@@ -73,12 +79,37 @@ class OrchTaskDefDataStore (AbstratctOrchDataStore):
             else:
                 tasks.append(inst)
 
-        definition_id = instance.get('definition_id', None)
-
-        if definition_id:
-            definition = self.es.get_item(OrchestrationDefinition({'id': definition_id}))
+        definition = instance.get('orch_definition', None)
 
         return definition, instance, tasks
+
+    def get_orch_version(self, instance_id):
+        instance = self.get_orch_instance(instance_id)
+        if instance:
+            version = instance[0].get('version', '1.0')
+            return version
+        else:
+            raise Exception(f'Orchestration instance id: {instance_id} not found')
+
+    def get_orch_definition(self, instance_id):
+        instance = self.get_orch_instance(instance_id)
+        return instance[0].get('orch_definition', None)
+        
+    def get_orch_instance(self, orch_instance_id):
+        instances = list(self.es.list_items(OrchestrationTaskInstance({"parent_instance_id": orch_instance_id})))
+        if not instances or len(instances) == 0:
+            raise Exception(f'Orchestration instance id: {orch_instance_id} not found')
+
+        instance = None
+        tasks = []
+        for inst in instances:
+            if inst.get('is_parent', None):
+                instance = inst
+            else:
+                tasks.append(inst)
+
+        # return a single list, first element is the parent task instance, the rest are the tasks
+        return [instance] + tasks
 
     def persist_instance(self, instance):
         self.es.upsert_item(instance)
@@ -182,14 +213,14 @@ def check_if_orch_instance_exists(orch_instance_id):
     es =EntityStore()
     return es.get_item(OrchestrationTaskInstance({"parent_instance_id": orch_instance_id, "id": orch_instance_id}))
 
-def create_orch_command_instance(command, orch_instance_id, arg):
+def create_orch_command_instance(command, orch_instance_id, params):
 
     cmd_instance_id = str(int(time.time())) # just use the current second since the beginning of unix time as the instance id
 
     cmd_instance = OrchestrationCommand({"id": f"{cmd_instance_id}", 
                                         "orch_instance_id": f"{orch_instance_id}",
                                         "command": command,
-                                        "arg": arg,
+                                        "params": params,
                                         "status": "initial"})
     return cmd_instance
 
@@ -209,9 +240,6 @@ def get_orchestration_instances(orch_instance_id):
         else:
             tasks.append(inst)
 
-    definition_id = instance.get('definition_id', None)
-
-    if definition_id:
-        definition = es.get_item(OrchestrationDefinition({'id': definition_id}))
+    definition = instance.get('orch_definition', None)
 
     return definition, instance, tasks

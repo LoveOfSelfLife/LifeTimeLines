@@ -3,11 +3,12 @@ import re
 import os
 from datetime import datetime
 import itertools
+
 from common.orchestration.orchestration_utils import OrchTaskDefDataStore
 import logging
 import importlib
 
-def execute_orchestration(orch_cmd, orch_data=None, token=None, executors=None):
+def execute_orchestration(orch_cmd, orch_data=OrchTaskDefDataStore(), token=None, executors=None):
     """this method will execute the indicated orchestration command
     auth token is required for the execution of the orchestration
     the orchestration command will be executed in the context of the provided orchestration data
@@ -15,116 +16,29 @@ def execute_orchestration(orch_cmd, orch_data=None, token=None, executors=None):
 
     command = orch_cmd.get('command', 'execute')
     orch_instance_id = orch_cmd.get('orch_instance_id', None)
+    executor = OrchestrationExecutor(data_store=orch_data, orch_instance_id=orch_instance_id, token=token, executors=executors)
 
-    if orch_data is None:
-        orch_data_store = OrchTaskDefDataStore()
-    else:
-        orch_data_store = orch_data
+    if command == "execute" or command == "resume":
+        result = executor.execute()
 
-    executor = OrchestrationExecutor(data_store=orch_data_store, orch_instance_id=orch_instance_id, token=token, executors=executors)
-
-    if command == "execute":
-        for step_id in executor.get_steps():
-            step_status = executor.get_step_status(step_id)
-            logging.info(f'step_id: {step_id}, step_status: {step_status}')
-
-            if step_status == "not_started" or step_status == "in_progress":
-                logging.info(f'step_id: {step_id} with step_status: {step_status} has not started or is in progress, so we will run all unfinished tasks in the step')
-                run_tasks_in_step_status = executor.run_all_unfinished_tasks_in_step(step_id)
-            elif step_status == "completed":
-                logging.info(f'step_id: {step_id} with step_status: {step_status} has completed, so we will move to the next step')
-                continue
-            else:
-                logging.info(f'step_id: {step_id} with step_status: {step_status} has failed tasks, so cannot finish the step')
-                # print(f'step_id: {step_id} has failed tasks, so cannot finish the step')
-                return False
     elif command == "rerun_all_in_step":
-        step_id = orch_cmd.get("step_id", None)
-        if step_id:
-            logging.info(f'command: {command}, step_id: {step_id}')
-            executor.refresh_orch_instance_from_storage()
-            executor.run_all_tasks_in_step(step_id)
-        else:
-            logging.info(f'command: {command}, step_id: {step_id} not recognized')
-            return False
+        result = executor.rerun_all_in_step(orch_cmd.get("step_index", None))
+
     elif command == "rerun_unfinished_in_step":
-        step_id = orch_cmd.get("step_id", None)
-        if step_id:
-            logging.info(f'command: {command}, step_id: {step_id}')
-            executor.refresh_orch_instance_from_storage()
-            executor.run_all_unfinished_tasks_in_step(step_id)
-        else:
-            logging.info(f'command: {command}, step_id: {step_id} not recognized')
-            return False
+        result = executor.rerun_unfinished_in_step(orch_cmd.get("step_index", None))
+
     elif command == "run_task_in_step":
-        step_id = orch_cmd.get("step_id", None)
-        task_id = orch_cmd.get("task_id", None)
-        if step_id and task_id:
-            logging.info(f'command: {command}, step_id: {step_id}, task_id: {task_id} ')
-            executor.refresh_orch_instance_from_storage()
-            executor.run_task_in_step(step_id, task_id)
-        else:
-            logging.info(f'command: {command}, step_id: {step_id}, task_id: {task_id} not recognized')
-            return False
+        result = executor.run_task(orch_cmd.get("task_id", None))
+
     else:
         logging.info(f'command: {command} not recognized')
-        return False
-    return True
+        result = False
 
+    return result
 
-class OrchestrationExecutor:
-    """
-    Class representing an orchestration executor.
-
-    Each of the task instances will hold their current status. 
-    We need to look at the orch definition along with the statuses of the tasks in order to identify the next task that needs to run. 
     
-hen before attempting to execute the instance, we check the counter to verify it hasn't exceeded a threshold
+class OrchestrationExecutor:
 
-    TODO: Need a test harness for the message queue, to simulate the flow locally.
-
-    Once that task has been identified, we should run it. 
-    To tun the task we:
-    1. get the task definition from the orchestration template
-    2. prepare the inputs to the task by substituting values for any variables defined as part of the input to the task
-    3. change the status of the task from "not-stared" to "started" and persist
-    4. invoke the function that has been identified as the proxy for the task, passing in the input that was just prepared (step #2)
-    5. For simple tasks:
-        5.a. wait for the function to complete, and then after it completes, we capture the return value of the function
-        5.b. set the output attribute of the task instance to the value returned from the function
-        5.c  set the status of the task instance based on the function (if exception thrown, then status is failed, othewise it is completed)
-    6. For iterator tasks:
-        6.a. we need to invoke the task once for every element in the input iterator. 
-        6.b. need to decide if we persist the result after each step in the iteration, or wait till the iteration i scomplete.
-         6.c. set the status of the result to something that represents the status from all of the executions of the iteration
-    7. then persist the task isntance, and then  proceed as indicated at the top level, which is either to:
-        7.a. post the next orchestration request message to the task execution message quewue, or 
-        7.b. we should proceed to execute the next task, until the desired number of tasks is done
-            
-    Args:
-        data_store: The data store object.
-        orch_instance_id: The ID of the orchestration instance.
-
-    Attributes:
-        store: The data store object.
-        orch_definition: The orchestration definition.
-        orch_instance: The orchestration instance.
-        task_instances: The task instances.
-
-    Methods:
-        find_next_task_inst_to_run: Finds the next task instance to run.
-        test_if_iterator: Tests if an expression string represents an iterator.
-        extract_var: Extracts the variable name from an expression string.
-        resolve: Resolves an expression string by extracting the variable path and checking if it is iterable.
-        create_root_dict: Creates a root dictionary for the orchestration.
-        get_task_def: Gets the task definition for a task instance.
-        get_task_instance: Gets a task instance by task definition ID.
-        create_inputs_for_task: Creates inputs for a task instance.
-        invoke_function: Invokes a function with the given input.
-        get_function: Gets the function to be invoked for a task instance.
-        persist: Persists an instance.
-        run_task_instance: Runs a task instance.
-    """
     def __init__(self, data_store, orch_instance_id, token=None, executors=None):
         """_summary_
 
@@ -139,6 +53,94 @@ hen before attempting to execute the instance, we check the counter to verify it
         self.token = token
         self.executors=executors
 
+    def execute(self):
+        for step_index in self.get_steps():
+            step_status = self.get_step_status(step_index)
+            logging.info(f'step_index: {step_index}, step_status: {step_status}')
+
+            if step_status == "not_started" or step_status == "in_progress":
+                logging.info(f'step_index: {step_index} with step_status: {step_status} has not started or is in progress, so we will run all unfinished tasks in the step')
+                run_tasks_in_step_status = self._run_all_unfinished_tasks_in_step(step_index)
+            elif step_status == "completed":
+                logging.info(f'step_index: {step_index} with step_status: {step_status} has completed, so we will move to the next step')
+                continue
+            else:
+                logging.info(f'step_index: {step_index} with step_status: {step_status} has failed tasks, so cannot finish the step')
+                # print(f'step_index: {step_index} has failed tasks, so cannot finish the step')
+                return False
+        return True
+
+ 
+    def rerun_all_in_step(self, step_index):
+        if step_index:
+            logging.info(f'command: "rerun_all_in_step", step_index: {step_index}')
+            self.refresh_orch_instance_from_storage()
+            self._run_all_tasks_in_step(step_index)
+        else:
+            logging.info(f'command: "rerun_all_in_step", step_index: {step_index} not recognized')
+            return False      
+
+    def rerun_unfinished_in_step(self, step_index):
+        if step_index:
+            logging.info(f'command: "rerun_unfinished_in_step", step_index: {step_index}')
+            self.refresh_orch_instance_from_storage()
+            self._run_all_unfinished_tasks_in_step(step_index)
+        else:
+            logging.info(f'command: "rerun_unfinished_in_step", step_index: {step_index} not recognized')
+            return False
+        return True
+    
+    def _run_all_tasks_in_step(self, step_index):
+        step = next((s for s in self.orch_definition['flow'] if s['step_id'] == step_index), None)
+        for task_id in step['tasks']:
+            task_inst = next((t for t in self.task_instances if t['task_id'] == task_id), None)
+            if task_inst:
+                self._run_task_instance(task_inst)
+
+    def _run_all_unfinished_tasks_in_step(self, step_index):
+        step = next((s for s in self.orch_definition['flow'] if s['step_id'] == step_index), None)
+        for task_id in step['tasks']:
+            task_inst = next((t for t in self.task_instances if t['task_id'] == task_id), None)
+            if task_inst and task_inst['status'] != "completed":
+                self._run_task_instance(task_inst)   
+
+    def run_task_in_step(self, task_id):
+        for step in self.orch_definition['tasks']:
+            # check if step is a list, then iterate through the tasks in the list
+            # otherwise step will be a single task
+            if isinstance(step, list):
+                for s in step:
+                    if s['taskId'] == task_id:
+                        task_to_run = s
+            else:
+                if step['taskId'] == task_id:
+                        task_to_run = step
+                    
+
+        step = next((s for s in self.orch_definition['flow'] if s['step_id'] == step_index), None)
+        if task_id in step['tasks']:
+            task_inst = next((t for t in self.task_instances if t['task_id'] == task_id), None)
+            if task_inst:
+                logging.info(f"running task: {task_id} in step: {step_index}")
+                self._run_task_instance(task_inst)
+        else:
+            logging.info(f"task: {task_id} not found in step: {step_index} - raising exception")
+            raise Exception(f"task: {task_id} not found in step: {step_index}")
+
+    def run_task(self, task_id):
+        # step = next((s for s in self.orch_definition['flow'] if s['step_id'] == step_id), None)
+        # if task_id in step['tasks']:
+        #     task_inst = next((t for t in self.task_instances if t['task_id'] == task_id), None)
+        #     if task_inst:
+        #         logging.info(f"running task: {task_id} in step: {step_id}")
+        #         self._run_task_instance(task_inst)
+        # else:
+        #     logging.info(f"task: {task_id} not found in step: {step_id} - raising exception")
+        #     raise Exception(f"task: {task_id} not found in step: {step_id}")
+        pass
+
+    # ##############################################################################################################
+
     def get_steps(self):
         for step in self.orch_definition['flow']:
             yield step['step_id']
@@ -148,49 +150,11 @@ hen before attempting to execute the instance, we check the counter to verify it
         task_statuses = [self.get_task_status(t) for t in step['tasks']]
         return self.aggregate_status(task_statuses)
 
-    def run_all_tasks_in_step(self, step_id):
-        step = next((s for s in self.orch_definition['flow'] if s['step_id'] == step_id), None)
-        for task_id in step['tasks']:
-            task_inst = next((t for t in self.task_instances if t['task_id'] == task_id), None)
-            if task_inst:
-                self.run_task_instance(task_inst)
-
-    def run_all_unfinished_tasks_in_step(self, step_id):
-        step = next((s for s in self.orch_definition['flow'] if s['step_id'] == step_id), None)
-        for task_id in step['tasks']:
-            task_inst = next((t for t in self.task_instances if t['task_id'] == task_id), None)
-            if task_inst and task_inst['status'] != "completed":
-                self.run_task_instance(task_inst)   
-
-    def run_task_in_step(self, step_id, task_id):
-        step = next((s for s in self.orch_definition['flow'] if s['step_id'] == step_id), None)
-        if task_id in step['tasks']:
-            task_inst = next((t for t in self.task_instances if t['task_id'] == task_id), None)
-            if task_inst:
-                logging.info(f"running task: {task_id} in step: {step_id}")
-                self.run_task_instance(task_inst)
-        else:
-            logging.info(f"task: {task_id} not found in step: {step_id} - raising exception")
-            raise Exception(f"task: {task_id} not found in step: {step_id}")
-        
-    def validate_definition(self):
-        pass
-
     def get_task_status(self, task_id):
         task = next((t for t in self.task_instances if t['task_id'] == task_id), None)
         return task['status']
     
-    def find_next_step_to_run(self):
-        for step in self.get_steps():
-            step_status = self.get_step_status(step['step_id'])
-            if step_status == "not_started" or step_status == "in_progress":
-                return step
-        return None
     
-    def refresh_orch_instance_from_storage(self):
-        self.orch_definition, self.orch_instance, self.task_instances = self.store.get_orch_data(self.orch_instance['id'])
-        return self.orch_instance
-
     def refresh_orch_instance_statuses(self):
         """this method will refresh the statuses of all the steps in the orchestration instance
         and it will also update the status of the orchestration instance itself, based on the statuses of the steps
@@ -217,28 +181,7 @@ hen before attempting to execute the instance, we check the counter to verify it
         else:
             return "in_progress"
         
-    def find_next_task_inst_to_run(self):
-        flow = self.orch_definition['flow']
-        task = None
-        task_inst = None
-        for step in flow:
-            for taskid in step['tasks']:
-                task_inst = next((t for t in self.task_instances if t['status'] == 'not_started'), None)
-                if not task_inst:
-                    continue
-        return task_inst
-
-    def set_step_status(self, step, status):
-        for taskid in step['tasks']:
-            task_inst = next((t for t in self.task_instances if t['task_id'] == taskid), None)
-            if task_inst:
-                task_inst['status'] = status
-                self.persist(task_inst)
-
-    def test_if_iterator(self, expression_str):
-        _, is_iter = self.extract_var(expression_str)
-        return is_iter
-    
+  
     def is_expression_a_variable(self, expression):
         return re.match(r'\$<.*>', str(expression))
     
@@ -318,9 +261,6 @@ hen before attempting to execute the instance, we check the counter to verify it
             return self.get_combinations(resolved_values_list)
         else:
             raise Exception(f"support for variable: {inputs} with type: {type(inputs)} - not implememted")
-        
-
-     
 
     def create_root_context(self, task_instance):
         """
@@ -356,9 +296,6 @@ hen before attempting to execute the instance, we check the counter to verify it
     def get_task_instance(self, taskdef_id):
         return next((task for task in self.task_instances if task['task_id'] == taskdef_id), None)
 
-    def get_orchestration_instances(self, orch_instance_id):    
-        return self.store.get_orch_data(orch_instance_id)
-    
     def get_inputs_for_task(self, task_instance):
         task_def = self.get_task_def(task_instance)
         inputs = task_def['inputs']
@@ -412,10 +349,10 @@ hen before attempting to execute the instance, we check the counter to verify it
         else:
             return None
     
-    def create_inputs_for_task(self, task_instance):
-        task_def = self.get_task_def(task_instance)
-        inputs = task_def['inputs']
-        return self.resolve_variable_for_task(inputs, task_instance)
+    # def create_inputs_for_task(self, task_instance):
+    #     task_def = self.get_task_def(task_instance)
+    #     inputs = task_def['inputs']
+    #     return self.resolve_variable_for_task(inputs, task_instance)
 
     def _split_dict(self, input_dict):
         key = list(input_dict.keys())[0]
@@ -428,10 +365,6 @@ hen before attempting to execute the instance, we check the counter to verify it
         res = [dict([x for d in c for x in d.items()]) for c in iter]  
         return res
     
-    # def resolve_to_iterator_input(self, inputs, task_instance):
-    #     vl = [{k : list(self.resolve_variable_for_task(v))} for k,v in inputs.items()]
-    #     return self.get_combinations(vl)
-
     def invoke_function(self, func, input):
         logging.info(f"invoking function: {func} with input: {input}")
         input['token'] = self.token
@@ -449,11 +382,10 @@ hen before attempting to execute the instance, we check the counter to verify it
         return (result, status)
 
     def get_function(self, task_instance):
-
+        task_def = self.get_task_def(task_instance)
         if self.executors:
             imported_module = importlib.import_module(f"{self.executors}")
         else:
-            task_def = self.get_task_def(task_instance)
             module = task_def.get('module', 'executors')
             base_pkg = 'common.orchestration.modules'
             if os.getenv("ORCH_TESTING_MODE"):
@@ -476,7 +408,7 @@ hen before attempting to execute the instance, we check the counter to verify it
         return task_def.get('type', 'single')
     
 
-    def run_task_instance(self, task_instance):
+    def _run_task_instance(self, task_instance):
         # this method should also update the status of each steps in the orchestration
         # when a task is started, the status of the step should be updated to "in_progress"
         # when a task is completed, the status of the step should be updated to "completed" if all tasks in the step are completed

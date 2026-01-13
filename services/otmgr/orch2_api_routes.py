@@ -5,7 +5,7 @@ import json
 from common.entity_store import EntityStore
 from common.jwt_auth import requires_auth
 from common.orchestration.orchestration_queue import OrchestrationQueue
-from common.orchestration.orchestration_utils import OrchestrationCommand, OrchestrationTaskInstance, OrchestrationDefinition
+from common.orchestration.orchestration_utils import OrchestrationCommand, OrchestrationTaskInstance
 from common.orchestration.orchestration_utils import create_orch2_instances
 
 ns = Namespace('orch2', description='orchestration api V2')

@@ -14,7 +14,6 @@ sys.path.append('../services')
 
 # import common.orchestration.executors
 from common.orchestration.orchestration_utils import OrchTaskDefDataStore, OrchestrationTaskInstance
-from common.orchestration.orchestration_utils import OrchestrationDefinition
 
 class TestOrchestrations(unittest.TestCase):
 
@@ -79,7 +78,7 @@ class TestOrchestrations(unittest.TestCase):
     def test_run_task1(self):
         print(f"original task1 instance: {self.exec.get_task_instance('task1')}")
         task1_instance = self.exec.get_task_instance('task1')
-        self.exec.run_task_instance(task1_instance)
+        self.exec._run_task_instance(task1_instance)
         after = self.exec.get_task_instance('task1')
         print(f"after running task1: {json.dumps(after, indent=4)}")
 
@@ -87,11 +86,11 @@ class TestOrchestrations(unittest.TestCase):
     def test_run_task1_task2(self):
         print(f"original task1 instance: {self.exec.get_task_instance('task1')}")
         task1_instance = self.exec.get_task_instance('task1')
-        self.exec.run_task_instance(task1_instance)
+        self.exec._run_task_instance(task1_instance)
         after1 = self.exec.get_task_instance('task1')
         print(f"after running task1: {json.dumps(after1, indent=4)}")
         task2_instance = self.exec.get_task_instance('task2')
-        self.exec.run_task_instance(task2_instance)
+        self.exec._run_task_instance(task2_instance)
         after2 = self.exec.get_task_instance('task2')
         print(f"after running task2: {json.dumps(after2, indent=4)}")
 
