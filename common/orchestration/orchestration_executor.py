@@ -91,64 +91,36 @@ class OrchestrationExecutor:
         return True
     
     def _run_all_tasks_in_step(self, step_index):
-        step = next((s for s in self.orch_definition['flow'] if s['step_id'] == step_index), None)
-        for task_id in step['tasks']:
+        tasks_in_step_list = self.orch_definition['steps'][step_index]
+        for task in tasks_in_step_list:
+            task_id = task['id']
             task_inst = next((t for t in self.task_instances if t['task_id'] == task_id), None)
             if task_inst:
-                self._run_task_instance(task_inst)
+                self._run_task_instance(task_inst)  
 
     def _run_all_unfinished_tasks_in_step(self, step_index):
-        step = next((s for s in self.orch_definition['flow'] if s['step_id'] == step_index), None)
-        for task_id in step['tasks']:
+        tasks_in_step_list = self.orch_definition['steps'][step_index]
+        for task in tasks_in_step_list:
+            task_id = task['id']
             task_inst = next((t for t in self.task_instances if t['task_id'] == task_id), None)
             if task_inst and task_inst['status'] != "completed":
                 self._run_task_instance(task_inst)   
 
-    def run_task_in_step(self, task_id):
-        for step in self.orch_definition['tasks']:
-            # check if step is a list, then iterate through the tasks in the list
-            # otherwise step will be a single task
-            if isinstance(step, list):
-                for s in step:
-                    if s['taskId'] == task_id:
-                        task_to_run = s
-            else:
-                if step['taskId'] == task_id:
-                        task_to_run = step
-                    
-
-        step = next((s for s in self.orch_definition['flow'] if s['step_id'] == step_index), None)
-        if task_id in step['tasks']:
+    def run_task(self, task_id):
+        if task_id:
+            logging.info(f'command: "run_task", task_id: {task_id}')
             task_inst = next((t for t in self.task_instances if t['task_id'] == task_id), None)
             if task_inst:
-                logging.info(f"running task: {task_id} in step: {step_index}")
-                self._run_task_instance(task_inst)
-        else:
-            logging.info(f"task: {task_id} not found in step: {step_index} - raising exception")
-            raise Exception(f"task: {task_id} not found in step: {step_index}")
-
-    def run_task(self, task_id):
-        # step = next((s for s in self.orch_definition['flow'] if s['step_id'] == step_id), None)
-        # if task_id in step['tasks']:
-        #     task_inst = next((t for t in self.task_instances if t['task_id'] == task_id), None)
-        #     if task_inst:
-        #         logging.info(f"running task: {task_id} in step: {step_id}")
-        #         self._run_task_instance(task_inst)
-        # else:
-        #     logging.info(f"task: {task_id} not found in step: {step_id} - raising exception")
-        #     raise Exception(f"task: {task_id} not found in step: {step_id}")
-        pass
-
+                self._run_task_instance(task_inst)  
+                
     # ##############################################################################################################
 
     def get_steps(self):
-        for step in self.orch_definition['flow']:
-            yield step['step_id']
+        for i in range(0, len(self.orch_definition['steps'])):
+            yield i
     
-    def get_step_status(self, step_id):
-        step = next((s for s in self.orch_definition['flow'] if s['step_id'] == step_id), None)
-        task_statuses = [self.get_task_status(t) for t in step['tasks']]
-        return self.aggregate_status(task_statuses)
+    def get_step_status(self, step_index):
+        return self.orch_instance['list_of_steps'][step_index]['step_status']
 
     def get_task_status(self, task_id):
         task = next((t for t in self.task_instances if t['task_id'] == task_id), None)
@@ -157,18 +129,15 @@ class OrchestrationExecutor:
     
     def refresh_orch_instance_statuses(self):
         """this method will refresh the statuses of all the steps in the orchestration instance
-        and it will also update the status of the orchestration instance itself, based on the statuses of the steps
-,
-        "step_status":
-            {
-                "step_once" :   "not_started",
-                "step_iterate" : "not_started",
-                "step_repeat" : "not_started"
-            }        
+        and it will also update the status of the orchestration instance itself, based on the statuses of the tasks withing the steps       
         """
-        step_statuses = { step['step_id'] : self.get_step_status(step['step_id']) for step in self.orch_definition['flow'] }
-        self.orch_instance['step_status'] = step_statuses
-        self.orch_instance['status'] = self.aggregate_status(step_statuses.values())
+        # self.refresh_orch_instance_from_storage()
+        for step in self.orch_instance['list_of_steps']:
+            task_statuses = [ self.get_task_status(task_id) for task_id in step['tasks_in_step'] ]
+            step['step_status'] = self.aggregate_status(task_statuses)
+        
+        step_statuses = [ step['step_status'] for step in self.orch_instance['list_of_steps'] ]
+        self.orch_instance['status'] = self.aggregate_status(step_statuses)
         self.persist(self.orch_instance)
     
     def aggregate_status(self, statuses):
@@ -185,7 +154,7 @@ class OrchestrationExecutor:
     def is_expression_a_variable(self, expression):
         return re.match(r'\$<.*>', str(expression))
     
-    def extract_var(self, expression_str):
+    def _extract_var_info(self, expression_str):
             """
             Extracts the variable name from the given expression string.
 
@@ -215,7 +184,7 @@ class OrchestrationExecutor:
                 return { "is_variable" : False }
 
     def evalutate_expression(self, expression_str, context):
-        res = self.extract_var(expression_str)
+        res = self._extract_var_info(expression_str)
         if res['is_variable']:
             var_path = res['path']
             is_iter = res['is_iterator']
@@ -288,9 +257,19 @@ class OrchestrationExecutor:
         }
         return root
 
+    def get_orch_task_definitions_as_dict(self):
+        tasks_dict = {}
+        for step in self.orch_definition['steps']:
+            if isinstance(step, list):
+                for t in step:
+                    tasks_dict[t['id']] = t
+            else:
+                tasks_dict[step['id']] = step
+        return tasks_dict
+    
     def get_task_def(self, task_instance):
-        task_id = task_instance['task_id']
-        task_def = next((t for t in self.orch_definition['tasks'] if t['taskId'] == task_id), None)
+        orch_tasks = self.get_orch_task_definitions_as_dict()
+        task_def = orch_tasks[task_instance['task_id']]
         return task_def
 
     def get_task_instance(self, taskdef_id):
@@ -386,12 +365,16 @@ class OrchestrationExecutor:
         if self.executors:
             imported_module = importlib.import_module(f"{self.executors}")
         else:
-            module = task_def.get('module', 'executors')
+            mf = task_def.get('func', None)
+            module_function = mf.split('.')
+            module = module_function[0]
+            func_str = module_function[1]
+
             base_pkg = 'common.orchestration.modules'
             if os.getenv("ORCH_TESTING_MODE"):
                 module = module + '_test'
             imported_module = importlib.import_module(f"{base_pkg}.{module}")
-        func_str = task_def['func']
+
         func_callable = getattr(imported_module, func_str)
         return func_callable
 
@@ -430,6 +413,8 @@ class OrchestrationExecutor:
             self._run_repeat_execution_task(task_instance)
         else:
             self._run_single_execution_task(task_instance)
+
+        # self._run_single_execution_task(task_instance)
         self.refresh_orch_instance_statuses()
 
     def _run_single_execution_task(self, task_instance):

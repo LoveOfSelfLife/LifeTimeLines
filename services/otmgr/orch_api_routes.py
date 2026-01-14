@@ -6,7 +6,7 @@ from common.entity_store import EntityStore
 from common.jwt_auth import requires_auth
 from common.orchestration.orchestration_queue import OrchestrationQueue
 from common.orchestration.orchestration_utils import OrchestrationCommand, OrchestrationTaskInstance
-from common.orchestration.orchestration_utils import  check_if_orch_instance_exists, create_orch_command_instance, create_orch_instances, post_orch_command_instance_to_queue
+from common.orchestration.orchestration_utils import  check_if_orch_instance_exists, create_orch_command_instance, create_orch2_instances, post_orch_command_instance_to_queue
 from common.env_context import Env
 
 ns = Namespace('orch', description='orchestration api')
@@ -80,7 +80,7 @@ class Instances(Resource):
 
         es = EntityStore()
 
-        orch_instances = create_orch_instances(orch_def, context)
+        orch_instances = create_orch2_instances(orch_def, context)
         es.upsert_items(orch_instances)
 
         orch_instance_id = orch_instances[0].get('parent_instance_id', None)
