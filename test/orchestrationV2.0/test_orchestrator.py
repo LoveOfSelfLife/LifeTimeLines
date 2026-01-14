@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 import unittest
 import json
 from common.entity_store import EntityStore
-# from test.orchestration.mock_orch_datastore import MockOrchDataStore
 from mock_orch_datastore import MockOrchDataStore
 from common.orchestration.orchestration_executor import OrchestrationExecutor, execute_orchestration
 from common.table_store import TableStore
@@ -12,30 +11,47 @@ import sys
 # Add the path to the file to the Python path.
 sys.path.append('../services')
 
-# import common.orchestration.executors
-from common.orchestration.orchestration_utils import OrchTaskDefDataStore, OrchestrationTaskInstance
+from common.orchestration.orchestration_utils import OrchTaskDefDataStore, OrchestrationTaskInstance, create_orch2_instances
 
-class TestOrchestrations(unittest.TestCase):
+class TestOrchestrations2(unittest.TestCase):
 
     def setUp(self) -> None:
         print(f"setUp()")
         load_dotenv('test/.env')
-        print(f"{os.getcwd()}")
+        print(f"current dir: {os.getcwd()}")
         TableStore.initialize(os.getenv('AZURE_STORAGETABLE_CONNECTIONSTRING', None))
+        with open('test_orch2_def.json', "r") as jfd:
+            orch_def = json.load(jfd)
+        instances = create_orch2_instances(orch_def, {"x": 3, "y":4, "z":5})
 
-        with open('test/orchestration/test_def_orch_tasks.json', "r") as jfd:
-            orch_data = json.load(jfd)
+        td = MockOrchDataStore(orch_def, instances[0], instances[1:])
+        self.exec = OrchestrationExecutor(td, instances[0]['id'])  
 
-        td = MockOrchDataStore(orch_data['def'], orch_data['orch'], orch_data['tasks']) 
-        self.exec = OrchestrationExecutor(td, '1707171215')
-        return super().setUp()
 
-    def test_TestingStore(self):
-        print(f"test_TestingStore")
-        ostore = OrchTaskDefDataStore()
-        d,o,t = ostore.get_orch_data("1707171215")
-        s = json.dumps({"def" : d, "orch" : o, "tasks" : t}, indent=4)
-        print(s)
+    def test_create_root_dict(self):
+        task1_instance = self.exec.get_task_instance('task_iterate')
+        root = self.exec.create_root_context(task1_instance)
+        # print(f"root context: {json.dumps(root, indent=4)}")
+        self.assertTrue(True)
+
+    def test_run_orchestration_execute(self):
+        print(f"test_run_orchestration1")
+        self.exec.execute()
+        print(f"final orchestration instance: {json.dumps(self.exec.orch_instance, indent=4)}")
+        for task in self.exec.task_instances:
+            print(f"final task instance {task['task_id']}: {json.dumps(task, indent=4)}")
+        self.assertTrue(True)
+    """
+    def test_update_status(self):
+        print("test_update_status()")
+        self.exec.refresh_orch_instance_statuses()
+        for task in self.exec.task_instances:
+            print(f"task {task['task_id']} status: {task['status']}")
+
+        for step in self.exec.orch_instance['list_of_steps']:
+            print(f"step status: {step['status']}")
+
+        print(f"orch instance status: {self.exec.orch_instance['status']}")            
         self.assertTrue(True)
 
     def test_find_next_task(self):
@@ -48,13 +64,10 @@ class TestOrchestrations(unittest.TestCase):
         print("test_extract_variables()")
         tsts = [ '$<var1>', '$<var1.var2>', '$<[ivar1]>', '$<[ivar1.ivar2]>', 'xyz']
         for tst in tsts:
-            p = self.exec.extract_var(tst)
+            p = self.exec._extract_var_info(tst)
             print(p)
 
-    def test_create_root_dict(self):
-        task1_instance = self.exec.get_task_instance('task1')
-        root = self.exec.create_root_context(task1_instance)
-        print(root)
+
 
     def test_create_inputs_dict(self):
         print("test_create_inputs_dict()")
@@ -103,6 +116,6 @@ class TestOrchestrations(unittest.TestCase):
         }
 
         execute_orchestration(cmd, orch_data=self.exec.store)
-        
+    """        
 if __name__ == '__main__':
     unittest.main()

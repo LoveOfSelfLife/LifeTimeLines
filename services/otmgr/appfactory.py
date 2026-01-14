@@ -3,8 +3,9 @@ from dotenv import load_dotenv
 from common.api_app import create_api_app
 from common.discovery import get_service_port
 from orch_api_routes import ns as orch_ns
+from orch2_api_routes import ns as orch2_ns
 
-API_DEFINITION = {  "namespaces": [orch_ns], 
+API_DEFINITION = {  "namespaces": [orch_ns, orch2_ns], 
                     "apiname": "Orchestration Manager API", 
                     "apiversion": '1.0', 
                     "apidescription": ''

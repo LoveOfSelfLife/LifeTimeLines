@@ -5,58 +5,58 @@ import json
 from common.entity_store import EntityStore
 from common.jwt_auth import requires_auth
 from common.orchestration.orchestration_queue import OrchestrationQueue
-from common.orchestration.orchestration_utils import OrchestrationCommand, OrchestrationTaskInstance, OrchestrationDefinition
-from common.orchestration.orchestration_utils import  check_if_orch_instance_exists, create_orch_command_instance, create_orch_instances, post_orch_command_instance_to_queue
+from common.orchestration.orchestration_utils import OrchestrationCommand, OrchestrationTaskInstance
+from common.orchestration.orchestration_utils import  check_if_orch_instance_exists, create_orch_command_instance, create_orch2_instances, post_orch_command_instance_to_queue
 from common.env_context import Env
 
 ns = Namespace('orch', description='orchestration api')
 
-orch_def_resource_fields = ns.model('Resource', {
+orch_def_resource_fields = ns.model('Orch_Definition', {
     'definition': fields.String
 })
 
 #TODO: enable requires auth before deploying
 
-@ns.route('/definitions')
-class Definitions(Resource):
-    ''' '''
-    @ns.doc('get definitions')
-    # @requires_auth    
-    def get(self):
-        es = EntityStore()
+# @ns.route('/definitions')
+# class Definitions(Resource):
+#     ''' '''
+#     @ns.doc('get definitions')
+#     # @requires_auth    
+#     def get(self):
+#         es = EntityStore()
 
-        res = es.list_items(OrchestrationDefinition())
-        return list(res)
+#         res = es.list_items(OrchestrationDefinition())
+#         return list(res)
     
-    @ns.doc('create orchestration definition')
-    @ns.expect(orch_def_resource_fields)
-    def post(self):
-        definition = request.get_json(force=True)
-        # definition= json_data['definition']
+#     @ns.doc('create orchestration definition')
+#     @ns.expect(orch_def_resource_fields)
+#     def post(self):
+#         definition = request.get_json(force=True)
+#         # definition= json_data['definition']
 
-        if def_id := definition.get('id', None):
-            es = EntityStore()
-            if es.get_item(OrchestrationDefinition({"id":def_id})):
-                return "orch def already exists", 400
-            else:
-                es.upsert_item(OrchestrationDefinition(definition))
+#         if def_id := definition.get('id', None):
+#             es = EntityStore()
+#             if es.get_item(OrchestrationDefinition({"id":def_id})):
+#                 return "orch def already exists", 400
+#             else:
+#                 es.upsert_item(OrchestrationDefinition(definition))
 
-        return "created", 201
+#         return "created", 201
 
-@ns.route('/definitions/<id>')
-class SingleDefinition(Resource):
-    ''' '''
-    @ns.doc('get definition')
-    # @requires_auth    
-    def get(self, id):
-        es = EntityStore()
-        if odef := es.get_item(OrchestrationDefinition({"id":id})):
-            return odef
-        else:
-            return "not found", 404
+# @ns.route('/definitions/<id>')
+# class SingleDefinition(Resource):
+#     ''' '''
+#     @ns.doc('get definition')
+#     # @requires_auth    
+#     def get(self, id):
+#         es = EntityStore()
+#         if odef := es.get_item(OrchestrationDefinition({"id":id})):
+#             return odef
+#         else:
+#             return "not found", 404
 
-orch_instance_resource_fields = ns.model('Resource', {
-    'id': fields.String,
+orch_instance_resource_fields = ns.model('Orch_Instance', {
+    "definition": fields.Raw,
     "context": fields.Raw
 })    
 @ns.route('/instances')
@@ -75,22 +75,17 @@ class Instances(Resource):
     def post(self):
 
         json_data = request.get_json(force=True)
-        orch_def_id =json_data['id']
+        orch_def = json_data['definition']
         context = json_data['context']
 
         es = EntityStore()
-        if orch_def := es.get_item(OrchestrationDefinition({"id":orch_def_id})):
-            # if it is a valid orch definition, then create an instance, then persist it
-            # there will be multiple instances, one for each task
-            orch_instances = create_orch_instances(orch_def, context)
-            es.upsert_items(orch_instances)
 
-            orch_instance_id = orch_instances[0].get('parent_instance_id', None)
+        orch_instances = create_orch2_instances(orch_def, context)
+        es.upsert_items(orch_instances)
 
-            return { "instance_id" : str(orch_instance_id) }, 201
-        else:
-            return "not found", 404
+        orch_instance_id = orch_instances[0].get('parent_instance_id', None)
 
+        return { "instance_id" : str(orch_instance_id) }, 201
 
 @ns.route('/instances/<id>')
 class SingleInstances(Resource):
@@ -106,10 +101,11 @@ class SingleInstances(Resource):
         else:
             return "not found", 404    
 
-exec_instance_resource_fields = ns.model('Resource', {
-    'num_steps': fields.Integer
-    })
-orch_cmd_resource_fields = ns.model('Resource', {
+# exec_instance_resource_fields = ns.model('Orch_', {
+#     'num_steps': fields.Integer
+#})
+
+orch_cmd_resource_fields = ns.model('Orch_Command', {
     'command': fields.String,
     'id': fields.String,
     'arg': fields.Raw

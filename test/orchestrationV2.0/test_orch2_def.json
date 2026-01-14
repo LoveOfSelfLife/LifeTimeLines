@@ -1,0 +1,80 @@
+{
+  "id": "simple-orchestrationV2",
+  "version": "2.0",
+  "context": {
+    "x": null,
+    "y": null,
+    "z": null
+  },
+  "steps": [
+    [
+      {
+        "id": "task_once1",
+        "func": "executors.task_once1_fn",
+        "inputs": {
+          "x": "$<context.x>"
+        }
+      },
+      {
+        "id": "task_once2",
+        "func": "executors.task_once2_fn",
+        "inputs": {
+          "y": "$<context.y>"
+        }
+      }
+    ],
+    [
+      {
+        "id": "task_iterate",
+        "func": "executors.task_iterate_fn",
+        "inputs": {
+          "in1": "$<[tasks.task_once1.output]>",
+          "in2": "$<tasks.task_once2.output>"
+        },
+        "output": null
+      }
+    ],
+    [
+      {
+        "id": "task_iterate_iterate",
+        "func": "executors.task_iterate_iterate_fn",
+        "inputs": {
+          "in1": "$<[tasks.task_once1.output]>",
+          "in2": "$<[tasks.task_once2.output]>"
+        },
+        "output": null
+      }
+    ],
+    [
+      {
+        "id": "task_repeat",
+        "func": "executors.task_repeat_fn",
+        "type": "repeat",
+        "max_repetitions": 5,
+        "inputs": {
+          "n": "foobar"
+        },
+        "output": { "num_times": "$<context.y>" }
+      },
+      {
+        "id": "task_iterate_repeat",
+        "func": "executors.task_iterate_repeat_fn",
+        "type": "repeat",
+        "inputs": {
+          "in1": "$<[tasks.task_once1.output]>"
+        },
+        "output": null
+      },
+      {
+        "id": "task_iterate_iterate_repeat",
+        "func": "executors.task_iterate_iterate_repeat_fn",
+        "type": "repeat",
+        "inputs": {
+          "in1": "$<[tasks.task_once1.output]>",
+          "in2": "$<[tasks.task_once2.output]>"
+        },
+        "output": null
+      }
+    ]
+  ]
+}
