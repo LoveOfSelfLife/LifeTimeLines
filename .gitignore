@@ -23,10 +23,18 @@ vars.txt
 \#*\#
 ~*
 *~
+/test/**/*.json
+**/workout_builder/**
+**/workout_viewer/**
+FIND_FITNESS.txt
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# azurite
+__azurite*
 
 # C extensions
 *.so

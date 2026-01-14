@@ -1,218 +1,474 @@
-/* Reset & basic settings */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-body {
-    font-family: 'Roboto', sans-serif;
-    color: #fff;
-    line-height: 1.6;
-    background: #222;
-}
 
-/* Navigation styling */
-.navbar {
-    background: rgba(0, 0, 0, 0.85);
-    width: 100%;
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 1000;
-    padding: 10px 20px;
+/* Base styles and background */
+body {
+  background: linear-gradient(to right, #2c3e50, #4ca1af);
+  color: #fff;
+  font-family: 'Helvetica Neue', Arial, sans-serif;
 }
-.navbar-brand img {
-    border-radius: 50%;
-}
-.navbar-nav .nav-link {
-    color: #fff;
-    transition: color 0.3s;
-}
-.navbar-nav .nav-link:hover {
-    color: #ddd;
-}
-.navbar-nav .dropdown-menu {
-    background: rgba(0, 0, 0, 0.85);
-    border: none;
-}
-.navbar-nav .dropdown-item {
-    color: #fff;
-    transition: background 0.3s, color 0.3s;
-}
-.navbar-nav .dropdown-item:hover {
-    background: #444;
+.modal-content {
+    background: linear-gradient(to right, #2c3e50, #4ca1af);
     color: #fff;
 }
-.navbar-nav .user-name {
-    font-size: 0.9em;
-    color: #ccc;
-    margin-right: 10px;
-}
-.nav-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-}
-.logo {
-    font-size: 1.8em;
+.modal-title {
+    color: #fff;
+    /* make font bold */
     font-weight: bold;
 }
-.nav-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-.nav-buttons a {
-    color: #fff;
-    text-decoration: none;
-    padding: 8px 16px;
-    border: 2px solid #fff;
-    border-radius: 5px;
-    transition: background 0.3s, color 0.3s;
-    font-size: 1em;
-}
-.nav-buttons a:hover {
-    background: #fff;
-    color: #000;
+.navbar {
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  backdrop-filter: blur(10px);
 }
 
-/* Hero Section for public page */
+/* Main content padding */
+#content {
+  padding: 2rem;
+  position: relative;
+}
+@media (min-width: 576px) {
+  #content {
+    /* only enforce full-height on larger screens */
+    min-height: calc(100vh - 56px - 2rem);
+  }
+}
+
+/* 1. On “desktop” (≥576px), make every wrapper exactly 180px tall */
+.img-wrapper {
+  width: 100%;                /* span full card width */
+  height: 180px;              /* fixed height */
+  overflow: hidden;           /* hide anything outside this box */
+  display: flex;              /* for centering the <img> */
+  justify-content: center;    /* center the <img> horizontally */
+  align-items: flex-start;    /* stick <img> to the top */
+}
+
+/* 2. Make the <img> exactly 100% of the wrapper’s height, width auto */
+.img-wrapper .img-top-centered {
+  height: 100%;
+  width: auto;
+  object-fit: cover;   /* (we’re letting the img itself size by its height) */
+  /* No object‐fit:cover here, because we want the full height visible, not cropped top/bottom */
+}
+
+/* 3. On small screens (≤576px), shrink that fixed height to, say, 100px */
+@media (max-width: 576px) {
+  .img-wrapper {
+    height: 150px;
+  }
+  .img-wrapper .img-top-centered {
+    /* height: 100%; */
+    /* width: auto; */
+    object-fit: cover;   /* (we’re letting the img itself size by its height) */
+    /* No object‐fit:cover here, because we want the full height visible, not cropped top/bottom */
+  }  
+}
+
+/* 1. Target only the outline-primary buttons that are NOT active */
+#my-btn-group .btn-outline-primary:not(.active) {
+  /* control text color */
+  color: #555;            
+  /* control background color */
+  background-color: #c0bfd9;
+  /* control border color */
+  border-color: #ccc;
+}
+
+
+/* 1. Target only the outline-primary buttons that are NOT active */
+#my-nav-tabs .btn-outline-primary:not(.active) {
+  /* control text color */
+  color: #555;            
+  /* control background color */
+  background-color: #c0bfd9;
+  /* control border color */
+  border-color: #ccc;
+}
+
+
+/* Hero section */
 .hero {
-    height: 100vh;
-    background: url('/static/images/ymca-1.jpg') center/cover no-repeat;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    margin-top: 60px; /* account for fixed navbar */
+  min-height: 80vh;
+  background: url('/static/images/fitness_bg.jpg') no-repeat center center;
+  background-size: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.6);
 }
 .hero-overlay {
-    background: rgba(0, 0, 0, 0.5);
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    text-align: center;
-    border-radius: 10px;
+  .hero-overlay.bg-dark.text-white& {
+        background-color: rgba(0, 0, 0, 0.5);
+  }
+  min-height: 175px;
 }
-.hero h1 {
-    font-size: 3em;
-    margin-bottom: 20px;
-}
-.hero p {
-    font-size: 1.2em;
-    margin-bottom: 30px;
-}
-.btn {
-    display: inline-block;
-    padding: 10px 20px;
-    border: 2px solid #fff;
-    border-radius: 5px;
-    text-decoration: none;
-    transition: background 0.3s, color 0.3s;
-}
-.btn:hover {
-    background: #fff;
-    color: #000;
+.hero-btn {
+  background-color: #4ca1af;
+  color: #fff;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1.25rem;
+  transition: background-color 0.3s, transform 0.2s;
 }
 
-/* Content Section for member page */
-.content {
-    padding: 20px;
-    min-height: calc(100vh - 60px); /* ensure content fills the viewport */
-    background: #333;
-    margin-top: 60px; /* account for fixed navbar */
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+/* Utility cards styling */
+.card {
+  border: none;
+  border-radius: 1rem;
+  background-color: rgba(255,255,255,0.1);
+  backdrop-filter: blur(5px);
+  color: #fff;
 }
+.card-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #fff;
+}
+td.date-row {
+  background-color: #2c3e50;
+  color: white
+  /* display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem; */
+}
+/* this will allow the close button in the card header to be clickable */
+.modal-dialog .card-header.d-flex.justify-content-between.align-items-center {
+      pointer-events: auto;
+    }
+
+.modal-dialog .card-body {
+      pointer-events: auto;
+    }
+
+.filter-terms {
+  font-size: 80%;
+}
+
+/* Responsive font adjustments for mobile */
+@media (max-width: 576px) {
+  table.table td, table.table th {
+    font-size: 0.8rem;
+  }
+  .card h5 {
+    font-size: 1rem;
+  }
+  .card p {
+    font-size: 0.75rem;
+  }
+}
+
+/* Exercises table styling */
+.table-responsive {
+  margin-top: 1rem;
+  padding-bottom: 3rem; /* space for bottom bar */
+}
+.table-custom {
+  background-color: rgba(189, 96, 96, 0.1);
+}
+.pagination-wrapper {
+  position: sticky;
+  bottom: 0;
+  /* background-color: rgba(0, 0, 0, 0.7); */
+  padding: 0.5rem 1rem;
+  backdrop-filter: blur(10px);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.pagination-wrapper .pagination {
+  background-color: #4ca2af2c;
+  margin: 0;
+}
+
+.pagination-wrapper .pagination .page-link {
+  color: #fff;
+  background-color: transparent;
+  border-color: #555;
+}
+
+.pagination-wrapper .pagination .page-item.active .page-link {
+  background-color: #4ca1af;
+  border-color: #4ca1af;
+}
+
+/* Footer (if added) */
+footer {
+  text-align: center;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: #eee;
+}
+
+.exercise-details {
+  background: linear-gradient(to right, #2c3e50, #4ca1af);
+  /* padding: 20px;
+  border-radius: 10px; */
+}
+
+.accordion-button {
+  border: none;
+  border-radius: .5rem;
+  background: linear-gradient(to right, #2c3e50, #4ca1af);
+  /* background: linear-gradient(135deg, #c2cb11 0%, #2575fc 100%); */
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transition: background 0.3s, transform 0.2s;
+}
+.accordion-button:not(.collapsed) {
+  background: linear-gradient(to right, #daa9d9, #3eacbd);
+  /* background: linear-gradient(135deg, #2575fc 0%, #6a11cb 100%); */
+}
+.accordion-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 .25rem rgba(37,117,252,.5);
+}
+.accordion-button .accordion-header-icon {
+  margin-right: .5rem;
+  transition: transform 0.2s;
+}
+.accordion-button:not(.collapsed) .accordion-header-icon {
+  transform: rotate(180deg);
+}
+.accordion-body {
+  background: #abc7f1;
+  border-left: 4px solid #2575fc;
+  border-bottom-left-radius: .5rem;
+  border-bottom-right-radius: .5rem;
+  padding: 1rem;
+}
+.accordion-button {
+  font-size: 1.1rem;
+  font-weight: 500;
+  padding: 1rem 1.25rem;
+}
+/* .accordion-body {
+  font-size: .95rem;
+  line-height: 1.5;
+  background-color: #daa9d9;
+} */
+
+/* make all JSON-Editor labels a darker blue (or whatever you like) */
+.jsoneditor .jsoneditor-label .form-label{
+color: #2c3e50 !important;
+font-weight: 500;
+/* optional: bump up the font-size */
+font-size: 1rem;
+}
+
+/* if you want the field background lighter/darker */
+.jsoneditor .jsoneditor-tree {
+background: #f9f9f9;
+}
+
+.je-object__title {
+    font-weight: bold;
+    /* font-size: x-small; */
+}
+
 
 /* Form styling */
 .form-label {
+    color:blue;
+    font-weight: bold;
+    text-align: left; /* Ensure labels are left-justified */
+}
+.form-group .required {
+    color:blue;
     font-weight: bold;
     text-align: left; /* Ensure labels are left-justified */
 }
 .form-control {
     border-color: black;
     border-radius: 5px;
+    font-size: x-small;
 }
 .form-check-label {
     margin-left: 5px;
+    color:black;
+    font-size: x-small;
     text-align: left; /* Ensure labels are left-justified */
 }
-
-/* Responsive styling for tablets and smaller devices */
-@media (max-width: 768px) {
-    .navbar-brand img {
-        width: 25px;
-        height: 25px;
-    }
-    .navbar-nav .nav-link {
-        font-size: 1.2em;
-    }
-    .logo {
-        font-size: 1.5em;
-    }
-    .nav-buttons a {
-        padding: 6px 12px;
-        font-size: 1.2em;
-    }
-    .hero h1 {
-        font-size: 2.5em;
-    }
-    .hero p {
-        font-size: 1.2em;
-    }
-    .content {
-        padding: 15px;
-    }
+.form-check-input {
+    margin-right: 5px;
+    border-color:black;
+    width: 20px; /* Adjust size of checkbox */
+    height: 20px; /* Adjust size of checkbox */
+}
+.col-md-12 span.h3.card-title.level-2 {
+  color: blue;
+}
+#date {
+  font-size: medium;
+}
+#time {
+  font-size: medium;
 }
 
-/* Responsive styling for mobile devices */
-@media (max-width: 480px) {
-    .navbar-brand img {
-        width: 30px;
-        height: 30px;
+/* Home-page content templates */
+.no-program-assigned .card,
+.no-workouts-scheduled .card,
+.upcoming-workout .card {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.home-buttons .btn {
+  margin: 0.5rem;
+}
+
+#workout-datetime {
+  font-size: 1.25rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+/* Schedule (Agenda) View Overrides */
+.agenda-container {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.agenda-row {
+  display: grid;
+  grid-template-columns: 3rem 3rem 1fr;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.agenda-date {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+/* Add extra top spacing before each new date group */
+.agenda-row:has(.weekday) {
+  margin-top: 1.5rem;
+}
+
+/* Don’t apply that extra spacing to the very first row */
+.agenda-container > .agenda-row:first-child {
+  margin-top: 0;
+}
+.weekday {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #eaecef;
+}
+.daynum {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #8d97a5;
+  line-height: 1;
+}
+.agenda-event {
+  grid-column: 2 / span 2;
+  background-color : rgba(242, 237, 238, 0.747);
+  border-radius: 0.5rem;
+}
+.event-info {
+  display: inline-flex;
+  gap: 0.5rem;
+  color: #212529;
+}
+
+.event-time {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.event-user {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.event-actions {
+  margin-left: auto;
+  gap: 0.25rem;
+}
+.btn i {
+  vertical-align: middle;
+}
+
+.nav-link:not(.active) p {
+      color: white;
     }
-    .navbar-nav .nav-link {
-        font-size: 1.5em;
-    }
-    .nav-container {
-        flex-direction: column;
-        align-items: center;
-    }
-    .nav-buttons {
-        justify-content: center;
-        width: 100%;
-        margin-top: 10px;
-    }
-    .nav-buttons a {
-        width: 100%;
-        text-align: center;
-        margin: 5px 0;
-    }
-    .hero h1 {
-        font-size: 2.5em;
-    }
-    .hero p {
-        font-size: 1.5em;
-    }
-    .content {
-        padding: 20px;
-    }
-    .form-label {
-        font-size: 1.5em;
-    }
-    .form-control {
-        font-size: 1.5em;
-    }
-    .form-check-label {
-        font-size: 1.5em;
-    }
+
+/* Completed Workouts Card */
+.completed-workouts .card {
+  max-width: 700px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+}
+
+.completed-workouts table {
+  width: 100%;
+}
+.completed-workouts th {
+  font-weight: 600;
+}
+.thead-completed-workouts-table th {
+  color:#fff;
+  background-color: #2c3e50;
+}
+.completed-workouts-table-body td{
+  background-color: #9dd5de;
+}
+
+.completed-workouts .clickable-row {
+  cursor: pointer;
+}
+
+.completed-workouts .workout-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.completed-workouts .workout-link:hover {
+  text-decoration: underline;
+}
+
+.entity-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.entity-table th, .entity-table td {
+  padding: 0.5rem;
+  text-align: left;
+  background-color: rgba(242, 237, 238, 0.747);
+  border-bottom: 1px solid #ddd;
+}
+.entity-table th {
+  background-color: rgba(242, 237, 238, 0.747);
+  /* background-color: #f2f2f2; */
+}
+.entity-table tr:hover {
+  background-color: rgba(242, 237, 238, 0.747);
+  /* background-color: #f5f5f5; */
+}
+.entity-table .entity-link {
+  color: #007bff;
+  text-decoration: none;
+}
+.entity-table .entity-link:hover {
+  text-decoration: underline;
+}
+.fiter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  background-color: #555;
+}
+.bi {
+  color: #060606;
+}
+
+.clickable-text {
+  cursor: pointer;
+  color: #007bff;
+  text-decoration: underline;
 }

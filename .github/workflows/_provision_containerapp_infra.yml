@@ -80,8 +80,7 @@ jobs:
       - name: Use environment variable
         run: |
           echo "The value of ACA_TEMPLATE is $ACA_TEMPLATE"
-          echo "The value of ACA_TEMPLATE"
-          echo $ACA_TEMPLATE
+          echo "The value of QUEUE_NAME is $QUEUE_NAME"
 
       - name: 'Az CLI login'
         uses: Azure/login@v1

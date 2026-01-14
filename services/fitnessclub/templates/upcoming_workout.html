@@ -1,0 +1,87 @@
+{# templates/upcoming_workout.html #}
+<div class="upcoming-workout">
+  <div class="card">
+    <h3 class="mb-2">{{ program_name }}</h3>
+    <p>Your next scheduled workout is on:</p>
+    <p id="workout-datetime">{{ next_workout_datetime.strftime('%A, %B %d @ %I:%M %p') }}</p>
+    <p class="text-muted mb-4">which is {{ time_until }} from now</p>
+    <button
+        class="btn hero-btn"
+        hx-post="{{ url_for('program.start_workout', workout_key=workout_key) }}"
+        hx-vals='{"program_key":"{{ program_key }}", "scheduled_workout_event_id":"{{ scheduled_workout_event_id }}", "last_program_workout_instance_key":"{{ last_program_workout_instance_key }}", "adjustments_for_next_workout":"{{ adjustments_for_next_workout }}"}'
+        hx-target="#content",
+        hx-swap="innerHTML"
+        title="Start workout"
+    >Start your workout now</button>
+  </div>
+
+
+  <div class="completed-workouts">
+    <div class="card">
+      <h3 class="mb-3">Workouts already completed in this program</h3>
+
+      {% if completed_workouts %}
+        <table class="table table-hover mb-0">
+          <thead class="thead-completed-workouts-table">
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Workout</th>
+            </tr>
+          </thead>
+          <tbody class="completed-workouts-table-body">
+            {# {% if completed_workouts|length > 0 and completed_workouts|length <= 5 %}
+              <tr>
+                <td colspan="2" class="text-center">You have completed {{ completed_workouts|length }} workout{{ 's' if completed_workouts|length > 1 else '' }} in this program.</td>
+              </tr>
+            {% endif %}
+            {% if completed_workouts|length == 0 %}
+              <tr>
+                <td colspan="2" class="text-center">No workouts completed yet.</td>
+              </tr>
+            {% endif %}
+            {% if completed_workouts|length >= 1 %}
+              <tr>
+                <td colspan="2" class="text-center">
+                  <a href="{{ url_for('program.completed_workouts', program_key=program_key) }}">View all completed workouts</a>
+                </td>
+              </tr>
+            {% endif %} #}
+            {% for w in completed_workouts %}
+              <tr
+                hx-get="/workouts/view_workout_detail?workout_key={{ w.workout_instance_key }}"
+                class="clickable-row"
+                hx-target="#modals-here"
+                hx-swap="innerHTML"
+                data-bs-toggle="modal"
+                data-bs-target="#modals-here"                        
+              >
+                <td>{{ w.date }}</td>
+                <td>{{ w.name }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="mb-0">You haven’t completed any workouts yet with this program.</p>
+      {% endif %}
+    </div>
+  </div>  
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

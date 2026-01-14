@@ -29,8 +29,8 @@ class Vault:
     def set_secret_to_vault(self, secret_name, secret_value):
         try:
             self.client.set_secret(secret_name, secret_value)
-        except:
-            print('exception when attempting to set secret')
+        except Exception as e:
+            print(f'exception when attempting to set secret: {e}')
 
 
 

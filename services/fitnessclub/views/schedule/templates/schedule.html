@@ -1,2 +1,14 @@
-<h2>Active Fitness</h2>
-<p>Schedule</p>
+<ul class="nav nav-tabs" id="my-nav-tabs">
+    <li class="nav-item">
+        <a class="nav-link active" aria-current="page" hx-trigger="load, click" 
+        hx-get="/schedule/members-schedule" hx-target="#scheduleContent" hx-swap="innerHTML">
+        <p class="">Schedule</p></a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" aria-current="page" hx-get="/schedule/calendar" hx-target="#scheduleContent" hx-swap="innerHTML">
+        <p class="">Google Calendar</p></a>
+    </li>
+  </ul>
+  <div id="scheduleContent" class="tab-content"> 
+    <h1>loading...</h1>
+  </div>

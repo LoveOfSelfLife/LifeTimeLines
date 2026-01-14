@@ -1,0 +1,37 @@
+<div  hx-trigger="eventListChanged from:body" hx-get="/schedule/members-schedule" hx-target="this" hx-swap="outerHTML">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>Gym Schedule</h3>
+    <!-- <button class="btn btn-primary"
+            hx-get="/schedule/add" hx-target="#modal-body"
+            hx-trigger="click" hx-swap="innerHTML"
+            data-bs-toggle="modal" data-bs-target="#scheduleModal"
+            aria-label="Add Slot">
+      <i class="bi bi-plus-lg"></i>
+    </button> -->
+    <button class="btn btn-sm btn-primary float-end"
+    hx-get="/schedule/create_event" 
+    hx-target="#modals-here"
+    hx-swap="innerHTML"
+    data-bs-toggle="modal"
+    data-bs-target="#modals-here"                        
+    >
+    <i class="bi bi-plus-lg"></i>
+    </button>    
+  </div>
+  <div id="schedule-list">
+    {% include 'member_schedule_list.html' %}
+  </div>
+
+  <!-- Modal -->
+  <div class="modal fade" id="scheduleModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Schedule Slot</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="modal-body"></div>
+      </div>
+    </div>
+  </div>
+</div>

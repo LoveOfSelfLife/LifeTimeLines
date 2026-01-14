@@ -1,0 +1,76 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+    },
+    "variables": {
+        "containerapp-environment-id" : "/subscriptions/684042c0-364d-44eb-b783-7e3af6674978/resourceGroups/ltl-aca-rg/providers/Microsoft.App/managedEnvironments/ltl-aca-env"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.App/containerapps",
+            "apiVersion": "2022-10-01",
+            "name": "rediscache",
+            "location": "eastus2",
+            "identity": {
+                "type": "None"
+            },
+            "properties": {
+                "managedEnvironmentId": "[variables('containerapp-environment-id')]",
+                "environmentId": "[variables('containerapp-environment-id')]",
+                "configuration": {
+                    "secrets": [
+                    ],
+                    "activeRevisionsMode": "Single",
+                    "ingress": {
+                        "external": false,
+                        "targetPort": 6379,
+                        "exposedPort": 0,
+                        "transport": "tcp",
+                        "traffic": [
+                            {
+                                "weight": 100,
+                                "latestRevision": true
+                            }
+                        ],
+                        "allowInsecure": false
+                    }
+                },
+                "template": {
+                    "containers": [
+                        {
+                            "image": "docker.io/redis:7-alpine",
+                            "name": "rediscache",
+                            "args": [
+                                "--dir /share/redis"
+                            ],                            
+                            "env": [
+                            ],
+                            "resources": {
+                                "cpu": 0.25,
+                                "memory": "0.5Gi"
+                            },
+                            "volumeMounts": [
+                                {
+                                    "volumeName": "azure-files-volume",
+                                    "mountPath": "/share"
+                                }
+                            ]
+                        }
+                    ],
+                    "scale": {
+                        "minReplicas": 1,
+                        "maxReplicas": 1
+                    },
+                    "volumes": [
+                        {
+                            "name": "azure-files-volume",
+                            "storageType": "AzureFile",
+                            "storageName": "acaenvstorage"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

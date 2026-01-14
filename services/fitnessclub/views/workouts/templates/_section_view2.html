@@ -1,0 +1,143 @@
+<div class="list-group">
+    <ul class="list-group list-group-flush section-list"
+        data-section="{{ section.name }}">
+      {% for item in section.exercises %}
+        {% set ex = exercises[item.id] %}
+        <li class="list-group-item py-2 d-flex align-items-center"
+            data-exercise-id="{{ item.id }}" data-workout-id="{{ workout.id }}">
+
+          <div class="flex-fill">
+            <div class="d-flex justify-content-between align-items-center">
+              <strong>{{ ex.name }}</strong>
+            </div>
+
+            <!-- Reps, Sets, Weight all in one row -->
+            <div class="d-flex flex-wrap gap-2 mt-2">
+
+              <!-- Sets -->
+              <div class="d-flex flex-column align-items-start">
+                <label for="sets-{{ item.id }}" class="form-label small">Sets</label>
+                <form
+                      hx-post="{{ url_for('program.update_param', workout_id=workout.id) }}"
+                      hx-vals='{"exercise_id":"{{ item.id }}", "program_id":"{{ program_id }}"}'
+                      hx-trigger="change delay:500ms, focusout"
+                      hx-swap="none">
+                  <input type="hidden" name="exercise_id" value="{{ item.id }}">
+                  <input type="hidden" name="param" value="sets">
+                  <input
+                    type="number" name="value" id="sets-{{ item.id }}"
+                    class="form-control form-control-sm"
+                    style="width:4.5rem;"
+                    placeholder="Sets"
+                    value="{{ item.parameters.sets or '' }}"
+                  >
+                </form>
+              </div>
+
+              <!-- Reps -->
+              <div class="d-flex flex-column align-items-start">
+                <label for="reps-{{ item.id }}" class="form-label small">Reps</label>
+                <form
+                      hx-post="{{ url_for('program.update_param', workout_id=workout.id) }}"
+                      hx-trigger="change delay:500ms, focusout"
+                      hx-vals='{"exercise_id":"{{ item.id }}", "program_id":"{{ program_id }}"}'
+                      hx-swap="none">
+                  <input type="hidden" name="exercise_id" value="{{ item.id }}">
+                  <input type="hidden" name="param" value="reps">
+                  <input
+                    type="number" name="value"  id="reps-{{ item.id }}"
+                    class="form-control form-control-sm"
+                    style="width:4.5rem;"
+                    placeholder="Reps"
+                    value="{{ item.parameters.reps or '' }}"
+                  >
+                </form>
+              </div>
+
+              <!-- Weight -->
+              <div class="d-flex flex-column align-items-start">
+                <label for="weight-{{ item.id }}" class="form-label small">Weight</label>
+                <form
+                      hx-post="{{ url_for('program.update_param', workout_id=workout.id) }}"
+                      hx-trigger="change delay:500ms, focusout"
+                      hx-vals='{"exercise_id":"{{ item.id }}", "program_id":"{{ program_id }}"}'
+                      hx-swap="none">
+                  <input type="hidden" name="exercise_id" value="{{ item.id }}">
+                  <input type="hidden" name="param" value="weight">
+                  <input
+                    type="number" name="value" id="weight-{{ item.id }}"
+                    class="form-control form-control-sm"
+                    style="width:5rem;"
+                    placeholder="Weight"
+                    value="{{ item.parameters.weight or '' }}"
+                  >
+                </form>
+              </div>
+
+              <!-- weight-unit -->
+              <div class="d-flex flex-column align-items-start">
+                <label for="weight_unit-{{ item.id }}" class="form-label small">Unit</label>
+                <form
+                      hx-post="{{ url_for('program.update_param', workout_id=workout.id) }}"
+                      hx-trigger="change delay:500ms, focusout"
+                      hx-vals='{"exercise_id":"{{ item.id }}", "program_id":"{{ program_id }}"}'
+                      hx-swap="none">
+                  <input type="hidden" name="exercise_id" value="{{ item.id }}">
+                  <input type="hidden" name="param" value="weight_unit">
+                  <input
+                    type="text" name="value" id="weight_unit-{{ item.id }}"
+                    class="form-control form-control-sm"
+                    style="width:4.5rem;"
+                    placeholder="lbs/kg"
+                    value="{{ item.parameters.weight_unit or '' }}"
+                  >
+                </form>
+              </div>
+
+              <!-- Time -->
+              <div class="d-flex flex-column align-items-start">
+                <label for="time-{{ item.id }}" class="form-label small">Time</label>
+                <form
+                      hx-post="{{ url_for('program.update_param', workout_id=workout.id) }}"
+                      hx-trigger="change delay:500ms, focusout"
+                      hx-vals='{"exercise_id":"{{ item.id }}", "program_id":"{{ program_id }}"}'
+                      hx-swap="none">
+                  <input type="hidden" name="exercise_id" value="{{ item.id }}">
+                  <input type="hidden" name="param" value="time">
+                  <input
+                    type="number" name="value" id="time-{{ item.id }}"
+                    class="form-control form-control-sm"
+                    style="width:5rem;"
+                    placeholder="secs"
+                    value="{{ item.parameters.time or '' }}"
+                  >
+                </form>
+              </div>
+
+              <!-- Tempo -->
+              <div class="d-flex flex-column align-items-start">
+                <label for="tempo-{{ item.id }}" class="form-label small">Tempo</label>
+                <form
+                      hx-post="{{ url_for('program.update_param', workout_id=workout.id) }}"
+                      hx-trigger="change delay:500ms, focusout"
+                      hx-vals='{"exercise_id":"{{ item.id }}", "program_id":"{{ program_id }}"}'
+                      hx-swap="none">
+                  <input type="hidden" name="exercise_id" value="{{ item.id }}">
+                  <input type="hidden" name="param" value="tempo">
+                  <input
+                    type="text" name="value" id="tempo-{{ item.id }}"
+                    class="form-control form-control-sm"
+                    style="width:5rem;"
+                    placeholder="Tempo"
+                    value="{{ item.parameters.tempo or '' }}"
+                  >
+                </form>
+              </div>
+
+            </div>
+          </div>
+
+        </li>
+      {% endfor %}
+    </ul>
+</div>

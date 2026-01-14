@@ -14,3 +14,5 @@ uvicorn
 gunicorn
 uvicorn-worker
 aiohttp
+redis
+azure-storage-blob>=12.25.0

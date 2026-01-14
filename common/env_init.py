@@ -1,5 +1,6 @@
 import dotenv
 from common.blob_store import BlobStore
+from common.entity_store import instatiate_all_entity_objects
 from common.env_context import Env
 from common.table_store import TableStore
 from common.queue_store import QueueStore
@@ -12,3 +13,6 @@ def initialize_environment():
     QueueStore.initialize(Env.AZURE_STORAGETABLE_CONNECTIONSTRING)
     FShareService.initialize(Env.AZURE_FILESHARE_CONNECTIONSTRING)
     BlobStore.initialize(Env.AZURE_STORAGETABLE_CONNECTIONSTRING)
+
+    instatiate_all_entity_objects()
+    

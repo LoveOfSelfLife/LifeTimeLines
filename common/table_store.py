@@ -1,6 +1,7 @@
 from azure.data.tables import TableClient, TableTransactionError
 from azure.core.exceptions import ResourceExistsError
-
+from common.entity_filter import partition_filter
+from common.entity_filter import create_filter_and_params
 """
 break up a range into smaller chunks and will return an iterator of sub-ranges 
 where length of each sub-range is <= chunksize
@@ -38,47 +39,21 @@ class TableStore():
         keys = {"PartitionKey": partition_key, "RowKey": str(row_key)}
         entity = {**keys, **vals}
         return self.table_client.upsert_entity(entity)
-
-    def query(self, partition_value=None, filter=None, dfilter=None, select=None, start_time_iso=None, end_time_iso=None, 
+    
+    def query2(self, filter=None, select=None, start_time_iso=None, end_time_iso=None, 
               include_start_time=False, include_end_time=True):
-        import datetime
-        from datetime import timedelta
-        start_ts = (datetime.datetime.fromisoformat(str(start_time_iso))+timedelta(microseconds=1)).strftime("%Y-%m-%dT%H:%M:%S.%f")[:] + 'Z' if start_time_iso else None
-        end_ts = (datetime.datetime.fromisoformat(str(end_time_iso))+timedelta(microseconds=1)).strftime("%Y-%m-%dT%H:%M:%S.%f")[:] + 'Z' if end_time_iso else None
-        start_rel = "ge" if include_start_time else "gt"
-        end_rel = "le" if include_end_time else "lt"
-        ts_filter = f" and (Timestamp {start_rel} datetime'{start_ts}')" if start_ts else ""
-        ts_filter = f"{ts_filter} and (Timestamp {end_rel} datetime'{end_ts}')" if end_ts else ts_filter
-
-        if partition_value:
-            if filter:
-                if select:
-                    result = self.table_client.query_entities(query_filter=f"PartitionKey eq @pk and {filter} {ts_filter}", parameters={"pk": partition_value}, select=select)
-                else:
-                    result = self.table_client.query_entities(query_filter=f"PartitionKey eq @pk and {filter} {ts_filter}", parameters={"pk": partition_value})
-            else:
-                qfilter = f"PartitionKey eq @pk{ts_filter}"
-                if select:
-                    result = self.table_client.query_entities(query_filter=qfilter, parameters={"pk": partition_value}, select=select)
-                else:
-                    result = self.table_client.query_entities(query_filter=qfilter, parameters={"pk": partition_value})            
-            return result
+        ts_filter = self._get_time_filter(start_time_iso, end_time_iso, include_start_time, include_end_time)
+        filter_str, params = create_filter_and_params(filter)
+        if filter_str:
+            filter_str = f"{filter_str}{ts_filter}"
         else:
-            # TODO: fix this to be DRY, this is just temporary
-            if filter and ts_filter:
-                filter = f"({filter}){ts_filter}"
-            elif filter:
-                filter = filter
-            elif ts_filter:
-                filter = f"true{ts_filter}"
-            else:
-                filter = ""
-            if select:
-                result = self.table_client.query_entities(query_filter=f"{filter}", select=select)
-            else:
-                print(f"table={self.table_name}, query_filter={filter}")
-                result = self.table_client.query_entities(query_filter=f"{filter}")
-            return result
+            filter_str = ts_filter
+
+        print(f"table={self.table_name}, query_filter='{filter_str}', params={params}")
+        # result = self.table_client.query_entities(query_filter=filter, parameters=params, select=select)
+        result = self.table_client.query_entities(query_filter=filter_str, select=select, parameters=params)
+
+        return result
 
     def parameters_to_query_string(self, filter_dict=None):
         if filter_dict:
@@ -97,23 +72,7 @@ class TableStore():
         ts_filter = f" and (Timestamp {start_rel} datetime'{start_ts}')" if start_ts else ""
         ts_filter = f"{ts_filter} and (Timestamp {end_rel} datetime'{end_ts}')" if end_ts else ts_filter
         return ts_filter
-    
-    def query2(self, dfilter=None, select=None, start_time_iso=None, end_time_iso=None, 
-              include_start_time=False, include_end_time=True):
-        ts_filter = self._get_time_filter(start_time_iso, end_time_iso, include_start_time, include_end_time)
-        from common.entity_filter import create_filter_and_params
-        filter, params = create_filter_and_params(dfilter)
-        if filter:
-            filter = f"{filter}{ts_filter}"
-        else:
-            filter = ts_filter
-
-        print(f"table={self.table_name}, query_filter='{filter}', params={params}")
-        # result = self.table_client.query_entities(query_filter=filter, parameters=params, select=select)
-        result = self.table_client.query_entities(query_filter=filter, parameters=params)
-
-        return result
-
+        
     def get_item(self, partition_key_value, row_key_value):
             return self.table_client.get_entity(partition_key=partition_key_value, row_key=str(row_key_value))
 
@@ -126,8 +85,9 @@ class TableStore():
             self.table_client.create_table()
             print("Created table")
             
-    def delete(self, partition_value, filter=None):
-        results = self.query(partition_value, filter=filter)
+    def delete(self, partition_value):
+        pf = partition_filter(partition_value)
+        results = self.query2(filter_str=pf)
         to_delete = []
         try:
             for item in results:
