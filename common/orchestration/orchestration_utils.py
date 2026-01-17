@@ -7,17 +7,6 @@ from azure.storage.queue import QueueClient
 from common.env_context import Env
 from common.orchestration.orchestration_queue import OrchestrationQueue
 
-# class OrchestrationDefinition (EntityObject):
-#     """ this table 
-#     """
-#     table_name='OrchestrationDefTable'
-#     fields=["id", "version", "context", "tasks", "flow"]
-#     key_field="id"
-#     partition_value="orch_def"
-
-#     def __init__(self, d={}):
-#         super().__init__(d)
-
 class OrchestrationCommand (EntityObject):
     """ this table 
     """
