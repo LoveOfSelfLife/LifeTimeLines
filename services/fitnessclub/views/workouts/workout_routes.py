@@ -4,7 +4,7 @@ from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import get_cache_value, set_cache_value, delete_from_cache
 from common.fitness.entities_getter import get_filtered_entities
-from common.fitness.exercise_entity import ExerciseEntity
+from common.fitness.exercise_entity import ExerciseEntity, general_exercise_entity_filter, is_entity_hidden, matches_all_terms_in_filter
 from common.fitness.hx_common import hx_render_template
 from common.fitness.hx_common import rm_spaces
 from common.fitness.workout_entity import get_exercises_from_workout
@@ -44,6 +44,38 @@ def new_workout(name='New Workout'):
 def index(context=None):
     return redirect(url_for('workouts.workouts_listing'), 302)
 
+    
+@bp.route('/workouts-listing', methods=['POST'])
+@auth.login_required
+def workouts_listing_post(context=None):
+    filter_term = request.form["search"].lower()
+
+    WORKOUT_ENTITY_NAME = "WorkoutTable"
+    page = int(request.args.get('page', 1))
+    # view = request.args.get('view', 'list')
+    target = request.args.get('target', None)    
+
+    view = request.args.get('view', None)
+    if view:
+        session['view_preference'] = view
+    else:
+        view = session.get('view_preference', 'list')
+
+    fields_to_display  = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
+
+    filter_terms = [{
+                        "type" : "text",
+                        "id" : "text",
+                        "label" : "Filter Text",
+                        "shortlabel" : "Text",
+                        "value" : filter_term
+                    }]
+    filter_func = general_exercise_entity_filter
+
+    entities = get_filtered_entities(WORKOUT_ENTITY_NAME, fields_to_display, filter_func, filter_terms)
+    return workouts_listing_base(context, WORKOUT_ENTITY_NAME, page, target, view, fields_to_display, filter_terms, entities)
+
+
 @bp.route('/workouts-listing')
 @auth.login_required
 def workouts_listing(context=None):
@@ -70,17 +102,24 @@ def workouts_listing(context=None):
         filter_terms = None
 
     entities = get_filtered_entities(WORKOUT_ENTITY_NAME, fields_to_display, filter_func, filter_terms)
+    return workouts_listing_base(context, WORKOUT_ENTITY_NAME, page, target, view, fields_to_display, filter_terms, entities)
 
+def workouts_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities):
     page_size = 10
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
     end = start + page_size
     current = entities[start:end]
 
+    if request.headers.get('HX-Target') == 'results-area':
+        template_file_name = 'entity_results_partial.html'
+    else:
+        template_file_name = 'entity_list_component.html'
+
     # displays workouts at the top level
     return render_template(
-        "entity_list_component.html",
-        entity_name=WORKOUT_ENTITY_NAME,
+        template_file_name,
+        entity_name=entity_name,
         main_content_container="entities-container",        
         fields_to_display=fields_to_display,
         entities=current,
@@ -90,13 +129,14 @@ def workouts_listing(context=None):
         view=view,
         total_pages=total_pages,
         entity_add_route=url_for('workouts.builder_new'),
-        entities_listing_route=f'/workouts/workouts-listing?entity_table={WORKOUT_ENTITY_NAME}&target={target}',
-        entity_view_route=f'/workouts/viewer/workout?entity_table={WORKOUT_ENTITY_NAME}',
-        entity_action_route=f'/workouts/edit?entity_table={WORKOUT_ENTITY_NAME}',
+        entities_listing_route=f'/workouts/workouts-listing?entity_table={entity_name}&target={target}',
+        entity_view_route=f'/workouts/viewer/workout?entity_table={entity_name}',
+        entity_action_route=f'/workouts/edit?entity_table={entity_name}',
         entity_action_icon='bi-pencil-square',  
         entity_action_label='Edit Workout',       
         # filter_dialog_route=f'/exercises/filter-dialog?entity_table={WORKOUT_ENTITY_NAME}',
         context=context)
+
 
 @bp.route('/filter-dialog')
 @auth.login_required
@@ -434,8 +474,12 @@ def exercise_listing(context=None):
     if not entity_name:
         return "No entity name provided", 404
     entity_type = get_fitnessclub_entity_type_for_entity(entity_name)
-    
-    return hx_render_template('entity_list_component.html',
+    if request.headers.get('HX-Target') == 'results-area':
+        template_file_name = 'entity_results_partial.html'
+    else:
+        template_file_name = 'entity_list_component.html'
+
+    return hx_render_template(template_file_name,
                               fields_to_display=fields_to_display,
                               main_content_container=div_id,
                               entities=current,
@@ -489,9 +533,13 @@ def builder_workouts_listing(context=None):
     end = start + page_size
     current = entities[start:end]
 
+    if request.headers.get('HX-Target') == 'results-area':
+        template_file_name = 'entity_results_partial.html'
+    else:
+        template_file_name = 'entity_list_component.html'
+
     # displays workouts at the top level
-    return render_template(
-        "entity_list_component.html",
+    return render_template(template_file_name,
         entity_name=WORKOUT_ENTITY_NAME,
         main_content_container=div_id,
         fields_to_display=fields_to_display,
@@ -566,8 +614,13 @@ def exercise_reviewer_listing(context=None):
     if not entity_name:
         return "No entity name provided", 404
     entity_type = get_fitnessclub_entity_type_for_entity(entity_name)
-    
-    return hx_render_template('entity_list_component.html',
+
+    if request.headers.get('HX-Target') == 'results-area':
+        template_file_name = 'entity_results_partial.html'
+    else:
+        template_file_name = 'entity_list_component.html'
+
+    return hx_render_template(template_file_name,
                               fields_to_display=fields_to_display,
                               main_content_container=div_id,
                               entities=current,
@@ -908,7 +961,7 @@ def edit_exercise_parameters(context=None):
     es = EntityStore()
     # Get the workout details to find the exercise parameters
     workout_instance = es.get_item_by_composite_key(workout_instance_key)
-    # workout = get_entity("WorkoutTable", workout_id)
+    workout = get_entity("WorkoutTable", workout_id)
     if not workout_instance:
         abort(404)
     

@@ -1,8 +1,9 @@
+from ast import literal_eval
 from flask import Blueprint, redirect, render_template, request, session, url_for
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
 from common.fitness.entities_getter import get_filtered_entities
-from common.fitness.exercise_entity import render_exercise_popup_viewer_html
+from common.fitness.exercise_entity import exercise_entity_filter_term, general_exercise_entity_filter, render_exercise_popup_viewer_html
 from common.fitness.hx_common import hx_render_template
 bp = Blueprint('exercises', __name__, template_folder='templates')
 from auth import auth
@@ -11,6 +12,40 @@ from auth import auth
 @auth.login_required
 def root(context=None):
     return redirect(url_for('exercises.exercises_fragment'), 302)
+
+@bp.route('/exercises-listing', methods=['POST'])
+@auth.login_required
+def exercises_fragment_post(context=None):
+   
+    filter_term = request.form["search"].lower()
+
+    entity_name = "ExerciseTable"
+    page = int(request.args.get('page', 1))
+    page_size = 10
+
+    # view = request.args.get('view', None)
+    view = request.form.get('view', 'list')
+    # if view:
+    #     session['view']
+
+    if view:
+        session['view_preference'] = view
+    else:
+        view = session.get('view_preference', 'list')
+    
+    fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
+    filter_terms = [{
+                        "type" : "text",
+                        "id" : "text",
+                        "label" : "Filter Text",
+                        "shortlabel" : "Text",
+                        "value" : filter_term
+                    }]
+    filter_func = general_exercise_entity_filter
+    entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms)
+
+    return exercise_listing_base(entity_name, page, page_size, view, fields_to_display, filter_terms, entities)
+
 
 @bp.route('/exercises-listing')
 @auth.login_required
@@ -26,25 +61,40 @@ def exercises_fragment(context=None):
         view = session.get('view_preference', 'list')
     
     fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
-    filters = get_fitnessclub_entity_filters_for_entity(entity_name)
 
-    if filters:
-        filter_func  = get_fitnessclub_filter_func_for_entity(entity_name)
-        filter_term_func  = get_fitnessclub_filter_term_func_for_entity(entity_name)
-        filter_terms = filter_term_func(request.args)
-    else:
-        filter_func = None
-        filter_terms = None
+    filter_terms = request.args.get('filter', [])
+    # check if filter terms is an empty list
+    filter_terms = literal_eval(filter_terms) if filter_terms else []
+    if len(filter_terms) == 0:
+        search_term = request.args.get('search', '')
+        if search_term:
+            filter_terms = [{
+                "type": "text",
+                "id": "text",
+                "label": "Filter Text",
+                "shortlabel": "Text",
+                "value": search_term
+            }]
 
+
+
+    filter_func = general_exercise_entity_filter
     entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms)
 
+    return exercise_listing_base(entity_name, page, page_size, view, fields_to_display, filter_terms, entities)
+
+
+def exercise_listing_base(entity_name, page, page_size, view, fields_to_display, filter_terms, entities):
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
     end = start + page_size
     current = entities[start:end]
-
+    if request.headers.get('HX-Target') == 'results-area':
+        template_file_name = 'entity_results_partial.html'
+    else:
+        template_file_name = 'entity_list_component.html'
     return render_template(
-        "entity_list_component.html",
+        template_file_name,
         entity_name=entity_name,
         main_content_container="entities-container",        
         fields_to_display=fields_to_display,

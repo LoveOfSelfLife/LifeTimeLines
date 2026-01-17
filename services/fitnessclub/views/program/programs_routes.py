@@ -6,6 +6,7 @@ from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import delete_from_cache, get_cache_value, set_cache_value
 from common.fitness.entities_getter import get_entity, get_entity2, get_filtered_entities
+from common.fitness.exercise_entity import general_exercise_entity_filter
 from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import hx_render_template
 from common.fitness.hx_common import rm_spaces
@@ -20,6 +21,48 @@ from auth import auth
 @auth.login_required
 def index(context=None):
     return redirect(url_for('program.programs_listing'), 302)
+
+@bp.route('/programs-listing', methods=['POST'])
+@auth.login_required
+def programs_listing_post(context=None):
+
+    filter_term = request.form["search"].lower()
+
+    member = get_member_detail_from_user_context(context)
+    PROGRAM_ENTITY_NAME = "ProgramTable"
+    page = int(request.args.get('page', 1))
+    page_size = 10
+
+    view = request.args.get('view', None)
+    if view:
+        session['view_preference'] = view
+    else:
+        view = session.get('view_preference', 'list')
+
+    fields_to_display  = get_fitnessclub_listing_fields_for_entity(PROGRAM_ENTITY_NAME)
+
+    # filters = get_fitnessclub_entity_filters_for_entity(PROGRAM_ENTITY_NAME)
+    # 
+    # if filters:
+    #     filter_func  = get_fitnessclub_filter_func_for_entity(PROGRAM_ENTITY_NAME)
+    #     filter_term_func  = get_fitnessclub_filter_term_func_for_entity(PROGRAM_ENTITY_NAME)
+    #     filter_terms = filter_term_func(request.args)
+    # else:
+    #     filter_func = None
+    #     filter_terms = None
+
+    filter_terms = [{
+                        "type" : "text",
+                        "id" : "text",
+                        "label" : "Filter Text",
+                        "shortlabel" : "Text",
+                        "value" : filter_term
+                    }]
+    filter_func = general_exercise_entity_filter
+
+    entities = get_filtered_entities(PROGRAM_ENTITY_NAME, fields_to_display, filter_func, filter_terms, partition_key=member.get('id', None))
+
+    return program_listing_base(context, PROGRAM_ENTITY_NAME, page, page_size, view, fields_to_display, filter_terms, entities)
 
 @bp.route('/programs-listing')
 @auth.login_required
@@ -48,14 +91,20 @@ def programs_listing(context=None):
 
     entities = get_filtered_entities(PROGRAM_ENTITY_NAME, fields_to_display, filter_func, filter_terms, partition_key=member.get('id', None))
 
+    return program_listing_base(context, PROGRAM_ENTITY_NAME, page, page_size, view, fields_to_display, filter_terms, entities)
+
+def program_listing_base(context, PROGRAM_ENTITY_NAME, page, page_size, view, fields_to_display, filter_terms, entities):
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
     end = start + page_size
     current = entities[start:end]
-
+    if request.headers.get('HX-Target') == 'results-area':
+        template_file_name = 'entity_results_partial.html'
+    else:
+        template_file_name = 'entity_list_component.html'
     # displays workouts at the top level
     return hx_render_template(
-        "entity_list_component.html",
+        template_file_name,
         entity_name=PROGRAM_ENTITY_NAME,
         main_content_container="entities-container",        
         fields_to_display=fields_to_display,
@@ -128,9 +177,14 @@ def workouts_listing(context=None):
     end = start + page_size
     current = entities[start:end]
 
+    if request.headers.get('HX-Target') == 'results-area':
+        template_file_name = 'entity_results_partial.html'
+    else:
+        template_file_name = 'entity_list_component.html'
+
     # displays workouts at the top level
     return hx_render_template(
-        "entity_list_component.html",
+        template_file_name,
         fields_to_display=fields_to_display,
         main_content_container=div_id,        
         entities=current,

@@ -6,7 +6,7 @@ from auth import auth
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_entity_names
 from common.env_context import Env
 from common.fitness.entities_getter import delete_entity
-from common.fitness.exercise_entity import render_exercise_popup_viewer_html
+from common.fitness.exercise_entity import general_exercise_entity_filter, render_exercise_popup_viewer_html
 from common.fitness.utils import generate_id
 from common.fitness.hx_common import hx_render_template
 from common.entity_store import EntityStore
@@ -18,6 +18,45 @@ bp = Blueprint('admin', __name__, template_folder='templates')
 def root(context=None):
     entity_table = request.args.get('entity_table')    
     return redirect(url_for('admin.entities_listing', entity_table=entity_table), 302)
+
+@bp.route('/entities-listing', methods=['POST'])
+@auth.login_required
+def entities_listing_post(context=None):
+    filter_term = request.form["search"].lower()
+    entity_name = request.args.get('entity_table', None)    
+    page = int(request.args.get('page', 1))
+
+    view = request.args.get('view', None)
+    if view:
+        session['view_preference'] = view
+    else:
+        view = session.get('view_preference', 'list')
+
+    page_size = 10
+
+    fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
+
+    # filters = get_fitnessclub_entity_filters_for_entity(entity_name)
+
+    # if filters:
+    #     filter_func  = get_fitnessclub_filter_func_for_entity(entity_name)
+    #     filter_term_func  = get_fitnessclub_filter_term_func_for_entity(entity_name)
+    #     filter_terms = filter_term_func(request.args)
+    # else:
+    #     filter_func = None
+    #     filter_terms = None
+    filter_terms = [{
+                        "type" : "text",
+                        "id" : "text",
+                        "label" : "Filter Text",
+                        "shortlabel" : "Text",
+                        "value" : filter_term
+                    }]
+    filter_func = general_exercise_entity_filter
+    entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms)
+
+    return render_entity_template(context, entity_name, page, view, page_size, fields_to_display, filter_terms, entities)
+
 
 @bp.route('/entities-listing')
 @auth.login_required
@@ -46,13 +85,20 @@ def entities_listing(context=None):
 
     entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms)
 
+    return render_entity_template(context, entity_name, page, view, page_size, fields_to_display, filter_terms, entities)
+
+def render_entity_template(context, entity_name, page, view, page_size, fields_to_display, filter_terms, entities):
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
     end = start + page_size
     current = entities[start:end]
+    if request.headers.get('HX-Target') == 'results-area':
+        template_file_name = 'entity_results_partial.html'
+    else:
+        template_file_name = 'entity_list_component.html'
 
     return hx_render_template(
-        "entity_list_component.html",
+        template_file_name,
         entity_name=entity_name,
         main_content_container="entities-container",        
         fields_to_display=fields_to_display,
