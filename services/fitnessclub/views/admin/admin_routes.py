@@ -3,10 +3,11 @@ import json
 from flask import Blueprint, abort, jsonify, make_response, render_template, request, redirect, session, url_for
 import requests
 from auth import auth
-from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_entity_names
+from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_entity_names
 from common.env_context import Env
 from common.fitness.entities_getter import delete_entity
 from common.fitness.exercise_entity import general_exercise_entity_filter, render_exercise_popup_viewer_html
+from common.fitness.member_entity import get_member_detail_from_user_context
 from common.fitness.utils import generate_id
 from common.fitness.hx_common import hx_render_template
 from common.entity_store import EntityStore
@@ -19,72 +20,26 @@ def root(context=None):
     entity_table = request.args.get('entity_table')    
     return redirect(url_for('admin.entities_listing', entity_table=entity_table), 302)
 
-@bp.route('/entities-listing', methods=['POST'])
-@auth.login_required
-def entities_listing_post(context=None):
-    filter_term = request.form["search"].lower()
-    entity_name = request.args.get('entity_table', None)    
-    page = int(request.args.get('page', 1))
-
-    view = request.args.get('view', None)
-    if view:
-        session['view_preference'] = view
-    else:
-        view = session.get('view_preference', 'list')
-
-    page_size = 10
-
-    fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
-
-    # filters = get_fitnessclub_entity_filters_for_entity(entity_name)
-
-    # if filters:
-    #     filter_func  = get_fitnessclub_filter_func_for_entity(entity_name)
-    #     filter_term_func  = get_fitnessclub_filter_term_func_for_entity(entity_name)
-    #     filter_terms = filter_term_func(request.args)
-    # else:
-    #     filter_func = None
-    #     filter_terms = None
-    filter_terms = [{
-                        "type" : "text",
-                        "id" : "text",
-                        "label" : "Filter Text",
-                        "shortlabel" : "Text",
-                        "value" : filter_term
-                    }]
-    filter_func = general_exercise_entity_filter
-    entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms)
-
-    return render_entity_template(context, entity_name, page, view, page_size, fields_to_display, filter_terms, entities)
-
-
-@bp.route('/entities-listing')
+@bp.route('/entities-listing', methods=['GET', 'POST'])
 @auth.login_required
 def entities_listing(context=None):
     entity_name = request.args.get('entity_table', None)    
     page = int(request.args.get('page', 1))
-    # view = request.args.get('view', 'list')
-    view = request.args.get('view', None)
-    if view:
+    page_size = 100
+
+    # Handle view preference
+    view = (request.form.get('view') if request.method == 'POST' 
+            else request.args.get('view')) or session.get('view_preference', 'list')
+    
+    if view != session.get('view_preference'):
         session['view_preference'] = view
-    else:
-        view = session.get('view_preference', 'list')
+    
+    fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
+    filter_terms = _get_filter_terms_from_request()
+    filter_func = general_exercise_entity_filter
 
-    page_size = 10
-
-    fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
-    filters = get_fitnessclub_entity_filters_for_entity(entity_name)
-
-    if filters:
-        filter_func  = get_fitnessclub_filter_func_for_entity(entity_name)
-        filter_term_func  = get_fitnessclub_filter_term_func_for_entity(entity_name)
-        filter_terms = filter_term_func(request.args)
-    else:
-        filter_func = None
-        filter_terms = None
-
-    entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms)
-
+    member = get_member_detail_from_user_context(context)
+    entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms, partition_key=member.get('id', None))
     return render_entity_template(context, entity_name, page, view, page_size, fields_to_display, filter_terms, entities)
 
 def render_entity_template(context, entity_name, page, view, page_size, fields_to_display, filter_terms, entities):

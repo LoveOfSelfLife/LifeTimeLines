@@ -1,4 +1,5 @@
-from flask import url_for
+from ast import literal_eval
+from flask import request, url_for
 from common.entity_store import EntityObject
 from common.fitness.program_entity import ProgramEntity
 from common.fitness.member_entity import MemberEntity
@@ -103,3 +104,33 @@ def get_filter_func(entity_name, args):
         filter_func = None
         filter_terms = None
     return filter_func, filter_terms
+
+def _get_filter_terms_from_request():
+    """Extract search term from either POST form data or GET query parameters."""
+    # Get search term from appropriate source
+    search_term = ""
+    if request.method == 'POST':
+        search_term = request.form.get("search", "").lower()
+    else:
+        # Try filter parameter first, then search parameter
+        filter_param = request.args.get('filter', '')
+        # if filter_param is present and is a string, need to convert it to a python object
+        # using ast.literal_eval
+        if filter_param and isinstance(filter_param, str):
+            import ast
+            filter_param = ast.literal_eval(filter_param)
+
+        if len(filter_param) > 0:
+            return filter_param
+
+        search_term = request.args.get('search', '')
+    
+    # Construct filter_terms if we have a search term
+    return [{
+        "type": "text",
+        "id": "text", 
+        "label": "Filter Text",
+        "shortlabel": "Text",
+        "value": search_term
+    }] if search_term else []
+

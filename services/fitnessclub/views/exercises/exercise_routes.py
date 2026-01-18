@@ -1,7 +1,7 @@
 from ast import literal_eval
 from flask import Blueprint, redirect, render_template, request, session, url_for
 from common.entity_store import EntityStore
-from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
+from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
 from common.fitness.entities_getter import get_filtered_entities
 from common.fitness.exercise_entity import exercise_entity_filter_term, general_exercise_entity_filter, render_exercise_popup_viewer_html
 from common.fitness.hx_common import hx_render_template
@@ -13,71 +13,22 @@ from auth import auth
 def root(context=None):
     return redirect(url_for('exercises.exercises_fragment'), 302)
 
-@bp.route('/exercises-listing', methods=['POST'])
-@auth.login_required
-def exercises_fragment_post(context=None):
-   
-    filter_term = request.form["search"].lower()
-
-    entity_name = "ExerciseTable"
-    page = int(request.args.get('page', 1))
-    page_size = 10
-
-    # view = request.args.get('view', None)
-    view = request.form.get('view', 'list')
-    # if view:
-    #     session['view']
-
-    if view:
-        session['view_preference'] = view
-    else:
-        view = session.get('view_preference', 'list')
-    
-    fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
-    filter_terms = [{
-                        "type" : "text",
-                        "id" : "text",
-                        "label" : "Filter Text",
-                        "shortlabel" : "Text",
-                        "value" : filter_term
-                    }]
-    filter_func = general_exercise_entity_filter
-    entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms)
-
-    return exercise_listing_base(entity_name, page, page_size, view, fields_to_display, filter_terms, entities)
-
-
-@bp.route('/exercises-listing')
+@bp.route('/exercises-listing', methods=['GET', 'POST'])
 @auth.login_required
 def exercises_fragment(context=None):
     entity_name = "ExerciseTable"
     page = int(request.args.get('page', 1))
-    page_size = 10
+    page_size = 100
 
-    view = request.args.get('view', None)
-    if view:
-        session['view_preference'] = view
-    else:
-        view = session.get('view_preference', 'list')
+    # Handle view preference
+    view = (request.form.get('view') if request.method == 'POST' 
+            else request.args.get('view')) or session.get('view_preference', 'list')
     
-    fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
-
-    filter_terms = request.args.get('filter', [])
-    # check if filter terms is an empty list
-    filter_terms = literal_eval(filter_terms) if filter_terms else []
-    if len(filter_terms) == 0:
-        search_term = request.args.get('search', '')
-        if search_term:
-            filter_terms = [{
-                "type": "text",
-                "id": "text",
-                "label": "Filter Text",
-                "shortlabel": "Text",
-                "value": search_term
-            }]
-
-
-
+    if view != session.get('view_preference'):
+        session['view_preference'] = view
+    
+    fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
+    filter_terms = _get_filter_terms_from_request()
     filter_func = general_exercise_entity_filter
     entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms)
 
