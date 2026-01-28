@@ -5,7 +5,7 @@ from common.entity_store import EntityStore
 from common.fitness.entities_getter import get_entity
 from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.member_program_entity import MemberProgramEntity
-from common.fitness.member_workout_entity import MemberWorkouDefinitionEntity, MemberWorkoutInstanceEntity, WorkoutDefinitionEntity
+from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, WorkoutDefinitionEntity
 from common.fitness.program_entity import ProgramEntity
 from common.fitness.workout_entity import ProgramWorkoutEntity, ProgramWorkoutInstanceEntity, WorkoutEntity
 from common.table_store import TableStore
@@ -63,11 +63,11 @@ def convert_tables_1_to_2():
             # print(f"Upserting member workout instance {mbr_wkt_inst['id']} for member {mbr_wkt_inst['member_id']}")
             es.upsert_item(mbr_wkt_inst)
 
-        _ =MemberWorkouDefinitionEntity()
+        _ =MemberWorkoutDefinitionEntity()
         _ =ProgramWorkoutEntity()
         for w in pr['workouts']:
             prog_wkt = es.get_item_by_composite_key(w['key'])
-            mbr_wkt_def = MemberWorkouDefinitionEntity()
+            mbr_wkt_def = MemberWorkoutDefinitionEntity()
             mbr_wkt_def['id'] = prog_wkt['id']
             mbr_wkt_def['member_id'] = pr['member_id']
             mbr_wkt_def['description'] = prog_wkt.get('description', '')

@@ -5,7 +5,7 @@ from common.entity_store import EntityStore
 from common.fitness.entities_getter import get_entity
 from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.member_program_entity import MemberProgramEntity
-from common.fitness.member_workout_entity import MemberWorkouDefinitionEntity, MemberWorkoutInstanceEntity, WorkoutDefinitionEntity
+from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, WorkoutDefinitionEntity
 from common.fitness.program_entity import ProgramEntity
 from common.fitness.workout_entity import ProgramWorkoutEntity, ProgramWorkoutInstanceEntity, WorkoutEntity
 from common.table_store import TableStore
@@ -28,7 +28,7 @@ def show_tables():
     with open('local/member_programs.json', 'w') as f:
         json.dump([mp for mp in member_programs], f, indent=4)
 
-    member_workou_definitions = es.list_items(MemberWorkouDefinitionEntity())
+    member_workou_definitions = es.list_items(MemberWorkoutDefinitionEntity())
     with open('local/member_workou_definitions.json', 'w') as f:
         json.dump([mp for mp in member_workou_definitions], f, indent=4)
 

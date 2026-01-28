@@ -13,7 +13,7 @@ class WorkoutDefinitionEntity (EntityObject):
     def __init__(self, d={}):
         super().__init__(d)
 
-class MemberWorkouDefinitionEntity (EntityObject):
+class MemberWorkoutDefinitionEntity (EntityObject):
     table_name="MemberWorkoutDefinitionTable"
     fields=["id", 
             "member_id", 
