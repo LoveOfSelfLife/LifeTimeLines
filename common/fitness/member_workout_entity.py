@@ -1,4 +1,5 @@
 from common.entity_store import EntityObject
+from common.fitness.entities_getter import get_entity
 
 
 class WorkoutDefinitionEntity (EntityObject):
@@ -50,23 +51,23 @@ class MemberWorkoutInstanceEntity (EntityObject):
     def __init__(self, d={}):
         super().__init__(d)
 
-def initialize_mbr_wkt_instance(mbr_wkt_inst, 
-                                member_id, 
-                                workout_sections, 
-                                started_ts, 
-                                finished_ts, 
-                                scheduled_workout_event_id, 
-                                adjustments_for_next_workout,
-                                member_workout_def_id,
-                                member_program_id):
-    mbr_wkt_inst['member_id'] = member_id
-    mbr_wkt_inst['workout_sections'] = workout_sections
-    mbr_wkt_inst['started_ts'] = started_ts
-    mbr_wkt_inst['finished_ts'] = finished_ts
-    mbr_wkt_inst['scheduled_workout_event_id'] = scheduled_workout_event_id
-    mbr_wkt_inst['adjustments_for_next_workout'] = adjustments_for_next_workout
-    mbr_wkt_inst['member_workout_def_id'] = member_workout_def_id
-    mbr_wkt_inst['member_program_id'] = member_program_id
-    return mbr_wkt_inst
+
+def get_exercises_from_workout(workout):
+    exercises = []
+    # check if workout has either 'sections' or 'workout_sections' field
+    # then iterate through the correct field
+    if 'sections' in workout:
+        SECTION_FIELD = 'sections'
+    elif 'workout_sections' in workout:
+        SECTION_FIELD = 'workout_sections'
+    else:
+        return exercises
+    for s in workout[SECTION_FIELD]:
+        for it in s['exercises']:
+            ex = get_entity("ExerciseTable", it['id'])
+            if ex:
+                ex['parameters'] = it['parameters']
+                exercises.append(ex)
+    return exercises
 
         

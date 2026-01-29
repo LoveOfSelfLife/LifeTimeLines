@@ -1,31 +1,30 @@
 from datetime import datetime
 from flask import Blueprint, jsonify, make_response, render_template, request, current_app
 from common.entity_store import EntityStore
-from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
+from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import get_cache_value, set_cache_value, delete_from_cache
 from common.fitness.entities_getter import get_filtered_entities
 from common.fitness.exercise_entity import ExerciseEntity, general_exercise_entity_filter, is_entity_hidden, matches_all_terms_in_filter
 from common.fitness.hx_common import hx_render_template
 from common.fitness.hx_common import rm_spaces
-from common.fitness.workout_entity import get_exercises_from_workout
+from common.fitness.member_workout_entity import WorkoutDefinitionEntity, get_exercises_from_workout
 from common.fitness.workout_state import get_active_workout_state, update_active_workout_state
 bp = Blueprint('workouts', __name__, template_folder='templates')
 from auth import auth
 from flask import Flask, render_template, request, redirect, url_for, session, abort
 import uuid
 import json
-from common.fitness.workout_entity import WorkoutEntity
 from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity
 
 from common.fitness.entities_getter import get_filtered_entities, get_entity
-
+from common.fitness.entity_constants import WORKOUT_ENTITY_NAME, WORKOUT_SECTIONS
 
 def new_workout(name='New Workout'):
     wid = str(uuid.uuid4())
     return {
         'id': wid,
         'name': name,
-        'sections': [
+        WORKOUT_SECTIONS: [
             {'name':'warmup','exercises':[]},
             {'name':'ramp','exercises':[]},
             {'name':'core','exercises':[]},
@@ -48,7 +47,7 @@ def index(context=None):
 @bp.route('/workouts-listing', methods=['GET', 'POST'])
 @auth.login_required
 def workouts_listing(context=None):
-    entity_name = "WorkoutTable"
+    entity_name = WORKOUT_ENTITY_NAME
     page = int(request.args.get('page', 1))
 
     target = request.args.get('target', None)
@@ -78,7 +77,7 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
         template_file_name = 'entity_list_component.html'
 
     # displays workouts at the top level
-    return render_template(
+    return hx_render_template(
         template_file_name,
         entity_name=entity_name,
         main_content_container="entities-container",        
@@ -105,7 +104,7 @@ def filter_dialog(context=None):
     target = request.args.get('target', None)
     workout_id = request.args.get('workout_id', None)
     entity_name = "ExerciseTable"
-    entity_type = get_fitnessclub_entity_type_for_entity(entity_name)
+    entity_type = get_entity_obj_from_entity_name(entity_name)
     filters = get_fitnessclub_entity_filters_for_entity(entity_name)
 
     return hx_render_template('filter_dialog.html', 
@@ -121,14 +120,13 @@ def filter_dialog(context=None):
 @bp.route('/edit')
 @auth.login_required
 def edit_workout_details(context=None):
-    WORKOUT_ENTITY_NAME = "WorkoutTable"
-    entity_instance = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
+    entity_instance = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
 
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
     entity_to_view = es.get_item_by_composite_key(composite_key)
-    entity_type = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
+    entity_type = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
     entity_type.initialize(entity_to_view)
     print(f"editing workoug: {json.dumps(entity_to_view, indent=4)}")
     set_cache_value('current_workout', entity_type)
@@ -148,12 +146,12 @@ def builder_new(context=None):
 @bp.route('/builder/<workout_id>')
 @auth.login_required
 def builder(context=None, workout_id=None):
-    WORKOUT_ENTITY_NAME = "WorkoutTable"
+
     workout = get_cache_value('current_workout')
     if workout and workout['id'] == workout_id:
             return hx_render_template('builder.html', workout=workout, context=context, source='exercises')
 
-    entity_type = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
+    entity_type = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
     entity_type['id'] = workout_id
     es = EntityStore()
     workout = es.get_item(entity_type)
@@ -206,7 +204,7 @@ def add_exercise(context=None, workout_id=None):
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
-    entity_instance = get_fitnessclub_entity_type_for_entity("ExerciseTable")
+    entity_instance = get_entity_obj_from_entity_name("ExerciseTable")
     ex = es.get_item_by_composite_key(composite_key)
     if not ex:
         abort(404)
@@ -214,8 +212,8 @@ def add_exercise(context=None, workout_id=None):
     exid = ex['id']
 
     # auto‐assign section
-    sect = ex['category'] if ex['category'] in [s['name'] for s in w['sections']] else 'strength'
-    for s in w['sections']:
+    sect = ex['category'] if ex['category'] in [s['name'] for s in w[WORKOUT_SECTIONS]] else 'strength'
+    for s in w[WORKOUT_SECTIONS]:
         if s['name']==sect:
             s['exercises'].append({
               'id':exid,
@@ -256,10 +254,10 @@ def add_workout(context=None, workout_id=None):
     # current_workout is the current workout from the cache
     # source_workout is the workout we are adding to the current workout, i.e. is the source of the exercises
     # we will add the exercises from the source to the current, including the parameters of each exercise
-    for src_sect in source_workout['sections']:
+    for src_sect in source_workout[WORKOUT_SECTIONS]:
         src_sect_name = src_sect['name']
         # find the section in the current workout and add the exercises to it
-        for curr_sect in current_workout['sections']:
+        for curr_sect in current_workout[WORKOUT_SECTIONS]:
             if curr_sect['name']==src_sect_name:
                 # add the exercises from the wk section to the current workout section
                 for ex in src_sect['exercises']:
@@ -285,7 +283,7 @@ def remove_exercise(context=None, workout_id=None):
     w = get_cache_value('current_workout')
 
     exid = request.form['exercise_id']
-    for s in w['sections']:
+    for s in w[WORKOUT_SECTIONS]:
         s['exercises'] = [it for it in s['exercises'] if it['id']!=exid]
 
     set_cache_value('current_workout', w)
@@ -309,10 +307,10 @@ def move_exercise(context=None, workout_id=None):
     exid = request.form['exercise_id']
     to = request.form['to_section']
     # remove from any
-    for s in w['sections']:
+    for s in w[WORKOUT_SECTIONS]:
         s['exercises'] = [it for it in s['exercises'] if it['id']!=exid]
     # add to target
-    for s in w['sections']:
+    for s in w[WORKOUT_SECTIONS]:
         if s['name']==to:
             s['exercises'].append({
               'id':exid,
@@ -330,7 +328,7 @@ def reorder_exercises(context=None, workout_id=None):
 
     sec = request.form['section']
     order = request.form.getlist('order[]')
-    for s in w['sections']:
+    for s in w[WORKOUT_SECTIONS]:
         if s['name']==sec:
             lookup = {it['id']:it for it in s['exercises']}
             s['exercises'] = [lookup[i] for i in order if i in lookup]
@@ -349,7 +347,7 @@ def update_param(context=None, workout_id=None):
     exid  = request.form['exercise_id']
     param = request.form['param']
     value = request.form['value'] or None
-    for s in w['sections']:
+    for s in w[WORKOUT_SECTIONS]:
         for it in s['exercises']:
             if it['id']==exid:
                 it['parameters'][param] = value
@@ -366,13 +364,13 @@ def save_workout(context=None, workout_id=None):
     if not member_id:
         abort(401)
 
-    WORKOUT_ENTITY_NAME = "WorkoutTable"
+    WORKOUT_ENTITY_NAME = "WorkoutDefinitionTable"
 
     workout = get_cache_value('current_workout')
     if not workout or workout['id'] != workout_id:
         abort(404)
 
-    workout_instance : WorkoutEntity = get_fitnessclub_entity_type_for_entity(WORKOUT_ENTITY_NAME)
+    workout_instance : WorkoutDefinitionEntity = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
 
     # this is where we save the newly created workout
     print('Saving workout')
@@ -386,13 +384,13 @@ def save_workout(context=None, workout_id=None):
 
     response = make_response('')
     response.headers['HX-Trigger'] = json.dumps({
-        "eventListChanged": True,
-        "showMessage": { "value" : f"saved workout", "target": "body" }
-    })
-
-    return redirect(url_for('workouts.index'), 302, response)
-
-
+        "eventListChanged": { "target": "body" },
+            "showMessage": { 
+            "target": "body",
+            "value": "workout saved." }
+        })
+    response.headers['HX-Redirect'] = url_for('workouts.index')
+    return response
 ########################################
 # displays the exercise library within the workout builder
 
@@ -428,7 +426,7 @@ def exercise_listing(context=None):
 
     if not entity_name:
         return "No entity name provided", 404
-    entity_type = get_fitnessclub_entity_type_for_entity(entity_name)
+    entity_type = get_entity_obj_from_entity_name(entity_name)
     if request.headers.get('HX-Target') == 'results-area':
         template_file_name = 'entity_results_partial.html'
     else:
@@ -458,7 +456,7 @@ def exercise_listing(context=None):
 @bp.route('/builder/workouts-listing', methods=['GET', 'POST'])
 @auth.login_required
 def builder_workouts_listing(context=None):
-    entity_name = "WorkoutTable"
+    entity_name = WORKOUT_ENTITY_NAME
     workout_id = request.args.get('workout_id', None)    
     page = int(request.args.get('page', 1))
     target = request.args.get('target', None)    
@@ -560,7 +558,7 @@ def exercise_reviewer_listing(context=None):
 
     if not entity_name:
         return "No entity name provided", 404
-    entity_type = get_fitnessclub_entity_type_for_entity(entity_name)
+    entity_type = get_entity_obj_from_entity_name(entity_name)
 
     if request.headers.get('HX-Target') == 'results-area':
         template_file_name = 'entity_results_partial.html'
@@ -592,7 +590,7 @@ def exercise_reviewer_listing(context=None):
 def exercise_reviewer_filter_dialog(context=None):
     target = request.args.get('target', None)
     entity_name = "ExerciseTable"
-    entity_type = get_fitnessclub_entity_type_for_entity(entity_name)
+    entity_type = get_entity_obj_from_entity_name(entity_name)
     filters = get_fitnessclub_entity_filters_for_entity(entity_name)
 
     return hx_render_template('filter_dialog.html', 
@@ -660,7 +658,7 @@ def update_exercise_review(context=None):
         return jsonify({"error": "Invalid or missing JSON"}), 400
 
     print(f"Received JSON payload for table {table_id}: {data}")
-    entity = get_fitnessclub_entity_type_for_entity(table_id)        
+    entity = get_entity_obj_from_entity_name(table_id)        
 
     es = EntityStore()
     
@@ -709,7 +707,7 @@ def reviewer_save_exercise(context=None):
     if not ex or ex['id'] != exercise_id:
         abort(404)
 
-    exercise_type : ExerciseEntity = get_fitnessclub_entity_type_for_entity(EXERCISE_ENTITY_NAME)
+    exercise_type : ExerciseEntity = get_entity_obj_from_entity_name(EXERCISE_ENTITY_NAME)
 
     print('Saving workout')
     es = EntityStore()
@@ -720,7 +718,7 @@ def reviewer_save_exercise(context=None):
     response = make_response('')
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": True,
-        "showMessage": { "value" : f"exercise changes saved", "target": "body" }
+        "showMessage": { "value" : "exercise saved", "target": "body" }
     })
 
     return response
@@ -735,7 +733,7 @@ def view_workout(context=None):
     workout_key_str = request.args.get('key', None)
     workout_composite_key = eval(workout_key_str) if workout_key_str else None
     es = EntityStore()
-    entity_instance = get_fitnessclub_entity_type_for_entity("WorkoutTable")
+    entity_instance = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
     workout = es.get_item_by_composite_key(workout_composite_key)
     import json
     # print(json.dumps(workout, indent=4))
@@ -754,10 +752,15 @@ def view_workout(context=None):
     
     # new: only use the session value if it exists
     last = session.get(f"last_section_{workout_key_str}")  # no fallback
-    
+    if 'workout_sections' in workout:
+        workout_sections = workout['workout_sections']
+    else:
+        workout_sections = workout['sections']       
+
     return render_template(
         "workout_view.html",
         workout=workout,
+        workout_sections=workout_sections,
         exercises=exercises,
         current_parameters=current_parameters,
         default_section=last,
@@ -770,11 +773,11 @@ from common.fitness.entities_getter import get_entity
 @bp.route("/viewer/workout/<workout_id>/section/<section_name>")
 @auth.login_required
 def view_section(context=None, workout_id=None, section_name=None):
-    workout = get_entity("WorkoutTable", workout_id)
+    workout = get_entity(WORKOUT_ENTITY_NAME, workout_id)
     exercises = get_exercises_from_workout(workout)
     if not workout:
         abort(404)
-    section = next((s for s in workout["sections"] if s["name"] == section_name), None)
+    section = next((s for s in workout[WORKOUT_SECTIONS] if s["name"] == section_name), None)
     if not section:
         abort(404)
     
@@ -908,16 +911,16 @@ def edit_exercise_parameters(context=None):
     es = EntityStore()
     # Get the workout details to find the exercise parameters
     workout_instance = es.get_item_by_composite_key(workout_instance_key)
-    workout = get_entity("WorkoutTable", workout_id)
+    workout = get_entity(WORKOUT_ENTITY_NAME, workout_id)
     if not workout_instance:
         abort(404)
     
     # Find the exercise item in the workout to get original parameters
     item = None
     current_app.logger.info(f"Looking for exercise_id '{exercise_id}' in workout sections...")
-    current_app.logger.info(f"Workout sections: {[s.get('name') for s in workout_instance.get('sections', [])]}")
+    current_app.logger.info(f"Workout sections: {[s.get('name') for s in workout_instance.get(WORKOUT_SECTIONS, [])]}")
     
-    for section in workout_instance.get("sections", []):
+    for section in workout_instance.get(WORKOUT_SECTIONS, []):
         section_name = section.get("name", "unknown")
         current_app.logger.info(f"Checking section '{section_name}' with {len(section.get('exercises', []))} exercises")
         for ex_item in section.get("exercises", []):
@@ -932,7 +935,7 @@ def edit_exercise_parameters(context=None):
     
     if not item:
         current_app.logger.error(f"Exercise '{exercise_id}' not found in any workout section!")
-        current_app.logger.error(f"Available exercise IDs in workout: {[ex.get('id') for section in workout.get('sections', []) for ex in section.get('exercises', [])]}")
+        current_app.logger.error(f"Available exercise IDs in workout: {[ex.get('id') for section in workout.get(WORKOUT_SECTIONS, []) for ex in section.get('exercises', [])]}")
         abort(404, "Exercise not found in workout")
     
     # Get current workout state to see if there are any parameter overrides
@@ -975,13 +978,12 @@ def save_exercise_parameters(context=None):
     es = EntityStore()
     # Get the workout details to find the exercise parameters
     workout_instance = es.get_item_by_composite_key(workout_instance_key)
-    # workout = get_entity("WorkoutTable", workout_id)
     if not workout_instance :
         abort(404)
     
     # Find the exercise item in the workout to get original parameters
     item = None
-    for section in workout_instance.get("sections", []):
+    for section in workout_instance.get(WORKOUT_SECTIONS, []):
         for ex_item in section.get("exercises", []):
             if ex_item.get("id") == exercise_id:
                 item = ex_item

@@ -3,16 +3,18 @@ import json
 import uuid
 from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, session, url_for
 from common.entity_store import EntityStore
-from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
+from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import delete_from_cache, get_cache_value, set_cache_value
 from common.fitness.entities_getter import get_entity, get_entity2, get_filtered_entities
+from common.fitness.entity_constants import WORKOUT_ENTITY_NAME
 from common.fitness.exercise_entity import general_exercise_entity_filter
 from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import hx_render_template
 from common.fitness.hx_common import rm_spaces
 from common.fitness.member_entity import MembershipRegistry, get_member_detail_from_user_context
+from common.fitness.member_workout_entity import get_exercises_from_workout
 from common.fitness.program_entity import ProgramEntity
-from common.fitness.workout_entity import ProgramWorkoutEntity, ProgramWorkoutInstanceEntity, get_exercises_from_workout
+from common.fitness.workout_entity import ProgramWorkoutEntity, ProgramWorkoutInstanceEntity
 from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state
 bp = Blueprint('program', __name__, template_folder='templates')
 from auth import auth
@@ -91,7 +93,7 @@ def program_viewer(context=None):
 @bp.route('/workouts-listing', methods=['GET', 'POST'])
 @auth.login_required
 def workouts_listing(context=None):
-    entity_name = "WorkoutTable"
+    entity_name = WORKOUT_ENTITY_NAME
     program_id = request.args.get('program_id')
     page = int(request.args.get('page', 1))
     target = request.args.get('target')
@@ -250,11 +252,17 @@ def view_workout2(context=None, workout_id=None):
     wrkout_exercises = get_exercises_from_workout(workout)
     exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
 
+    if 'workout_sections' in workout:
+        workout_sections = workout['workout_sections']
+    else:
+        workout_sections = workout['sections']
+
     return render_template(
         "workout_view2.html",
         program=None,  # No program context in this view
         workout=workout,
         exercises=exercises,
+        workout_sections=workout_sections,
         program_id=program_id,
         member_id=member_id
     )
@@ -375,11 +383,14 @@ def save_program(context=None, program_id=None):
 
     response = make_response('')
     response.headers['HX-Trigger'] = json.dumps({
-        "eventListChanged": True,
-        "showMessage": { "value" : f"saved program", "target": "body" }
-    })
+        "eventListChanged": { "target": "body" },
+            "showMessage": { 
+            "target": "body",
+            "value": "program saved." }
+        })
+    response.headers['HX-Redirect'] = url_for('program.index')
+    return response
 
-    return redirect(url_for('program.index'), 302, response)
 
 @bp.route('/builder/<program_id>/remove', methods=['POST'])
 @auth.login_required
@@ -466,10 +477,14 @@ def start_workout(context=None, workout_key=None):
     current_parameters = {}
     if current_workout_state:
         current_parameters = current_workout_state.get('exercise_parameters', {})
-    
+    if 'workout_sections' in workout_instance:
+        workout_sections = workout_instance['workout_sections']
+    else:
+        workout_sections = workout_instance['sections']       
     return render_template(
         "workout_view.html",
         workout=workout_instance,
+        workout_sections=workout_sections,
         exercises=exercises,
         current_parameters=current_parameters,
         default_section=last,
@@ -534,10 +549,14 @@ def schedule_and_start(context=None):
     current_parameters = {}
     if current_workout_state:
         current_parameters = current_workout_state.get('exercise_parameters', {})
-    
+    if 'workout_sections' in workout_instance:
+        workout_sections = workout_instance['workout_sections']
+    else:
+        workout_sections = workout_instance['sections']       
     return render_template(
         "workout_view.html",
         workout=workout_instance,
+        workout_sections=workout_sections,
         exercises=exercises,
         current_parameters=current_parameters,
         default_section=last,

@@ -1,7 +1,7 @@
 from ast import literal_eval
 from flask import Blueprint, redirect, render_template, request, session, url_for
 from common.entity_store import EntityStore
-from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
+from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
 from common.fitness.entities_getter import get_filtered_entities
 from common.fitness.exercise_entity import exercise_entity_filter_term, general_exercise_entity_filter, render_exercise_popup_viewer_html
 from common.fitness.hx_common import hx_render_template
@@ -72,7 +72,7 @@ def show_modal(context=None):
 @auth.login_required
 def view_exercise_details(context=None):
     table_id = "ExerciseTable"
-    entity_instance = get_fitnessclub_entity_type_for_entity(table_id)
+    entity_instance = get_entity_obj_from_entity_name(table_id)
 
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
@@ -85,7 +85,7 @@ def view_exercise_details(context=None):
 @auth.login_required
 def filter_dialog(context=None):
     entity_name = "ExerciseTable"
-    entity_type = get_fitnessclub_entity_type_for_entity(entity_name)
+    entity_type = get_entity_obj_from_entity_name(entity_name)
     filters = get_fitnessclub_entity_filters_for_entity(entity_name)
     view = request.args.get('view', 'list')
     return hx_render_template('filter_dialog.html', 

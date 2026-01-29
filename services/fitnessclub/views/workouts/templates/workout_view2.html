@@ -4,7 +4,7 @@
 <!-- <h2 class="mb-4 text-center">{{ workout.name }}</h2> -->
 
 <div class="accordion" id="sectionsAccordion">
-  {% for section in workout.sections %}
+  {% for section in workout_sections %}
     {% if section.exercises|length  == 0 %}
       
     {% else %}

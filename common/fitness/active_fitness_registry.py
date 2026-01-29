@@ -1,12 +1,12 @@
 from ast import literal_eval
 from flask import request, url_for
 from common.entity_store import EntityObject
+from common.fitness.entity_constants import WORKOUT_ENTITY_NAME
 from common.fitness.program_entity import ProgramEntity
 from common.fitness.member_entity import MemberEntity
 from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity, exercise_entity_filter, exercise_entity_filter_term, render_exercise_popup_viewer_html
 from common.fitness.exercise_entity import exercise_filters
 from common.fitness.member_entity import MemberEntity
-from common.fitness.workout_entity import ProgramWorkoutEntity, WorkoutEntity
 
 editable_entities = {
     "MemberTable" : { 
@@ -38,7 +38,7 @@ editable_entities = {
                                               "description" : lambda e: ""
                                              }                        
                     },
-    "WorkoutTable" : { 
+    WORKOUT_ENTITY_NAME : { 
                         "listing_view_fields": ["name"],
                         "card_view_fields": { "title" : lambda e: e['name'] if 'name' in e else "",
                                               "subtitle" : lambda e: "",
@@ -63,7 +63,7 @@ editable_entities = {
 def get_fitnessclub_entity_names():
     return list(editable_entities.keys())
 
-def get_fitnessclub_entity_type_for_entity(entity_name):
+def get_entity_obj_from_entity_name(entity_name):
     return EntityObject.get_entity_class_from_table_name(entity_name)()
 
 def get_fitnessclub_listing_fields_for_entity(entity_name):

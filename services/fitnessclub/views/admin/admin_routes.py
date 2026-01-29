@@ -3,7 +3,7 @@ import json
 from flask import Blueprint, abort, jsonify, make_response, render_template, request, redirect, session, url_for
 import requests
 from auth import auth
-from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity, get_fitnessclub_entity_type_for_entity, get_fitnessclub_entity_names
+from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_entity_names
 from common.env_context import Env
 from common.fitness.entities_getter import delete_entity
 from common.fitness.exercise_entity import general_exercise_entity_filter, render_exercise_popup_viewer_html
@@ -80,7 +80,7 @@ def filter_dialog(context=None):
         return "No table id provided", 404
     if entity_name not in get_fitnessclub_entity_names():
         return "Table not allowed", 404
-    entity_type = get_fitnessclub_entity_type_for_entity(entity_name)
+    entity_type = get_entity_obj_from_entity_name(entity_name)
     filters = get_fitnessclub_entity_filters_for_entity(entity_name)
 
     return hx_render_template('filter_dialog.html', 
@@ -99,7 +99,7 @@ def edit_entity(context=None):
         return "No table id provided", 404
     if table_id not in get_fitnessclub_entity_names():
         return "Table not allowed", 404
-    entity_instance = get_fitnessclub_entity_type_for_entity(table_id)
+    entity_instance = get_entity_obj_from_entity_name(table_id)
     
     schema = entity_instance.get_schema()
 
@@ -130,7 +130,7 @@ def view_entity(context=None):
         return "No table id provided", 404
     if table_id not in get_fitnessclub_entity_names():
         return "Table not allowed", 404
-    entity_instance = get_fitnessclub_entity_type_for_entity(table_id)
+    entity_instance = get_entity_obj_from_entity_name(table_id)
     
     schema = entity_instance.get_schema()
 
@@ -159,7 +159,7 @@ def delete_entity_from_table(context=None, table_id=None):
         return "No table id provided", 404
     if table_id not in get_fitnessclub_entity_names():
         return "Table not allowed", 404
-    entity = get_fitnessclub_entity_type_for_entity(table_id)    
+    entity = get_entity_obj_from_entity_name(table_id)    
 
 
     schema = entity.get_schema()
@@ -191,7 +191,7 @@ def existing_entity_editor(context=None, table_id=None):
         return "No table id provided", 404
     if table_id not in get_fitnessclub_entity_names():
         return "Table not allowed", 404
-    entity = get_fitnessclub_entity_type_for_entity(table_id)
+    entity = get_entity_obj_from_entity_name(table_id)
     es = EntityStore()
     entity_to_edit = {}
     schema = entity.get_schema()
@@ -216,7 +216,7 @@ def update_entity_save_json(context=None, table_id=None):
         return jsonify({"error": "Invalid or missing JSON"}), 400
 
     print(f"Received JSON payload for table {table_id}: {data}")
-    entity = get_fitnessclub_entity_type_for_entity(table_id)        
+    entity = get_entity_obj_from_entity_name(table_id)        
 
     es = EntityStore()
     

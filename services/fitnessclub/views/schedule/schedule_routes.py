@@ -99,7 +99,7 @@ def create_new_event(context=None):
                 "eventListChanged": { "target": "body" },
                  "showMessage": { 
                     "target": "body",
-                    "value": f"workout event updated." }
+                    "value": "workout event saved" }
                 })
             return response
 
@@ -147,7 +147,7 @@ def edit_event(context):
                 "eventListChanged": { "target": "body" },
                 "showMessage": {
                     "target": "body",
-                    "value": 'f"event updated.'
+                    "value": "event updated."
                 }
             })
             return response

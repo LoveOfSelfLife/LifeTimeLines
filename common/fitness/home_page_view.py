@@ -2,7 +2,7 @@ import json
 from common.entity_store import EntityStore
 from common.fitness.hx_common import hx_render_template
 from common.fitness.programs import get_members_program, get_next_workout_in_program
-from common.fitness.workout_entity import get_exercises_from_workout
+from common.fitness.member_workout_entity import get_exercises_from_workout
 from common.fitness.workout_state import get_active_workout_state
 from common.fitness.workouts import get_scheduled_workouts
 from datetime import datetime, timedelta, timezone
@@ -73,10 +73,14 @@ def generate_current_home_page_view(member):
             # The member has a workout in progress
             wrkout_exercises = get_exercises_from_workout(workout_instance)
             exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
-            
+            if 'workout_sections' in workout_instance:
+                workout_sections = workout_instance['workout_sections']
+            else:
+                workout_sections = workout_instance['sections']            
             return render_template(
                 "workout_view.html",
                 workout=workout_instance,
+                workout_sections=workout_sections,
                 exercises=exercises,
                 current_parameters=current_state.get('exercise_parameters', {}),
                 default_section=last,
