@@ -1,12 +1,21 @@
+import sys
 from common.entity_store import EntityStore
 from common.fitness.entities_getter import get_list_of_entities
+
+from common.fitness.entity_constants import DATAMODEL_VERSION, PROGRAM_ENTITY_NAME
 from common.fitness.program_entity import ProgramEntity
+from common.fitness.member_program_entity import MemberProgramEntity
 from datetime import datetime as dt
 
-def get_members_program(member_id, current_date_dt=None):
-    programs = get_list_of_entities(ProgramEntity.table_name, partition_key=member_id)
+def get_members_current_active_program(member_id, current_date_dt=None):
+
+    if DATAMODEL_VERSION == 2:
+        programs = get_list_of_entities(MemberProgramEntity.table_name, partition_key=member_id)
+    else:
+        programs = get_list_of_entities(ProgramEntity.table_name, partition_key=member_id)
+    
     print(f"Programs for member {member_id}: {programs}")
-    # fine the program that is active for the current date, baased on the start and end dates of the program
+    # find the program that is active for the current date, based on the start and end dates of the program
     if not current_date_dt:
         from datetime import datetime
         current_date_dt = datetime.now()
@@ -18,14 +27,77 @@ def get_members_program(member_id, current_date_dt=None):
         if start_date and end_date:
             if start_date <= current_date_dt <= end_date:
                 # only return the program if it has workouts
-                if program.get('workouts', []):
-                    print(f"Found active program for member {member_id}: {program}")
-                    return program
+                workouts_in_program = get_workouts_in_program(program, member_id)
+                if workouts_in_program:
+                        print(f"Found active program for member {member_id}: {program}")
+                        return program
     return None
+
+def get_workouts_in_program(program, member_id):
+    if DATAMODEL_VERSION == 2:
+        # in the new data model, all workouts are stored as MemberWorkoutDefinitionEntity entities
+        member_workouts = get_list_of_entities("MemberWorkoutDefinitionTable", partition_key=member_id)
+        workouts_in_program = [w for w in member_workouts if w.get('member_program_id', None) == program.get('id', None)]
+        return workouts_in_program
+    else:
+        return program.get('workouts', [])
 
 def get_next_workout_in_program(program, member_id):
     # This function should return the next workout in the program for the member
     print(f"Program: {program}, Member ID: {member_id}")
+    if DATAMODEL_VERSION == 2:
+        # in the new data model, all instances of workouts are stored as MemberWorkoutInstanceEntity entities
+        # every time a MemberWorkoutDefinitionEntity is done by a member, a MemberWorkoutInstanceEntity is created to track the instance of the workout
+        # the MemberWorkoutInstanceEntity has a field called member_workout_def_id that references the MemberWorkoutDefinitionEntity that it is based on.
+        # the next workout in the program to do is the workout that was least recently done by the member
+        # for this we give each workout in the program a score based on when it was last done by the member
+        # the workout with the highest score is the next workout to do
+        # e.g. the last workout done gets a score of 0, the second last workout done gets a score of 1, etc.
+        # if a workout was never done, it gets a score of MAX_INT
+        # if there are multipe workouts with the same score, we pick one at random
+        #
+
+        # first make sure that there are workouts in the program, return None if there are none
+        workouts_in_program = get_workouts_in_program(program, member_id)
+        if not workouts_in_program:
+            return None  # No workouts in the program
+
+        # next get all the workouts done by this member 
+        member_workout_instances = get_list_of_entities("MemberWorkoutInstanceTable", partition_key=member_id)
+
+        # then filter this list to be only those that are from a workout in this program
+        workout_ids_in_program = [w['id'] for w in workouts_in_program]
+        workout_instances_in_program = [i for i in member_workout_instances if i.get('member_workout_def_id', None) in workout_ids_in_program]
+        # if there are no workout instances in the program, return the first workout in the program
+        if not workout_instances_in_program:
+            return workouts_in_program[0]        
+       
+        # For each workout, find when it was most recently completed (or never)
+        workout_last_completion = {}
+        for workout in workouts_in_program:
+            workout_id = workout['id']
+            # Find all instances of this specific workout
+            instances_of_this_workout = [i for i in workout_instances_in_program 
+                                       if i.get('member_workout_def_id') == workout_id]
+            
+            if instances_of_this_workout:
+                # Get the most recent completion timestamp for this workout
+                most_recent_instance = max(instances_of_this_workout, 
+                                         key=lambda x: x.get('finished_ts', ''))
+                workout_last_completion[workout_id] = most_recent_instance.get('finished_ts', '')
+            else:
+                # Never done - use empty string (will sort first)
+                workout_last_completion[workout_id] = ''
+
+        # Find the workout with the oldest "most recent completion"
+        # Workouts never done (empty string) will be chosen first
+        least_recent_workout_id = min(workout_last_completion, key=workout_last_completion.get)
+        next_workout = [w for w in workouts_in_program if w['id'] == least_recent_workout_id][0]
+        return next_workout
+    else:
+        return get_next_workout_in_program_v1(program, member_id)
+
+def get_next_workout_in_program_v1(program, member_id):
     # program workout_instances is a list of the workouts that have already been finished by the member.
     # we find the last workout that was finished, then look at the program workout instance to
     # identify the workout in the ProgramWorkout table that wsa done last. 

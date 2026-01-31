@@ -77,7 +77,7 @@ def convert_tables_1_to_2():
             mbr_wkt_def['created_by'] = prog_wkt.get('created_by', '')
             mbr_wkt_def['tags'] = []
             mbr_wkt_def['member_program_id'] = pr['id']
-            mbr_wkt_def['workout_sections'] = prog_wkt['sections']
+            mbr_wkt_def['workout_sections'] = prog_wkt.get('sections', [])
             es.upsert_item(mbr_wkt_def)
 
     # convert workouts

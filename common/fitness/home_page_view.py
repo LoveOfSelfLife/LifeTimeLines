@@ -1,7 +1,7 @@
 import json
 from common.entity_store import EntityStore
 from common.fitness.hx_common import hx_render_template
-from common.fitness.programs import get_members_program, get_next_workout_in_program
+from common.fitness.programs import get_members_current_active_program, get_next_workout_in_program
 from common.fitness.member_workout_entity import get_exercises_from_workout
 from common.fitness.workout_state import get_active_workout_state
 from common.fitness.workouts import get_scheduled_workouts
@@ -111,7 +111,7 @@ def generate_current_home_page_view(member):
     
     # get this member current active program
     # and find the next workout in this member's program
-    current_program = get_members_program(member_id, current_date_dt=datetime.now())
+    current_program = get_members_current_active_program(member_id, current_date_dt=datetime.now())
     if not current_program:
         # The member does not have a program, so we display the no-program message
         return render_template("no_program_assigned.html", member=member)

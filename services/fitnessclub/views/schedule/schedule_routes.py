@@ -35,6 +35,33 @@ def your_schedule(context = None):
     events, _ = cal.get_dates_and_events_stream(date_min=start_date, date_max=end_date)
     return render_template('your_schedule.html', context=context, member_short_name=member_short_name, events=events, member_id=member_id)
 
+@bp.route('/schedule-by-time-slots')
+@auth.login_required
+def schedule_by_time_slots(context = None):
+    cal = get_calendar_service()
+    member = get_member_detail_from_user_context(context)
+    member_id = member.get('id', None)
+    member_short_name = get_user_profile(member_id).get('short_name', None)
+
+    # here we figure out the date range for the calendar
+    # the start date is today, and the end date is 14 days from today
+    today = datetime.now()
+    start_date = today.strftime("%Y-%m-%d")
+    end_date = (today + timedelta(days=14)).strftime("%Y-%m-%d")
+    events, _ = cal.get_dates_and_events_stream(date_min=start_date, date_max=end_date)
+    
+    # Get user profiles for all members in the events
+    user_profiles = {}
+    for event in events:
+        if event.get('member_id') and event['member_id'] not in user_profiles:
+            profile = get_user_profile(event['member_id'])
+            user_profiles[event['member_id']] = profile
+            # Debug: print profile info
+            print(f"DEBUG: Member ID: {event['member_id']}, Profile: {profile}")
+    
+    return render_template('schedule_by_time_slots.html', context=context, member_short_name=member_short_name, 
+                         events=events, member_id=member_id, user_profiles=user_profiles)
+
 def prepare_schedule(entries):
     sorted_sched = sorted(entries, key=lambda x: x['datetime'])
     return [{**e, 'date': e['datetime'].date()} for e in sorted_sched]

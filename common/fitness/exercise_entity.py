@@ -1,6 +1,6 @@
 from hashlib import sha256
 from common.entity_store import EntityObject
-from common.fitness.entities_getter import get_entity
+
 from common.fitness.hx_common import hx_render_template
 from common.fitness.utils import convert_to_alphanumeric
 import json
@@ -82,6 +82,7 @@ def matches_filter(entity,term):
 
 def exercise_was_reviewed(exercise):
     """Check if an exercise was reviewed by looking it up in the ExerciseReviewTable."""
+    from common.fitness.entities_getter import get_entity
     review = get_entity("ExerciseReviewTable", exercise.get("id", ""))
     if review is not None:
         # check if the review has a disposition

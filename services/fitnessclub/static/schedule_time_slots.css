@@ -1,0 +1,262 @@
+/* Schedule by Time Slots Styles */
+.schedule-container {
+    padding: 0.5rem 0;
+}
+
+.day-container {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.day-title {
+    margin: 0;
+    color: #fff;
+    font-weight: 600;
+    font-size: 1.4rem;
+}
+
+.add-workout-btn {
+    border-color: rgba(255, 255, 255, 0.5);
+    color: #fff;
+    transition: all 0.3s ease;
+}
+
+.add-workout-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: #fff;
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.time-slots-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.time-slot {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    padding: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.time-slot:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.time-slot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.time-label {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+}
+
+.duration-label {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+}
+
+.members-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.member-card {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    padding: 0.5rem;
+    min-width: 180px;
+    flex: 1;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.member-card:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+.member-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.member-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.member-avatar:hover {
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: scale(1.05);
+}
+
+.member-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-width: 0;
+    flex: 1;
+}
+
+.member-name {
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.exact-time {
+    font-size: 0.8em;
+    color: rgba(255, 255, 255, 0.7);
+    font-style: italic;
+}
+
+.member-card.own-workout {
+    background: rgba(76, 161, 175, 0.3);
+    border-color: rgba(76, 161, 175, 0.6);
+}
+
+.member-card.own-workout:hover {
+    background: rgba(76, 161, 175, 0.4);
+    border-color: rgba(76, 161, 175, 0.8);
+}
+
+.exact-time {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.member-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.edit-btn, .remove-btn {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: transparent;
+    color: #fff;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+}
+
+.edit-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.6);
+    color: #fff;
+    transform: scale(1.05);
+}
+
+.remove-btn:hover {
+    background: rgba(220, 53, 69, 0.2);
+    border-color: #dc3545;
+    color: #dc3545;
+    transform: scale(1.05);
+}
+
+.no-workouts-message {
+    text-align: center;
+    padding: 3rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+}
+
+.no-workouts-message .btn-primary {
+    background: linear-gradient(45deg, #4ca1af, #2c3e50);
+    border: none;
+    padding: 0.75rem 2rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.no-workouts-message .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(76, 161, 175, 0.4);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .day-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+        text-align: center;
+    }
+    
+    .time-slots-container {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 1rem !important;
+    }
+    
+    .members-container {
+        flex-direction: column;
+    }
+    
+    .member-card {
+        min-width: unset;
+    }
+    
+    .member-controls {
+        flex-shrink: 0;
+    }
+    
+    .time-slot-header {
+        flex-direction: column;
+        gap: 0.25rem;
+        align-items: flex-start;
+    }
+}
+
+@media (min-width: 769px) {
+    .time-slots-container {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)) !important;
+        gap: 1.5rem !important;
+    }
+    
+    .time-slot {
+        min-height: 140px !important;
+    }
+    
+    .day-container {
+        margin-bottom: 2.5rem;
+    }
+}

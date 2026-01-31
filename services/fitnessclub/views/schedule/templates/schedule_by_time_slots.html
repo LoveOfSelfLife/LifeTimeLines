@@ -1,0 +1,155 @@
+
+<link rel="stylesheet" href="{{ url_for('static', filename='schedule_time_slots.css') }}">
+
+<div class="schedule-container" hx-trigger="eventListChanged from:body" hx-get="/schedule/schedule-by-time-slots" hx-target="this" hx-swap="outerHTML">
+    
+    {# Top-level Add Workout button #}
+    <div style="text-align: center; margin-bottom: 1.5rem;">
+        <button class="btn btn-primary"
+            hx-get="/schedule/create_event" 
+            hx-target="#modals-here"
+            hx-swap="innerHTML"
+            data-bs-toggle="modal"
+            data-bs-target="#modals-here">
+            <i class="bi bi-plus-lg"></i> Schedule Workout
+        </button>
+    </div>
+    
+    {# Group events by date first and store date info #}
+    {% set events_by_date = {} %}
+    {% set date_info = {} %}
+    
+    {# First pass: collect date info #}
+    {% for e in events %}
+        {% if e.type == "date" %}
+            {% set _ = date_info.update({e.date: e}) %}
+        {% endif %}
+    {% endfor %}
+    
+    {# Second pass: collect events - using string conversion to fix type mismatch #}
+    {% for e in events %}
+        {% if e.type == "event" %}
+            {% set date_str = e.date | string %}
+            {% if date_str in date_info %}
+                {% if date_str not in events_by_date %}
+                    {% set _ = events_by_date.update({date_str: []}) %}
+                {% endif %}
+                {% set _ = events_by_date[date_str].append(e) %}
+            {% endif %}
+        {% endif %}
+    {% endfor %}
+    
+    {# Render each date that has events #}
+    {% for date_key, day_events in events_by_date.items() %}
+        {% set date_display = date_info[date_key] %}
+        
+        <div class="day-container">
+            <div class="day-header">
+                <h5 class="day-title">{{ date_display.dayOfWeek }} {{ date_display.display_date }}</h5>
+                <button class="btn btn-sm btn-outline-primary add-workout-btn"
+                    hx-get="/schedule/create_event?date={{ date_key }}" 
+                    hx-target="#modals-here"
+                    hx-swap="innerHTML"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modals-here">
+                    <i class="bi bi-plus-lg"></i> Schedule Workout
+                </button>
+            </div>
+            
+            {# Group events by time slot (hour) #}
+            {% set time_groups = {} %}
+            {% for event in day_events %}
+                {% set event_hour = event.time.split(':')[0] | int %}
+                {% set time_slot = "%02d:00"|format(event_hour) %}
+                {% if time_slot not in time_groups %}
+                    {% set _ = time_groups.update({time_slot: []}) %}
+                {% endif %}
+                {% set _ = time_groups[time_slot].append(event) %}
+            {% endfor %}
+            
+            <div class="time-slots-container">
+                {% for time_slot in time_groups.keys() | list | sort %}
+                    {% set slot_events = time_groups[time_slot] %}
+                    <div class="time-slot">
+                        <div class="time-slot-header">
+                            {% set hour = time_slot.split(':')[0] | int %}
+                            {% if hour == 0 %}
+                                {% set display_time = "12:00 AM" %}
+                            {% elif hour < 12 %}
+                                {% set display_time = hour ~ ":00 AM" %}
+                            {% elif hour == 12 %}
+                                {% set display_time = "12:00 PM" %}
+                            {% else %}
+                                {% set display_time = (hour - 12) ~ ":00 PM" %}
+                            {% endif %}
+                            <span class="time-label">{{ display_time }}</span>
+                            <span class="duration-label">1 hour workout</span>
+                        </div>
+                        <div class="members-container">
+                            {% for member_event in slot_events %}
+                                {% set user_profile = user_profiles.get(member_event.member_id, {}) %}
+                                <!-- DEBUG: Member ID: {{ member_event.member_id }}, Profile: {{ user_profile }} -->
+                                <div class="member-card {% if member_event.member_id == member_id %}own-workout{% endif %}">
+                                    <div class="member-info">
+                                        {% if user_profile.get('image_url') %}
+                                            <img src="{{ user_profile.image_url }}" alt="{{ member_event.summary }}" class="member-avatar">
+                                        {% else %}
+                                            <!-- DEBUG: No image_url found. Profile keys: {{ user_profile.keys() | list if user_profile else 'No profile' }} -->
+                                            <div class="member-avatar" style="background: rgba(255, 255, 255, 0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; color: rgba(255, 255, 255, 0.8);">
+                                                {{ member_event.summary[0:1].upper() if member_event.summary else '?' }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="member-details">
+                                            <span class="member-name">{{ member_event.summary }}</span>
+                                            <span class="exact-time">{{ member_event.time }}</span>
+                                        </div>
+                                    </div>
+                                    {% if member_event.member_id == member_id %}
+                                        <div class="member-controls">
+                                            <button class="btn btn-sm btn-outline-secondary edit-btn" 
+                                                hx-get="/schedule/edit_event?id={{ member_event.id }}&date={{ member_event.date }}&time={{ member_event.time }}" 
+                                                hx-target="#modals-here"
+                                                hx-swap="innerHTML"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#modals-here"
+                                                title="Edit workout time/date">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger remove-btn"
+                                                hx-post="/schedule/delete_event/{{ member_event.id }}"
+                                                hx-confirm="Are you sure you want to remove this workout?"
+                                                hx-trigger="click"
+                                                hx-swap="none"
+                                                hx-on::after-request="htmx.trigger(document.body, 'eventListChanged')"
+                                                title="Remove workout">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endfor %}
+    
+    {% if not events_by_date %}
+        <div class="no-workouts-message">
+            <div class="text-center py-5">
+                <i class="bi bi-calendar-x display-1 text-muted mb-3"></i>
+                <h4 class="text-muted">No workouts scheduled</h4>
+                <p class="text-muted">Schedule your first workout to get started!</p>
+                <button class="btn btn-primary"
+                    hx-get="/schedule/create_event" 
+                    hx-target="#modals-here"
+                    hx-swap="innerHTML"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modals-here">
+                    <i class="bi bi-plus-lg"></i> Schedule Workout
+                </button>
+            </div>
+        </div>
+    {% endif %}
+</div>
