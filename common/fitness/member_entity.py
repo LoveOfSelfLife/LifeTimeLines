@@ -3,6 +3,7 @@ from common.entity_store import EntityObject, EntityStore
 from werkzeug.utils import secure_filename
 from common.fitness.member_schema import member_schema
 
+
 class MemberEntity (EntityObject):
     table_name="MemberTable"
     fields=["id", "name", "level", "short_name", "email", "mobile", "sms_consent", "email_consent", "image_url"]
@@ -28,6 +29,7 @@ def get_user_profile(id):
 def save_user_profile(profile, request_files):
     es = EntityStore()
     container_name = 'members'
+    updated_profile = profile.copy()
     bs = BlobStore(container_name)
     # Handle profile photo upload
     if 'profile_photo' in request_files:
@@ -35,9 +37,11 @@ def save_user_profile(profile, request_files):
         if file and file.filename:
             filename = secure_filename(file.filename)
             # Upload the file to Azure Blob Storage
+            # there will be an exception if the same image is uploaded twice, so lets add a timestamp to the filename to make it unique
+            import time
+            filename = f"{int(time.time())}_{filename}"
             bs.upload(file, filename)
             # Save the blob URL to the user's profile
-            updated_profile = profile.copy()
             updated_profile["image_url"] = f"https://ltltablestorage.blob.core.windows.net/{container_name}/{filename}"
     es.upsert_item(MemberEntity(updated_profile))
     MembershipRegistry().refresh_members()

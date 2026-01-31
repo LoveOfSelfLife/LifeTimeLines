@@ -1,35 +1,62 @@
-<div class="container">
-    <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
-            <h2>Member Profile:</h2>
+<link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}">
+
+<div class="container mt-4">
+    <div class="profile-container">
+        <div class="profile-header">
+            <h2 class="profile-title">Member Profile</h2>
         </div>
-        <div class="card-body">
-            <form hx-post="{{ update_url }}" hx-swap="innerHTML" hx-confirm="Are you sure?" hx-target="#content" enctype="multipart/form-data">
+        <div>
+            {# <form hx-post="{{ update_url }}" hx-swap="innerHTML" hx-confirm="Are you sure?" hx-target="#content" enctype="multipart/form-data"> #}
+            <form hx-post="{{ update_url }}" hx-swap="innerHTML" hx-target="#content" enctype="multipart/form-data">
                 <div class="table rows">
                     <input type="hidden" id="id" name="id" value="{{ profile.id }}">
-                    <div class="mb-3">
-                        <label for="name" class="form-label">Name:</label>
-                        <input type="text" id="name" name="name" class="form-control" value="{{ profile.name }}" required>
+                    <div class="mb-4">
+                        <label for="name" class="profile-label">Name:</label>
+                        <input type="text" id="name" name="name" class="profile-input" value="{{ profile.name }}" required>
                     </div>
-                    <div class="mb-3">
-                        <label for="short_name" class="form-label">Short Name:</label>
-                        <input type="text" id="short_name" name="short_name" class="form-control" value="{{ profile.short_name }}" required>
+                    <div class="mb-4">
+                        <label for="short_name" class="profile-label">Short Name:</label>
+                        <input type="text" id="short_name" name="short_name" class="profile-input" value="{{ profile.short_name }}" required>
                     </div>
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email Address:</label>
-                        <input type="email" id="email" name="email" class="form-control" value="{{ profile.email }}" required>
+                    <div class="mb-4">
+                        <label for="email" class="profile-label">Email Address:</label>
+                        <input type="email" id="email" name="email" class="profile-input" value="{{ profile.email }}" required>
                     </div>
-                    <div class="mb-3">
-                        <label for="mobile" class="form-label">Mobile Number:</label>
-                        <input type="tel" id="mobile" name="mobile" class="form-control" value="{{ profile.mobile }}" required>
+                    <div class="mb-4">
+                        <label for="mobile" class="profile-label">Mobile Number:</label>
+                        <input type="tel" id="mobile" name="mobile" class="profile-input" value="{{ profile.mobile }}" required>
                     </div>
-                    <div class="mb-3">
-                        <label for="profile_photo" class="form-label">Profile Photo:</label>
-                        <input type="file" id="profile_photo" name="profile_photo" class="form-control" accept="image/*">
+                    <div class="mb-4">
+                        <label for="profile_photo" class="photo-section-label">Profile Photo:</label>
+                        
+                        <!-- Current and Preview Images Side by Side -->
+                        <div class="profile-photos-container">
+                            <!-- Current Profile Image -->
+                            <div class="text-center">
+                                <label class="photo-label">Current</label>
+                                {% if profile.get('image_url') %}
+                                    <img id="current-profile-image" src="{{ profile.image_url }}" alt="Current Profile Photo" class="profile-photo">
+                                {% else %}
+                                    <div id="current-profile-image" class="profile-photo-placeholder">
+                                        {{ profile.get('name', '?')[0:1].upper() if profile.get('name') else '?' }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Preview of New Image -->
+                            <div class="text-center" id="image-preview-container" style="display: none;">
+                                <label class="photo-label">Preview</label>
+                                <img id="image-preview" class="profile-photo-preview">
+                            </div>
+                        </div>
+                        
+                        <!-- File Input for New Image -->
+                        <input type="file" id="profile_photo" name="profile_photo" class="profile-input" accept="image/*" onchange="previewImage(this)">
+                        <small class="file-input-help">Choose a new profile photo to replace the current image.</small>
                     </div>                    
-                    <div class="form-check mb-3">
-                        <input type="checkbox" id="sms_consent" name="sms_consent" class="form-check-input" value="agree" {{ 'checked' if profile.get('sms_consent', '') == 'agree' else '' }}>
-                        <label for="sms_consent" class="form-check-label">
+                    <div class="form-check mb-4">
+                        <input type="checkbox" id="sms_consent" name="sms_consent" class="profile-checkbox" value="agree" {{ 'checked' if profile.get('sms_consent', '') == 'agree' else '' }}>
+                        <label for="sms_consent" class="profile-checkbox-label">
                             By checking this box, you agree to receive SMS messages at the mobile number provided.
                             These messages will notify you about fitness events within the Active Friends Fitness Club. 
                             You can unselect this checkbox at any time to stop receiving SMS messages.
@@ -37,10 +64,31 @@
                         </label>
                     </div>
                 </div>
-                <div>
-                    <button type="submit" class="btn btn-primary">Save</button>
+                <div style="margin-top: 2rem; display: flex; gap: 1rem; justify-content: flex-start;">
+                    <button type="submit" class="profile-save-btn">Save Profile</button>
+                    <button type="button" class="profile-cancel-btn" onclick="window.location.href='/'">Cancel</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<script>
+function previewImage(input) {
+    const previewContainer = document.getElementById('image-preview-container');
+    const preview = document.getElementById('image-preview');
+    
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            previewContainer.style.display = 'block';
+        };
+        
+        reader.readAsDataURL(input.files[0]);
+    } else {
+        previewContainer.style.display = 'none';
+    }
+}
+</script>

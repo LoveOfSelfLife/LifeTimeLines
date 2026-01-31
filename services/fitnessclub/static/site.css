@@ -48,7 +48,158 @@ body {
   object-fit: cover;   /* (we’re letting the img itself size by its height) */
   /* No object‐fit:cover here, because we want the full height visible, not cropped top/bottom */
 }
+/* Profile2 Template Styles */
+.profile-container {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 2rem;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
 
+.profile-header {
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.profile-title {
+  color: #fff;
+  font-weight: 600;
+  margin: 0;
+  font-size: 1.8rem;
+}
+
+.profile-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.profile-input {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  padding: 0.75rem;
+  color: #fff;
+  width: 100%;
+}
+
+.profile-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.profile-input:focus {
+  outline: none;
+  border-color: rgba(76, 161, 175, 0.8);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.photo-section-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.photo-label {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+  display: block;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  text-align: center;
+  backdrop-filter: blur(5px);
+}
+
+.profile-photo {
+  width: 120px !important;
+  height: 120px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  border: 3px solid rgba(255, 255, 255, 0.3) !important;
+  display: block !important;
+  max-width: 120px !important;
+  max-height: 120px !important;
+}
+
+.profile-photo-placeholder {
+  width: 120px !important;
+  height: 120px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 3px solid rgba(255, 255, 255, 0.3) !important;
+  font-size: 2.5rem !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  max-width: 120px !important;
+  max-height: 120px !important;
+}
+
+.profile-photo-preview {
+  width: 120px !important;
+  height: 120px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  border: 3px solid rgba(76, 175, 80, 0.8) !important;
+  display: block !important;
+  max-width: 120px !important;
+  max-height: 120px !important;
+}
+
+.file-input-help {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+  display: block;
+}
+
+.profile-checkbox {
+  margin-right: 0.75rem;
+}
+
+.profile-checkbox-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.profile-save-btn {
+  background: rgba(76, 161, 175, 0.3);
+  border: 1px solid rgba(76, 161, 175, 0.6);
+  color: #fff;
+  padding: 0.75rem 2rem;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.profile-save-btn:hover {
+  background: rgba(76, 161, 175, 0.5);
+  transform: translateY(-1px);
+}
+/* Responsive layout for profile photos */
+.profile-photos-container {
+    display: flex;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+    justify-content: center;
+}
+
+@media (max-width: 575px) {
+    .profile-photos-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+}
 /* 3. On small screens (≤576px), shrink that fixed height to, say, 100px */
 @media (max-width: 576px) {
   .img-wrapper {
