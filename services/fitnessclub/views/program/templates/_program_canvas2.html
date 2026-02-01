@@ -3,8 +3,7 @@
     <ul class="list-group list-group-flush workout-list"
         data-section="workouts">
 
-      {% for workout in program.workouts %}
-        {% set wk = workouts[workout.id] %}
+      {% for workout in workouts %}
         <li class="list-group-item py-2 d-flex align-items-center"
             data-workout-id="{{ workout.id }}" data-program-id="{{ program.id }}">
 
@@ -16,14 +15,14 @@
               <button
                 type="button"
                 class="btn btn-outline-secondary btn-xs p-0"
-                onclick="toggleWorkoutDetails('{{ wk.id }}', '{{ wk.key_str }}', '{{ program.id }}')"
+                onclick="toggleWorkoutDetails('{{ workout.id }}', '{{ workout.key_str }}', '{{ program.id }}')"
                 title="Edit Workout Details"
               >
                 <i class="bi bi-pencil-square"></i>
               </button>
               <div>
                 <label class="form-label small">Workout:</label>
-                <strong>{{ wk.name }}</strong>
+                <strong>{{ workout.name }}</strong>
               </div>
               <button
                 class="btn btn-link btn-sm text-danger p-0"
@@ -36,7 +35,7 @@
             </div>
         </li>
       <!-- Placeholder for workout -->
-      <div id="workout-details-{{ wk.id }}" class="mt-2 workout-details"></div>
+      <div id="workout-details-{{ workout.id }}" class="mt-2 workout-details"></div>
       {% endfor %}
     </ul>
   </div>

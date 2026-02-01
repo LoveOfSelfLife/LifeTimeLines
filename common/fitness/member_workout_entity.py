@@ -25,7 +25,8 @@ class MemberWorkoutDefinitionEntity (EntityObject):
             "created_by", 
             "base_workout_def_id",      # references a base workout definition if applicable
             "tags",                     # list of tags associated with the workout
-            "member_program_id"         # reference the member program this workout is part of, if any
+            "member_program_id",        # reference the member program this workout is part of, if any
+            "order_index"               # index to determine the order of workouts within a program
             ]
     key_field="id"
     partition_field="member_id"

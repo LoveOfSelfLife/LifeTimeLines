@@ -6,13 +6,14 @@ from common.entity_store import EntityObject, EntityStore
 from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import delete_from_cache, get_cache_value, set_cache_value
 from common.fitness.entities_getter import get_entity, get_entity2, get_filtered_entities
-from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
+from common.fitness.entity_constants import DATAMODEL_VERSION, PROGRAM_ENTITY_NAME, PROGRAM_WORKOUT_ENTITY_NAME, WORKOUT_ENTITY_NAME
 from common.fitness.exercise_entity import general_exercise_entity_filter
 from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import hx_render_template
 from common.fitness.hx_common import rm_spaces
 from common.fitness.member_entity import MembershipRegistry, get_member_detail_from_user_context
-from common.fitness.member_workout_entity import get_exercises_from_workout
+from common.fitness.member_program_entity import MemberProgramEntity
+from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, get_exercises_from_workout
 from common.fitness.program_entity import ProgramEntity
 from common.fitness.workout_entity import ProgramWorkoutEntity, ProgramWorkoutInstanceEntity
 from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state
@@ -157,15 +158,14 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
         entity_action_label='Add Workout',       
         context=context)
 
-def new_program(name='New workout program', member_id=None):
+def new_program(name='new-workout-program', member_id=None):
     program_id = str(uuid.uuid4())
     return {
         'id': program_id,
         'member_id': member_id,
         'name': name,
         'start_date': None,
-        'end_date': None,
-        'workouts': []
+        'end_date': None
     }
 
 @bp.route('/builder/new')
@@ -176,6 +176,7 @@ def builder_new(context=None):
 
     set_cache_value('current_program', p)
     delete_from_cache('current_program_workouts')
+    delete_from_cache('workouts_to_remove')
     return redirect(url_for('program.builder'))
 
 @bp.route('/edit')
@@ -190,6 +191,7 @@ def edit_program_details(context=None):
     
     set_cache_value('current_program', program)
     delete_from_cache('current_program_workouts')
+    delete_from_cache('workouts_to_remove')
     return redirect(url_for('program.builder'))
 
 # ── Main Builder View ─────────────────────────────────────────────
@@ -214,19 +216,20 @@ def program_canvas2(context=None, program_id=None):
         if not get_cache_value('current_program_workouts'):
             # get the workouts from the program
             program_workouts = get_workouts_from_program(p)
-            workouts = { wk.get('id', None): wk for wk in program_workouts }
-            for wk in workouts.values():
+            # workouts_dict = { wk.get('id', None): wk for wk in program_workouts }
+            workouts_list = program_workouts
+            for wk in workouts_list:
                 wk['key'] = wk.get_composite_key()
                 wk['key_str'] = '|'.join(wk.get_composite_key())
             # store the workouts in the cache as well
-            set_cache_value('current_program_workouts', workouts)
+            set_cache_value('current_program_workouts', workouts_list)
         else:
-            workouts = get_cache_value('current_program_workouts')
+            workouts_list = get_cache_value('current_program_workouts')
 
         if p['id'] == program_id:
             return hx_render_template('_program_canvas2.html',
                                         program=p,
-                                        workouts=workouts,
+                                        workouts=workouts_list,
                                         context=context)
     abort(404)
 
@@ -239,7 +242,12 @@ def view_workout2(context=None, workout_id=None):
     current_program = get_cache_value('current_program')
     current_program_workouts = get_cache_value('current_program_workouts')
     
-    workout = current_program_workouts.get(workout_id, None)
+    # workout = current_program_workouts.get(workout_id, None)
+    # find the workout in the current_program_workouts list that has an id matching workout_id
+    workout = next((wk for wk in current_program_workouts if wk.get('id', None) == workout_id), None)
+    
+    if not workout:
+        abort(404)
 
     # workout_key_pipe_delimited_str = request.args.get('keyStrPipeDelimited', None)
     # # Convert pipe-delimited string to a list
@@ -273,7 +281,8 @@ def view_workout2(context=None, workout_id=None):
 def update_param(context=None, workout_id=None):
 
     workouts = get_cache_value('current_program_workouts')
-    current_workout = workouts.get(workout_id, None)
+    # get workout from the list that has id matching workout_id
+    current_workout = next((wk for wk in workouts if wk.get('id', None) == workout_id), None)
     if not current_workout:
         abort(404)
 
@@ -282,12 +291,12 @@ def update_param(context=None, workout_id=None):
     program_id = request.form.get('program_id', None)
     param = request.form['param']
     value = request.form['value'] or None
-    for s in current_workout['sections']:
+    for s in current_workout['workout_sections']:
         for it in s['exercises']:
             if it['id']==exid:
                 it['parameters'][param] = value
 
-    workouts[workout_id] = current_workout
+    # workouts[workout_id] = current_workout
     set_cache_value('current_program_workouts', workouts)
 
     return ('', 204)
@@ -296,15 +305,25 @@ def update_param(context=None, workout_id=None):
 @bp.route('/builder/<program_id>/reorder', methods=['POST'])
 @auth.login_required
 def reorder_workouts(context=None, program_id=None):
+    if DATAMODEL_VERSION == 2:
+        w = get_cache_value('current_program_workouts')
 
-    p = get_cache_value('current_program')
+        order = request.form.getlist('order[]')
+        lookup = {it['id']:it for it in w}
+        reordered_workout_list = [lookup[i] for i in order if i in lookup]
 
-    order = request.form.getlist('order[]')
-    lookup = {it['id']:it for it in p['workouts']}
-    p['workouts'] = [lookup[i] for i in order if i in lookup]
+        # here we save the program to the cache
+        set_cache_value('current_program_workouts', reordered_workout_list)
 
-    # here we save the program to the cache
-    set_cache_value('current_program', p)
+    else:
+        p = get_cache_value('current_program')
+
+        order = request.form.getlist('order[]')
+        lookup = {it['id']:it for it in p['workouts']}
+        p['workouts'] = [lookup[i] for i in order if i in lookup]
+
+        # here we save the program to the cache
+        set_cache_value('current_program', p)
     
     return program_canvas2(context, program_id)
 
@@ -343,10 +362,19 @@ def get_workouts_from_program(program):
     # in the 2.0 data model, the workouts are stored as separate entities in the MemberWorkoutDefinitionTable, where 
     # those entities have a member_program_id field that references the program they belong to
     workouts = []
-    es = EntityStore()
-    for w in program['workouts']:
-        e = es.get_item_by_composite_key(w['key'])
-        workouts.append(e)
+    if DATAMODEL_VERSION == 2:
+        es = EntityStore()
+        # wondering here if we can use the EntityCache?  
+        # TODO:  analyze if the cache is an eligible option
+        mbr_workout_definitions = list(es.list_items(MemberWorkoutDefinitionEntity({"member_id": program['member_id']})))
+        workouts = [w for w in mbr_workout_definitions if w.get('member_program_id', None)==program['id']]
+        # sort workouts by order_index
+        workouts = sorted(workouts, key=lambda x: x.get('order_index', 0))
+    else:
+        es = EntityStore()
+        for w in program['workouts']:
+            e = es.get_item_by_composite_key(w['key'])
+            workouts.append(e)
     return workouts
 
 @bp.route('/builder/<program_id>/save', methods=['POST'])
@@ -361,28 +389,28 @@ def save_program(context=None, program_id=None):
         if current_program['id'] != program_id:
             abort(404)
 
-    # # create a new program instance
-    # program_instance = ProgramEntity(current_program)  # create a new instance of ProgramEntity with the current program data
-    # program_instance['id'] = str(uuid.uuid4())  # generate a new id for the program
-    # program_instance['created_ts'] = datetime.now().isoformat()
-        
-    # # add the IDs of the newly copied workouts to the new program's workouts list
-    # program_instance['workouts'] = [{'id': workout_copy['id'], 
-    #                                  'program_id': current_program['id'], 
-    #                                  'key' : workout_copy.get_composite_key()} for workout_copy in workouts_in_program]
-
     es = EntityStore()
 
     workouts_in_program = []
     current_program_workouts = get_cache_value('current_program_workouts')
-    for p in current_program_workouts.values():
-        workouts_in_program.append(ProgramWorkoutEntity(p))
+    i = 0
+    for w in current_program_workouts:
+        w['order_index'] = i
+        i += 1
+        workouts_in_program.append(MemberWorkoutDefinitionEntity(w))
+
+    # handle workouts that were removed from the program
+    workouts_to_remove = get_cache_value('workouts_to_remove') or []
+
+    for wtr in workouts_to_remove:
+        es.upsert_item(MemberWorkoutDefinitionEntity(wtr))
 
     es.upsert_items(workouts_in_program)
-    es.upsert_item(ProgramEntity(current_program))
+    es.upsert_item(MemberProgramEntity(current_program))
 
     delete_from_cache('current_program')
     delete_from_cache('current_program_workouts')
+    delete_from_cache('workouts_to_remove')
 
     response = make_response('')
     response.headers['HX-Trigger'] = json.dumps({
@@ -399,13 +427,23 @@ def save_program(context=None, program_id=None):
 @auth.login_required
 def remove_workout(context=None, program_id=None):
 
-    p = get_cache_value('current_program')
-
+    current_program_workouts = get_cache_value('current_program_workouts')
     wk_id = request.form['workout_id']
-    
-    p['workouts'] = [it for it in p['workouts'] if it['id']!=wk_id]
 
-    set_cache_value('current_program', p)
+    # we need to keep track of the workout that is being removed so we can unlink it from the program when we save the program
+    # so first find the workout to unlink from the program
+    workout_to_unlink = next((wk for wk in current_program_workouts if wk.get('id', None) == wk_id), None)
+    workout_to_unlink['member_program_id'] = None  # unlink from program
+
+    # now remove that workout from the current_program_workouts list
+    current_program_workouts = [it for it in current_program_workouts if it['id']!=wk_id]
+
+    workouts_to_remove = get_cache_value('workouts_to_remove') or []
+    workouts_to_remove.append(workout_to_unlink)
+    set_cache_value('workouts_to_remove', workouts_to_remove)
+
+    set_cache_value('current_program_workouts', current_program_workouts)
+
     return program_canvas2(context, program_id)
 
 
@@ -415,6 +453,7 @@ def add_workout(context=None, program_id=None):
 
     current_program = get_cache_value('current_program')
     current_program_workouts = get_cache_value('current_program_workouts')
+    num_workouts = len(current_program_workouts) if current_program_workouts else 0
     if current_program:
         if current_program['id'] != program_id:
             abort(404)
@@ -438,15 +477,22 @@ def add_workout(context=None, program_id=None):
     added_workout_id = added_workout['id']
     added_workout['id'] = str(uuid.uuid4())  # generate a new id for the program workout
     added_workout['program_id'] = current_program['id']  # set the program id for the workout
-    added_workout['parent_workout_id'] = added_workout_id  # keep the original workout id for reference
-    workout_copy = ProgramWorkoutEntity(added_workout)
+    added_workout['base_workout_def_id'] = added_workout_id  # keep the original workout id for reference
+    added_workout['member_id'] = current_program['member_id']  # set the member id for the workout
+    added_workout['created_by'] = current_program['member_id']  # set the created by for the workout
+    added_workout['member_program_id'] = current_program['id']  # set the member program id for the workout
+    added_workout['order_index'] = num_workouts  # set the order index for the workout
+    workout_copy = MemberWorkoutDefinitionEntity(added_workout)
 
     workout_copy['key'] = workout_copy.get_composite_key()
     workout_copy['key_str'] = '|'.join(workout_copy.get_composite_key())    
 
-    current_program['workouts'].append({'key': workout_copy.get_composite_key(), 'id':workout_copy['id'], "name": workout_copy['name']})
-    current_program_workouts[workout_copy['id']] = workout_copy
+    # current_program['workouts'].append({'key': workout_copy.get_composite_key(), 'id':workout_copy['id'], "name": workout_copy['name']})
+    # current_program_workouts[workout_copy['id']] = workout_copy
+    # append to the current_program_workouts list
+    current_program_workouts.append(workout_copy)
 
+    # update the cache
     set_cache_value('current_program', current_program)
     set_cache_value('current_program_workouts', current_program_workouts)
 
@@ -598,7 +644,7 @@ def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, l
     # and applying the adjustments to the parameters of the exercises
     # for now, we will just apply the adjustment to the "weight" parameter. 
     if adjustments_for_next_workout:
-        for section in workout_instance.get('sections', []):
+        for section in workout_instance.get('workout_sections', []):
             for exercise in section.get('exercises', []):
                 # apply the adjustments to the exercise parameters
                 # check if the exercise has an adjustment in the adjustments_for_next_workout dict
@@ -660,7 +706,7 @@ def finish_workout(context=None, workout_instance_key=None):
     # with the parameters from the current workout state
     # clear the 'current_workout_instance_state' from the session
     for exercise, params in exercise_parameters.items():
-        for section in workout_instance.get('sections', []):
+        for section in workout_instance.get('workout_sections', []):
             for ex in section.get('exercises', []):
                 if ex.get('id', None) == exercise:
                     ex['parameters'] = params
