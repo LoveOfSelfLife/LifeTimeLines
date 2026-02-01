@@ -23,7 +23,8 @@ class Vault:
         try:
             val = self.client.get_secret(secret_name)
             return val.value
-        except:
+        except Exception as e:
+            print(f'exception when attempting to get secret: {e}')
             return None
 
     def set_secret_to_vault(self, secret_name, secret_value):

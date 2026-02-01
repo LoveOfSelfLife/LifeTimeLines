@@ -2,11 +2,11 @@ from datetime import datetime
 import json
 import uuid
 from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, session, url_for
-from common.entity_store import EntityStore
+from common.entity_store import EntityObject, EntityStore
 from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import delete_from_cache, get_cache_value, set_cache_value
 from common.fitness.entities_getter import get_entity, get_entity2, get_filtered_entities
-from common.fitness.entity_constants import WORKOUT_ENTITY_NAME
+from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
 from common.fitness.exercise_entity import general_exercise_entity_filter
 from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import hx_render_template
@@ -29,7 +29,7 @@ def index(context=None):
 @auth.login_required
 def programs_listing(context=None):
 
-    entity_name = "ProgramTable"
+    entity_name = PROGRAM_ENTITY_NAME
     page = int(request.args.get('page', 1))
     page_size = 100
 
@@ -83,7 +83,7 @@ def program_listing_base(context, entity_name, page, page_size, view, fields_to_
 def program_viewer(context=None):
     return hx_render_template(
         "program_viewer.html",
-        entity_name="ProgramTable",
+        entity_name=PROGRAM_ENTITY_NAME,
         main_content_container="entities-container",
         fields_to_display=['name', 'description', 'start_date', 'end_date', 'workouts'],
         args=request.args,
@@ -185,7 +185,8 @@ def edit_program_details(context=None):
 
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
-    program = ProgramEntity(es.get_item_by_composite_key(composite_key))
+    eoclass = EntityObject.get_entity_class_from_table_name(PROGRAM_ENTITY_NAME)
+    program = eoclass(es.get_item_by_composite_key(composite_key))
     
     set_cache_value('current_program', program)
     delete_from_cache('current_program_workouts')
@@ -338,6 +339,9 @@ def update_dates(context=None, program_id=None, date_type=None):
     return response
 
 def get_workouts_from_program(program):
+    # in the 1.0 data model, the workouts are stored as embedded objects in the program
+    # in the 2.0 data model, the workouts are stored as separate entities in the MemberWorkoutDefinitionTable, where 
+    # those entities have a member_program_id field that references the program they belong to
     workouts = []
     es = EntityStore()
     for w in program['workouts']:
@@ -352,7 +356,6 @@ def save_program(context=None, program_id=None):
     if not member_id:
         abort(401)    
 
-    PROGRAM_ENTITY_NAME = "ProgramTable"
     current_program = get_cache_value('current_program')
     if current_program:
         if current_program['id'] != program_id:
