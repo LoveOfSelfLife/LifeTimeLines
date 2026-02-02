@@ -103,9 +103,10 @@ def create_new_event(context=None):
 
     event = None
     optional_date = request.args.get('date', None)
+    optional_time = request.args.get('time', None)
 
     if optional_date:
-        event = { "id": "", "date": optional_date, "time": "" }        
+        event = { "id": "", "date": optional_date, "time": optional_time if optional_time else "" }        
     else:
         event = { "id": "", "date": "", "time": "" }
 

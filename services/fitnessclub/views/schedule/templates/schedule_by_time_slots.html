@@ -82,19 +82,31 @@
                             {% else %}
                                 {% set display_time = (hour - 12) ~ ":00 PM" %}
                             {% endif %}
-                            <span class="time-label">{{ display_time }}</span>
-                            <span class="duration-label">1 hour workout</span>
+                            <div>
+                                <span class="time-label">{{ display_time }}</span>
+                                <span class="duration-label">1 hour workout</span>
+                            </div>
+                            <button class="btn btn-sm btn-outline-light"
+                                hx-get="/schedule/create_event?date={{ date_key }}&time={{ time_slot }}" 
+                                hx-target="#modals-here"
+                                hx-swap="innerHTML"
+                                data-bs-toggle="modal"
+                                data-bs-target="#modals-here"
+                                title="Join this time slot">
+                                <i class="bi bi-person-plus"></i>
+                            </button>
                         </div>
                         <div class="members-container">
                             {% for member_event in slot_events %}
                                 {% set user_profile = user_profiles.get(member_event.member_id, {}) %}
-                                <!-- DEBUG: Member ID: {{ member_event.member_id }}, Profile: {{ user_profile }} -->
+                                
                                 <div class="member-card {% if member_event.member_id == member_id %}own-workout{% endif %}">
                                     <div class="member-info">
                                         {% if user_profile.get('image_url') %}
-                                            <img src="{{ user_profile.image_url }}" alt="{{ member_event.summary }}" class="member-avatar">
+                                            <img src="{{ user_profile.image_url }}" alt="{{ member_event.summary }}" class="member-avatar"
+                                                 style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">
                                         {% else %}
-                                            <!-- DEBUG: No image_url found. Profile keys: {{ user_profile.keys() | list if user_profile else 'No profile' }} -->
+                                            
                                             <div class="member-avatar" style="background: rgba(255, 255, 255, 0.3); display: flex; align-items: center; justify-content: center; font-weight: bold; color: rgba(255, 255, 255, 0.8);">
                                                 {{ member_event.summary[0:1].upper() if member_event.summary else '?' }}
                                             </div>
