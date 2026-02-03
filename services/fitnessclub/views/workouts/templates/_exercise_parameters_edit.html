@@ -15,7 +15,7 @@
           <label for="sets" class="form-label">Sets</label>
           <input type="number" class="form-control" id="sets" name="sets" 
                  value="{{ current_parameters.sets if current_parameters.sets is not none else item.parameters.sets }}" 
-                 min="1" max="20">
+                 min="0" max="20">
         </div>
         {# {% endif %} #}
 
@@ -24,7 +24,7 @@
           <label for="reps" class="form-label">Reps</label>
           <input type="number" class="form-control" id="reps" name="reps" 
                  value="{{ current_parameters.reps if current_parameters.reps is not none else item.parameters.reps }}" 
-                 min="1" max="100">
+                 min="0" max="100">
         </div>
         {# {% endif %} #}
 
@@ -48,7 +48,7 @@
           <label for="time" class="form-label">Time (seconds per set)</label>
           <input type="number" class="form-control" id="time" name="time" 
                  value="{{ current_parameters.time if current_parameters.time is not none else item.parameters.time }}" 
-                 min="1" max="600">
+                 min="0" max="600">
         </div>
         {# {% endif %} #}
       </div>

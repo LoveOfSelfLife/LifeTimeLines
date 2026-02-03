@@ -1,21 +1,20 @@
 from datetime import datetime
 import json
+
 import uuid
 from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, session, url_for
 from common.entity_store import EntityObject, EntityStore
 from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import delete_from_cache, get_cache_value, set_cache_value
 from common.fitness.entities_getter import get_entity, get_entity2, get_filtered_entities
-from common.fitness.entity_constants import DATAMODEL_VERSION, PROGRAM_ENTITY_NAME, PROGRAM_WORKOUT_ENTITY_NAME, WORKOUT_ENTITY_NAME
+from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
 from common.fitness.exercise_entity import general_exercise_entity_filter
 from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import hx_render_template
 from common.fitness.hx_common import rm_spaces
 from common.fitness.member_entity import MembershipRegistry, get_member_detail_from_user_context
 from common.fitness.member_program_entity import MemberProgramEntity
-from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, get_exercises_from_workout
-from common.fitness.program_entity import ProgramEntity
-from common.fitness.workout_entity import ProgramWorkoutEntity, ProgramWorkoutInstanceEntity
+from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout
 from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state
 bp = Blueprint('program', __name__, template_folder='templates')
 from auth import auth
@@ -24,7 +23,6 @@ from auth import auth
 @auth.login_required
 def index(context=None):
     return redirect(url_for('program.programs_listing'), 302)
-
 
 @bp.route('/programs-listing', methods=['GET', 'POST'])
 @auth.login_required
@@ -305,26 +303,15 @@ def update_param(context=None, workout_id=None):
 @bp.route('/builder/<program_id>/reorder', methods=['POST'])
 @auth.login_required
 def reorder_workouts(context=None, program_id=None):
-    if DATAMODEL_VERSION == 2:
-        w = get_cache_value('current_program_workouts')
+    w = get_cache_value('current_program_workouts')
 
-        order = request.form.getlist('order[]')
-        lookup = {it['id']:it for it in w}
-        reordered_workout_list = [lookup[i] for i in order if i in lookup]
+    order = request.form.getlist('order[]')
+    lookup = {it['id']:it for it in w}
+    reordered_workout_list = [lookup[i] for i in order if i in lookup]
 
-        # here we save the program to the cache
-        set_cache_value('current_program_workouts', reordered_workout_list)
+    # here we save the program to the cache
+    set_cache_value('current_program_workouts', reordered_workout_list)
 
-    else:
-        p = get_cache_value('current_program')
-
-        order = request.form.getlist('order[]')
-        lookup = {it['id']:it for it in p['workouts']}
-        p['workouts'] = [lookup[i] for i in order if i in lookup]
-
-        # here we save the program to the cache
-        set_cache_value('current_program', p)
-    
     return program_canvas2(context, program_id)
 
 @bp.route('/builder/<program_id>/updatename', methods=['POST'])
@@ -362,19 +349,15 @@ def get_workouts_from_program(program):
     # in the 2.0 data model, the workouts are stored as separate entities in the MemberWorkoutDefinitionTable, where 
     # those entities have a member_program_id field that references the program they belong to
     workouts = []
-    if DATAMODEL_VERSION == 2:
-        es = EntityStore()
-        # wondering here if we can use the EntityCache?  
-        # TODO:  analyze if the cache is an eligible option
-        mbr_workout_definitions = list(es.list_items(MemberWorkoutDefinitionEntity({"member_id": program['member_id']})))
-        workouts = [w for w in mbr_workout_definitions if w.get('member_program_id', None)==program['id']]
-        # sort workouts by order_index
-        workouts = sorted(workouts, key=lambda x: x.get('order_index', 0))
-    else:
-        es = EntityStore()
-        for w in program['workouts']:
-            e = es.get_item_by_composite_key(w['key'])
-            workouts.append(e)
+
+    es = EntityStore()
+    # wondering here if we can use the EntityCache?  
+    # TODO:  analyze if the cache is an eligible option
+    mbr_workout_definitions = list(es.list_items(MemberWorkoutDefinitionEntity({"member_id": program['member_id']})))
+    workouts = [w for w in mbr_workout_definitions if w.get('member_program_id', None)==program['id']]
+    # sort workouts by order_index
+    workouts = sorted(workouts, key=lambda x: x.get('order_index', 0))
+    
     return workouts
 
 @bp.route('/builder/<program_id>/save', methods=['POST'])
@@ -513,6 +496,7 @@ def start_workout(context=None, workout_key=None):
     last_program_workout_instance_key = eval(last_program_workout_instance_key_str) if last_program_workout_instance_key_str else None
 
     adjustments_for_next_workout = request.form.get('adjustments_for_next_workout', None)
+
     workout_instance, exercises, program_entity, workout_instance_key, adjustments = _start_workout_logic(workout_key, 
                                                                                                           program_composite_key_str, 
                                                                                                           scheduled_workout_event_id,
@@ -634,15 +618,30 @@ def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, l
     last_program_workout_instance = es.get_item_by_composite_key(last_program_workout_instance_key) if last_program_workout_instance_key else None
     adjustments_for_next_workout = eval(adjustments_for_next_workout_str) if adjustments_for_next_workout_str else {}   
 
-    # copy the workout to the ProgramWorkoutInstanceTable
-    # then get the ID of the newly created workout instance and populate it into the program's workout_instances list
-    # workout_instance = ProgramWorkoutInstanceEntity(workout_entity.copy())
-    workout_instance = ProgramWorkoutInstanceEntity(last_program_workout_instance.copy() if last_program_workout_instance else workout_entity.copy())
+    # we first copy the workout to the MemberWorkoutInstanceTable
+    # all workouts in this program are bassed on the workout definitions in the MemberWorkoutDefinitionTable, that is the reps & sets for exercises are defined there
+    # however, if there is a workout instance from a previous workout in the program, then we should copy the resistance & time parameters from that instance
+    # to the new workout instance
+    # then, finally, we will apply any adjustments that were made during the last workout to the new workout instance
+    workout_instance = MemberWorkoutInstanceEntity(workout_entity.copy())
+    if last_program_workout_instance:
+        # go through each of the exercises in the last workout instance
+        # and copy the parameters to the new workout instance
+        for last_section, new_section in zip(last_program_workout_instance.get('workout_sections', []), workout_instance.get('workout_sections', [])):
+            for last_exercise, new_exercise in zip(last_section.get('exercises', []), new_section.get('exercises', [])):
+                # copy just the weight, units & time parameters from the last exercise to the new exercise
+                last_params = last_exercise.get('parameters', {})
+                new_params = new_exercise.get('parameters', {})
+                new_params['weight'] = last_params.get('weight', 0)
+                new_params['units'] = last_params.get('units', '')
+                new_params['time'] = last_params.get('time', 0)
+                new_exercise['parameters'] = new_params
     
     # now we want to apply the adjustments in the adjustments dict to the new workout instance
     # we do this by going through each of the  exercises in the workout instance
     # and applying the adjustments to the parameters of the exercises
-    # for now, we will just apply the adjustment to the "weight" parameter. 
+    # for now, we will just apply the adjustment to the "weight" parameter, but we should figure out how to apply the adjustment to the time parameter as well
+    # TODO:  figure out how to apply the adjustment to the time parameter as well
     if adjustments_for_next_workout:
         for section in workout_instance.get('workout_sections', []):
             for exercise in section.get('exercises', []):
@@ -662,18 +661,23 @@ def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, l
 
     workout_instance.update({
         'id': str(uuid.uuid4()),
-        'program_workout_id': workout_entity['id']
+        'started_ts': datetime.now().isoformat(),
+        'finished_ts': "",
+        'scheduled_workout_event_id': scheduled_workout_event_id,
+        'member_workout_def_id': workout_entity['id'],
+        'member_program_id': program_entity['id'],
+        'name': workout_entity.get('name', 'Unnamed Workout')
     })
     es.upsert_item(workout_instance)
     workout_instance_key = workout_instance.get_composite_key()
 
-    # add the workout instance to the program's workout_instances list
-    program_entity['workout_instances'] = program_entity.get('workout_instances', []) + [{'program_workout_instance_id': workout_instance.get('id'),
-                                                                                          'program_workout_instance_key': workout_instance_key,
-                                                                                          "started_ts": datetime.now().isoformat(),
-                                                                                          "finished_ts": "",
-                                                                                          "scheduled_workout_event_id": scheduled_workout_event_id}]
-    es.upsert_item(program_entity)
+    # # add the workout instance to the program's workout_instances list
+    # program_entity['workout_instances'] = program_entity.get('workout_instances', []) + [{'program_workout_instance_id': workout_instance.get('id'),
+    #                                                                                       'program_workout_instance_key': workout_instance_key,
+    #                                                                                       "started_ts": datetime.now().isoformat(),
+    #                                                                                       "finished_ts": "",
+    #                                                                                       "scheduled_workout_event_id": scheduled_workout_event_id}]
+    # es.upsert_item(program_entity)
 
     wrkout_exercises = get_exercises_from_workout(workout_instance)
     exercises = {ex.get('id', None): ex for ex in wrkout_exercises}
@@ -710,30 +714,17 @@ def finish_workout(context=None, workout_instance_key=None):
             for ex in section.get('exercises', []):
                 if ex.get('id', None) == exercise:
                     ex['parameters'] = params
+    
+    workout_instance['finished_ts'] = datetime.now().isoformat()
+    workout_instance['adjustments_for_next_workout'] = adjustments_for_next_workout
+    
     es.upsert_item(workout_instance)
     
     clear_active_workout_state()
     # session.pop('current_workout_instance_state', None)
     session.pop(f"last_section_{workout_instance['id']}", None)
 
-    workout_entity = es.get_item_by_composite_key(workout_composite_key)    
-    program_entity = es.get_item_by_composite_key(program_composite_key)    
 
-    list_of_workout_instances = program_entity.get('workout_instances', [])
-    # find the workout instance in the program's workout_instances list
-    for instance in list_of_workout_instances:
-        if instance.get('program_workout_instance_id') == workout_instance['id']:
-            # update the finished timestamp for the workout instance
-            instance['finished_ts'] = datetime.now().isoformat()
-            instance['adjustments_for_next_workout'] = adjustments_for_next_workout
-            # update the workout instance in the program's workout_instances list
-            program_entity['workout_instances'] = list_of_workout_instances
-            es.upsert_item(program_entity)    
-            break
-    else:
-        # if we didn't find the workout instance, we can log an error or raise an exception
-        current_app.logger.error(f"Workout instance {workout_instance_key} not found in program {program_composite_key}")
-        abort(404)
     cal = get_calendar_service()
     cal.update_status_of_workout_event(scheduled_workout_event_id, 'done')
 
@@ -747,31 +738,13 @@ def cancel_workout(context=None, workout_instance_key=None):
     # and wants to cancel it before finishing it
     # it will remove the entities that were created when the workout was started
     # and redirect to the home page
+    
     es = EntityStore()
-    workout_composite_key = eval(workout_instance_key) if workout_instance_key else None
-    workout_instance = es.get_item_by_composite_key(workout_composite_key)
+    workout_instance_composite_key = eval(workout_instance_key) if workout_instance_key else None
+    workout_instance = es.get_item_by_composite_key(workout_instance_composite_key)
     if not workout_instance:
         abort(404)
-    program_composite_key_str = request.form.get('program_key', None)
-    program_composite_key = eval(program_composite_key_str) if program_composite_key_str else None
-    program_entity = es.get_item_by_composite_key(program_composite_key)
-    if not program_entity:
-        abort(404)
-    # do not need to make any updates to the google calendar service
-    # just remove the workout instance from the program's workout_instances list
-    list_of_workout_instances = program_entity.get('workout_instances', [])
 
-    # find the workout instance in the program's workout_instances list
-    for instance in list_of_workout_instances:
-        if instance.get('program_workout_instance_id') == workout_instance['id']:
-            # remove the workout instance from the program's workout_instances list
-            program_entity['workout_instances'] = [i for i in list_of_workout_instances if i.get('program_workout_instance_id') != workout_instance['id']]
-            es.upsert_item(program_entity)
-            break
-    else:
-        # if we didn't find the workout instance, we can log an error or raise an exception
-        current_app.logger.error(f"Workout instance {workout_instance_key} not found in program {program_composite_key}")
-        abort(404)
 
     # clear the 'current_workout_instance_state' from the session
     clear_active_workout_state()

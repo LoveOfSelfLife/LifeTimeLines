@@ -2,7 +2,6 @@ from ast import literal_eval
 from flask import request, url_for
 from common.entity_store import EntityObject
 from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
-from common.fitness.program_entity import ProgramEntity
 from common.fitness.member_program_entity import MemberProgramEntity
 from common.fitness.member_entity import MemberEntity
 from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity, exercise_entity_filter, exercise_entity_filter_term, render_exercise_popup_viewer_html

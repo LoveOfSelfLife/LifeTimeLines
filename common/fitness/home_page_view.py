@@ -2,7 +2,7 @@ import json
 from common.entity_store import EntityStore
 from common.fitness.hx_common import hx_render_template
 from common.fitness.programs import get_members_current_active_program, get_next_workout_in_program
-from common.fitness.member_workout_entity import get_exercises_from_workout
+from common.fitness.member_workout_entity import MemberWorkoutInstanceEntity, get_exercises_from_workout
 from common.fitness.workout_state import get_active_workout_state
 from common.fitness.workouts import get_scheduled_workouts
 from datetime import datetime, timedelta, timezone
@@ -74,9 +74,9 @@ def generate_current_home_page_view(member):
             wrkout_exercises = get_exercises_from_workout(workout_instance)
             exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
             if 'workout_sections' in workout_instance:
-                workout_sections = workout_instance['workout_sections']
+                workout_sections = workout_instance.get('workout_sections', [])
             else:
-                workout_sections = workout_instance['sections']            
+                workout_sections = workout_instance.get('sections', [])             
             return render_template(
                 "workout_view.html",
                 workout=workout_instance,
@@ -129,7 +129,7 @@ def generate_current_home_page_view(member):
     #     {'name': 'Workout 2', 'date': '2023-10-05'},
     #     {'name': 'Workout 3', 'date': '2023-10-10'}
     # ]
-    completed_workouts = get_completed_workouts(member_id, current_program_key)
+    completed_workouts = get_workout_intstances_for_program(member_id, current_program.get('id', None))
     if event:
         # The member has an upcoming workout scheduled
         return render_template("upcoming_workout.html", 
@@ -172,18 +172,20 @@ def get_next_workout_event(events, member_id):
             return event, workout_datetime, time_until_workout
     return None, None, None
 
-def get_completed_workouts(member_id, current_program_key):
+def get_workout_intstances_for_program(member_id, program_id):
+
     workouts = []
     es = EntityStore()
-    current_program = es.get_item_by_composite_key(current_program_key)
-    if not current_program:
-        return []
-    workout_instances = current_program.get('workout_instances', [])
+    workout_instances = es.list_items(MemberWorkoutInstanceEntity({"member_id": member_id}))    
+    # TODO:  analyze if the cache is an eligible option
+    mbr_workout_instances = list(es.list_items(MemberWorkoutInstanceEntity({"member_id": member_id})))
+    workout_instances = [w for w in mbr_workout_instances if w.get('member_program_id', None)==program_id]    
+
     if not workout_instances:
         return []
     workout_instances = sorted(workout_instances, key=lambda x: x.get('started_ts', ''), reverse=True)  # Sort by started_ts
     for wi in workout_instances:
-        workout_instance = es.get_item_by_composite_key(wi.get('program_workout_instance_key', None))
+
         st = wi.get('started_ts' , None)
         if st:
             # format the time to this:
@@ -195,8 +197,8 @@ def get_completed_workouts(member_id, current_program_key):
             started_when = 'unknown'
 
         workouts.append({
-            'name': workout_instance.get('name', 'Unknown Workout'),
+            'name': wi.get('name', 'Unknown Workout'),
             'date': started_when,
-            'workout_instance_key': workout_instance.get_composite_key()
+            'workout_instance_key': wi.get_composite_key()
         })
     return workouts

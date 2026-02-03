@@ -37,6 +37,7 @@ class MemberWorkoutDefinitionEntity (EntityObject):
 class MemberWorkoutInstanceEntity (EntityObject):
     table_name="MemberWorkoutInstanceTable"
     fields=["id", 
+            'name',
             "member_id", 
             "workout_sections", 
             "started_ts", 

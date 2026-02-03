@@ -752,10 +752,7 @@ def view_workout(context=None):
     
     # new: only use the session value if it exists
     last = session.get(f"last_section_{workout_key_str}")  # no fallback
-    if 'workout_sections' in workout:
-        workout_sections = workout['workout_sections']
-    else:
-        workout_sections = workout['sections']       
+    workout_sections = workout['workout_sections']
 
     return render_template(
         "workout_view.html",
@@ -780,7 +777,7 @@ def view_section(context=None, workout_id=None, section_name=None):
     section = next((s for s in workout[WORKOUT_SECTIONS] if s["name"] == section_name), None)
     if not section:
         abort(404)
-    
+    print(f"Viewing section {section_name} of workout {workout_id}")    
     # Get current workout state to see if there are any parameter overrides
     current_workout_state = get_active_workout_state()
     current_parameters = {}
@@ -799,6 +796,7 @@ def view_section(context=None, workout_id=None, section_name=None):
 @auth.login_required
 def set_last_section(context=None, workout_id=None, section_name=None):
     # guard: make sure section_name is valid for this workout_id…
+    print(f"Setting last section for workout {workout_id} to {section_name}")
     session[f"last_section_{workout_id}"] = section_name
     return ("", 204)
 
@@ -829,6 +827,7 @@ def exercise_feedback(context=None, exercise_id=None):
     current_app.logger.info(f"Feedback for {exercise_id}: {adjust!r}")
 
     current_workout_state = get_active_workout_state()
+    current_app.logger.info(f"Current workout state: {current_workout_state}")
 
     adjustments = current_workout_state.get('adjustments', {})
     exercise_adjustment = adjustments.get(exercise_id, 0)
