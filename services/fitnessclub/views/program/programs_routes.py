@@ -344,6 +344,29 @@ def update_dates(context=None, program_id=None, date_type=None):
     response = make_response('', 200)
     return response
 
+@bp.route('/builder/updateworkoutname/<workout_id>', methods=['POST'])
+@auth.login_required
+def update_workout_name(context=None, program_id=None, workout_id=None):
+
+    current_program_workouts = get_cache_value('current_program_workouts')
+
+    workout_name = request.form.get('workout_name', '')
+
+    # find the workout in the current_program_workouts list that has an id matching workout_id
+    workout = next((wk for wk in current_program_workouts if wk.get('id', None) == workout_id), None)
+    
+    if not workout:
+        abort(404)
+
+    # set the new name
+    workout['name'] = workout_name
+
+    # current_program_workouts[workout_id] = workout
+    set_cache_value('current_program_workouts', current_program_workouts)
+    
+    response = make_response('', 200)
+    return response
+
 def get_workouts_from_program(program):
     # in the 1.0 data model, the workouts are stored as embedded objects in the program
     # in the 2.0 data model, the workouts are stored as separate entities in the MemberWorkoutDefinitionTable, where 

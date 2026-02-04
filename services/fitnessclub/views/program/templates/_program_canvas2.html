@@ -22,7 +22,22 @@
               </button>
               <div>
                 <label class="form-label small">Workout:</label>
+
+                <form
+                      hx-post="{{ url_for('program.update_workout_name', workout_id=workout.id) }}"
+                      hx-trigger="change delay:500ms, focusout"
+                      hx-swap="none">
+                  <input
+                    type="text" name="workout_name"  id="workout-name-{{ workout.id }}"
+                    class="form-control form-control-sm"
+                    style="width:4.5rem;"
+                    placeholder="workout name"
+                    value="{{ workout.name or '' }}"
+                  >
+                </form>
+
                 <strong>{{ workout.name }}</strong>
+
               </div>
               <button
                 class="btn btn-link btn-sm text-danger p-0"
