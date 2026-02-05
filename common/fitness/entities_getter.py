@@ -4,7 +4,7 @@ entity_store_cache_dict = {}
 
 # TODO: need to refactor this to combine filter_func and filter_term_func into a single function
 # and remove the need for filter_term
-def get_list_of_entities(entity_name, filter_func=None, filter_term=None, partition_key=None):
+def get_list_of_entities(entity_name, filter_func=None, filter_term=None, partition_key=None, sort_by='name', sort_ascending=True):
     global entity_store_cache_dict
 
     entity_type = get_entity_obj_from_entity_name(entity_name)
@@ -16,9 +16,11 @@ def get_list_of_entities(entity_name, filter_func=None, filter_term=None, partit
     entities = entity_store_cache_dict[cache_key].get_items()
 
     if filter_func:
-        return filter_func(entities, filter_term)
-    else:
-        return entities
+        entities = filter_func(entities, filter_term)
+
+    if sort_by and sort_by in entity_type.get_fields():
+        entities = sorted(entities, key=lambda x: x.get(sort_by).lower() if x.get(sort_by) else x.get(sort_by, ''), reverse=not sort_ascending)
+    return entities
 
 def get_cache_key(entity_type, partition_key=None):
     if entity_type.get_static_partition_value():
@@ -29,9 +31,9 @@ def get_cache_key(entity_type, partition_key=None):
         cache_key = entity_type.get_table_name() + f"_{partition_key}"
     return cache_key
 
-def get_filtered_entities(entity_name, fields_to_display, filter_func=None, filter_term=None, partition_key=None):
+def get_filtered_entities(entity_name, fields_to_display, filter_func=None, filter_term=None, partition_key=None, sort_by='name', sort_ascending=True):
 
-    filtered_entities = get_list_of_entities(entity_name, filter_func, filter_term, partition_key)
+    filtered_entities = get_list_of_entities(entity_name, filter_func, filter_term, partition_key, sort_by, sort_ascending)
 
     entities = []
     for e in filtered_entities:

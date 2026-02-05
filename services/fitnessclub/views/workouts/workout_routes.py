@@ -133,6 +133,36 @@ def edit_workout_details(context=None):
     
     return redirect(url_for('workouts.builder', workout_id=entity_type['id']))
 
+@bp.route('/copy', methods=['POST'])
+@auth.login_required
+def copy_workout(context=None):
+    """Copy an existing workout"""
+    user = context.get('user', None)
+    member_id = user.get('sub', None) if user else None
+    if not member_id:
+        abort(401)
+
+    composite_key_str = request.args.get('key', None)
+    composite_key = eval(composite_key_str) if composite_key_str else None
+    
+    es = EntityStore()
+    original_workout = es.get_item_by_composite_key(composite_key)
+    if not original_workout:
+        abort(404)
+
+    # Create copy with new ID and modified name
+    copied_workout = original_workout.copy()
+    copied_workout['id'] = str(uuid.uuid4())
+    copied_workout['name'] = f"Copy of {original_workout['name']}"
+    copied_workout['created_by'] = member_id
+    copied_workout['created_ts'] = datetime.now().isoformat()
+    
+    # Save the copy
+    workout_entity = WorkoutDefinitionEntity(copied_workout)
+    es.upsert_item(workout_entity)
+    
+    # Redirect to edit the copy
+    return redirect(url_for('workouts.builder', workout_id=copied_workout['id']))
 
 @bp.route('/builder/new')
 @auth.login_required
@@ -388,6 +418,42 @@ def save_workout(context=None, workout_id=None):
             "showMessage": { 
             "target": "body",
             "value": "workout saved." }
+        })
+    response.headers['HX-Redirect'] = url_for('workouts.index')
+    return response
+
+@bp.route('/builder/<workout_id>/save_copy', methods=['POST'])
+@auth.login_required
+def save_workout_copy(context=None, workout_id=None):
+    user = context.get('user', None)
+    member_id = user.get('sub', None) if user else None   
+    if not member_id:
+        abort(401)
+
+    workout = get_cache_value('current_workout')
+    if not workout or workout['id'] != workout_id:
+        abort(404)
+
+    workout_definition : WorkoutDefinitionEntity = get_entity_obj_from_entity_name("WorkoutDefinitionTable")
+
+    # this is where we save the newly created workout
+    print('Saving workout copy')
+    es = EntityStore()
+    workout['id'] = str(uuid.uuid4())
+    workout['name'] = f"Copy of {workout['name']}"
+    workout['created_by'] = member_id
+    workout['created_ts'] = datetime.now().isoformat()
+    workout_definition.initialize(workout)
+    es.upsert_item(workout_definition)
+
+    delete_from_cache('current_workout')
+
+    response = make_response('')
+    response.headers['HX-Trigger'] = json.dumps({
+        "eventListChanged": { "target": "body" },
+            "showMessage": { 
+            "target": "body",
+            "value": "copy of workout saved." }
         })
     response.headers['HX-Redirect'] = url_for('workouts.index')
     return response

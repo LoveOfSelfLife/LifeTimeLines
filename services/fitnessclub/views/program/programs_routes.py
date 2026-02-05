@@ -44,7 +44,7 @@ def programs_listing(context=None):
     filter_func = general_exercise_entity_filter
 
     member = get_member_detail_from_user_context(context)
-    entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms, partition_key=member.get('id', None))
+    entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms, partition_key=member.get('id', None), sort_by='end_date', sort_ascending=False)
 
     return program_listing_base(context, entity_name, page, page_size, view, fields_to_display, filter_terms, entities)
 
@@ -409,8 +409,8 @@ def save_program(context=None, program_id=None):
     workouts_to_remove = get_cache_value('workouts_to_remove') or []
 
     for wtr in workouts_to_remove:
-        es.upsert_item(MemberWorkoutDefinitionEntity(wtr))
-
+        es.delete_item(MemberWorkoutDefinitionEntity(wtr))
+    
     es.upsert_items(workouts_in_program)
     es.upsert_item(MemberProgramEntity(current_program))
 
@@ -424,6 +424,70 @@ def save_program(context=None, program_id=None):
             "showMessage": { 
             "target": "body",
             "value": "program saved." }
+        })
+    response.headers['HX-Redirect'] = url_for('program.index')
+    return response
+
+@bp.route('/builder/<program_id>/save_copy', methods=['POST'])
+@auth.login_required
+def save_copy_of_program(context=None, program_id=None):
+
+    # this method is similar to save_program, but we create a copy of the program with a new id
+    # we also need to create copies of the workouts in the program with new ids
+    # each copied workout also needs to reference the new program id
+
+    member_id = get_member_detail_from_user_context(context).get('id', None)
+    if not member_id:
+        abort(401)    
+
+    current_program = get_cache_value('current_program')
+    if current_program:
+        if current_program['id'] != program_id:
+            abort(404)
+
+    es = EntityStore()
+
+    # create a copy of the program with a new id
+    new_program_id = str(uuid.uuid4())
+    current_program['id'] = new_program_id
+    current_program['name'] = f"{current_program['name']} (copy)"
+    current_program['member_id'] = member_id
+    current_program['created_by'] = member_id
+
+    workouts_in_program = []
+    current_program_workouts = get_cache_value('current_program_workouts')
+    i = 0
+    for w in current_program_workouts:
+        w['order_index'] = i
+        i += 1
+        # create a copy of the workout with a new id
+        new_workout_id = str(uuid.uuid4())
+        w['id'] = new_workout_id
+        w['member_program_id'] = new_program_id
+        w['member_id'] = member_id
+        w['created_by'] = member_id
+
+        workouts_in_program.append(MemberWorkoutDefinitionEntity(w))
+
+    # handle workouts that were removed from the program
+    workouts_to_remove = get_cache_value('workouts_to_remove') or []
+
+    for wtr in workouts_to_remove:
+        es.delete_item(MemberWorkoutDefinitionEntity(wtr))
+
+    es.upsert_items(workouts_in_program)
+    es.upsert_item(MemberProgramEntity(current_program))
+
+    delete_from_cache('current_program')
+    delete_from_cache('current_program_workouts')
+    delete_from_cache('workouts_to_remove')
+
+    response = make_response('')
+    response.headers['HX-Trigger'] = json.dumps({
+        "eventListChanged": { "target": "body" },
+            "showMessage": { 
+            "target": "body",
+            "value": "copy of program saved." }
         })
     response.headers['HX-Redirect'] = url_for('program.index')
     return response
