@@ -13,7 +13,9 @@
   {% for section in workout_sections %}
     {% set section_length = section.exercises|length %}
       {% if section_length > 0 %}
-        {% set default_section = workout.workout_sections[0].name if loop.first else default_section %}
+        {% if loop.first and not default_section %}
+          {% set default_section = workout.workout_sections[0].name %}
+        {% endif %}
         {# Render each section with its exercises #}
         <div class="accordion-item">
           <h2 class="accordion-header" id="hdr-{{ rs(section.name) }}">

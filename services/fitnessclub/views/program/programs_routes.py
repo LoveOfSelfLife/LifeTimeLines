@@ -689,6 +689,7 @@ def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, l
         'scheduled_workout_event_id': scheduled_workout_event_id,
         'member_workout_def_id': workout_entity['id'],
         'member_program_id': program_entity['id'],
+        'member_program_name': program_entity.get('name', ''),
         'name': workout_entity.get('name', 'Unnamed Workout')
     })
     es.upsert_item(workout_instance)

@@ -179,7 +179,7 @@ def get_workout_intstances_for_program(member_id, program_id):
     workout_instances = es.list_items(MemberWorkoutInstanceEntity({"member_id": member_id}))    
     # TODO:  analyze if the cache is an eligible option
     mbr_workout_instances = list(es.list_items(MemberWorkoutInstanceEntity({"member_id": member_id})))
-    workout_instances = [w for w in mbr_workout_instances if w.get('member_program_id', None)==program_id]    
+    # workout_instances = [w for w in mbr_workout_instances if w.get('member_program_id', None)==program_id]    
 
     if not workout_instances:
         return []
@@ -199,6 +199,7 @@ def get_workout_intstances_for_program(member_id, program_id):
         workouts.append({
             'name': wi.get('name', 'Unknown Workout'),
             'date': started_when,
+            'program_name': wi.get('member_program_name', ''),
             'workout_instance_key': wi.get_composite_key()
         })
     return workouts

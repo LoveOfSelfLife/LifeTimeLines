@@ -45,7 +45,8 @@ class MemberWorkoutInstanceEntity (EntityObject):
             "scheduled_workout_event_id", 
             "adjustments_for_next_workout",
             "member_workout_def_id",         # reference to the member workout definition from which this instance was created
-            "member_program_id"              # reference to the member program this workout instance is part of, if any
+            "member_program_id",              # reference to the member program this workout instance is part of, if any
+            "member_program_name"             # name of the member program this workout instance is part of, if any
             ]
     key_field="id"
     partition_field="member_id"
