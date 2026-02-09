@@ -56,11 +56,6 @@ def gen_exercise_id(exercise):
     return id
 
 
-def is_exercise_hidden(exercise):
-    """Filter out exercises that are marked as "hide" 
-    """
-    hide = exercise.get("hide", None)
-    return hide
 
 def is_entity_hidden(entity):
     """Filter out entities that are marked as "hide" 
@@ -150,7 +145,6 @@ exercise_filters = [
                 ]
 
 
-
 def exercise_entity_filter_term(args={}):
     terms = [ {"id": f['id'], 
                "label": f['label'], 
@@ -158,25 +152,6 @@ def exercise_entity_filter_term(args={}):
                "value": args.get(f['id'], '')} for f in exercise_filters ]
     return terms
     
-    # return [
-    #     {
-    #         "label": "Filter Text",
-    #         "id": "text",
-    #         "value": args.get('text', ''),
-    #     },
-    #     {
-    #         "label": "Physical Fitness Component",
-    #         "id": "physical_fitness_components",
-    #         "value": args.get('physical_fitness_components', '')
-    #     },
-    #     {
-    #         "label": "Muscle",
-    #         "id": "muscle",
-    #         "value": args.get('muscle', '')
-    #     }
-    # ]
-
-
 def general_exercise_entity_filter(entities, filter_term):
     # filter_term is a list of dictionaries
     # each dictionary has an id and a value
@@ -196,8 +171,6 @@ def general_exercise_entity_filter(entities, filter_term):
         if matches_all_terms_in_filter(entity, filter_term):
             filtered_entities.append(entity)
     return filtered_entities
-
-
 
 def matches_all_terms_in_filter(entity, filter_term):
     # check if filter_term is a string, in which case convert it to a python object
@@ -241,27 +214,6 @@ def matches_all_terms_in_filter(entity, filter_term):
                     return False
                 continue
     return True
-
-
-def exercise_entity_filter(entities, filter_term):
-    # filter_term is a list of dictionaries
-    # each dictionary has an id and a value
-    # for example: [{"id": "text", "value": "squat"}, {"id": "category", "value": "core"}]
-    # in order for an entity from the list of entities to be included in the result
-    # it must match all the filter terms where the value for that filter term is not empty
-    # if the value for a filter term is empty, it is ignored
-    # first remove all exercises that are hidden
-    entities = [e for e in entities if not is_exercise_hidden(e)]
-
-    if filter_term is None:
-        return entities
-    if len(filter_term) == 0:
-        return entities
-    filtered_entities = []
-    for entity in entities:
-        if matches_all_terms_in_filter(entity, filter_term):
-            filtered_entities.append(entity)
-    return filtered_entities
 
 
 def render_exercise_popup_viewer_html(context, entity):

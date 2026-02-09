@@ -3,10 +3,10 @@ import json
 from flask import Blueprint, abort, jsonify, make_response, render_template, request, redirect, session, url_for
 import requests
 from auth import auth
-from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_entity_names
+from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_fitnessclub_listing_fields_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_entity_names
 from common.env_context import Env
 from common.fitness.entities_getter import delete_entity
-from common.fitness.exercise_entity import general_exercise_entity_filter, render_exercise_popup_viewer_html
+from common.fitness.exercise_entity import render_exercise_popup_viewer_html
 from common.fitness.member_entity import get_member_detail_from_user_context
 from common.fitness.utils import generate_id
 from common.fitness.hx_common import hx_render_template
@@ -36,10 +36,9 @@ def entities_listing(context=None):
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     filter_terms = _get_filter_terms_from_request()
-    filter_func = general_exercise_entity_filter
 
     member = get_member_detail_from_user_context(context)
-    entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms, partition_key=member.get('id', None))
+    entities = get_filtered_entities(entity_name, fields_to_display, filter_terms, partition_key=member.get('id', None))
     return render_entity_template(context, entity_name, page, view, page_size, fields_to_display, filter_terms, entities)
 
 def render_entity_template(context, entity_name, page, view, page_size, fields_to_display, filter_terms, entities):

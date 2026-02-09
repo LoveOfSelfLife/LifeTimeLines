@@ -4,9 +4,15 @@ from common.entity_store import EntityObject
 from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
 from common.fitness.member_program_entity import MemberProgramEntity
 from common.fitness.member_entity import MemberEntity
-from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity, exercise_entity_filter, exercise_entity_filter_term, render_exercise_popup_viewer_html
+from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity, exercise_entity_filter_term, render_exercise_popup_viewer_html
 from common.fitness.exercise_entity import exercise_filters
 from common.fitness.member_entity import MemberEntity
+
+def extract_image_url(entity):
+    # lambda e: e['images'][0]['url'] if 'images' in e and len(e['images']) > 0 else None
+    if 'images' in entity and isinstance(entity['images'], list) and len(entity['images']) > 0:
+        return entity['images'][0].get('url', None)
+    return None
 
 editable_entities = {
     "MemberTable" : { 
@@ -21,11 +27,10 @@ editable_entities = {
                         "listing_view_fields": ["name", "category"],
                         "card_view_fields": { "title" : lambda e: e['name'],
                                               "subtitle" : lambda e: "Muscles: " + (", ".join(e['primaryMuscles']) if 'primaryMuscles' in e else ""),
-                                              "image_url" : lambda e: e['images'][0]['url'] if 'images' in e and len(e['images']) > 0 else None,
+                                              "image_url" : lambda e: extract_image_url(e),
                                               "description" : lambda e: "Components: " + (", ".join(e['physical_fitness_components']) if 'physical_fitness_components' in e else "")
                                              },
                         "filters": exercise_filters,
-                        "filter_func" : exercise_entity_filter,
                         "filter_term_func" : exercise_entity_filter_term,
                         "entity_popup_viewer" : render_exercise_popup_viewer_html
                     },
@@ -81,29 +86,12 @@ def get_fitnessclub_entity_filters_for_entity(entity_name):
         return entry.get("filters", None)
     return None
 
-def get_fitnessclub_filter_func_for_entity(entity_name):
-    entry = editable_entities.get(entity_name, None)
-    if entry:
-        return entry.get("filter_func", None)
-    return None
 
 def get_fitnessclub_filter_term_func_for_entity(entity_name):
     entry = editable_entities.get(entity_name, None)
     if entry:
         return entry.get("filter_term_func", None)
     return None
-
-def get_filter_func(entity_name, args):
-    filters = get_fitnessclub_entity_filters_for_entity(entity_name)
-
-    if filters:
-        filter_func  = get_fitnessclub_filter_func_for_entity(entity_name)
-        filter_term_func  = get_fitnessclub_filter_term_func_for_entity(entity_name)
-        filter_terms = filter_term_func(args)
-    else:
-        filter_func = None
-        filter_terms = None
-    return filter_func, filter_terms
 
 def _get_filter_terms_from_request():
     """Extract search term from either POST form data or GET query parameters."""
@@ -124,13 +112,31 @@ def _get_filter_terms_from_request():
             return filter_param
 
         search_term = request.args.get('search', '')
+
+    filter_terms = []
     
-    # Construct filter_terms if we have a search term
-    return [{
-        "type": "text",
-        "id": "text", 
-        "label": "Filter Text",
-        "shortlabel": "Text",
-        "value": search_term
-    }] if search_term else []
+    if search_term:
+        filter_terms.append(
+            {
+                "type": "text",
+                "id": "text", 
+                "label": "Filter Text",
+                "shortlabel": "Text",
+                "value": search_term
+            })
+
+    # Get favorites filter
+    favorites_only = request.form.get('favorites_only') == 'true' or request.args.get('favorites_only') == 'true'
+    
+    # filter_terms = _get_filter_terms_from_request()
+    
+    # Add favorites filter to filter_terms if active
+    if favorites_only:
+        filter_terms.append({
+            'type': 'favorites',
+            'value': 'true',
+            'field': 'is_favorite'  # or whatever field indicates favorites
+        })    
+    
+    return filter_terms   
 

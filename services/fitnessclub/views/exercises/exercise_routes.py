@@ -1,9 +1,9 @@
 from ast import literal_eval
 from flask import Blueprint, redirect, render_template, request, session, url_for
 from common.entity_store import EntityStore
-from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
+from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
 from common.fitness.entities_getter import get_filtered_entities
-from common.fitness.exercise_entity import exercise_entity_filter_term, general_exercise_entity_filter, render_exercise_popup_viewer_html
+from common.fitness.exercise_entity import render_exercise_popup_viewer_html
 from common.fitness.hx_common import hx_render_template
 bp = Blueprint('exercises', __name__, template_folder='templates')
 from auth import auth
@@ -29,8 +29,7 @@ def exercises_fragment(context=None):
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     filter_terms = _get_filter_terms_from_request()
-    filter_func = general_exercise_entity_filter
-    entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms)
+    entities = get_filtered_entities(entity_name, fields_to_display, filter_terms)
 
     return exercise_listing_base(entity_name, page, page_size, view, fields_to_display, filter_terms, entities)
 

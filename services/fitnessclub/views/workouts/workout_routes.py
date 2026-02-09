@@ -1,10 +1,10 @@
 from datetime import datetime
 from flask import Blueprint, jsonify, make_response, render_template, request, current_app
 from common.entity_store import EntityStore
-from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_filter_func_for_entity, get_fitnessclub_filter_term_func_for_entity, get_fitnessclub_listing_fields_for_entity
+from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import get_cache_value, set_cache_value, delete_from_cache
 from common.fitness.entities_getter import get_filtered_entities
-from common.fitness.exercise_entity import ExerciseEntity, general_exercise_entity_filter, is_entity_hidden, matches_all_terms_in_filter
+from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.hx_common import hx_render_template
 from common.fitness.hx_common import rm_spaces
 from common.fitness.member_workout_entity import WorkoutDefinitionEntity, get_exercises_from_workout
@@ -60,8 +60,7 @@ def workouts_listing(context=None):
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     filter_terms = _get_filter_terms_from_request()
-    filter_func = general_exercise_entity_filter
-    entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms)
+    entities = get_filtered_entities(entity_name, fields_to_display, filter_terms)
     return workouts_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities)
 
 def workouts_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities):
@@ -482,8 +481,7 @@ def exercise_listing(context=None):
 
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     filter_terms = _get_filter_terms_from_request()
-    filter_func = general_exercise_entity_filter
-    entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms)
+    entities = get_filtered_entities(entity_name, fields_to_display, filter_terms)
     
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
@@ -543,8 +541,7 @@ def builder_workouts_listing(context=None):
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     filter_terms = _get_filter_terms_from_request()
-    filter_func = general_exercise_entity_filter
-    entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms)
+    entities = get_filtered_entities(entity_name, fields_to_display, filter_terms)
 
     page_size = 100
     total_pages = (len(entities) + page_size - 1) // page_size
@@ -614,8 +611,7 @@ def exercise_reviewer_listing(context=None):
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     filter_terms = _get_filter_terms_from_request()
-    filter_func = general_exercise_entity_filter
-    entities = get_filtered_entities(entity_name, fields_to_display, filter_func, filter_terms)
+    entities = get_filtered_entities(entity_name, fields_to_display, filter_terms)
     
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
