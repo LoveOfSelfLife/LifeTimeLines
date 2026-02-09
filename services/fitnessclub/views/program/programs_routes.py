@@ -6,7 +6,7 @@ from flask import Blueprint, abort, current_app, make_response, redirect, render
 from common.entity_store import EntityObject, EntityStore
 from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import delete_from_cache, get_cache_value, set_cache_value
-from common.fitness.entities_getter import get_entity, get_entity2, get_filtered_entities
+from common.fitness.entities_getter import get_entity, get_entity2, get_entities
 from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
 from common.fitness.exercise_entity import general_exercise_entity_filter
 from common.fitness.get_calendar_service import get_calendar_service
@@ -43,7 +43,7 @@ def programs_listing(context=None):
     filter_terms = _get_filter_terms_from_request()
 
     member = get_member_detail_from_user_context(context)
-    entities = get_filtered_entities(entity_name, fields_to_display, filter_terms, partition_key=member.get('id', None), sort_by='end_date', sort_ascending=False)
+    entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member.get('id', None), sort_by='end_date', sort_ascending=False)
 
     return program_listing_base(context, entity_name, page, page_size, view, fields_to_display, filter_terms, entities)
 
@@ -107,7 +107,7 @@ def workouts_listing(context=None):
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     filter_terms = _get_filter_terms_from_request()
 
-    entities = get_filtered_entities(entity_name, fields_to_display, filter_terms)
+    entities = get_entities(entity_name, fields_to_display, filter_terms)
 
     # mobile = request.args.get('mobile', type=bool, default=False)
     # div_id = 'lib-list-mobile' if mobile else 'lib-list'
@@ -120,7 +120,7 @@ def workouts_listing(context=None):
     else:
             abort(404)     
 
-    entities = get_filtered_entities(entity_name, fields_to_display, filter_terms)
+    entities = get_entities(entity_name, fields_to_display, filter_terms)
     return workouts_listing_base(context, entity_name, program_id, page, target, view, page_size, fields_to_display, div_id, filter_terms, entities)
 
 def workouts_listing_base(context, entity_name, program_id, page, target, view, page_size, fields_to_display, div_id, filter_terms, entities):

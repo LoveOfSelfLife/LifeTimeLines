@@ -1,11 +1,11 @@
 import sys
-from common.fitness.entities_getter import get_list_of_entities
+from common.fitness.entities_getter import get_filtered_entities
 from common.fitness.member_program_entity import MemberProgramEntity
 from datetime import datetime as dt
 
 def get_members_current_active_program(member_id, current_date_dt=None):
 
-    programs = get_list_of_entities(MemberProgramEntity.table_name, partition_key=member_id)
+    programs = get_filtered_entities(MemberProgramEntity.table_name, partition_key=member_id)
     
     print(f"Programs for member {member_id}: {programs}")
     # find the program that is active for the current date, based on the start and end dates of the program
@@ -29,7 +29,7 @@ def get_members_current_active_program(member_id, current_date_dt=None):
 def get_workouts_in_program(program, member_id):
 
     # in the new data model, all workouts are stored as MemberWorkoutDefinitionEntity entities
-    member_workouts = get_list_of_entities("MemberWorkoutDefinitionTable", partition_key=member_id)
+    member_workouts = get_filtered_entities("MemberWorkoutDefinitionTable", partition_key=member_id)
     workouts_in_program = [w for w in member_workouts if w.get('member_program_id', None) == program.get('id', None)]
     return workouts_in_program
 
@@ -55,7 +55,7 @@ def get_next_workout_in_program(program, member_id):
         return None  # No workouts in the program
 
     # next get all the workouts done by this member 
-    member_workout_instances = get_list_of_entities("MemberWorkoutInstanceTable", partition_key=member_id)
+    member_workout_instances = get_filtered_entities("MemberWorkoutInstanceTable", partition_key=member_id)
 
     # then filter this list to be only those that are from a workout in this program
     workout_ids_in_program = [w['id'] for w in workouts_in_program]

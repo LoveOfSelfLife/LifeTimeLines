@@ -11,7 +11,7 @@ from common.fitness.member_entity import get_member_detail_from_user_context
 from common.fitness.utils import generate_id
 from common.fitness.hx_common import hx_render_template
 from common.entity_store import EntityStore
-from common.fitness.entities_getter import get_filtered_entities
+from common.fitness.entities_getter import get_entities
 bp = Blueprint('admin', __name__, template_folder='templates')
 
 @bp.route('/')
@@ -38,7 +38,7 @@ def entities_listing(context=None):
     filter_terms = _get_filter_terms_from_request()
 
     member = get_member_detail_from_user_context(context)
-    entities = get_filtered_entities(entity_name, fields_to_display, filter_terms, partition_key=member.get('id', None))
+    entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member.get('id', None))
     return render_entity_template(context, entity_name, page, view, page_size, fields_to_display, filter_terms, entities)
 
 def render_entity_template(context, entity_name, page, view, page_size, fields_to_display, filter_terms, entities):
