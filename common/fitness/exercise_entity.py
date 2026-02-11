@@ -1,6 +1,7 @@
 from hashlib import sha256
 from common.entity_store import EntityObject
 
+from common.fitness.favorites_entity import is_entity_a_favorite
 from common.fitness.hx_common import hx_render_template
 from common.fitness.utils import convert_to_alphanumeric
 import json
@@ -152,14 +153,15 @@ def exercise_entity_filter_term(args={}):
                "value": args.get(f['id'], '')} for f in exercise_filters ]
     return terms
     
-def general_exercise_entity_filter(entities, filter_term):
+def generic_entity_filter(entities, filter_term, member_id=None, favorite_entity_ids=None):
     # filter_term is a list of dictionaries
     # each dictionary has an id and a value
     # for example: [{"id": "text", "value": "squat"}, {"id": "category", "value": "core"}]
     # in order for an entity from the list of entities to be included in the result
     # it must match all the filter terms where the value for that filter term is not empty
     # if the value for a filter term is empty, it is ignored
-    # first remove all exercises that are hidden
+    #
+    # first remove all entities that are hidden
     entities = [e for e in entities if not is_entity_hidden(e)]
 
     if filter_term is None:
@@ -168,11 +170,11 @@ def general_exercise_entity_filter(entities, filter_term):
         return entities
     filtered_entities = []
     for entity in entities:
-        if matches_all_terms_in_filter(entity, filter_term):
+        if matches_all_terms_in_filter(entity, filter_term, member_id=member_id, favorite_entity_ids=favorite_entity_ids):
             filtered_entities.append(entity)
     return filtered_entities
 
-def matches_all_terms_in_filter(entity, filter_term):
+def matches_all_terms_in_filter(entity, filter_term, member_id=None, favorite_entity_ids=None):
     # check if filter_term is a string, in which case convert it to a python object
     # using ast.literal_eval
     if filter_term and isinstance(filter_term, str):
@@ -182,37 +184,58 @@ def matches_all_terms_in_filter(entity, filter_term):
         return True
     for term in filter_term:
         term_value = term.get("value", None)
-        term_value = term_value.lower() if term_value is not None else None
-        if term.get("id", None) == "text":
-            if term_value and term_value != "":
-                # if there is a non-empty value for the text filter term
-                # then we check the entire entity to see if the term is in any of the fields
-                # if it does match, then we continue to check the other filter terms
-                # if it does not match, no need to check the other filter terms
-                # and we return False
-                if matches_filter(entity, term_value):
-                    continue
-                else:
-                    return False
-        if term.get("id") == "physical_fitness_components":
-            if term_value and term_value != "":
-                # check the PF component field of the entity
-                entity_component = entity.get("physical_fitness_components", [])
-                if len(entity_component) == 0:
-                    return False
-                if term_value not in entity_component:
-                    return False
+        term_type = term.get("type", None)
+        if term_type == 'text' and term_value is not None and term_value != "":
+            term_value = term_value.lower()
+            # if there is a non-empty value for the text filter term
+            # then we check the entire entity to see if the term is in any of the fields
+            # if it does match, then we continue to check the other filter terms
+            # if it does not match, no need to check the other filter terms
+            # and we return False
+            if matches_filter(entity, term_value):
                 continue
-        if term.get("id") == "muscle":
-            if term_value and term_value != "":
-                entity_prime_muscles = entity.get("primaryMuscles", [])
-                entity_secondary_muscles = entity.get("secondaryMuscles", [])
-                muscles = entity_prime_muscles + entity_secondary_muscles
-                if len(muscles) == 0:
+            else:
+                return False
+
+        if term_type == 'favorites' and term_value is not None and term_value != "":
+            if favorite_entity_ids is not None:
+                # Fast lookup using pre-loaded set
+                entity_id = entity.get(entity.key_field)
+                if entity_id not in favorite_entity_ids:
                     return False
-                if term_value not in [m.lower() for m in muscles]:
-                    return False
-                continue
+            continue
+
+        # term_value = term_value.lower() if term_value is not None else None
+        # if term.get("id", None) == "text":
+        #     if term_value and term_value != "":
+        #         # if there is a non-empty value for the text filter term
+        #         # then we check the entire entity to see if the term is in any of the fields
+        #         # if it does match, then we continue to check the other filter terms
+        #         # if it does not match, no need to check the other filter terms
+        #         # and we return False
+        #         if matches_filter(entity, term_value):
+        #             continue
+        #         else:
+        #             return False
+        # if term.get("id") == "physical_fitness_components":
+        #     if term_value and term_value != "":
+        #         # check the PF component field of the entity
+        #         entity_component = entity.get("physical_fitness_components", [])
+        #         if len(entity_component) == 0:
+        #             return False
+        #         if term_value not in entity_component:
+        #             return False
+        #         continue
+        # if term.get("id") == "muscle":
+        #     if term_value and term_value != "":
+        #         entity_prime_muscles = entity.get("primaryMuscles", [])
+        #         entity_secondary_muscles = entity.get("secondaryMuscles", [])
+        #         muscles = entity_prime_muscles + entity_secondary_muscles
+        #         if len(muscles) == 0:
+        #             return False
+        #         if term_value not in [m.lower() for m in muscles]:
+        #             return False
+        #         continue
     return True
 
 

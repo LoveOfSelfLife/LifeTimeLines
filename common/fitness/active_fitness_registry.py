@@ -31,7 +31,6 @@ editable_entities = {
                                               "description" : lambda e: "Components: " + (", ".join(e['physical_fitness_components']) if 'physical_fitness_components' in e else "")
                                              },
                         "filters": exercise_filters,
-                        "filter_term_func" : exercise_entity_filter_term,
                         "entity_popup_viewer" : render_exercise_popup_viewer_html
                     },
     PROGRAM_ENTITY_NAME : { 
@@ -86,13 +85,6 @@ def get_fitnessclub_entity_filters_for_entity(entity_name):
         return entry.get("filters", None)
     return None
 
-
-def get_fitnessclub_filter_term_func_for_entity(entity_name):
-    entry = editable_entities.get(entity_name, None)
-    if entry:
-        return entry.get("filter_term_func", None)
-    return None
-
 def _get_filter_terms_from_request():
     """Extract search term from either POST form data or GET query parameters."""
     # Get search term from appropriate source
@@ -119,23 +111,16 @@ def _get_filter_terms_from_request():
         filter_terms.append(
             {
                 "type": "text",
-                "id": "text", 
-                "label": "Filter Text",
-                "shortlabel": "Text",
                 "value": search_term
             })
 
     # Get favorites filter
     favorites_only = request.form.get('favorites_only') == 'true' or request.args.get('favorites_only') == 'true'
     
-    # filter_terms = _get_filter_terms_from_request()
-    
-    # Add favorites filter to filter_terms if active
     if favorites_only:
         filter_terms.append({
             'type': 'favorites',
-            'value': 'true',
-            'field': 'is_favorite'  # or whatever field indicates favorites
+            'value': 'true'
         })    
     
     return filter_terms   

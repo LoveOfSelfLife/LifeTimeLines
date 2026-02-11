@@ -7,6 +7,7 @@ from common.fitness.entities_getter import get_entities
 from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.hx_common import hx_render_template
 from common.fitness.hx_common import rm_spaces
+from common.fitness.member_entity import get_member_detail_from_user_context
 from common.fitness.member_workout_entity import WorkoutDefinitionEntity, get_exercises_from_workout
 from common.fitness.workout_state import get_active_workout_state, update_active_workout_state
 bp = Blueprint('workouts', __name__, template_folder='templates')
@@ -49,6 +50,9 @@ def index(context=None):
 def workouts_listing(context=None):
     entity_name = WORKOUT_ENTITY_NAME
     page = int(request.args.get('page', 1))
+    member_id = get_member_detail_from_user_context(context).get('id', None)
+    if not member_id:
+        abort(401)
 
     target = request.args.get('target', None)
     # Handle view preference
@@ -60,7 +64,7 @@ def workouts_listing(context=None):
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     filter_terms = _get_filter_terms_from_request()
-    entities = get_entities(entity_name, fields_to_display, filter_terms)
+    entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
     return workouts_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities)
 
 def workouts_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities):
@@ -468,7 +472,9 @@ def exercise_listing(context=None):
     entity_name = "ExerciseTable"
     page = int(request.args.get('page', 1))
     page_size = 100
-
+    member_id = get_member_detail_from_user_context(context).get('id', None)
+    if not member_id:
+        abort(401)
     # Handle view preference
     view = (request.form.get('view') if request.method == 'POST' 
             else request.args.get('view')) or session.get('view_preference', 'list')
@@ -481,7 +487,7 @@ def exercise_listing(context=None):
 
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     filter_terms = _get_filter_terms_from_request()
-    entities = get_entities(entity_name, fields_to_display, filter_terms)
+    entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
     
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
@@ -524,7 +530,7 @@ def builder_workouts_listing(context=None):
     workout_id = request.args.get('workout_id', None)    
     page = int(request.args.get('page', 1))
     target = request.args.get('target', None)    
-
+    member_id = get_member_detail_from_user_context(context).get('id', None)
     view = request.args.get('view', None)
     if view:
         session['view_preference'] = view
@@ -541,7 +547,7 @@ def builder_workouts_listing(context=None):
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     filter_terms = _get_filter_terms_from_request()
-    entities = get_entities(entity_name, fields_to_display, filter_terms)
+    entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
 
     page_size = 100
     total_pages = (len(entities) + page_size - 1) // page_size
@@ -597,7 +603,9 @@ def exercise_reviewer_listing(context=None):
     mobile = request.args.get('mobile', type=bool, default=False)
     div_id = 'reviewer-list-mobile' if mobile else 'reviewer-list'
     target = div_id
-    
+    member_id = get_member_detail_from_user_context(context).get('id', None)
+    if not member_id:
+        abort(401)    
     entity_name = "ExerciseTable"
     page = int(request.args.get('page', 1))
     page_size = 100
@@ -611,7 +619,7 @@ def exercise_reviewer_listing(context=None):
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     filter_terms = _get_filter_terms_from_request()
-    entities = get_entities(entity_name, fields_to_display, filter_terms)
+    entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
     
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size

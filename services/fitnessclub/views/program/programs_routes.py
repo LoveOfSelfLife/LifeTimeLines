@@ -6,9 +6,8 @@ from flask import Blueprint, abort, current_app, make_response, redirect, render
 from common.entity_store import EntityObject, EntityStore
 from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import delete_from_cache, get_cache_value, set_cache_value
-from common.fitness.entities_getter import get_entity, get_entity2, get_entities
+from common.fitness.entities_getter import get_entity, get_entities
 from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
-from common.fitness.exercise_entity import general_exercise_entity_filter
 from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import hx_render_template
 from common.fitness.hx_common import rm_spaces
@@ -31,7 +30,9 @@ def programs_listing(context=None):
     entity_name = PROGRAM_ENTITY_NAME
     page = int(request.args.get('page', 1))
     page_size = 100
-
+    member_id = get_member_detail_from_user_context(context).get('id', None)
+    if not member_id:
+        abort(401)
     # Handle view preference
     view = (request.form.get('view') if request.method == 'POST' 
             else request.args.get('view')) or session.get('view_preference', 'list')
@@ -43,7 +44,7 @@ def programs_listing(context=None):
     filter_terms = _get_filter_terms_from_request()
 
     member = get_member_detail_from_user_context(context)
-    entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member.get('id', None), sort_by='end_date', sort_ascending=False)
+    entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member.get('id', None), sort_by='end_date', sort_ascending=False, member_id=member_id)
 
     return program_listing_base(context, entity_name, page, page_size, view, fields_to_display, filter_terms, entities)
 
@@ -96,7 +97,9 @@ def workouts_listing(context=None):
     page = int(request.args.get('page', 1))
     target = request.args.get('target')
     page_size = 100
-
+    member_id = get_member_detail_from_user_context(context).get('id', None)
+    if not member_id:
+        abort(401)
     # Handle view preference
     view = (request.form.get('view') if request.method == 'POST' 
             else request.args.get('view')) or session.get('view_preference', 'list')
@@ -107,7 +110,7 @@ def workouts_listing(context=None):
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     filter_terms = _get_filter_terms_from_request()
 
-    entities = get_entities(entity_name, fields_to_display, filter_terms)
+    entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
 
     # mobile = request.args.get('mobile', type=bool, default=False)
     # div_id = 'lib-list-mobile' if mobile else 'lib-list'
@@ -120,7 +123,7 @@ def workouts_listing(context=None):
     else:
             abort(404)     
 
-    entities = get_entities(entity_name, fields_to_display, filter_terms)
+    entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
     return workouts_listing_base(context, entity_name, program_id, page, target, view, page_size, fields_to_display, div_id, filter_terms, entities)
 
 def workouts_listing_base(context, entity_name, program_id, page, target, view, page_size, fields_to_display, div_id, filter_terms, entities):

@@ -1,3 +1,23 @@
+
+
+<!-- Favorites Toggle -->
+{% set favorites_active = (filter_terms | selectattr('type', 'equalto', 'favorites') | selectattr('value', 'equalto', 'true') | list | length > 0) %}
+<button type="button" 
+        class="btn {% if favorites_active %}btn-danger{% else %}btn-outline-secondary{% endif %} favorites-toggle"
+        style="height: 38px;"
+        data-favorites="{% if favorites_active %}true{% else %}false{% endif %}"
+        hx-post="{{ entities_listing_route }}"
+        hx-target="#results-area"
+        hx-swap="innerHTML"
+        hx-include="[name='search'], [name='view']"
+        hx-vals='{"favorites_only": {% if favorites_active %}false{% else %}true{% endif %}}'
+        title="{% if favorites_active %}Show all items{% else %}Show favorites only{% endif %}">
+    <i class="bi {% if favorites_active %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+</button>
+
+<!-- Hidden input to maintain state -->
+<input type="hidden" name="favorites_only" value="{% if favorites_active %}true{% else %}false{% endif %}">
+              
 <input type="hidden" name="view" value="{{ view }}">
 {% if view == 'card' %}
     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">

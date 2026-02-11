@@ -58,53 +58,7 @@
                 });
             </script>
 
-            <script>
-                // all this code here is just to handle the favorites toggle button state and 
-                // ensure it updates correctly with HTMX requests without needing to reload the page or lose the current search/filter state
-                document.addEventListener('htmx:load', function() {
-                    const favButton = document.querySelector('.favorites-toggle');
-                    if (favButton) {
-                        // Remove any existing listeners to avoid duplicates
-                        favButton.removeEventListener('click', handleFavoritesClick);
-                        favButton.addEventListener('click', handleFavoritesClick);
-                    }
-                });
-                
-                function handleFavoritesClick(e) {
-                                        
-                    const button = e.target.closest('.favorites-toggle');
-
-                    const currentState = button.dataset.favorites === 'true';
-                    const newState = !currentState;
-                    
-                    // Immediately update button appearance (before HTMX request)
-                    if (newState) {
-                        button.classList.remove('btn-outline-secondary');
-                        button.classList.add('btn-danger');
-                        button.querySelector('i').classList.remove('bi-heart');
-                        button.querySelector('i').classList.add('bi-heart-fill');
-                        button.title = 'Show all items';
-                    } else {
-                        button.classList.remove('btn-danger');
-                        button.classList.add('btn-outline-secondary');
-                        button.querySelector('i').classList.remove('bi-heart-fill');
-                        button.querySelector('i').classList.add('bi-heart');
-                        button.title = 'Show favorites only';
-                    }
-                    
-                    // Update data attribute and hidden input
-                    button.dataset.favorites = newState.toString();
-                    
-                    // Update the hx-vals attribute for the next request
-                    button.setAttribute('hx-vals', `{"favorites_only": "${newState.toString()}"}`);
-                    
-                    const hiddenInput = document.querySelector('input[name="favorites_only"]');
-                    if (hiddenInput) {
-                        hiddenInput.value = newState.toString();
-                    }
-
-                }
-            </script>            
+         
             {% set search_value = (filter_terms | selectattr('type', 'equalto', 'text') | selectattr('value') | map(attribute='value') | first) or '' %}
 
             <div class="filter-bar d-flex justify-content-between align-items-center mb-0 p-2 border rounded">
@@ -119,23 +73,7 @@
                         hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
                         hx-indicator=".htmx-indicator">
                     
-                    <!-- Favorites Toggle -->
-                    {% set favorites_active = (filter_terms | selectattr('type', 'equalto', 'favorites') | selectattr('value', 'equalto', 'true') | list | length > 0) %}
-                    <button type="button" 
-                            class="btn {% if favorites_active %}btn-danger{% else %}btn-outline-secondary{% endif %} favorites-toggle"
-                            style="height: 38px;"
-                            data-favorites="{% if favorites_active %}true{% else %}false{% endif %}"
-                            hx-post="{{ entities_listing_route }}"
-                            hx-target="#results-area"
-                            hx-swap="innerHTML"
-                            hx-include="[name='search'], [name='view']"
-                            hx-vals='{"favorites_only": "{% if favorites_active %}false{% else %}true{% endif %}"}'
-                            title="{% if favorites_active %}Show all items{% else %}Show favorites only{% endif %}">
-                        <i class="bi {% if favorites_active %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
-                    </button>
-                    
-                    <!-- Hidden input to maintain state -->
-                    <input type="hidden" name="favorites_only" value="{% if favorites_active %}true{% else %}false{% endif %}">
+    
                 </div>
             </div>
 
