@@ -140,17 +140,6 @@ def view_entity(context=None):
     
     return render_exercise_popup_viewer_html(context, entity_to_view)
 
-    # return json.dumps(entity_to_edit)
-    return hx_render_template('admin/entity_editor.html', 
-                              entity=entity_to_view, 
-                              schema=schema,
-                              table_id=table_id, 
-                              errors={},
-                              upload_file_url=f'/api/upload/{table_id}',
-                              update_entity_url=f'/admin/update/{table_id}?key={composite_key}',
-                              delete_entity_url=f'/admin/delete/{table_id}?key={composite_key}',
-                              context=context)
-
 @bp.route('/delete/<table_id>', methods=['POST'])
 @auth.login_required
 def delete_entity_from_table(context=None, table_id=None):
