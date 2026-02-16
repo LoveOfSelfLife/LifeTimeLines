@@ -1,0 +1,23 @@
+{% if exercises %}
+  {% for exercise in exercises %}
+    <div class="exercise-result p-2 border-bottom d-flex justify-content-between align-items-center">
+      <div>
+        <strong>{{ exercise.name }}</strong>
+        {% if exercise.category %}
+          <span class="badge bg-secondary ms-2">{{ exercise.category }}</span>
+        {% endif %}
+        {% if exercise.description %}
+          <div class="text-muted small">{{ exercise.description[:100] }}{% if exercise.description|length > 100 %}...{% endif %}</div>
+        {% endif %}
+      </div>
+      <button type="button" class="btn btn-primary btn-sm"
+              hx-post="{{ url_for('workouts.replace_exercise') }}?current_exercise_id={{ exercise_id }}&new_exercise_id={{ exercise.id }}&workout_instance_key={{ workout_instance_key }}&workout_id={{ workout_id }}"
+              hx-target="#exercise-edit-modal"
+              hx-swap="outerHTML">
+        Select
+      </button>
+    </div>
+  {% endfor %}
+{% else %}
+  <p class="text-muted text-center">No exercises found.</p>
+{% endif %}

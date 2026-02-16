@@ -42,8 +42,23 @@
         <div class="row">
           {% if adjustments %}
           <!-- display the adjustment -->
-          <p id="adjust-{{ ex.id }}-{{ workout.id }}" style="text-align: right;">{{
-            adjustments[ex.id]|format_adjustment() }}</p>
+            <span id="adjust-{{ ex.id }}-{{ workout.id }}" style="text-align: right;">
+            Next time: 
+            {% if adjustments.get(ex.id, {}).get('sets', None) %}
+              {{ adjustments[ex.id]['sets'] if adjustments and adjustments[ex.id] else item.parameters.sets }} set,
+            {% endif %}
+            {% if adjustments.get(ex.id, {}).get('reps', None) %}
+              {{ adjustments[ex.id]['reps'] if adjustments and adjustments[ex.id] else item.parameters.reps }} reps,
+            {% endif %}
+            {% if adjustments.get(ex.id, {}).get('weight', None) %}
+              at {{ adjustments[ex.id]['weight'] if adjustments and adjustments[ex.id] else item.parameters.weight }} 
+                  {{ (adjustments[ex.id]['weight_unit'] if adjustments and adjustments[ex.id] else item.parameters['weight_unit']) or 'kg' }}
+            {% endif %}
+            {% if adjustments.get(ex.id, {}).get('time', None) %}
+              for {{ adjustments[ex.id]['time'] if adjustments and adjustments[ex.id] else item.parameters.time }} secs/set
+            {% endif %}
+            </span>
+
           {% else %}
           <p id="adjust-{{ ex.id }}-{{ workout.id }}" style="text-align: right;"></p>
           {% endif %}
@@ -59,7 +74,7 @@
           {% endif %}
           <!-- Feedback up/down -->
 
-          {% if show_finish_button %}
+          {# {% if show_finish_button %}
             <button class="btn btn-outline-primary"
               hx-post="{{ url_for('workouts.exercise_feedback', workout_id=workout.id, exercise_id=ex.id) }}"
               hx-vals='{"adjust":"up"}' hx-swap="none">
@@ -70,7 +85,7 @@
               hx-vals='{"adjust":"down"}' hx-swap="none">
               🔽
             </button>
-          {% endif %}
+          {% endif %} #}
         </div>
       </div>
     </div>

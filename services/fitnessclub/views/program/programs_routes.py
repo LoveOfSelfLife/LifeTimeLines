@@ -737,16 +737,11 @@ def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, l
                 # apply the adjustments to the exercise parameters
                 # check if the exercise has an adjustment in the adjustments_for_next_workout dict
                 exercise_id = exercise.get('id', None)
+                if not exercise_id:
+                    continue
                 if exercise_id in adjustments_for_next_workout:
                     adjustment = adjustments_for_next_workout[exercise_id]
-                    parameters = exercise.get('parameters', {})
-                    current_weight_value = parameters.get('weight', 0)
-                    if not current_weight_value:
-                        current_weight_value = 0
-                    adjusted_weight = int(current_weight_value) + adjustment
-                    parameters['weight'] = adjusted_weight
-                    # update the exercise parameters with the adjusted weight
-                    exercise['parameters'] = parameters  
+                    exercise['parameters'] = adjustment
 
     workout_instance.update({
         'id': str(uuid.uuid4()),

@@ -17,7 +17,7 @@ import uuid
 import json
 from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity
 
-from common.fitness.entities_getter import get_entities, get_entity
+from common.fitness.entities_getter import get_entities, get_entity, get_filtered_entities
 from common.fitness.entity_constants import WORKOUT_ENTITY_NAME, WORKOUT_SECTIONS
 
 def new_workout(name='New Workout'):
@@ -936,15 +936,16 @@ def view_workout_detail(context):
     )
 
 def format_exercise_adjustment(exercise_adjustment=None):
+    adjust_str = ''
     try:
         if exercise_adjustment is None:
             return ''
-        if int(exercise_adjustment) > 0:
-            adjust_str = f'next workout: +{exercise_adjustment}'
-        elif int(exercise_adjustment) < 0:
-            adjust_str = f'next workout: - {abs(exercise_adjustment)}'
-        else:
-            adjust_str = ''
+        # if int(exercise_adjustment) > 0:
+        #     adjust_str = f'next workout: +{exercise_adjustment}'
+        # elif int(exercise_adjustment) < 0:
+        #     adjust_str = f'next workout: - {abs(exercise_adjustment)}'
+        # else:
+        #     adjust_str = ''
     except Exception as e:
         adjust_str = ''
     return adjust_str
@@ -1095,3 +1096,182 @@ def save_exercise_parameters(context=None):
                            workout_instance_key=workout_instance_key,
                            item=item,
                            current_parameters=new_parameters)
+
+
+@bp.route("/viewer/exercise/save_future_params", methods=["POST"])
+@auth.login_required
+def save_future_exercise_parameters(context=None):
+    """Save updated default parameters for future workouts with this exercise"""
+    exercise_id = request.args.get("exercise_id", None)
+    workout_id = request.args.get("workout_id", None)
+    workout_instance_key = request.args.get("workout_instance_key", None)
+
+    if not exercise_id:
+        abort(400, "exercise_id is required")
+    if not workout_id:
+        abort(400, "workout_id is required")
+    
+    # Get the exercise details
+    exercise = get_entity("ExerciseTable", exercise_id) 
+    if not exercise:
+        abort(404)
+
+    es = EntityStore()
+    # Get the workout details to find the exercise parameters
+    workout_instance = es.get_item_by_composite_key(workout_instance_key)
+    if not workout_instance :
+        abort(404)
+
+    # Find the exercise item in the workout to get original parameters
+    item = None
+    for section in workout_instance.get(WORKOUT_SECTIONS, []):
+        for ex_item in section.get("exercises", []):
+            if ex_item.get("id") == exercise_id:
+                item = ex_item
+                break
+        if item:
+            break
+    
+    if not item:
+        abort(404, "Exercise not found in workout")
+
+
+    
+    # Get form data for new default parameters
+    new_parameters = {}
+    if request.form.get("sets"):
+        new_parameters["sets"] = int(request.form.get("sets"))
+    if request.form.get("reps"):
+        new_parameters["reps"] = int(request.form.get("reps"))
+    if request.form.get("weight"):
+        new_parameters["weight"] = float(request.form.get("weight"))
+    if request.form.get("weight_unit"):
+        new_parameters["weight_unit"] = request.form.get("weight_unit")
+    if request.form.get("time"):
+        new_parameters["time"] = int(request.form.get("time"))
+    
+    current_app.logger.info(f"Saving future exercise parameters for {exercise_id}: {new_parameters}")
+    
+    # Update workout state with new parameters
+    current_workout_state = get_active_workout_state()
+    if not current_workout_state:
+        current_workout_state = {}
+    adjustments = current_workout_state.get('adjustments', {})
+    adjustments[exercise_id] = new_parameters
+    current_workout_state['adjustments'] = adjustments
+    update_active_workout_state(current_workout_state)
+
+
+    return render_template("_exercise_parameters_nexttime_display.html",
+                           exercise_id=exercise_id,
+                           workout_id=workout_id,
+                           workout_instance_key=workout_instance_key,
+                           item=item,
+                           current_parameters=new_parameters)
+
+
+@bp.route("/viewer/exercise/search", methods=["POST"])
+@auth.login_required
+def search_exercises(context=None):
+    """Search for exercises to replace current exercise"""
+    search_term = request.form.get("exercise-search", "").strip()
+    category = request.form.get("search-category", "")
+    
+    # Get current context parameters from URL args or form
+    exercise_id = request.args.get("exercise_id") or request.form.get("exercise_id")
+    workout_id = request.args.get("workout_id") or request.form.get("workout_id") 
+    workout_instance_key = request.args.get("workout_instance_key") or request.form.get("workout_instance_key")
+    
+    # Use the member ID from context for filtering
+    member_id = get_member_detail_from_user_context(context).get('id', None)
+    if not member_id:
+        abort(401)
+    
+    # Get all exercises first
+    fields_to_display = get_fitnessclub_listing_fields_for_entity("ExerciseTable")
+    all_exercises = get_entities("ExerciseTable", fields_to_display)
+    
+    # Filter exercises in-memory
+    filtered_exercises = []
+    for exercise in all_exercises:
+        # Search filter
+        if search_term and search_term.lower() not in exercise.name.lower():
+            continue
+        
+        # Category filter
+        if category and exercise.category != category:
+            continue
+            
+        filtered_exercises.append(exercise)
+    
+    # Limit results
+    filtered_exercises = filtered_exercises[:20]
+    
+    if not filtered_exercises:
+        return '<p class="text-muted text-center">No exercises found.</p>'
+    
+    return render_template("_exercise_search_results.html", 
+                         exercises=filtered_exercises,
+                         exercise_id=exercise_id,
+                         workout_id=workout_id,
+                         workout_instance_key=workout_instance_key)
+
+
+@bp.route("/viewer/exercise/replace", methods=["POST"])
+@auth.login_required
+def replace_exercise(context=None):
+    """Replace current exercise in workout"""
+    current_exercise_id = request.args.get("current_exercise_id", None)
+    new_exercise_id = request.args.get("new_exercise_id", None)
+    workout_instance_key = request.args.get("workout_instance_key", None)
+    workout_id = request.args.get("workout_id", None)
+    
+    if not all([current_exercise_id, new_exercise_id, workout_instance_key]):
+        abort(400, "Missing required parameters")
+    
+    # Get the new exercise details
+    new_exercise = get_entity("ExerciseTable", new_exercise_id)
+    if not new_exercise:
+        abort(404, "New exercise not found")
+    
+    es = EntityStore() 
+    
+    # Get the workout instance
+    workout_instance = es.get_item_by_composite_key(workout_instance_key)
+    if not workout_instance:
+        abort(404, "Workout instance not found")
+    
+    # Find and replace the exercise in the workout
+    updated = False
+    for section in workout_instance.get(WORKOUT_SECTIONS, []):
+        for i, ex_item in enumerate(section.get("exercises", [])):
+            if ex_item.get("id") == current_exercise_id:
+                # Keep the same parameters but change the exercise
+                section["exercises"][i]["id"] = new_exercise_id
+                section["exercises"][i]["name"] = new_exercise.name
+                updated = True
+                break
+        if updated:
+            break
+    
+    if updated:
+        es.store_entity(workout_instance)
+        
+        # Update workout state to track the replacement
+        current_workout_state = get_active_workout_state()
+        if not current_workout_state:
+            current_workout_state = {}
+        
+        exercise_replacements = current_workout_state.get('exercise_replacements', {})
+        exercise_replacements[current_exercise_id] = {
+            'original_exercise_id': current_exercise_id,
+            'new_exercise_id': new_exercise_id,
+            'new_exercise_name': new_exercise.name,
+            'replaced_at': datetime.utcnow().isoformat()
+        }
+        current_workout_state['exercise_replacements'] = exercise_replacements
+        update_active_workout_state(current_workout_state)
+        
+        return f'<div class="alert alert-success">Exercise replaced successfully! Now using: {new_exercise.name}</div>'
+    else:
+        return '<div class="alert alert-danger">Failed to replace exercise.</div>'

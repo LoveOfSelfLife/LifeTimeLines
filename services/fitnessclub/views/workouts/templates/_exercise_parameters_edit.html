@@ -1,61 +1,211 @@
-<div class="modal-dialog modal-dialog-centered">
+<div class="modal-dialog modal-dialog-centered modal-lg">
   <div class="modal-content">
     <div class="modal-header">
-      <h5 class="modal-title">Edit Exercise Parameters</h5>
+      <h5 class="modal-title">Edit Exercise: {{ exercise.name }}</h5>
       <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
-    <form hx-post="{{ url_for('workouts.save_exercise_parameters') }}?exercise_id={{ exercise.id }}&workout_instance_key={{ workout_instance_key }}&workout_id={{ workout_id }}"
-          hx-target="#params-{{ exercise.id }}-{{ workout.id }}"
-          hx-swap="outerHTML">
-      <div class="modal-body">
-        <h6 class="mb-3">{{ exercise.name }}</h6>
+    
+    <div class="modal-body">
+      <!-- Nav tabs -->
+      <ul class="nav nav-tabs" id="exerciseEditTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" id="current-tab" data-bs-toggle="tab" data-bs-target="#current-params" type="button" role="tab" aria-controls="current-params" aria-selected="true">
+            Current Workout
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" id="future-tab" data-bs-toggle="tab" data-bs-target="#future-params" type="button" role="tab" aria-controls="future-params" aria-selected="false">
+            Next Time
+          </button>
+        </li>
+        {# <li class="nav-item" role="presentation">
+          <button class="nav-link" id="replace-tab" data-bs-toggle="tab" data-bs-target="#replace-exercise" type="button" role="tab" aria-controls="replace-exercise" aria-selected="false">
+            Replace Exercise
+          </button>
+        </li> #}
+      </ul>
+      
+      <!-- Tab content -->
+      <div class="tab-content mt-3" id="exerciseEditTabContent">
         
-        {# {% if current_parameters.sets is not none or item.parameters.sets %} #}
-        <div class="mb-3">
-          <label for="sets" class="form-label">Sets</label>
-          <input type="number" class="form-control" id="sets" name="sets" 
-                 value="{{ current_parameters.sets if current_parameters.sets is not none else item.parameters.sets }}" 
-                 min="0" max="20">
-        </div>
-        {# {% endif %} #}
+        <!-- Current Workout Parameters Tab -->
+        <div class="tab-pane fade show active" id="current-params" role="tabpanel" aria-labelledby="current-tab">
+          <form id="current-params-form" hx-post="{{ url_for('workouts.save_exercise_parameters') }}?exercise_id={{ exercise.id }}&workout_instance_key={{ workout_instance_key }}&workout_id={{ workout_id }}"
+                hx-target="#params-{{ exercise.id }}-{{ workout.id }}"
+                hx-swap="outerHTML">
+            
+            <p class="text-muted mb-3">Adjust parameters for this workout session only.</p>
+            
+            <div id="current-feedback" class="mb-3"></div>
+            
+            <div class="mb-3">
+              <label for="current-sets" class="form-label">Sets</label>
+              <input type="number" class="form-control" id="current-sets" name="sets" 
+                     value="{{ current_parameters.sets if current_parameters.sets is not none else item.parameters.sets }}" 
+                     min="0" max="20">
+            </div>
 
-        {# {% if current_parameters.reps is not none or item.parameters.reps %} #}
-        <div class="mb-3">
-          <label for="reps" class="form-label">Reps</label>
-          <input type="number" class="form-control" id="reps" name="reps" 
-                 value="{{ current_parameters.reps if current_parameters.reps is not none else item.parameters.reps }}" 
-                 min="0" max="100">
-        </div>
-        {# {% endif %} #}
+            <div class="mb-3">
+              <label for="current-reps" class="form-label">Reps</label>
+              <input type="number" class="form-control" id="current-reps" name="reps" 
+                     value="{{ current_parameters.reps if current_parameters.reps is not none else item.parameters.reps }}" 
+                     min="0" max="100">
+            </div>
 
-        {# {% if current_parameters.weight is not none or item.parameters.weight %} #}
-        <div class="mb-3">
-          <label for="weight" class="form-label">Weight</label>
-          <div class="input-group">
-            <input type="number" class="form-control" id="weight" name="weight" 
-                   value="{{ current_parameters.weight if current_parameters.weight is not none else item.parameters.weight }}" 
-                   min="0" step="0.5">
-            <select class="form-select" id="weight_unit" name="weight_unit" style="max-width: 80px;">
-              <option value="kg" {{ 'selected' if (current_parameters.weight_unit if current_parameters.weight_unit else item.parameters.weight_unit or 'kg') == 'kg' else '' }}>kg</option>
-              <option value="lbs" {{ 'selected' if (current_parameters.weight_unit if current_parameters.weight_unit else item.parameters.weight_unit or 'kg') == 'lbs' else '' }}>lbs</option>
-            </select>
+            <div class="mb-3">
+              <label for="current-weight" class="form-label">Weight</label>
+              <div class="input-group">
+                <input type="number" class="form-control" id="current-weight" name="weight" 
+                       value="{{ current_parameters.weight if current_parameters.weight is not none else item.parameters.weight }}" 
+                       min="0" step="0.5">
+                <select class="form-select" id="current-weight_unit" name="weight_unit" style="max-width: 80px;">
+                  <option value="kg" {{ 'selected' if (current_parameters.weight_unit if current_parameters.weight_unit else item.parameters.weight_unit or 'kg') == 'kg' else '' }}>kg</option>
+                  <option value="lbs" {{ 'selected' if (current_parameters.weight_unit if current_parameters.weight_unit else item.parameters.weight_unit or 'kg') == 'lbs' else '' }}>lbs</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="current-time" class="form-label">Time (seconds per set)</label>
+              <input type="number" class="form-control" id="current-time" name="time" 
+                     value="{{ current_parameters.time if current_parameters.time is not none else item.parameters.time }}" 
+                     min="0" max="600">
+            </div>
+            
+            <button type="submit" id="current-submit-btn" style="display: none;">Submit</button>
+          </form>
+        </div>
+        
+        <!-- Future Workout Parameters Tab -->
+        <div class="tab-pane fade" id="future-params" role="tabpanel" aria-labelledby="future-tab">
+          <form id="future-params-form" hx-post="{{ url_for('workouts.save_future_exercise_parameters') }}?exercise_id={{ exercise.id }}&workout_instance_key={{ workout_instance_key }}&workout_id={{ workout_id }}"
+                hx-target="#adjust-{{ exercise.id }}-{{ workout.id }}"
+                hx-swap="innerHTML">
+            
+            <p class="text-muted mb-3">Set default parameters for future workouts with this exercise.</p>
+            
+            <div id="future-feedback" class="mb-3"></div>
+            
+            <div class="mb-3">
+              <label for="future-sets" class="form-label">Sets</label>
+              <input type="number" class="form-control" id="future-sets" name="sets" 
+                     value="{{ item.parameters.sets }}" 
+                     min="0" max="20">
+            </div>
+
+            <div class="mb-3">
+              <label for="future-reps" class="form-label">Reps</label>
+              <input type="number" class="form-control" id="future-reps" name="reps" 
+                     value="{{ item.parameters.reps }}" 
+                     min="0" max="100">
+            </div>
+
+            <div class="mb-3">
+              <label for="future-weight" class="form-label">Weight</label>
+              <div class="input-group">
+                <input type="number" class="form-control" id="future-weight" name="weight" 
+                       value="{{ item.parameters.weight }}" 
+                       min="0" step="0.5">
+                <select class="form-select" id="future-weight_unit" name="weight_unit" style="max-width: 80px;">
+                  <option value="kg" {{ 'selected' if (item.parameters.weight_unit or 'kg') == 'kg' else '' }}>kg</option>
+                  <option value="lbs" {{ 'selected' if (item.parameters.weight_unit or 'kg') == 'lbs' else '' }}>lbs</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="future-time" class="form-label">Time (seconds per set)</label>
+              <input type="number" class="form-control" id="future-time" name="time" 
+                     value="{{ item.parameters.time }}" 
+                     min="0" max="600">
+            </div>
+            
+            <button type="submit" id="future-submit-btn" style="display: none;">Submit</button>
+          </form>
+        </div>
+        
+        {# <!-- Replace Exercise Tab -->
+        <div class="tab-pane fade" id="replace-exercise" role="tabpanel" aria-labelledby="replace-tab">
+          <p class="text-muted mb-3">Find a different exercise to replace the current one in this workout.</p>
+          
+          <form id="exercise-search-form">
+            <input type="hidden" name="exercise_id" value="{{ exercise.id }}">
+            <input type="hidden" name="workout_id" value="{{ workout_id }}">
+            <input type="hidden" name="workout_instance_key" value="{{ workout_instance_key }}">
+            
+            <div class="mb-3">
+              <label for="exercise-search" class="form-label">Search Exercises</label>
+              <input type="text" class="form-control" id="exercise-search" name="exercise-search" placeholder="Type to search exercises..." 
+                     hx-post="{{ url_for('workouts.search_exercises') }}"
+                     hx-trigger="keyup changed delay:300ms"
+                     hx-target="#exercise-results"
+                     hx-include="#exercise-search-form">
+            </div>
+            
+            <div class="mb-3">
+              <label for="search-category" class="form-label">Filter by Category</label>
+              <select class="form-select" id="search-category" name="search-category"
+                      hx-post="{{ url_for('workouts.search_exercises') }}"
+                      hx-trigger="change"
+                      hx-target="#exercise-results"
+                      hx-include="#exercise-search-form">
+                <option value="">All Categories</option>
+                <option value="Chest">Chest</option>
+                <option value="Back">Back</option>
+                <option value="Shoulders">Shoulders</option>
+                <option value="Arms">Arms</option>
+                <option value="Legs">Legs</option>
+                <option value="Core">Core</option>
+                <option value="Cardio">Cardio</option>
+              </select>
+            </div>
+          </form>
+          
+          <div id="exercise-results" class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
+            <p class="text-muted text-center">Start typing to search for exercises...</p>
           </div>
-        </div>
-        {# {% endif %} #}
-
-        {# {% if current_parameters.time is not none or item.parameters.time %} #}
-        <div class="mb-3">
-          <label for="time" class="form-label">Time (seconds per set)</label>
-          <input type="number" class="form-control" id="time" name="time" 
-                 value="{{ current_parameters.time if current_parameters.time is not none else item.parameters.time }}" 
-                 min="0" max="600">
-        </div>
-        {# {% endif %} #}
+          
+        </div> #}
+        
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">Save Changes</button>
-      </div>
-    </form>
+    </div>
+    
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      <button type="button" class="btn btn-primary" 
+            data-bs-dismiss="modal" id="save-changes-btn" onclick="saveCurrentTab()">
+        Save Changes
+      </button>
+    </div>
   </div>
 </div>
+
+<script>
+function saveCurrentTab() {
+  // Get the active tab
+  const activeTab = document.querySelector('#exerciseEditTabs .nav-link.active');
+  const activeTabId = activeTab.getAttribute('aria-controls');
+  
+  // Click the hidden submit button in the active tab
+  if (activeTabId === 'current-params') {
+    document.getElementById('current-submit-btn').click();
+  } else if (activeTabId === 'future-params') {
+    document.getElementById('future-submit-btn').click();
+  }
+  // Replace exercise doesn't use form submission, it uses direct HTMX calls
+}
+
+// Handle successful form submissions by closing modal after showing success message
+document.addEventListener('htmx:afterRequest', function(event) {
+  const response = event.detail.xhr.responseText;
+  if (response.includes('alert-success')) {
+    // Show success message briefly, then close modal
+    setTimeout(() => {
+      const modal = bootstrap.Modal.getInstance(document.getElementById('exercise-edit-modal'));
+      if (modal) {
+        modal.hide();
+      }
+    }, 1000);
+  }
+});
+</script>
