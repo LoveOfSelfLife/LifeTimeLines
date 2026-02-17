@@ -12,6 +12,7 @@ from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import hx_render_template
 from common.fitness.hx_common import rm_spaces
 from common.fitness.member_entity import MembershipRegistry, get_member_detail_from_user_context
+from common.fitness.member_exercise_history import extract_and_load_exercise_events_from_workout_instance
 from common.fitness.member_program_entity import MemberProgramEntity
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout
 from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state
@@ -805,6 +806,9 @@ def finish_workout(context=None, workout_instance_key=None):
     
     es.upsert_item(workout_instance)
     
+    # store the parameters of the current workout exercises away 
+    extract_and_load_exercise_events_from_workout_instance(workout_instance)
+
     clear_active_workout_state()
     # session.pop('current_workout_instance_state', None)
     session.pop(f"last_section_{workout_instance['id']}", None)

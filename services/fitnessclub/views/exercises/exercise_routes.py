@@ -8,6 +8,7 @@ from common.fitness.exercise_entity import ExerciseEntity, render_exercise_popup
 from common.fitness.hx_common import hx_render_template
 from common.fitness.member_entity import get_member_detail_from_user_context
 from common.fitness.exercise_schema import exercise_schema
+from common.fitness.member_exercise_history import get_exercise_history_for_member
 from common.fitness.utils import generate_id
 bp = Blueprint('exercises', __name__, template_folder='templates')
 from auth import auth
@@ -104,6 +105,19 @@ def filter_dialog(context=None):
                               filters=filters,
                               view=view,
                               args=request.args,
+                              context=context)
+@bp.route('/exercise-history-dialog')
+@auth.login_required
+def exercise_history_dialog(context=None):
+    entity_name = "ExerciseTable"
+    entity_type = get_entity_obj_from_entity_name(entity_name)
+    exercise_id = request.args.get('exercise_id', None)
+    if not exercise_id:
+        abort(400, "No exercise id provided")
+
+    ex_history = get_exercise_history_for_member(get_member_detail_from_user_context(context).get('id', None), exercise_id)
+    return hx_render_template('exercise_history_dialog.html', 
+                              exercise_history=ex_history,
                               context=context)
 
 
