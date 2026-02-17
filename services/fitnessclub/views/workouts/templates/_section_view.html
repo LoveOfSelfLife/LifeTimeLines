@@ -29,14 +29,14 @@
           {% if item.parameters.time %}
             {% set timer_duration = current_parameters[ex.id].time if current_parameters and current_parameters[ex.id] else item.parameters.time %}
             <div class="timer-container ms-2 d-inline-block">
-              <button class="btn btn-sm btn-outline-success timer-btn" 
-                      data-exercise-id="{{ ex.id }}"
-                      data-duration="{{ timer_duration }}"
-                      onclick="startExerciseTimer('{{ ex.id }}', {{ timer_duration }})"
-                      title="Start {{ timer_duration }} second timer">
-                <i class="bi bi-stopwatch"></i>
+              <div class="timer-icon-wrapper" 
+                   data-exercise-id="{{ ex.id }}"
+                   data-duration="{{ timer_duration }}"
+                   onclick="startExerciseTimer('{{ ex.id }}', {{ timer_duration }})"
+                   title="Start {{ timer_duration }} second timer">
+                <i class="bi bi-stopwatch timer-icon"></i>
                 <span class="timer-display" id="timer-{{ ex.id }}">{{ timer_duration }}s</span>
-              </button>
+              </div>
             </div>
           {% endif %}
           
@@ -98,39 +98,103 @@
 
 <!-- Exercise Timer Styles and JavaScript -->
 <style>
-.timer-btn {
+.timer-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 6px;
+  border-radius: 50px;
+  background-color: #f8f9fa;
+  border: 2px solid #28a745;
+  cursor: pointer;
   transition: all 0.3s ease;
-  min-width: 80px;
+  position: relative;
+  min-width: 70px;
+  justify-content: center;
 }
 
-.timer-btn.running {
+.timer-icon-wrapper:hover {
+  background-color: #e9ecef;
+  transform: scale(1.05);
+  border-color: #20c997;
+}
+
+.timer-icon {
+  font-size: 14px;
+  color: #28a745;
+  margin-right: 4px;
+  transition: color 0.3s ease;
+}
+
+.timer-icon-wrapper.running {
   background-color: #dc3545;
   border-color: #dc3545;
+  animation: heartbeat 1s infinite;
+}
+
+.timer-icon-wrapper.running .timer-icon {
   color: white;
 }
 
-.timer-btn.running:hover {
-  background-color: #c82333;
-  border-color: #bd2130;
+.timer-icon-wrapper.running .timer-display {
+  color: white;
+  font-weight: bold;
 }
 
-.timer-btn.completed {
+.timer-icon-wrapper.completed {
   background-color: #28a745;
   border-color: #28a745;
+}
+
+.timer-icon-wrapper.completed .timer-icon {
   color: white;
+}
+
+.timer-icon-wrapper.completed .timer-display {
+  color: white;
+  font-weight: bold;
 }
 
 .timer-display {
-  font-weight: bold;
-  min-width: 35px;
+  font-weight: 500;
+  font-size: 11px;
+  min-width: 30px;
   display: inline-block;
-  margin-left: 4px;
+  text-align: center;
+  color: #28a745;
+  transition: color 0.3s ease;
 }
 
 @keyframes pulse {
   0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+  50% { transform: scale(1.1); }
   100% { transform: scale(1); }
+}
+
+@keyframes heartbeat {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.02); }
+  50% { transform: scale(1.05); }
+  75% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+/* Circular progress effect when running */
+.timer-icon-wrapper.running::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 50px;
+  background: conic-gradient(#ffc107 0deg, transparent 360deg);
+  animation: rotate 2s linear infinite;
+  z-index: -1;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 </style>
 
@@ -140,7 +204,7 @@ window.ExerciseTimer = window.ExerciseTimer || {
   activeTimers: {},
   
   start: function(exerciseId, duration) {
-    const timerBtn = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
+    const timerWrapper = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
     const timerDisplay = document.getElementById(`timer-${exerciseId}`);
     
     // If timer is already running, stop it
@@ -151,9 +215,9 @@ window.ExerciseTimer = window.ExerciseTimer || {
     
     // Start new timer
     let remainingTime = duration;
-    timerBtn.classList.add('running');
-    timerBtn.classList.remove('completed');
-    timerBtn.setAttribute('title', 'Click to stop timer');
+    timerWrapper.classList.add('running');
+    timerWrapper.classList.remove('completed');
+    timerWrapper.setAttribute('title', 'Click to stop timer');
     
     // Update display immediately
     timerDisplay.textContent = this.formatTime(remainingTime);
@@ -167,19 +231,19 @@ window.ExerciseTimer = window.ExerciseTimer || {
         clearInterval(this.activeTimers[exerciseId]);
         delete this.activeTimers[exerciseId];
         
-        timerBtn.classList.remove('running');
-        timerBtn.classList.add('completed');
-        timerBtn.setAttribute('title', 'Timer completed! Click to restart');
+        timerWrapper.classList.remove('running');
+        timerWrapper.classList.add('completed');
+        timerWrapper.setAttribute('title', 'Timer completed! Click to restart');
         
         // Flash effect and sound
-        timerBtn.style.animation = 'pulse 1s infinite';
+        timerWrapper.style.animation = 'pulse 1s infinite';
         
         // Play completion sound with multiple fallbacks
         this.playCompletionSound();
         
         // Remove animation after 3 seconds and reset display
         setTimeout(() => {
-          timerBtn.style.animation = '';
+          timerWrapper.style.animation = '';
           timerDisplay.textContent = `${duration}s`;
         }, 3000);
         
@@ -194,13 +258,13 @@ window.ExerciseTimer = window.ExerciseTimer || {
       delete this.activeTimers[exerciseId];
     }
     
-    const timerBtn = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
+    const timerWrapper = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
     const timerDisplay = document.getElementById(`timer-${exerciseId}`);
-    const duration = parseInt(timerBtn.getAttribute('data-duration'));
+    const duration = parseInt(timerWrapper.getAttribute('data-duration'));
     
-    timerBtn.classList.remove('running', 'completed');
-    timerBtn.setAttribute('title', `Start ${duration} second timer`);
-    timerBtn.style.animation = '';
+    timerWrapper.classList.remove('running', 'completed');
+    timerWrapper.setAttribute('title', `Start ${duration} second timer`);
+    timerWrapper.style.animation = '';
     timerDisplay.textContent = `${duration}s`;
   },
   
