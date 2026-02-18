@@ -13,10 +13,18 @@ window.recordingChunks = window.recordingChunks || {};
  */
 async function initCamera(type) {
     try {
+        // const constraints = {
+        //     video: true,
+        //     audio: type === 'videos' // Only need audio for video recording
+        // };
         const constraints = {
-            video: true,
-            audio: type === 'videos' // Only need audio for video recording
-        };
+            video: {
+                facingMode: { ideal: 'environment' }, // Prefer rear camera but fallback if not available
+                width: { ideal: 1920 },
+                height: { ideal: 1080 }
+            },
+            audio: type === 'videos'
+        };        
         
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         const videoElement = document.getElementById(`camera-video-${type}`);
