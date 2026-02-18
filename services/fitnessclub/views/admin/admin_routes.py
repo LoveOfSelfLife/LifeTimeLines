@@ -51,6 +51,10 @@ def render_entity_template(context, entity_name, page, view, page_size, fields_t
     else:
         template_file_name = 'entity_list_component.html'
 
+    # Set results_target_container based on request args
+    target = request.args.get('target')
+    results_target_container = target if target else 'results-area'
+
     return hx_render_template(
         template_file_name,
         entity_name=entity_name,
@@ -69,6 +73,7 @@ def render_entity_template(context, entity_name, page, view, page_size, fields_t
         entity_action_route=f'/admin/edit?entity_table={entity_name}',
         entity_action_icon='bi-pencil-square',
         entity_action_label='Edit',
+        results_target_container=results_target_container,
         context=context
     )
 @bp.route('/filter-dialog')

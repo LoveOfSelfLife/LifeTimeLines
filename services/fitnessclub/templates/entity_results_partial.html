@@ -144,7 +144,7 @@
             {% if args %}
             hx-vals='{{ args|tojson }}'
             {% endif %}
-            hx-target="#results-area">
+            hx-target="#{{ results_target_container or 'results-area' }}">
         <span aria-hidden="true">&laquo;</span>
         </a>
         </li>
@@ -157,7 +157,7 @@
             {% if args %}
             hx-vals='{{ args|tojson }}'
             {% endif %}
-            hx-target="#results-area">
+            hx-target="#{{ results_target_container or 'results-area' }}">
         <span aria-hidden="true">&raquo;</span>
         </a>
         </li>
@@ -172,7 +172,7 @@
         style="height: 38px;" 
         data-favorites="{% if favorites_active %}true{% else %}false{% endif %}" 
         hx-post="{{ entities_listing_route }}" 
-        hx-target="#results-area" 
+        hx-target="#{{ results_target_container or 'results-area' }}" 
         hx-swap="innerHTML" 
         hx-include="[name='search'], [name='view']" 
         hx-vals='{"favorites_only": {% if favorites_active %}false{% else %}true{% endif %}}'        

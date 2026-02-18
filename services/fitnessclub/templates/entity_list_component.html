@@ -25,7 +25,7 @@
                         {% if args %}
                         hx-vals='{{ args|tojson }}'
                         {% endif %}
-                        hx-target="#results-area"
+                        hx-target="#{{ results_target_container or 'results-area' }}"
                         hx-include="[name='search'], [name='favorites_only']">
                         <i class="bi bi-grid"></i>
                     </button>
@@ -34,7 +34,7 @@
                         {% if args %}
                         hx-vals='{{ args|tojson }}'
                         {% endif %}
-                        hx-target="#results-area"
+                        hx-target="#{{ results_target_container or 'results-area' }}"
                         hx-include="[name='search'], [name='favorites_only']">
                         <i class="bi bi-list"></i>  
                     </button>
@@ -67,7 +67,7 @@
                         name="search" placeholder="Begin Typing To Search ..."
                         value="{{ search_value }}"
                         hx-post="{{ entities_listing_route }}"
-                        hx-target="#results-area"
+                        hx-target="#{{ results_target_container or 'results-area' }}"
                         hx-swap="innerHTML"
                         hx-include="[name='view'], [name='favorites_only']"
                         hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
@@ -86,7 +86,7 @@
                         style="height: 38px;"
                         data-favorites="{% if favorites_active %}true{% else %}false{% endif %}"
                         hx-post="{{ entities_listing_route }}"
-                        hx-target="#results-area"
+                        hx-target="#{{ results_target_container or 'results-area' }}"
                         hx-swap="innerHTML"
                         hx-include="[name='search'], [name='view']"
                         hx-vals='{"favorites_only": {% if favorites_active %}false{% else %}true{% endif %}}'
@@ -100,7 +100,7 @@
             </div>
 
         <!-- Results area that gets replaced -->
-        <div id="results-area">
+        <div id="{{ results_target_container or 'results-area' }}">
             {% include 'entity_results_partial.html' %}
         </div>
     </div>

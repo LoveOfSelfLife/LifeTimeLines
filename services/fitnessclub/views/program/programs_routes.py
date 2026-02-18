@@ -58,6 +58,11 @@ def program_listing_base(context, entity_name, page, page_size, view, fields_to_
         template_file_name = 'entity_results_partial.html'
     else:
         template_file_name = 'entity_list_component.html'
+    
+    # Set results_target_container based on request args
+    target = request.args.get('target')
+    results_target_container = target if target else 'results-area'
+    
     # displays workouts at the top level
     return hx_render_template(
         template_file_name,
@@ -75,7 +80,8 @@ def program_listing_base(context, entity_name, page, page_size, view, fields_to_
         entities_listing_route=f'/program/programs-listing?entity_table={entity_name}',
         entity_action_route=f'/program/edit?entity_table={entity_name}',
         entity_action_icon='bi-pencil-square',  
-        entity_action_label='Edit Program',       
+        entity_action_label='Edit Program',
+        results_target_container=results_target_container,
         context=context)
 
 @bp.route('/viewer')
@@ -138,6 +144,9 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
     else:
         template_file_name = 'entity_list_component.html'
 
+    # Set results_target_container based on target parameter
+    results_target_container = target if target else 'results-area'
+
     # displays workouts at the top level
     return hx_render_template(
         template_file_name,
@@ -156,7 +165,8 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
         entity_action_route_method='post',
         entity_action_route_target="program-canvas",
         entity_action_icon='bi-plus',  
-        entity_action_label='Add Workout',       
+        entity_action_label='Add Workout',
+        results_target_container=results_target_container,
         context=context)
 
 def new_program(name='new-workout-program', member_id=None):

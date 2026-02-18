@@ -79,6 +79,9 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
     else:
         template_file_name = 'entity_list_component.html'
 
+    # Set results_target_container based on target parameter
+    results_target_container = target if target else 'results-area'
+
     # displays workouts at the top level
     return hx_render_template(
         template_file_name,
@@ -96,7 +99,8 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
         entity_view_route=f'/workouts/viewer/workout?entity_table={entity_name}',
         entity_action_route=f'/workouts/edit?entity_table={entity_name}',
         entity_action_icon='bi-pencil-square',  
-        entity_action_label='Edit Workout',       
+        entity_action_label='Edit Workout',
+        results_target_container=results_target_container,
         # filter_dialog_route=f'/exercises/filter-dialog?entity_table={WORKOUT_ENTITY_NAME}',
         context=context)
 
@@ -521,6 +525,7 @@ def exercise_listing(context=None):
                               entity_action_route_target="canvas",                              
                               entity_action_icon='bi-plus',
                               entity_action_label='Add Exercise',
+                              results_target_container=target if target else 'results-area',
                               context=context)      
 
 @bp.route('/builder/workouts-listing', methods=['GET', 'POST'])
@@ -577,7 +582,8 @@ def builder_workouts_listing(context=None):
         entity_action_route_method='post',
         entity_action_route_target="canvas",                              
         entity_action_icon='bi-plus',  
-        entity_action_label='Add Workout',       
+        entity_action_label='Add Workout',
+        results_target_container=target if target else 'results-area',
         context=context)
 
 # ── Main exercise reviewer View ─────────────────────────────────────────────
@@ -652,7 +658,8 @@ def exercise_reviewer_listing(context=None):
                               entity_action_route=f'/workouts/exercise_reviewer/review?target={target}',
                               entity_action_route_method='post',
                               entity_action_route_target="canvas",                              
-                              entity_action_icon='bi-arrow-right-square-fill',                            
+                              entity_action_icon='bi-arrow-right-square-fill',
+                              results_target_container=target if target else 'results-area',
                               context=context)      
 
 @bp.route('/exercise_reviewer/filter-dialog')

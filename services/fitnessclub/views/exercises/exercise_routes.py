@@ -52,6 +52,11 @@ def exercise_listing_base(entity_name, page, page_size, view, fields_to_display,
         template_file_name = 'entity_results_partial.html'
     else:
         template_file_name = 'entity_list_component.html'
+    
+    # Set results_target_container based on request args
+    target = request.args.get('target')
+    results_target_container = target if target else 'results-area'
+    
     return hx_render_template(
         template_file_name,
         entity_name=entity_name,
@@ -69,7 +74,8 @@ def exercise_listing_base(entity_name, page, page_size, view, fields_to_display,
         entity_view_route=f'/exercises/view?entity_table={entity_name}',
         entity_action_route='/exercises/edit?',
         entity_action_icon='bi-pencil-square',
-        entity_action_label='Edit Exercise'
+        entity_action_label='Edit Exercise',
+        results_target_container=results_target_container
     )
 
 
