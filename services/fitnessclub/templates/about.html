@@ -18,21 +18,21 @@
                 <div class="row">
                     <div class="col-md-6">
                         <p class="mb-3 text-white">
-                            Active Friends Club is a private club located in and around Cranford, New Jersey. 
-                            Our mission is to provide the tools and structure to encourage and motivate members to remain active and 
-                            support their personal long-lasting fitness goals.
+                            Active Friends Club is a private club located in Cranford, New Jersey. 
+                            Its mission is to provide the tools and structure to encourage and motivate members to remain active and 
+                            achieve their personal and long-lasting fitness goals.
                         </p>
                         <p class="mb-3 text-white">
-                            We offer a lower cost alternative to traditional private gym memberships while fostering a 
+                            Active Friends Club offers a lower cost alternative to traditional private gym memberships while fostering a 
                             supportive community environment where fitness becomes a shared journey.
                         </p>
                     </div>
                     <div class="col-md-6">
                         <div class="bg-light p-4 rounded border" style="background: rgba(255, 255, 255, 0.9) !important;">
-                            <h4 class="h5 fw-bold mb-3 text-dark">Our Mission</h4>
+                            <h4 class="h5 fw-bold mb-3 text-dark">Mission</h4>
                             <p class="mb-0 text-muted">
                                 To create a welcoming community where members support each other in achieving their fitness goals 
-                                through structured programs, social connections, and affordable access to quality facilities.
+                                through fitness technology, structured programs, social connections, and affordable access to quality facilities.
                             </p>
                         </div>
                     </div>
@@ -41,7 +41,7 @@
 
             <!-- Why Join Section -->
             <section class="mb-5">
-                <h2 class="h3 fw-bold text-dark mb-4">Why Join the Active Friends Club?</h2>
+                <h2 class="h3 fw-bold text-dark mb-4">Why?</h2>
                 <div class="row g-4">
                     <div class="col-md-4">
                         <div class="text-center p-4 rounded h-100 border" style="background: rgba(255, 255, 255, 0.9) !important;">
@@ -49,7 +49,7 @@
                             <h4 class="h5 fw-bold text-dark">Community Focused</h4>
                             <p class="text-muted mb-0">
                                 Exercising is more enjoyable and motivating when done with friends. 
-                                Our club makes it easy to coordinate gym visits with fellow members.
+                                Active Friends Club makes it easy to coordinate gym visits with fellow members.
                             </p>
                         </div>
                     </div>
@@ -68,7 +68,7 @@
                             <i class="bi bi-heart-fill text-primary fs-1 mb-3"></i>
                             <h4 class="h5 fw-bold text-dark">Supportive</h4>
                             <p class="text-muted mb-0">
-                                Our structured approach to fitness provides the motivation and 
+                                A structured and dcommunity-based approach to fitness provides the motivation and 
                                 accountability you need to achieve your long-term health goals.
                             </p>
                         </div>
@@ -84,12 +84,58 @@
                         <div class="col-md-8">
                             <p class="mb-2 text-dark"><strong>Serving the Cranford, New Jersey area</strong></p>
                             <p class="text-muted mb-0">
-                                Our club operates in and around Cranford, providing convenient access to quality fitness 
-                                facilities for our local community members.
+                                Our club operates in Cranford, utilizing a quality fitness 
+                                facility for our local community members.
                             </p>
                         </div>
                         <div class="col-md-4 text-md-end">
                             <i class="bi bi-geo-alt-fill text-primary fs-1"></i>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Version Information Section -->
+            <section class="mb-5">
+                <h2 class="h3 fw-bold text-dark mb-4">Application Information</h2>
+                <div class="p-4 rounded border" style="background: rgba(255, 255, 255, 0.9) !important;">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="fw-bold text-dark">Version Details</h5>
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <td class="text-muted">Version:</td>
+                                    <td class="text-dark fw-semibold">{{ version_info.version }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Build:</td>
+                                    <td class="text-dark">{{ version_info.build }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Branch:</td>
+                                    <td class="text-dark">{{ version_info.build_branch }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="fw-bold text-dark">Build Information</h5>
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <td class="text-muted">Build Date:</td>
+                                    <td class="text-dark">{{ version_info.build_date }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Commit:</td>
+                                    <td class="text-dark font-monospace small">{{ version_info.build_commit[:8] if version_info.build_commit != 'unknown' else 'unknown' }}</td>
+                                </tr>
+                                {% if version_info.is_development %}
+                                <tr>
+                                    <td colspan="2">
+                                        <span class="badge bg-warning text-dark">Development Build</span>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -102,6 +148,7 @@
         <div class="col-12">
             <div class="text-center">
                 <p class="mb-0">&copy; 2026 Active Friends Club. All rights reserved.</p>
+                <small class="text-light">Version {{ version_info.version }}</small>
             </div>
         </div>
     </div>

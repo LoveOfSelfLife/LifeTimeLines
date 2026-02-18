@@ -20,6 +20,7 @@ from common.env_init import initialize_environment
 from common.env_context import Env
 from auth import auth
 from datetime import timedelta
+from version import get_version_info
 
 def create_app():
     load_dotenv()
@@ -42,6 +43,11 @@ def create_app():
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=90)
 
     auth.init_app(app)
+
+    # Make version information available to all templates
+    @app.context_processor
+    def inject_version_info():
+        return {'version_info': get_version_info()}
 
     for bp in [base_bp, 
                admin_bp, 

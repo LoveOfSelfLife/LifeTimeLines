@@ -35,7 +35,17 @@ then
     DF=${APPDF}
 fi
 
+VERSION_TAG="${VERSION_MAJOR:-1}.${VERSION_MINOR:-0}.${VERSION_PATCH:-0}.${BUILD_NUMBER}"
 docker build -t $CONTAINER_REGISTRY/$APP:$VERSION  \
              -t $CONTAINER_REGISTRY/$APP:latest \
+             --build-arg VERSION_MAJOR=${VERSION_MAJOR:-1} \
+             --build-arg VERSION_MINOR=${VERSION_MINOR:-0} \
+             --build-arg VERSION_PATCH=${VERSION_PATCH:-0} \
+             --build-arg BUILD_NUMBER=$BUILD_NUMBER \
+             --build-arg BUILD_DATE="$BUILD_DATE" \
+             --build-arg BUILD_COMMIT=$BUILD_COMMIT \
+             --build-arg BUILD_BRANCH=$BUILD_BRANCH \
+             --build-arg app=fitnessclub \
+             -t ${APP}:${VERSION_TAG} \             
              --file ${DF} \
              --build-arg app=${APP} .
