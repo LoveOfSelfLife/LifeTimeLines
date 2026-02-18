@@ -4,7 +4,7 @@
     <h3 class="mb-2">{{ program_name }}</h3>
     <p>Your next scheduled workout is on:</p>
     <p id="workout-datetime">{{ next_workout_datetime.strftime('%A, %B %d @ %I:%M %p') }}</p>
-    <p class="text-muted mb-4">which is {{ time_until }} from now</p>
+    <p class="text-light-muted mb-4">which is {{ time_until }}</p>
     <button
         class="btn hero-btn"
         hx-post="{{ url_for('program.start_workout', workout_key=workout_key) }}"

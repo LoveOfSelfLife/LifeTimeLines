@@ -10,7 +10,7 @@
                     <button type="button" class="btn btn-outline-primary btn-sm"
                             hx-get="/exercises/edit?key={{ (exercise.id, 'exercise', 'ExerciseTable') }}"
                             hx-target="#entities-container"
-                            hx-swap="innerHTML"
+                            hx-swap="innerHTML show:top"
                             data-bs-dismiss="modal">
                         <i class="bi bi-pencil-square me-1"></i>Edit
                     </button>

@@ -145,7 +145,7 @@ def new_exercise(context=None):
             else:
                 exercise_data[field] = ''
     
-    return render_template('exercises/exercise_editor.html',
+    return hx_render_template('exercises/exercise_editor.html',
                          exercise=exercise_data,
                          is_new=True,
                          schema=exercise_schema,
@@ -230,7 +230,7 @@ def edit_exercise(context=None):
     # Get exercise ID from the composite key or the data
     exercise_id = exercise_data.get('id')
     
-    return render_template('exercises/exercise_editor.html',
+    return hx_render_template('exercises/exercise_editor.html',
                          exercise=exercise_data,
                          is_new=False,
                          schema=exercise_schema,  

@@ -48,7 +48,7 @@
                                 hx-{{ action_method }}="{{ entity_action_route }}&key={{ entity.key }}"
                                 hx-push-url="{{ entity_action_route }}&key={{ entity.key }}"
                                 hx-target="#{{ action_target }}"
-                                hx-swap="innerHTML">
+                                hx-swap="innerHTML show:top">
                                 <i class="bi {{ entity_action_icon}}"></i>
                             </button>
                         {% endif %}
@@ -123,7 +123,7 @@
                             hx-{{ action_method }}="{{ entity_action_route }}&key={{ entity.key }}"
                             hx-push-url="{{ entity_action_route }}&key={{ entity.key }}"
                             hx-target="#{{ action_target }}"
-                            hx-swap="innerHTML">
+                            hx-swap="innerHTML show:top">
                             <i class="bi {{ entity_action_icon}}"></i>
                         </button>
                     </td>

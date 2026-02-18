@@ -422,12 +422,18 @@ background: #f9f9f9;
 
 
 /* Form styling */
+.d-flex .form-label {
+    color:rgb(42, 42, 188);
+    font-weight: bold;
+    text-align: left; /* Ensure labels are left-justified */
+  }
 .form-label {
-    color:blue;
+    color:rgb(225, 225, 235);
     font-weight: bold;
     text-align: left; /* Ensure labels are left-justified */
 }
-.form-group .required {
+
+  .form-group .required {
     color:blue;
     font-weight: bold;
     text-align: left; /* Ensure labels are left-justified */
@@ -622,4 +628,8 @@ background: #f9f9f9;
   cursor: pointer;
   color: #007bff;
   text-decoration: underline;
+}
+
+.section-header .text-secondary {
+  color: #eceff2;
 }

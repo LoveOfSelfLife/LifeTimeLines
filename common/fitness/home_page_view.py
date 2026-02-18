@@ -11,6 +11,8 @@ from common.fitness.hx_common import rm_spaces
 from common.fitness.get_calendar_service import get_calendar_service
 
 def format_seconds(N: int) -> str:
+    if N < 0:
+        return "about now"
     days, rem   = divmod(N, 86400)
     hours, rem  = divmod(rem, 3600)
     minutes     = rem // 60
@@ -23,8 +25,8 @@ def format_seconds(N: int) -> str:
     parts.append(f"{int(minutes)} minute{'s' if minutes != 1 else ''}")
 
     if len(parts) > 1:
-        return ", ".join(parts[:-1]) + " and " + parts[-1]
-    return parts[0]
+        return ", ".join(parts[:-1]) + " and " + parts[-1] + " from now"
+    return parts[0] + " from now"
 
 def generate_current_home_page_view(member):
     """
@@ -163,9 +165,13 @@ def get_next_workout_event(events, member_id):
             workout_dt = event["start"]["dateTime"]
             # calculate how many dates and hours until the workout
             workout_datetime = datetime.fromisoformat(workout_dt.replace('Z', '+00:00'))  # Parse with timezone info
+            # here we are only interested in upcoming workouts, so if the workout datetime is in the past, we skip it
+            # however, if the workout time was say set to 6:01 AM and it is now 6:30 AM, we still want to consider that workout as upcoming
+            # we should consider a workout as upcoming if it is within 1 hour in the past, or anytime in the future
+
             now = datetime.now(timezone.utc) # Make 'now' timezone-aware
             time_until_workout = (workout_datetime - now).total_seconds()
-            if time_until_workout < 0:
+            if time_until_workout < -3600:  # 1 hour in the past
                 continue
 
             # we found the first event that is for this member

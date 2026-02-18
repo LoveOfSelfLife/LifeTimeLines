@@ -24,7 +24,7 @@ def get_partition_value_for_favorite(entity_table_name, member_id):
 def add_entity_to_favorites(entity, member_id):
     es = EntityStore()
     table_name = entity.table_name
-    entity_key = entity.get(entity.key_field, None)
+    entity_key = entity.get_key_value()
     if entity_key is None:
         return
 
@@ -38,13 +38,14 @@ def is_entity_a_favorite(entity, member_id):
     partition_value = get_partition_value_for_favorite(table_name, member_id)
     from common.fitness.entities_getter import get_filtered_entities
     favs = get_filtered_entities(table_name, filter_term=None, partition_key=partition_value, member_id=member_id)
-    favored_entity = FavoritesEntity({"entity_id": entity.get(entity.key_field), "entity_type_and_member_id": partition_value})
+    favored_entity = FavoritesEntity({"entity_id": entity.get_key_value(), "entity_type_and_member_id": partition_value})
     return favored_entity in favs
 
 def remove_entity_from_favorites(entity, member_id):
     es = EntityStore()
     table_name = entity.table_name
-    entity_key = entity.key_field
+    partition_value = get_partition_value_for_favorite(table_name, member_id)
+    entity_key = entity.get_key_value()
 
     favored_entity = FavoritesEntity({"entity_id": entity_key, "entity_type_and_member_id": partition_value})
     e = es.get_item(favored_entity)
