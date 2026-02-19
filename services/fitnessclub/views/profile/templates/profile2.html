@@ -50,9 +50,41 @@
                             </div>
                         </div>
                         
-                        <!-- File Input for New Image -->
-                        <input type="file" id="profile_photo" name="profile_photo" class="profile-input" accept="image/*" onchange="previewImage(this)">
-                        <small class="file-input-help">Choose a new profile photo to replace the current image.</small>
+                        <!-- Photo Input Options -->
+                        <div class="mb-3">
+                            <div class="btn-group w-100" role="group">
+                                <button type="button" class="btn btn-primary" onclick="toggleCamera()">
+                                    <i class="bi bi-camera me-1"></i>Take Selfie
+                                </button>
+                                <input type="file" id="profile_photo_upload" name="profile_photo" class="profile-input" accept="image/*" style="display: none;" onchange="previewImage(this)">
+                                <button type="button" class="btn btn-secondary" onclick="document.getElementById('profile_photo_upload').click()">
+                                    <i class="bi bi-upload me-1"></i>Upload Photo
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Camera Section -->
+                        <div id="camera-section" class="camera-section mb-3" style="display: none;">
+                            <div class="card">
+                                <div class="card-body">
+                                    <video id="camera-video" class="w-100 mb-2" style="max-height: 300px;" autoplay playsinline></video>
+                                    <canvas id="camera-canvas" style="display: none;"></canvas>
+                                    <div class="text-center">
+                                        <button type="button" class="btn btn-primary me-2" onclick="captureProfilePhoto()">
+                                            <i class="bi bi-camera me-1"></i>Capture Photo
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="stopProfileCamera()">
+                                            <i class="bi bi-x me-1"></i>Stop Camera
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Hidden input for captured photo -->
+                        <input type="hidden" id="captured_photo_data" name="captured_photo_data">
+                        
+                        <small class="file-input-help">Take a selfie with your camera or upload an existing photo.</small>
                     </div>                    
                     <div class="form-check mb-4">
                         <input type="checkbox" id="sms_consent" name="sms_consent" class="profile-checkbox" value="agree" {{ 'checked' if profile.get('sms_consent', '') == 'agree' else '' }}>
@@ -74,6 +106,9 @@
 </div>
 
 <script>
+// Global state for camera
+let cameraStream = null;
+
 function previewImage(input) {
     const previewContainer = document.getElementById('image-preview-container');
     const preview = document.getElementById('image-preview');
@@ -90,5 +125,110 @@ function previewImage(input) {
     } else {
         previewContainer.style.display = 'none';
     }
+}
+
+/**
+ * Toggle camera display for profile photos
+ */
+async function toggleCamera() {
+    const cameraSection = document.getElementById('camera-section');
+    
+    if (cameraSection.style.display === 'none') {
+        // Show camera
+        const success = await initProfileCamera();
+        if (success) {
+            cameraSection.style.display = 'block';
+        }
+    } else {
+        // Hide camera
+        stopProfileCamera();
+    }
+}
+
+/**
+ * Initialize camera for profile photo capture
+ */
+async function initProfileCamera() {
+    try {
+        const constraints = {
+            video: {
+                facingMode: { ideal: 'user' }, // Prefer front camera for selfies
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            },
+            audio: false
+        };        
+        
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        const videoElement = document.getElementById('camera-video');
+        
+        videoElement.srcObject = stream;
+        videoElement.play();
+        
+        cameraStream = stream;
+        return true;
+    } catch (err) {
+        console.error('Error accessing camera:', err);
+        alert('Camera access denied or not available. Please check your browser permissions.');
+        return false;
+    }
+}
+
+/**
+ * Stop camera stream
+ */
+function stopProfileCamera() {
+    const cameraSection = document.getElementById('camera-section');
+    const videoElement = document.getElementById('camera-video');
+    
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+    }
+    
+    videoElement.srcObject = null;
+    cameraSection.style.display = 'none';
+}
+
+/**
+ * Capture photo from camera for profile
+ */
+function captureProfilePhoto() {
+    const videoElement = document.getElementById('camera-video');
+    const canvas = document.getElementById('camera-canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas dimensions to match video
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
+    
+    // Draw video frame to canvas
+    ctx.drawImage(videoElement, 0, 0);
+    
+    // Convert canvas to blob and show preview
+    canvas.toBlob((blob) => {
+        if (blob) {
+            // Show preview
+            const previewContainer = document.getElementById('image-preview-container');
+            const preview = document.getElementById('image-preview');
+            const url = URL.createObjectURL(blob);
+            
+            preview.src = url;
+            previewContainer.style.display = 'block';
+            
+            // Convert blob to base64 and store in hidden input
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('captured_photo_data').value = e.target.result;
+            };
+            reader.readAsDataURL(blob);
+            
+            // Stop camera after capture
+            stopProfileCamera();
+            
+            // Show success message
+            alert('Photo captured successfully! Click Save Profile to update your photo.');
+        }
+    }, 'image/jpeg', 0.8);
 }
 </script>

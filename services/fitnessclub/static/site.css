@@ -193,6 +193,27 @@ body {
     justify-content: center;
 }
 
+/* Camera section styling */
+.camera-section {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.camera-section video {
+    border-radius: 8px;
+    border: 2px solid #e0e0e0;
+}
+
+.camera-section .card {
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.camera-section .card-body {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
 @media (max-width: 575px) {
     .profile-photos-container {
         flex-direction: column;

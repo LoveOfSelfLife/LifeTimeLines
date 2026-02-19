@@ -58,9 +58,38 @@ def settings(context=None):
 @bp.route('/update', methods=['POST'])
 @auth.login_required
 def update_profile(context=None):
+    import io
+    import base64
+    from werkzeug.datastructures import FileStorage
+    
     print(f"Request: {request.form}")
+    
+    # Handle captured photo data from camera
+    files = request.files.copy()
+    captured_photo_data = request.form.get('captured_photo_data', '')
+    
+    if captured_photo_data:
+        try:
+            # Parse the base64 data (remove data:image/jpeg;base64, prefix)
+            header, encoded = captured_photo_data.split(',', 1)
+            image_data = base64.b64decode(encoded)
+            
+            # Create a file-like object from the decoded image data
+            image_io = io.BytesIO(image_data)
+            
+            # Create a FileStorage object (mimicking file upload)
+            captured_file = FileStorage(
+                stream=image_io,
+                filename=f'profile_selfie_{context.get("user", {}).get("sub", "unknown")}.jpg',
+                content_type='image/jpeg'
+            )
+            
+            # Add the captured photo to files for processing
+            files['profile_photo'] = captured_file
+            
+        except Exception as e:
+            print(f"Error processing captured photo: {e}")
 
-    profile = save_user_profile(request.form, 
-                                request.files)
+    profile = save_user_profile(request.form, files)
     return redirect("/")
   
