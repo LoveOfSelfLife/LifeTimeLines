@@ -86,6 +86,9 @@
                 hx-swap="innerHTML" hx-push-url="/workouts/exercise_reviewer" >Exercise Reviewer</a></li> #}
             <li><a class="dropdown-item" hx-get="/admin?entity_table=MemberTable" hx-target="#content"
                 hx-swap="innerHTML" hx-push-url="/admin?entity_table=MemberTable">Members</a></li>
+            <li><a class="dropdown-item" hx-get="/admin/impersonate_dialog" 
+                hx-target="#modals-here" hx-swap="innerHTML"
+                data-bs-toggle="modal" data-bs-target="#modals-here">Impersonate</a></li>
             </ul>
           </li>
 	  {% endif %}
@@ -105,13 +108,27 @@
     </div>
   </nav>
 
+  <!-- Impersonation indicator -->
+  {% if impersonated_member %}
+    <div class="alert alert-warning alert-dismissible mb-0" role="alert" style="position: fixed; top: 56px; left: 0; right: 0; z-index: 1020; border-radius: 0;">
+      <div class="container">
+        <strong><i class="bi bi-person-vcard"></i> Admin Mode:</strong> 
+        You are currently impersonating {{ impersonated_member.name }} ({{ impersonated_member.email }})
+        <button type="button" class="btn btn-sm btn-outline-dark ms-2" 
+                hx-post="/admin/stop_impersonation" 
+                hx-target="body">
+          Stop Impersonation
+        </button>
+      </div>
+    </div>
+  {% endif %}
+
   <!-- Main content area -->
-  <main class="container mt-5 pt-4" id="content">
-      {% if content %}
+  <main class="container pt-4" id="content" style="margin-top: {% if impersonated_member %}140px{% else %}80px{% endif %};">{%- if content %}
       {{ content|safe }}
-      {% else %}
+      {%- else %}
       <p class="text-center p-3">Active Friends Club</p>
-      {% endif %}
+      {%- endif %}
   </main>
 
   <!-- Empty toast to show the message -->

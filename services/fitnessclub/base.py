@@ -4,8 +4,7 @@ from auth import auth
 from common.blob_store import BlobStore
 import os
 from common.fitness.hx_common import hx_render_template
-from common.fitness.member_entity import MembershipRegistry, get_member_detail_from_user_context
-from common.fitness.hx_common import FirstTimeUserException, UnregisteredMemberException, is_admin_member, verify_member_registration
+from common.fitness.member_entity import MembershipRegistry, get_member_detail_from_user_context, get_member_email_from_user_context, get_member_id_from_user_context, get_member_name_from_user_context, FirstTimeUserException, UnregisteredMemberException
 from common.fitness.home_page_view import generate_current_home_page_view
 
 bp = Blueprint('/', __name__, template_folder='templates')  
@@ -34,23 +33,24 @@ def index(context = None):
     member_registry = MembershipRegistry()
     member_registry.refresh_members()   # always refresh members on index page load
 
-    user = get_member_detail_from_user_context(context)
+    member_id = get_member_id_from_user_context(context)
+    member_email = get_member_email_from_user_context(context)
+    member_name = get_member_name_from_user_context(context)
     try:
-        member = verify_member_registration(user)
+        member = member_registry.verify_member_registration(member_id)
         home_page_view = generate_current_home_page_view(member)
         return hx_render_template(template_string=home_page_view, context=context, member=member)
         
     except UnregisteredMemberException as e:
         print(f"User not registered: {e}")
-        member = member_registry.get_member(user['id'])
+        member = member_registry.get_member(member_id)
         return render_template("unregistered_member.html",  member=member)
     
     except FirstTimeUserException as e:
         print(f"First time user exception: {e}")
-        member_registry.add_member(user)
-        member = member_registry.get_member(user['id'])
+        member_registry.add_member(member_id, member_email, member_name)
+        member = member_registry.get_member(member_id)
         return render_template("first_time_user.html", member=member)
-
     
 
 @bp.route("/logout2")
@@ -78,14 +78,17 @@ def signout_callback():
 @auth.login_required
 def api_upload_photo(context, container_name):
     
-    user = get_member_detail_from_user_context(context)
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        return "Unauthorized", 401
+
     # 1) get the uploaded file
     file = request.files.get("file")
     if not file:
         return "No file uploaded", 400
 
     # 2) build a unique blob name
-    user_id = user['id']  
+    user_id = member_id
     ext = os.path.splitext(file.filename)[1]
     blob_name = f"user_{user_id}_{uuid.uuid4().hex}{ext}"
 

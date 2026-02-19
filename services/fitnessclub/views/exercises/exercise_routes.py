@@ -6,7 +6,7 @@ from common.fitness.active_fitness_registry import _get_filter_terms_from_reques
 from common.fitness.entities_getter import get_entities
 from common.fitness.exercise_entity import ExerciseEntity, render_exercise_popup_viewer_html
 from common.fitness.hx_common import hx_render_template
-from common.fitness.member_entity import get_member_detail_from_user_context
+from common.fitness.member_entity import get_member_id_from_user_context
 from common.fitness.exercise_schema import exercise_schema
 from common.fitness.member_exercise_history import get_exercise_history_for_member
 from common.fitness.utils import generate_id
@@ -25,7 +25,7 @@ def exercises_listing(context=None):
     page = int(request.args.get('page', 1))
     page_size = 100
 
-    member_id = get_member_detail_from_user_context(context).get('id', None)
+    member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
 
@@ -120,8 +120,10 @@ def exercise_history_dialog(context=None):
     exercise_id = request.args.get('exercise_id', None)
     if not exercise_id:
         abort(400, "No exercise id provided")
-
-    ex_history = get_exercise_history_for_member(get_member_detail_from_user_context(context).get('id', None), exercise_id)
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+    ex_history = get_exercise_history_for_member(member_id, exercise_id)
     return hx_render_template('exercise_history_dialog.html', 
                               exercise_history=ex_history,
                               context=context)

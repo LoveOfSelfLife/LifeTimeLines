@@ -1,6 +1,6 @@
 import json
 from flask import Blueprint, abort, make_response, render_template, request
-from common.fitness.member_entity import get_member_detail_from_user_context, get_user_profile
+from common.fitness.member_entity import get_member_id_from_user_context, get_user_profile
 from common.fitness.hx_common import hx_render_template
 from common.fitness.workout_sessions import WorkoutSessionEntity, EventTypes, create_new_workout_session, list_workout_sessions, get_workout_session, store_workout_session, delete_workout_session, generate_id
 from common.fitness.get_calendar_service import get_calendar_service
@@ -23,8 +23,7 @@ def google_calendar(context = None):
 @auth.login_required
 def your_schedule(context = None):
     cal = get_calendar_service()
-    member = get_member_detail_from_user_context(context)
-    member_id = member.get('id', None)
+    member_id = get_member_id_from_user_context(context)
     member_short_name = get_user_profile(member_id).get('short_name', None)
 
     # here we figure out the date range for the calendar
@@ -39,8 +38,7 @@ def your_schedule(context = None):
 @auth.login_required
 def schedule_by_time_slots(context = None):
     cal = get_calendar_service()
-    member = get_member_detail_from_user_context(context)
-    member_id = member.get('id', None)
+    member_id = get_member_id_from_user_context(context)
     member_short_name = get_user_profile(member_id).get('short_name', None)
 
     # here we figure out the date range for the calendar
@@ -74,8 +72,7 @@ bp.add_app_template_filter(format_datetime, name='format_datetime')
 @bp.route('/members-schedule')
 @auth.login_required
 def members_schedule(context = None):
-    member = get_member_detail_from_user_context(context)
-    member_id = member.get('id', None)
+    member_id = get_member_id_from_user_context(context)
     member_short_name = get_user_profile(member_id).get('short_name', None)
     # here we figure out the date range for the calendar
     # the start date is today, and the end date is 14 days from today
@@ -92,8 +89,7 @@ def members_schedule(context = None):
 @auth.login_required
 def create_new_event(context=None):
     calendar_service = get_calendar_service()
-    member = get_member_detail_from_user_context(context)
-    member_id = member.get('id', None)
+    member_id = get_member_id_from_user_context(context)
     profile = get_user_profile(member_id)
     if profile:
         member_short_name = profile.get('short_name', member_id)
@@ -138,8 +134,7 @@ def create_new_event(context=None):
 @auth.login_required
 def edit_event(context):
 
-    member = get_member_detail_from_user_context(context)
-    member_id = member.get('id', None)
+    member_id = get_member_id_from_user_context(context)
     member_short_name = get_user_profile(member_id).get('short_name', None)
 
     if request.method == 'GET':
@@ -186,8 +181,7 @@ def edit_event(context):
 @auth.login_required
 def set_event_status(context, event_id, status):
 
-    member = get_member_detail_from_user_context(context)
-    member_id = member.get('id', None)
+    member_id = get_member_id_from_user_context(context)
     member_short_name = get_user_profile(member_id).get('short_name', None)
 
     calendar_service = get_calendar_service()
@@ -239,8 +233,6 @@ def set_event_status(context, event_id, status):
 @bp.route('/delete_event/<id>', methods=['POST'])
 @auth.login_required
 def remove_workout_session(context=None, id=None):
-    member = get_member_detail_from_user_context(context)
-
     calendar_service = get_calendar_service()    
     calendar_service.delete_workout_event(id)
 

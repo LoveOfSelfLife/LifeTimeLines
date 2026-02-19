@@ -11,7 +11,7 @@ from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_
 from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import hx_render_template
 from common.fitness.hx_common import rm_spaces
-from common.fitness.member_entity import MembershipRegistry, get_member_detail_from_user_context
+from common.fitness.member_entity import MembershipRegistry, get_member_id_from_user_context, get_user_profile
 from common.fitness.member_exercise_history import extract_and_load_exercise_events_from_workout_instance
 from common.fitness.member_program_entity import MemberProgramEntity
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout
@@ -31,7 +31,7 @@ def programs_listing(context=None):
     entity_name = PROGRAM_ENTITY_NAME
     page = int(request.args.get('page', 1))
     page_size = 100
-    member_id = get_member_detail_from_user_context(context).get('id', None)
+    member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
     # Handle view preference
@@ -44,8 +44,11 @@ def programs_listing(context=None):
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     filter_terms = _get_filter_terms_from_request()
 
-    member = get_member_detail_from_user_context(context)
-    entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member.get('id', None), sort_by='end_date', sort_ascending=False, member_id=member_id)
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+
+    entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member_id, sort_by='end_date', sort_ascending=False, member_id=member_id)
 
     return program_listing_base(context, entity_name, page, page_size, view, fields_to_display, filter_terms, entities)
 
@@ -104,7 +107,7 @@ def workouts_listing(context=None):
     page = int(request.args.get('page', 1))
     target = request.args.get('target')
     page_size = 100
-    member_id = get_member_detail_from_user_context(context).get('id', None)
+    member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
     # Handle view preference
@@ -182,8 +185,10 @@ def new_program(name='new-workout-program', member_id=None):
 @bp.route('/builder/new')
 @auth.login_required
 def builder_new(context=None):
-    member = get_member_detail_from_user_context(context)
-    p = new_program(member_id=member['id'])
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+    p = new_program(member_id=member_id)
 
     set_cache_value('current_program', p)
     delete_from_cache('current_program_workouts')
@@ -248,7 +253,9 @@ def program_canvas2(context=None, program_id=None):
 @bp.route("/viewer/workout2/<workout_id>")
 @auth.login_required
 def view_workout2(context=None, workout_id=None):
-    member_id = get_member_detail_from_user_context(context).get('id', None)
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
 
     current_program = get_cache_value('current_program')
     current_program_workouts = get_cache_value('current_program_workouts')
@@ -399,7 +406,7 @@ def get_workouts_from_program(program):
 @bp.route('/builder/<program_id>/save', methods=['POST'])
 @auth.login_required
 def save_program(context=None, program_id=None):
-    member_id = get_member_detail_from_user_context(context).get('id', None)
+    member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)    
 
@@ -449,7 +456,7 @@ def save_copy_of_program(context=None, program_id=None):
     # we also need to create copies of the workouts in the program with new ids
     # each copied workout also needs to reference the new program id
 
-    member_id = get_member_detail_from_user_context(context).get('id', None)
+    member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)    
 
@@ -636,9 +643,9 @@ def start_workout(context=None, workout_key=None):
 @bp.route('/schedule_and_start', methods=['POST'])
 @auth.login_required
 def schedule_and_start(context=None):
-    member = get_member_detail_from_user_context(context)
-    mr = MembershipRegistry()
-    short_name = mr.get_member(member.get('id', None)).get('short_name', member.get('id'))
+    member_id = get_member_id_from_user_context(context)
+    short_name = get_user_profile(member_id).get('short_name', None)    
+
     # This function is called when the user does not have a workout scheduled on their calendar
     # and they click on the "Start Workout" button
     # It will schedule the workout for now and then start it
@@ -665,9 +672,9 @@ def schedule_and_start(context=None):
     calendar_service = get_calendar_service()
     current_date = datetime.now().date().strftime("%Y-%m-%d")
     current_time = datetime.now().time().strftime("%H:%M")
-    scheduled_workout_event_id = calendar_service.add_workout_event(member_short_name=member.get('short_name', short_name),
+    scheduled_workout_event_id = calendar_service.add_workout_event(member_short_name=short_name,
                                                event_date=current_date, event_time=current_time,
-                                               location="YMCA", metadata=f'#id={member.get("id")}')
+                                               location="YMCA", metadata=f'#id={member_id}')
     
     workout_instance, exercises, program_entity, workout_instance_key, adjustments = _start_workout_logic(workout_key_str, 
                                                                                                           program_key_str, 

@@ -7,7 +7,7 @@ from common.fitness.entities_getter import get_entities
 from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.hx_common import hx_render_template
 from common.fitness.hx_common import rm_spaces
-from common.fitness.member_entity import get_member_detail_from_user_context
+from common.fitness.member_entity import get_member_id_from_user_context
 from common.fitness.member_workout_entity import WorkoutDefinitionEntity, get_exercises_from_workout
 from common.fitness.workout_state import get_active_workout_state, update_active_workout_state
 bp = Blueprint('workouts', __name__, template_folder='templates')
@@ -50,7 +50,7 @@ def index(context=None):
 def workouts_listing(context=None):
     entity_name = WORKOUT_ENTITY_NAME
     page = int(request.args.get('page', 1))
-    member_id = get_member_detail_from_user_context(context).get('id', None)
+    member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
 
@@ -144,11 +144,10 @@ def edit_workout_details(context=None):
 @auth.login_required
 def copy_workout(context=None):
     """Copy an existing workout"""
-    user = context.get('user', None)
-    member_id = user.get('sub', None) if user else None
+    member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
-
+    
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
     
@@ -396,11 +395,10 @@ def update_param(context=None, workout_id=None):
 @bp.route('/builder/<workout_id>/save', methods=['POST'])
 @auth.login_required
 def save_workout(context=None, workout_id=None):
-    user = context.get('user', None)
-    member_id = user.get('sub', None) if user else None   
+    member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
-
+    
     WORKOUT_ENTITY_NAME = "WorkoutDefinitionTable"
 
     workout = get_cache_value('current_workout')
@@ -432,8 +430,7 @@ def save_workout(context=None, workout_id=None):
 @bp.route('/builder/<workout_id>/save_copy', methods=['POST'])
 @auth.login_required
 def save_workout_copy(context=None, workout_id=None):
-    user = context.get('user', None)
-    member_id = user.get('sub', None) if user else None   
+    member_id =get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
 
@@ -476,7 +473,7 @@ def exercise_listing(context=None):
     entity_name = "ExerciseTable"
     page = int(request.args.get('page', 1))
     page_size = 100
-    member_id = get_member_detail_from_user_context(context).get('id', None)
+    member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
     # Handle view preference
@@ -535,7 +532,7 @@ def builder_workouts_listing(context=None):
     workout_id = request.args.get('workout_id', None)    
     page = int(request.args.get('page', 1))
     target = request.args.get('target', None)    
-    member_id = get_member_detail_from_user_context(context).get('id', None)
+    member_id = get_member_id_from_user_context(context)
     view = request.args.get('view', None)
     if view:
         session['view_preference'] = view
@@ -609,7 +606,7 @@ def exercise_reviewer_listing(context=None):
     mobile = request.args.get('mobile', type=bool, default=False)
     div_id = 'reviewer-list-mobile' if mobile else 'reviewer-list'
     target = div_id
-    member_id = get_member_detail_from_user_context(context).get('id', None)
+    member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)    
     entity_name = "ExerciseTable"
@@ -774,8 +771,7 @@ def update_exercise_name(context=None, exercise_id=None):
 @auth.login_required
 def reviewer_save_exercise(context=None):
     EXERCISE_ENTITY_NAME= "ExerciseTable"
-    user = context.get('user', None)
-    member_id = user.get('sub', None) if user else None   
+    member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
     exercise_id = request.form['exercise_id']
@@ -1190,7 +1186,7 @@ def search_exercises(context=None):
     workout_instance_key = request.args.get("workout_instance_key") or request.form.get("workout_instance_key")
     
     # Use the member ID from context for filtering
-    member_id = get_member_detail_from_user_context(context).get('id', None)
+    member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
     

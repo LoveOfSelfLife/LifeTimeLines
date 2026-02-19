@@ -1,31 +1,9 @@
 from flask import render_template, render_template_string, request
-from common.fitness.member_entity import MembershipRegistry, get_member_detail_from_user_context
-
-class FirstTimeUserException(Exception):
-    def __init__(self):
-        super().__init__("First time user")
+from common.fitness.member_entity import MembershipRegistry, get_member_email_from_user_context, get_member_id_from_user_context, get_member_name_from_user_context, is_member_an_admin, FirstTimeUserException, UnregisteredMemberException
+from common.fitness.impersonation import get_impersonated_member_id
 
 def rm_spaces(s):
     return s.replace(' ', '_').lower() if s else s
-
-class UnregisteredMemberException(Exception):
-    def __init__(self):
-        super().__init__("Unregistered member")
-
-def verify_member_registration(user):
-    members_registry = MembershipRegistry()
-    if not members_registry.check_if_member(user['id']):
-        raise FirstTimeUserException()
-    member = members_registry.get_member(user['id'])
-    if member.get('level', 0) == 0:
-        raise UnregisteredMemberException()
-    member['admin'] = is_admin_member(user)
-    return member
-
-def is_admin_member(user):
-    members_registry = MembershipRegistry()
-    member = members_registry.get_member(user['id'])
-    return member.get('level') >= 10
 
 def render_template_string_or_file(template_file=None, template_string=None, **kwargs):
     """
@@ -37,30 +15,40 @@ def render_template_string_or_file(template_file=None, template_string=None, **k
         return render_template(template_file, **kwargs)
 
 def hx_render_template(template_file=None, template_string=None, **kwargs):
-
+    context = kwargs.get('context', None)
     if request.headers.get("HX-Request"):
         return render_template_string_or_file(template_file, template_string, **kwargs)
     else:
-        if kwargs.get('context', None) is not None:
-            user = get_member_detail_from_user_context(kwargs.get('context', None))
+        members_registry = MembershipRegistry()
+        if context:
+            member_id = get_member_id_from_user_context(context)
             try:
-                member = verify_member_registration(user)
+                member = members_registry.verify_member_registration(member_id)
                 kwargs['member'] = member
                 content = render_template_string_or_file(template_file, template_string, **kwargs)
-                return render_template('base.html', content=content, **kwargs)
+                show_admin_menu = is_member_an_admin(member_id)
+                
+                # Add impersonation information for display
+                impersonated_member_id = get_impersonated_member_id()
+                impersonated_member = None
+                if impersonated_member_id:
+                    impersonated_member = members_registry.get_member(impersonated_member_id)
+                
+                return render_template('base.html', content=content, show_admin_menu=show_admin_menu, 
+                                     impersonated_member=impersonated_member, **kwargs)
 
             except UnregisteredMemberException as e:
                 print(f"User not registered exception: {e}")
-                members_registry = MembershipRegistry()
-                member = members_registry.get_member(user['id'])                
+                member = members_registry.get_member(member_id)                
                 kwargs['member'] = member
                 return render_template("unregistered_member.html", **kwargs)
             
             except FirstTimeUserException as e:
                 print(f"First time user exception: {e}")
-                members_registry = MembershipRegistry()
-                members_registry.add_member(user)
-                member = members_registry.get_member(user['id'])
+                member_email = get_member_email_from_user_context(context)
+                member_name = get_member_name_from_user_context(context)
+                members_registry.add_member(member_id, member_email, member_name)
+                member = members_registry.get_member(member_id)
                 kwargs['member'] = member
                 return render_template("first_time_user.html", **kwargs)
         else:
@@ -68,24 +56,8 @@ def hx_render_template(template_file=None, template_string=None, **kwargs):
             # we really should not ever get here, but just in case
             member={"user": "unknown", "admin": False }
             kwargs['member'] = member
-            return render_template('base.html', content=content, **kwargs)
-
-class NotAdminMemberException(Exception):
-    def __init__(self):
-        super().__init__("Not an admin member")
-
-
-def verify_admin_member(user):
-    member = verify_member_registration(user)
-    if member.get('level') == 10:
-        return member
-    else:
-        raise NotAdminMemberException()
-        
-def get_member_id(context):
-    member_id = None
-    user = context.get('user', None)
-    if user:
-        member_id = user.get('sub', None)
-    return member_id
+            show_admin_menu = False
+            impersonated_member = None
+            return render_template('base.html', content=content, show_admin_menu=show_admin_menu, 
+                                 impersonated_member=impersonated_member, **kwargs)
         

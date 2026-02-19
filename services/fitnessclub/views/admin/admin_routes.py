@@ -7,7 +7,8 @@ from common.fitness.active_fitness_registry import _get_filter_terms_from_reques
 from common.env_context import Env
 from common.fitness.entities_getter import delete_entity
 from common.fitness.exercise_entity import render_exercise_popup_viewer_html
-from common.fitness.member_entity import get_member_detail_from_user_context
+from common.fitness.member_entity import get_member_id_from_user_context, get_members_list
+from common.fitness.impersonation import start_impersonation, stop_impersonation, get_impersonated_member_id
 from common.fitness.utils import generate_id
 from common.fitness.hx_common import hx_render_template
 from common.entity_store import EntityStore
@@ -37,8 +38,8 @@ def entities_listing(context=None):
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     filter_terms = _get_filter_terms_from_request()
 
-    member = get_member_detail_from_user_context(context)
-    entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member.get('id', None))
+    member_id = get_member_id_from_user_context(context)
+    entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member_id)
     return render_entity_template(context, entity_name, page, view, page_size, fields_to_display, filter_terms, entities)
 
 def render_entity_template(context, entity_name, page, view, page_size, fields_to_display, filter_terms, entities):
@@ -221,9 +222,10 @@ def update_entity_save_json(context=None, table_id=None):
     if partition_field:
         if partition_field != 'member_id':
             abort(400, "Only Partition field 'member_id' is supported at this time")
-        user = context.get('user', None)
-        if user:
-            member_id = user.get('sub', None)
+            
+        member_id = get_member_id_from_user_context(context)
+        if not member_id:
+            abort(400, "Could not determine member id from user context")
         data['member_id'] = member_id
 
     # if the entity does not have an id, then generate one
@@ -245,5 +247,53 @@ def update_entity_save_json(context=None, table_id=None):
         "showMessage": { "value" : f"item was saved.", "target": "body" }
     })
     response.headers['HX-Redirect'] = f'/admin?entity_table={table_id}'
+    return response
+
+@bp.route('/impersonate_dialog')
+@auth.login_required
+def impersonate_dialog(context=None):
+    members = get_members_list()
+    current_impersonation_id = get_impersonated_member_id()
+    current_impersonated_member = None
+    
+    if current_impersonation_id:
+        current_impersonated_member = next((m for m in members if m.get('id', None) == current_impersonation_id), None)
+    
+    return render_template('impersonate_dialog.html', 
+                         members=members, 
+                         current_impersonation=current_impersonation_id,
+                         current_impersonated_member=current_impersonated_member)
+
+@bp.route('/start_impersonation', methods=['POST'])
+@auth.login_required
+def start_impersonation_route(context=None):
+    member_id = request.form.get('member_id')
+    if member_id:
+        start_impersonation(member_id)
+        selected_member = next((m for m in get_members_list() if m.get('id', None) == member_id), None)
+        member_name = selected_member.get('name', member_id) if selected_member else member_id
+        message = f"Now impersonating {member_name}"
+    else:
+        message = "Please select a member to impersonate"
+    
+    response = make_response('')
+    response.headers['HX-Trigger'] = json.dumps({
+        "showMessage": {"value": message, "target": "body"}
+    })
+    # Redirect to home page to refresh with new impersonation context
+    response.headers['HX-Redirect'] = '/'
+    return response
+
+@bp.route('/stop_impersonation', methods=['POST'])
+@auth.login_required
+def stop_impersonation_route(context=None):
+    stop_impersonation()
+    
+    response = make_response('')
+    response.headers['HX-Trigger'] = json.dumps({
+        "showMessage": {"value": "Stopped impersonation", "target": "body"}
+    })
+    # Redirect to home page to refresh with normal context
+    response.headers['HX-Redirect'] = '/'
     return response
     
