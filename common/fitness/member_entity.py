@@ -55,12 +55,12 @@ def get_member_detail_from_user_context(user_context):
     member['id'] = user.get('sub')
     member['email'] = user.get('emails')[0]
     if user.get('idp', None) == 'google.com':
-        member['name'] = user.get('name')
+        member['name'] = user.get('name', 'unknown')
     else:
         if user.get('name', None) != 'unknown':
-            member['name'] = user.get('name')
+            member['name'] = user.get('name', 'unknown')
         else:
-            member['name'] = member['email']
+            member['name'] = member.get('email', 'unknown')
     
     return member
 
