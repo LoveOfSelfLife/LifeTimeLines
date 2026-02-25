@@ -35,7 +35,7 @@ class PDF_Converter_Command:
         logger.info(f'Conversion completed for message: {self.message_content_obj}')
         return True
     
-    def make_pdf_from_file(html_file, output_pdf):
+    def make_pdf_from_file(self, html_file, output_pdf):
         """Generate a PDF file from an HTML file."""
         try:
             HTML(filename=html_file).write_pdf(output_pdf)
