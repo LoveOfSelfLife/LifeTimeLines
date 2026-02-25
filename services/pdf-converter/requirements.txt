@@ -6,5 +6,8 @@ azure-data-tables==12.4.2
 python-dotenv==0.21.1
 jsonify>=0.5
 requests>=2.27
+pandas>=1.2
 datetimerange>=2.1.0
+flask==2.0.2
+Werkzeug==2.2.2
 
