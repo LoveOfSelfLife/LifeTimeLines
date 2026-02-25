@@ -45,7 +45,6 @@ docker build -t $CONTAINER_REGISTRY/$APP:$VERSION  \
              --build-arg BUILD_DATE="$BUILD_DATE" \
              --build-arg BUILD_COMMIT=$BUILD_COMMIT \
              --build-arg BUILD_BRANCH=$BUILD_BRANCH \
-             --build-arg app=fitnessclub \
              -t ${APP}:${VERSION_TAG} \
              --file ${DF} \
              --build-arg app=${APP} .
