@@ -11,7 +11,8 @@ from common.share_client import FShareService
 from common.table_store import TableStore
 from common.graceful_exit import GracefulExit
 from common.auth_requestor import AuthRequestor
-
+from weasyprint import HTML
+import sys
 
 class PDF_Converter_Command:
     def __init__(self, message_content_obj, token):
@@ -24,9 +25,23 @@ class PDF_Converter_Command:
         logger = logging.getLogger(__name__)
         logger.info(f'Converting HTML to PDF with token')
         # Simulate conversion process
+
+        input = self.message_content_obj.get('input')
+        output = self.message_content_obj.get('output')
+
+        self.make_pdf_from_file(input, output)
+
         time.sleep(2)
         logger.info(f'Conversion completed for message: {self.message_content_obj}')
         return True
+    
+    def make_pdf_from_file(html_file, output_pdf):
+        """Generate a PDF file from an HTML file."""
+        try:
+            HTML(filename=html_file).write_pdf(output_pdf)
+            logger.info(f"Successfully created PDF: {output_pdf}")
+        except Exception as e:
+            logger.error(f"An error occurred: {e}")
 
 
 def main() -> None:

@@ -1,6 +1,22 @@
 # For more information, please refer to https://aka.ms/vscode-docker-python
 FROM python:3.11
 
+
+# Install system dependencies required by WeasyPrint
+# Pango, Cairo, and libffi are crucial for text and graphics rendering
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpango-1.0-0 \
+    libpangoft2-1.0-0 \
+    libharfbuzz-subset0 \
+    libcairo2 \
+    libgdk-pixbuf-xlib-2.0-0 \
+    libffi-dev \
+    shared-mime-info \
+    python3-dev \
+    libpq-dev \
+    && apt-get clean && rm -rf /var/cache/apt/*
+
 # EXPOSE 5002
 
 # Keeps Python from generating .pyc files in the container
