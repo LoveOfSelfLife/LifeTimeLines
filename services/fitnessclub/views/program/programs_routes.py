@@ -17,7 +17,7 @@ from common.fitness.member_program_entity import MemberProgramEntity
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout
 from common.fitness.programs import get_program_workouts
 from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state
-from services.fitnessclub.views.workouts.workout_routes import edit_workout_object
+from common.fitness.edit_workout_object import edit_workout_object
 bp = Blueprint('program', __name__, template_folder='templates')
 from auth import auth
 

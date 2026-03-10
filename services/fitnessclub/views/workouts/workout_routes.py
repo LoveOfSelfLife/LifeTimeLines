@@ -9,6 +9,7 @@ from common.fitness.hx_common import hx_render_template
 from common.fitness.hx_common import rm_spaces
 from common.fitness.member_entity import get_member_id_from_user_context
 from common.fitness.member_workout_entity import WorkoutDefinitionEntity, get_exercises_from_workout
+from common.fitness.edit_workout_object import edit_workout_object
 from common.fitness.workout_state import get_active_workout_state, update_active_workout_state
 bp = Blueprint('workouts', __name__, template_folder='templates')
 from auth import auth
@@ -123,16 +124,6 @@ def filter_dialog(context=None):
                               args=request.args,
                               context=context)
 
-
-def edit_workout_object(workout_obj):
-    workout_editor_context = get_cache_value('workout_editor_context') or {}
-    if workout_editor_context.get('editing_program_workout', None) is not None:
-        program_workout_obj = workout_editor_context['editing_program_workout']
-        set_cache_value('current_workout', program_workout_obj)
-        return redirect(url_for('workouts.builder', workout_id=program_workout_obj['id'], editing_program_workout=True))
-    else:
-        set_cache_value('current_workout', workout_obj)
-        return redirect(url_for('workouts.builder', workout_id=workout_obj['id']))
 
 @bp.route('/edit')
 @auth.login_required

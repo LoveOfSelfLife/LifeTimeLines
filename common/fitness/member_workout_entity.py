@@ -1,3 +1,4 @@
+
 from common.entity_store import EntityObject
 from common.fitness.entities_getter import get_entity
 
@@ -72,5 +73,7 @@ def get_exercises_from_workout(workout):
                 ex['parameters'] = it['parameters']
                 exercises.append(ex)
     return exercises
+
+
 
         
