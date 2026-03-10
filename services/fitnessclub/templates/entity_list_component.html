@@ -11,8 +11,7 @@
             <button class="btn btn-dark btn-sm"
                 hx-get="{{ entity_add_route}}"
                 hx-target="#{{ main_content_container }}"
-                hx-swap="innerHTML"
-                hx-push-url="{{ entity_add_route }}">
+                hx-swap="innerHTML">
                 Add New {{ entity_display_name }}
             </button>
             {% endif %}
