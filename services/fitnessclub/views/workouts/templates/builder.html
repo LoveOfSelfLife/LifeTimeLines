@@ -81,18 +81,31 @@
               + Add Exercise
             </button>
             <button class="btn btn-sm btn-success mt-auto"
-                  hx-post="{{ url_for('workouts.save_workout', workout_id=workout.id) }}"
+                  {% if not editing_program_workout %}
+                      hx-post="{{ url_for('workouts.save_workout', workout_id=workout.id) }}"
+                  {% else %}
+                      hx-post="{{ url_for('workouts.save_program_workout', workout_id=workout.id) }}"
+                  {% endif %}
                   hx-vals='{"workout_id":"{{ workout.id }}"}'
                   hx-target="#content"
                   hx-swap="innerHTML">
               Save
             </button>
-            <button class="btn btn-sm btn-success mt-auto" 
-                    hx-post="{{ url_for('workouts.save_workout_copy', workout_id=workout.id) }}"
-                    hx-target="#content"
-                    hx-confirm="Create a copy of '{{ workout.name }}'?">
-              Copy
-            </button>
+            {% if not editing_program_workout %}
+              <button class="btn btn-sm btn-success mt-auto" 
+                      hx-post="{{ url_for('workouts.save_workout_copy', workout_id=workout.id) }}"
+                      hx-target="#content"
+                      hx-confirm="Create a copy of '{{ workout.name }}'?">
+                Copy
+              </button>
+            {% endif %}
+            <button class="btn btn-sm btn-success mt-auto"
+                  hx-post="{{ url_for('workouts.cancel_editing_workout', workout_id=workout.id) }}"
+                  hx-vals='{"workout_id":"{{ workout.id }}"}'
+                  hx-target="#content"
+                  hx-swap="innerHTML">
+              Cancel & Exit
+            </button>            
         </div>
         <div id="canvas"
             hx-get="{{ url_for('workouts.workout_canvas', workout_id=workout.id) }}"

@@ -15,7 +15,9 @@ from common.fitness.member_entity import MembershipRegistry, get_member_id_from_
 from common.fitness.member_exercise_history import extract_and_load_exercise_events_from_workout_instance
 from common.fitness.member_program_entity import MemberProgramEntity
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout
+from common.fitness.programs import get_program_workouts
 from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state
+from services.fitnessclub.views.workouts.workout_routes import edit_workout_object
 bp = Blueprint('program', __name__, template_folder='templates')
 from auth import auth
 
@@ -391,16 +393,8 @@ def get_workouts_from_program(program):
     # in the 1.0 data model, the workouts are stored as embedded objects in the program
     # in the 2.0 data model, the workouts are stored as separate entities in the MemberWorkoutDefinitionTable, where 
     # those entities have a member_program_id field that references the program they belong to
-    workouts = []
-
-    es = EntityStore()
-    # wondering here if we can use the EntityCache?  
-    # TODO:  analyze if the cache is an eligible option
-    mbr_workout_definitions = list(es.list_items(MemberWorkoutDefinitionEntity({"member_id": program['member_id']})))
-    workouts = [w for w in mbr_workout_definitions if w.get('member_program_id', None)==program['id']]
-    # sort workouts by order_index
+    workouts = get_program_workouts(program, program['member_id'])
     workouts = sorted(workouts, key=lambda x: x.get('order_index', 0))
-    
     return workouts
 
 @bp.route('/builder/<program_id>/save', methods=['POST'])
@@ -511,6 +505,30 @@ def save_copy_of_program(context=None, program_id=None):
         })
     response.headers['HX-Redirect'] = url_for('program.index')
     return response
+
+
+@bp.route('/builder/<program_id>/edit', methods=['POST'])
+@auth.login_required
+def edit_workout(context=None, program_id=None):
+
+    current_program_workouts = get_cache_value('current_program_workouts')
+    wk_id = request.form['workout_id']
+
+    # we need to keep track of the workout that is being removed so we can unlink it from the program when we save the program
+    # so first find the workout to unlink from the program
+    workout_to_edit = next((wk for wk in current_program_workouts if wk.get('id', None) == wk_id), None)
+    set_cache_value('workout_editor_context', { 'editing_program_workout': workout_to_edit,
+                                                'program_id': program_id } )
+    return edit_workout_object(workout_to_edit)
+
+    # workout_to_edit['member_program_id'] = None  # unlink from program
+
+    # now remove that workout from the current_program_workouts list
+    # current_program_workouts = [it for it in current_program_workouts if it['id']!=wk_id]
+
+    set_cache_value('current_program_workouts', current_program_workouts)
+
+    return program_canvas2(context, program_id)
 
 
 @bp.route('/builder/<program_id>/remove', methods=['POST'])

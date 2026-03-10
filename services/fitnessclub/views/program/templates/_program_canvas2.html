@@ -44,6 +44,14 @@
               </div>
               <button
                 class="btn btn-link btn-sm text-danger p-0"
+                hx-post="{{ url_for('program.edit_workout', program_id=program.id) }}"
+                hx-vals='{"workout_id":"{{ workout.id }}"}'
+                hx-target="#entities-container"
+                hx-swap="innerHTML"
+                title="Edit Workout"
+              >Edit</button>
+              <button
+                class="btn btn-link btn-sm text-danger p-0"
                 hx-post="{{ url_for('program.remove_workout', program_id=program.id) }}"
                 hx-vals='{"workout_id":"{{ workout.id }}"}'
                 hx-target="#program-canvas"

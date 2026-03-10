@@ -20,13 +20,13 @@ def get_members_current_active_program(member_id, current_date_dt=None):
         if start_date and end_date:
             if start_date <= current_date_dt <= end_date:
                 # only return the program if it has workouts
-                workouts_in_program = get_workouts_in_program(program, member_id)
+                workouts_in_program = get_program_workouts(program, member_id)
                 if workouts_in_program:
                         print(f"Found active program for member {member_id}: {program}")
                         return program
     return None
 
-def get_workouts_in_program(program, member_id):
+def get_program_workouts(program, member_id):
 
     # in the new data model, all workouts are stored as MemberWorkoutDefinitionEntity entities
     member_workouts = get_filtered_entities("MemberWorkoutDefinitionTable", partition_key=member_id)
@@ -50,7 +50,7 @@ def get_next_workout_in_program(program, member_id):
     
 
     # first make sure that there are workouts in the program, return None if there are none
-    workouts_in_program = get_workouts_in_program(program, member_id)
+    workouts_in_program = get_program_workouts(program, member_id)
     if not workouts_in_program:
         return None  # No workouts in the program
 

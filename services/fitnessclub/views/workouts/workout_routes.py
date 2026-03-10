@@ -115,7 +115,7 @@ def filter_dialog(context=None):
     filters = get_fitnessclub_entity_filters_for_entity(entity_name)
 
     return hx_render_template('filter_dialog.html', 
-                              entities_listing_route=f'/workouts/builder/exercises?entity_table={entity_name}&target={target}&workout_id={workout_id}',
+                              entities_listing_route=f'/workouts/builder/exercises?target={target}&workout_id={workout_id}',
                               filter_results_target=target,
                               entity_display_name=entity_type.get_display_name(),                              
                               entity_name=entity_name,
@@ -124,22 +124,28 @@ def filter_dialog(context=None):
                               context=context)
 
 
+def edit_workout_object(workout_obj):
+    workout_editor_context = get_cache_value('workout_editor_context') or {}
+    if workout_editor_context.get('editing_program_workout', None) is not None:
+        program_workout_obj = workout_editor_context['editing_program_workout']
+        set_cache_value('current_workout', program_workout_obj)
+        return redirect(url_for('workouts.builder', workout_id=program_workout_obj['id'], editing_program_workout=True))
+    else:
+        set_cache_value('current_workout', workout_obj)
+        return redirect(url_for('workouts.builder', workout_id=workout_obj['id']))
+
 @bp.route('/edit')
 @auth.login_required
 def edit_workout_details(context=None):
-    entity_instance = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
-
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
-    entity_to_view = es.get_item_by_composite_key(composite_key)
-    entity_type = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
-    entity_type.initialize(entity_to_view)
-    print(f"editing workoug: {json.dumps(entity_to_view, indent=4)}")
-    set_cache_value('current_workout', entity_type)
+    w = es.get_item_by_composite_key(composite_key)
+    workout_to_edit = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
+    workout_to_edit.initialize(w)
+    # print(f"editing workoug: {json.dumps(workout_to_edit, indent=4)}")
+    return edit_workout_object(workout_to_edit)
     
-    return redirect(url_for('workouts.builder', workout_id=entity_type['id']))
-
 @bp.route('/copy', methods=['POST'])
 @auth.login_required
 def copy_workout(context=None):
@@ -167,16 +173,13 @@ def copy_workout(context=None):
     workout_entity = WorkoutDefinitionEntity(copied_workout)
     es.upsert_item(workout_entity)
     
-    # Redirect to edit the copy
-    return redirect(url_for('workouts.builder', workout_id=copied_workout['id']))
+    return edit_workout_object(workout_entity)
 
 @bp.route('/builder/new')
 @auth.login_required
 def builder_new(context=None):
     w = new_workout()
-    set_cache_value('current_workout', w)
-
-    return redirect(url_for('workouts.builder', workout_id=w['id']))
+    return edit_workout_object(w)
 
 # ── Main Builder View ─────────────────────────────────────────────
 @bp.route('/builder/<workout_id>')
@@ -184,22 +187,13 @@ def builder_new(context=None):
 def builder(context=None, workout_id=None):
 
     workout = get_cache_value('current_workout')
+    editing_program_workout = request.args.get('editing_program_workout', None)
+
     if workout and workout['id'] == workout_id:
-            return hx_render_template('builder.html', workout=workout, context=context, source='exercises')
+            return hx_render_template('builder.html', workout=workout, context=context, source='exercises', editing_program_workout=editing_program_workout)
 
-    entity_type = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
-    entity_type['id'] = workout_id
-    es = EntityStore()
-    workout = es.get_item(entity_type)
-    if not workout:
-        abort(404)
-
-    set_cache_value('current_workout', workout)
-    return hx_render_template('builder.html', workout=workout, context=context, source='exercises')
 
 # ── Fragments ────────────────────────────────────────────────────
-
-    
 @bp.route('/builder/<workout_id>/canvas')
 @auth.login_required
 def workout_canvas(context=None, workout_id=None):
@@ -211,11 +205,12 @@ def workout_canvas2(context=None, workout_id=None):
         wrkout_exercises = get_exercises_from_workout(w)
         exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
 
-        if w['id'] == workout_id:
-            return hx_render_template('_workout_canvas.html',
-                                        workout=w,
-                                        exercises=exercises, context=context)
-    abort(404)
+        # if w['id'] == workout_id:
+        return hx_render_template('_workout_canvas.html',
+                                    workout=w,
+                                    exercises=exercises, context=context)
+    else:
+        abort(404)
 
 # ── Actions ──────────────────────────────────────────────────────
 
@@ -427,6 +422,42 @@ def save_workout(context=None, workout_id=None):
     response.headers['HX-Redirect'] = url_for('workouts.index')
     return response
 
+@bp.route('/builder/<workout_id>/cancel-editing', methods=['POST'])
+@auth.login_required
+def cancel_editing_workout(context=None, workout_id=None):
+    editing_program_workout = get_cache_value('workout_editor_context')
+    if editing_program_workout and editing_program_workout.get('editing_program_workout', None) is not None:
+        delete_from_cache('workout_editor_context')
+        return redirect(url_for('program.builder'))
+    else:
+        delete_from_cache('current_workout')
+        return redirect(url_for('workouts.index'))
+
+# this is the route we use to save a workout that is part of a program, i.e. a workout that is being edited from within the program view. 
+# When we save a workout from within the program view we want to replace the workout in the cached list of program workouts with the newly saved workout, 
+# so that when we return to the program view the updated workout is displayed in the program canvas.
+# we also do NOT want to persist this workout yet, because the workout is still being edited within the program and we only want to persist the workout when the user saves the program.
+@bp.route('/builder/<workout_id>/save-program-workout', methods=['POST'])
+@auth.login_required
+def save_program_workout(context=None, workout_id=None):
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+    
+    workout = get_cache_value('current_workout')
+    if not workout or workout['id'] != workout_id:
+        abort(404)
+
+    current_program_workouts = get_cache_value('current_program_workouts')
+
+    for idx, wk in enumerate(current_program_workouts):
+        if wk['id'] == workout_id:
+            current_program_workouts[idx] = workout  # replace the workout in the cached list of program workouts with the newly saved workout
+            set_cache_value('current_program_workouts', current_program_workouts)  # update the cache with the modified list of program workouts
+            break
+    delete_from_cache('workout_editor_context') # clear the workout editor context from the cache since we are done editing the workout within the program context
+    return redirect(url_for('program.builder'))
+
 @bp.route('/builder/<workout_id>/save_copy', methods=['POST'])
 @auth.login_required
 def save_workout_copy(context=None, workout_id=None):
@@ -524,6 +555,9 @@ def exercise_listing(context=None):
                               entity_action_label='Add Exercise',
                               results_target_container=target if target else 'results-area',
                               context=context)      
+
+########################################
+# displays the workouts library within the workout builder
 
 @bp.route('/builder/workouts-listing', methods=['GET', 'POST'])
 @auth.login_required
