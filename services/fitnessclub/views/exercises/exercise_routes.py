@@ -1,5 +1,6 @@
 from ast import literal_eval
 import json
+from urllib import response
 from flask import Blueprint, abort, make_response, redirect, render_template, request, session, url_for, jsonify
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
@@ -152,6 +153,7 @@ def new_exercise(context=None):
                          is_new=True,
                          schema=exercise_schema,
                          save_url='/exercises/save',
+                         cancel_url='/exercises/cancel',
                          context=context)
 
 @bp.route('/edit')
@@ -237,6 +239,7 @@ def edit_exercise(context=None):
                          is_new=False,
                          schema=exercise_schema,  
                          save_url=f'/exercises/save/{exercise_id}',
+                         cancel_url=f'/exercises/cancel',
                          context=context)
 
 @bp.route('/save', methods=['POST'])
@@ -317,7 +320,7 @@ def save_exercise(exercise_id=None, context=None):
             # Create new exercise
             es.upsert_item(exercise)
         
-        response = make_response('')
+        response = make_response('{}')
         response.headers['HX-Trigger'] = json.dumps({
             "eventListChanged": { "target": "body" },
                 "showMessage": { 
@@ -336,3 +339,21 @@ def save_exercise(exercise_id=None, context=None):
             return jsonify({"success": False, "error": str(e)}), 400
         else:
             abort(500, f"Error saving exercise: {str(e)}")
+
+@bp.route('/cancel', methods=['POST'])
+@auth.login_required
+def cancel_exercise(exercise_id=None, context=None):
+    """cancel editing exercise and redirect to listing"""
+
+    response = make_response('{}')
+    # response.headers['content-type'] = 'application/json'
+    response.headers['HX-Trigger'] = json.dumps({
+        "eventListChanged": { "target": "body" },
+            "showMessage": { 
+            "target": "body",
+            "value": "canceled." }
+        })
+    response.headers['HX-Redirect'] = url_for('exercises.exercises_listing')
+
+    return response
+
