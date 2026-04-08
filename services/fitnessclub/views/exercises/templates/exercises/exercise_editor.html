@@ -50,7 +50,7 @@
               <!-- Level -->
               <div class="col-md-4">
                 <label for="level" class="form-label fw-bold">Level *</label>
-                <select class="form-select" id="level" name="level" required>
+                <select class="form-select" id="level" name="level" >
                   {% set levels = ['beginner', 'intermediate', 'advanced', 'expert'] %}
                   {% for level in levels %}
                     <option value="{{ level }}" {% if exercise.level == level %}selected{% endif %}>
@@ -63,7 +63,7 @@
               <!-- Force Type -->
               <div class="col-md-4">
                 <label for="force" class="form-label fw-bold">Force Type *</label>
-                <select class="form-select" id="force" name="force" required>
+                <select class="form-select" id="force" name="force" >
                   {% set forces = ['push', 'pull', 'static'] %}
                   {% for force in forces %}
                     <option value="{{ force }}" {% if exercise.force == force %}selected{% endif %}>
@@ -76,7 +76,7 @@
               <!-- Mechanic -->
               <div class="col-md-4">
                 <label for="mechanic" class="form-label fw-bold">Mechanic *</label>
-                <select class="form-select" id="mechanic" name="mechanic" required>
+                <select class="form-select" id="mechanic" name="mechanic" >
                   {% set mechanics = ['compound', 'isolation'] %}
                   {% for mech in mechanics %}
                     <option value="{{ mech }}" {% if exercise.mechanic == mech %}selected{% endif %}>
@@ -90,7 +90,7 @@
             <!-- Instructions -->
             <div class="mb-4">
               <label for="instructions" class="form-label fw-bold">Instructions *</label>
-              <textarea class="form-control" id="instructions" name="instructions" rows="6" required 
+              <textarea class="form-control" id="instructions" name="instructions" rows="6"  
                         placeholder="Detailed instructions for performing this exercise...">{{ exercise.instructions }}</textarea>
             </div>
 
@@ -104,7 +104,7 @@
             <div class="row mb-3">
               <div class="col-md-6">
                 <label for="equipment" class="form-label fw-bold">Equipment Type *</label>
-                <select class="form-select" id="equipment" name="equipment" required>
+                <select class="form-select" id="equipment" name="equipment" >
                   {% set equipment_types = ['bodyweight', 'machine', 'kettlebells', 'dumbbell', 'cable', 'barbell', 'bands', 'medicine_ball', 'exercise_ball', 'e_z_curl_bar', 'foam_roll'] %}
                   {% for eq in equipment_types %}
                     <option value="{{ eq }}" {% if exercise.equipment == eq %}selected{% endif %}>
@@ -132,7 +132,7 @@
             <div class="row mb-4">
               <div class="col-md-6">
                 <label for="setCompletionMeasure" class="form-label fw-bold">Completion Measure *</label>
-                <select class="form-select" id="setCompletionMeasure" name="setCompletionMeasure" required>
+                <select class="form-select" id="setCompletionMeasure" name="setCompletionMeasure" >
                   {% set measures = ['reps', 'time', 'distance', 'calories'] %}
                   {% for measure in measures %}
                     <option value="{{ measure }}" {% if exercise.setCompletionMeasure == measure %}selected{% endif %}>
@@ -333,7 +333,7 @@
               <div class="col-12">
                 <hr class="my-4">
                 <div class="d-flex flex-column flex-sm-row justify-content-between gap-3">
-                  <button type="button" class="btn btn-secondary order-2 order-sm-1" onclick="history.back()">
+                  <button type="button" class="btn btn-secondary order-2 order-sm-1" hx-post="{{ cancel_url }}" hx-target="#form-messages" hx-swap="innerHTML"">
                     <i class="bi bi-arrow-left me-1"></i>Cancel
                   </button>
                   <button type="submit" class="btn btn-primary btn-lg order-1 order-sm-2">
@@ -429,8 +429,9 @@ if (!window.exerciseEditorInitialized) {
       // Handle successful form submission
       form.addEventListener('htmx:afterRequest', function(e) {
         if (e.detail.xhr.status === 200) {
-          const response = JSON.parse(e.detail.xhr.responseText);
-          if (response.success) {
+          // const response = JSON.parse(e.detail.xhr.responseText);
+          // if (response.success) {
+          if (true) {
             showEditorToast('Exercise saved successfully!');
             setTimeout(() => {
               window.location.href = '/exercises/';
