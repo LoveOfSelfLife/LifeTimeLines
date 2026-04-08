@@ -598,7 +598,7 @@ def builder_workouts_listing(context=None):
         page=page,
         view=view,
         total_pages=total_pages,
-        entities_listing_route=f'/workouts/builder/workouts-listing?entity_table={entity_name}&target={target}',
+        entities_listing_route=f'/workouts/builder/workouts-listing?entity_table={entity_name}&target={target}&workout_id={workout_id}',
         entity_view_route=f'/workouts/viewer/workout?entity_table={entity_name}',
         entity_action_route=f'/workouts/builder/{workout_id}/add_workout?entity_table={entity_name}',
         entity_action_route_method='post',
