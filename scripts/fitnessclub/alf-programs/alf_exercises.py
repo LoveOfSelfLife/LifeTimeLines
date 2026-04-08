@@ -52,9 +52,36 @@ def modify_alf_program_names():
     else:
         print("No programs to rename.")
 
+def export_exercises_to_csv():
+    # export all exercises to a CSV file using pipe '|' delimeter, with columns: id, name, description, category, force type, physical fitness component, primary muscles, origin
+
+    es = EntityStore()
+    exercises = list(es.list_items(ExerciseEntity()))
+    with open('exercises_export.csv', 'w') as f:
+        f.write('id|name|description|category|force_type|physical_fitness_component|primary_muscles|equipment|set_completion_measure|origin\n')
+        for exercise in exercises:
+            id = exercise.get('id', '')
+            name = exercise.get('name', '').replace('|', ' ')
+            # only keep the first 200 characters of the description to avoid excessively long entries in the CSV
+            # also remove any newlines or carriage returns or pipe characters from the description to avoid breaking the CSV format
+            description = exercise.get('instructions', '').replace('|', ' ').replace('\n', ' ').replace('\r', ' ')[:200]
+            category = exercise.get('category', '').replace('|', ' ')
+            force = exercise.get('force', '').replace('|', ' ') if exercise.get('force', '') else ''
+            physical_fitness_components = exercise.get('physical_fitness_components', [])
+            physical_fitness_components = ','.join(physical_fitness_components).replace('|', ' ') if physical_fitness_components else ''
+            primaryMuscles = exercise.get('primaryMuscles', [])
+            primaryMuscles = ','.join(primaryMuscles).replace('|', ' ') if primaryMuscles else ''
+            equipment = exercise.get('equipment', '')
+            setCompletionMeasure = exercise.get('setCompletionMeasure', '').replace('|', ' ')
+            origin = exercise.get('origin', '')
+            s = f"{id}|{name}|{description}|{category}|{force}|{physical_fitness_components}|{primaryMuscles}|{equipment}|{setCompletionMeasure}|{origin}\n"
+            f.write(s)
+    print(f"Exported {len(exercises)} exercises to exercises_export.csv")
+
 if __name__ == '__main__':
     # Initialize the environment and r
     init()
     # list_alf_exercises()
     # list_alf_programs()
-    modify_alf_program_names()
+    # modify_alf_program_names()
+    export_exercises_to_csv()
