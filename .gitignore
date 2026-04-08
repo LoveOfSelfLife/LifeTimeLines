@@ -197,3 +197,4 @@ cython_debug/
 #.idea/
 __azurite_db_blob__.json
 __azurite_db_blob_extent__.json
+scripts/fitnessclub/alf-programs/exercises_export.csv
