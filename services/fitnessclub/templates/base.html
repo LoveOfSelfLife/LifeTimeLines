@@ -70,6 +70,17 @@
             </a>
           </li>
 
+          <li class="nav-item">
+            <a class="nav-link" hx-get="/admin?entity_table=MemberTable" hx-target="#content" hx-swap="innerHTML">
+              Members
+            </a>
+          </li> 
+          <li class="nav-item">
+            <a class="nav-link" hx-get="/admin/profile" hx-target="#content" hx-swap="innerHTML">
+              Members2
+            </a>
+          </li>                    
+
       {% if member.admin %}
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" id="adminDropdown" role="button" data-bs-toggle="dropdown">

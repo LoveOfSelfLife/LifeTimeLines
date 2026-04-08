@@ -21,6 +21,11 @@ def root(context=None):
     entity_table = request.args.get('entity_table')    
     return redirect(url_for('admin.entities_listing', entity_table=entity_table), 302)
 
+@bp.route('/profile')
+@auth.login_required
+def profile(context=None):
+    return redirect(url_for('admin.entities_listing', entity_table='MemberTable'), 302)
+
 @bp.route('/entities-listing', methods=['GET', 'POST'])
 @auth.login_required
 def entities_listing(context=None):
