@@ -24,12 +24,20 @@ from auth import auth
 @bp.route('/')
 @auth.login_required
 def index(context=None):
-    return redirect(url_for('program.programs_listing'), 302)
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+    return programs_listing2(context)
 
 @bp.route('/programs-listing', methods=['GET', 'POST'])
 @auth.login_required
 def programs_listing(context=None):
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+    return programs_listing2(context)
 
+def programs_listing2(context=None):
     entity_name = PROGRAM_ENTITY_NAME
     page = int(request.args.get('page', 1))
     page_size = 100
@@ -432,15 +440,48 @@ def save_program(context=None, program_id=None):
     delete_from_cache('current_program_workouts')
     delete_from_cache('workouts_to_remove')
 
-    response = make_response('')
+
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+    response = make_response(programs_listing2(context))
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": { "target": "body" },
             "showMessage": { 
             "target": "body",
             "value": "program saved." }
         })
-    response.headers['HX-Redirect'] = url_for('program.index')
     return response
+
+@bp.route('/builder/<program_id>/cancel', methods=['POST'])
+@auth.login_required
+def cancel_editing_program(context=None, program_id=None):
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)    
+
+    current_program = get_cache_value('current_program')
+    if current_program:
+        if current_program['id'] != program_id:
+            abort(404)
+
+    es = EntityStore()
+
+
+    delete_from_cache('current_program')
+    delete_from_cache('current_program_workouts')
+    delete_from_cache('workouts_to_remove')
+
+
+    response = make_response(programs_listing2(context))
+    response.headers['HX-Trigger'] = json.dumps({
+        "eventListChanged": { "target": "body" },
+            "showMessage": { 
+            "target": "body",
+            "value": "program editing canceled." }
+        })
+    return response
+
 
 @bp.route('/builder/<program_id>/save_copy', methods=['POST'])
 @auth.login_required
@@ -496,16 +537,19 @@ def save_copy_of_program(context=None, program_id=None):
     delete_from_cache('current_program_workouts')
     delete_from_cache('workouts_to_remove')
 
-    response = make_response('')
+
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+    
+    response = make_response(programs_listing2(context))
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": { "target": "body" },
             "showMessage": { 
             "target": "body",
             "value": "copy of program saved." }
         })
-    response.headers['HX-Redirect'] = url_for('program.index')
     return response
-
 
 @bp.route('/builder/<program_id>/edit', methods=['POST'])
 @auth.login_required

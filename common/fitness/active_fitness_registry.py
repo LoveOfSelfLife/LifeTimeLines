@@ -125,3 +125,15 @@ def _get_filter_terms_from_request():
     
     return filter_terms   
 
+
+def parse_listing_filter(filter_param):
+
+        # if filter_param is present and is a string, need to convert it to a python object
+        # using ast.literal_eval
+    if filter_param and isinstance(filter_param, str):
+        import ast
+        current_listing_filter = ast.literal_eval(filter_param)
+    else:
+        current_listing_filter = []
+    return current_listing_filter
+

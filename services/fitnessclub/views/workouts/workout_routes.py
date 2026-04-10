@@ -43,14 +43,25 @@ def new_workout(name='New Workout'):
 @bp.route('/')
 @auth.login_required
 def index(context=None):
-    return redirect(url_for('workouts.workouts_listing'), 302)
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+    page = int(request.args.get('page', 1))
+    filter_terms = _get_filter_terms_from_request()    
+    return workouts_listing2(context, page, filter_terms)
 
-    
 @bp.route('/workouts-listing', methods=['GET', 'POST'])
 @auth.login_required
 def workouts_listing(context=None):
-    entity_name = WORKOUT_ENTITY_NAME
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
     page = int(request.args.get('page', 1))
+    filter_terms = _get_filter_terms_from_request()
+    return workouts_listing2(context, page, filter_terms)
+
+def workouts_listing2(context=None, page=1, filter_terms=[]):
+    entity_name = WORKOUT_ENTITY_NAME
     member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
@@ -64,7 +75,6 @@ def workouts_listing(context=None):
         session['view_preference'] = view
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
-    filter_terms = _get_filter_terms_from_request()
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
     return workouts_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities)
 
@@ -181,7 +191,7 @@ def builder(context=None, workout_id=None):
     editing_program_workout = request.args.get('editing_program_workout', None)
 
     if workout and workout['id'] == workout_id:
-            return hx_render_template('builder.html', workout=workout, context=context, source='exercises', editing_program_workout=editing_program_workout)
+            return hx_render_template('workout_builder.html', workout=workout, context=context, source='exercises', editing_program_workout=editing_program_workout)
 
 
 # ── Fragments ────────────────────────────────────────────────────
@@ -403,14 +413,17 @@ def save_workout(context=None, workout_id=None):
 
     delete_from_cache('current_workout')
 
-    response = make_response('')
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+
+    response = make_response(workouts_listing2(context))
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": { "target": "body" },
             "showMessage": { 
             "target": "body",
             "value": "workout saved." }
-        })
-    response.headers['HX-Redirect'] = url_for('workouts.index')
+        })     
     return response
 
 @bp.route('/builder/<workout_id>/cancel-editing', methods=['POST'])
@@ -474,15 +487,20 @@ def save_workout_copy(context=None, workout_id=None):
 
     delete_from_cache('current_workout')
 
-    response = make_response('')
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+    
+    response = make_response(workouts_listing2(context))
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": { "target": "body" },
             "showMessage": { 
             "target": "body",
             "value": "copy of workout saved." }
         })
-    response.headers['HX-Redirect'] = url_for('workouts.index')
     return response
+
+
 ########################################
 # displays the exercise library within the workout builder
 

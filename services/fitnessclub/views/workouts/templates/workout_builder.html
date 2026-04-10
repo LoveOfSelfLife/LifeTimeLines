@@ -88,13 +88,14 @@
                   {% endif %}
                   hx-vals='{"workout_id":"{{ workout.id }}"}'
                   hx-target="#entities-container"
-                  hx-swap="innerHTML">
+                  hx-swap="innerHTML show:top">
               Save
             </button>
             {% if not editing_program_workout %}
               <button class="btn btn-sm btn-success mt-auto" 
                       hx-post="{{ url_for('workouts.save_workout_copy', workout_id=workout.id) }}"
                       hx-target="#entities-container"
+                      hx-swap="show:top"
                       hx-confirm="Create a copy of '{{ workout.name }}'?">
                 Copy
               </button>
@@ -103,14 +104,14 @@
                   hx-post="{{ url_for('workouts.cancel_editing_workout', workout_id=workout.id) }}"
                   hx-vals='{"workout_id":"{{ workout.id }}"}'
                   hx-target="#entities-container"
-                  hx-swap="innerHTML">
+                  hx-swap="innerHTML show:top">
               Cancel & Exit
             </button>            
         </div>
         <div id="canvas"
             hx-get="{{ url_for('workouts.workout_canvas', workout_id=workout.id) }}"
             hx-trigger="load"
-            hx-swap="innerHTML">
+            hx-swap="innerHTML show:top">
           Loading…
         </div>
 

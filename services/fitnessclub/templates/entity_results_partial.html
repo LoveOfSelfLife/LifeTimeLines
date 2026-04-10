@@ -45,7 +45,7 @@
 
                         {% if entity_action_route %}
                             <button class="btn btn-sm btn-outline-light"
-                                hx-{{ action_method }}="{{ entity_action_route }}&key={{ entity.key }}"
+                                hx-{{ action_method }}="{{ entity_action_route }}&key={{ entity.key }}&page={{ page }}&filter={{ filter_terms }}"
                                 hx-target="#{{ action_target }}"
                                 hx-swap="innerHTML show:top">
                                 <i class="bi {{ entity_action_icon}}"></i>
@@ -119,7 +119,7 @@
                     {% if entity_action_route %}
                     <td class="text-center">
                         <button class="btn btn-sm btn-outline-light"
-                            hx-{{ action_method }}="{{ entity_action_route }}&key={{ entity.key }}"
+                            hx-{{ action_method }}="{{ entity_action_route }}&key={{ entity.key }}&page={{ page }}&filter={{ filter_terms }}"
                             hx-target="#{{ action_target }}"
                             hx-swap="innerHTML show:top">
                             <i class="bi {{ entity_action_icon}}"></i>

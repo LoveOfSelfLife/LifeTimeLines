@@ -4,6 +4,7 @@ from urllib import response
 from flask import Blueprint, abort, make_response, redirect, render_template, request, session, url_for, jsonify
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
+from common.fitness.active_fitness_registry import parse_listing_filter
 from common.fitness.entities_getter import get_entities
 from common.fitness.exercise_entity import ExerciseEntity, render_exercise_popup_viewer_html
 from common.fitness.hx_common import hx_render_template
@@ -17,18 +18,28 @@ from auth import auth
 @bp.route('/')
 @auth.login_required
 def root(context=None):
-    return redirect(url_for('exercises.exercises_listing'), 302)
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+    page = int(request.args.get('page', 1))
+    filter_terms = _get_filter_terms_from_request()
+
+    return exercises_listing2(context, page=page, filter_terms=filter_terms)
 
 @bp.route('/exercises-listing', methods=['GET', 'POST'])
 @auth.login_required
 def exercises_listing(context=None):
-    entity_name = "ExerciseTable"
-    page = int(request.args.get('page', 1))
-    page_size = 100
-
     member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
+    page = int(request.args.get('page', 1))
+    filter_terms = _get_filter_terms_from_request()        
+    return exercises_listing2(member_id, page=page, filter_terms=filter_terms)
+
+def exercises_listing2(member_id, page=1, filter_terms=[]):
+    entity_name = "ExerciseTable"
+
+    page_size = 100
 
     # Handle view preference
     view = (request.form.get('view') if request.method == 'POST' 
@@ -38,7 +49,7 @@ def exercises_listing(context=None):
         session['view_preference'] = view
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
-    filter_terms = _get_filter_terms_from_request()
+    
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
 
     return exercise_listing_base(entity_name, page, page_size, view, fields_to_display, filter_terms, entities)
@@ -69,7 +80,7 @@ def exercise_listing_base(entity_name, page, page_size, view, fields_to_display,
         page=page,
         view=view,
         total_pages=total_pages,
-        entity_add_route='/exercises/new',
+        entity_add_route='/exercises/new?',
         filter_dialog_route=f'/exercises/filter-dialog?entity_table={entity_name}',        
         entities_listing_route=f'/exercises/exercises-listing?entity_table={entity_name}',
         entity_view_route=f'/exercises/view?entity_table={entity_name}',
@@ -147,13 +158,14 @@ def new_exercise(context=None):
                 exercise_data[field] = []
             else:
                 exercise_data[field] = ''
-    
+
+ 
     return hx_render_template('exercises/exercise_editor.html',
                          exercise=exercise_data,
                          is_new=True,
                          schema=exercise_schema,
                          save_url='/exercises/save',
-                         cancel_url='/exercises/cancel',
+                         cancel_url=f'/exercises/cancel',
                          context=context)
 
 @bp.route('/edit')
@@ -233,13 +245,14 @@ def edit_exercise(context=None):
     
     # Get exercise ID from the composite key or the data
     exercise_id = exercise_data.get('id')
-    
+    current_listing_page=request.args.get('page', 1)
+    current_listing_filter=request.args.get('filter', '')   
     return hx_render_template('exercises/exercise_editor.html',
                          exercise=exercise_data,
                          is_new=False,
                          schema=exercise_schema,  
-                         save_url=f'/exercises/save/{exercise_id}',
-                         cancel_url=f'/exercises/cancel',
+                         save_url=f'/exercises/save/{exercise_id}?page={current_listing_page}&filter={current_listing_filter}',
+                         cancel_url=f'/exercises/cancel?page={current_listing_page}&filter={current_listing_filter}',
                          context=context)
 
 @bp.route('/save', methods=['POST'])
@@ -320,16 +333,22 @@ def save_exercise(exercise_id=None, context=None):
             # Create new exercise
             es.upsert_item(exercise)
         
-        response = make_response('{}')
+        current_listing_page = int(request.args.get('page', 1))
+        filter_param = request.args.get('filter', '')
+        current_listing_filter = parse_listing_filter(filter_param)
+
+        member_id = get_member_id_from_user_context(context)
+        if not member_id:
+            abort(401)
+        response = make_response(exercises_listing2(member_id, page=current_listing_page, filter_terms=current_listing_filter))
         response.headers['HX-Trigger'] = json.dumps({
             "eventListChanged": { "target": "body" },
                 "showMessage": { 
                 "target": "body",
                 "value": "exercise saved." }
             })
-        response.headers['HX-Redirect'] = url_for('exercises.exercises_listing')
         return response
-            
+    
     except Exception as e:
         print(f"Error saving exercise: {str(e)}")
         import traceback
@@ -345,15 +364,20 @@ def save_exercise(exercise_id=None, context=None):
 def cancel_exercise(exercise_id=None, context=None):
     """cancel editing exercise and redirect to listing"""
 
-    response = make_response('{}')
-    # response.headers['content-type'] = 'application/json'
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+    current_listing_page = int(request.args.get('page', 1))
+
+    filter_param = request.args.get('filter', '')
+    current_listing_filter = parse_listing_filter(filter_param)
+        
+    response = make_response(exercises_listing2(member_id, page=current_listing_page, filter_terms=current_listing_filter))
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": { "target": "body" },
             "showMessage": { 
             "target": "body",
             "value": "canceled." }
         })
-    response.headers['HX-Redirect'] = url_for('exercises.exercises_listing')
-
     return response
 

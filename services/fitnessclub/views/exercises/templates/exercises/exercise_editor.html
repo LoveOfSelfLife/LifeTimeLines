@@ -12,7 +12,7 @@
         
         <!-- Form -->
         <div class="card-body">
-          <form id="exercise-form" hx-post="{{ save_url }}" hx-target="#form-messages" hx-swap="innerHTML">
+          <form id="exercise-form" hx-post="{{ save_url }}" hx-target="#content" hx-swap="innerHTML show:top">
             <!-- Form Messages -->
             <div id="form-messages" class="mb-3"></div>
 
@@ -333,7 +333,7 @@
               <div class="col-12">
                 <hr class="my-4">
                 <div class="d-flex flex-column flex-sm-row justify-content-between gap-3">
-                  <button type="button" class="btn btn-secondary order-2 order-sm-1" hx-post="{{ cancel_url }}" hx-target="#form-messages" hx-swap="innerHTML"">
+                  <button type="button" class="btn btn-secondary order-2 order-sm-1" hx-post="{{ cancel_url }}" hx-target="#content" hx-swap="innerHTML show:top">
                     <i class="bi bi-arrow-left me-1"></i>Cancel
                   </button>
                   <button type="submit" class="btn btn-primary btn-lg order-1 order-sm-2">
@@ -426,19 +426,6 @@ if (!window.exerciseEditorInitialized) {
         console.log('Form submission - Videos data:', videosData);
       });
 
-      // Handle successful form submission
-      form.addEventListener('htmx:afterRequest', function(e) {
-        if (e.detail.xhr.status === 200) {
-          // const response = JSON.parse(e.detail.xhr.responseText);
-          // if (response.success) {
-          if (true) {
-            showEditorToast('Exercise saved successfully!');
-            setTimeout(() => {
-              window.location.href = '/exercises/';
-            }, 1500);
-          }
-        }
-      });
     }
   }
   

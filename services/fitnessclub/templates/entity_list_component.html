@@ -9,7 +9,7 @@
         <div class="search-filter-area">
             {% if entity_add_route %}
             <button class="btn btn-dark btn-sm"
-                hx-get="{{ entity_add_route}}"
+                hx-get="{{ entity_add_route}}&page={{ page }}&filter={{ filter_terms }}"
                 hx-target="#{{ main_content_container }}"
                 hx-swap="innerHTML">
                 Add New {{ entity_display_name }}

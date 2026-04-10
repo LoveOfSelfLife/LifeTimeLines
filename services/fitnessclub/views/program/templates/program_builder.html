@@ -78,6 +78,13 @@
                     hx-target="#content"
                     hx-swap="innerHTML">
               Copy
+            </button>
+            <button class="btn btn-sm btn-danger mt-auto"
+                    hx-post="{{ url_for('program.cancel_editing_program', program_id=program.id) }}"
+                    hx-vals='{"program_id":"{{ program.id }}"}'
+                    hx-target="#content"
+                    hx-swap="innerHTML show:top">
+              Cancel & Exit
             </button>            
           </div>
         </div>
