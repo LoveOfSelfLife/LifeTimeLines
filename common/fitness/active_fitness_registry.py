@@ -16,11 +16,19 @@ def extract_image_url(entity):
 
 editable_entities = {
     "MemberTable" : { 
-                      "listing_view_fields": ["name", "short_name", "email"],
+                      "listing_view_fields": ["name", "short_name", "email", "role"],
                         "card_view_fields": { "title" : lambda e: e['name'] if 'name' in e else "",
                                               "subtitle" : lambda e: e['short_name'] if 'short_name' in e else "",
                                               "image_url" : lambda e: e['image_url'] if 'image_url' in e else "",
-                                              "description" : lambda e: e['email'] if 'email' in e else ""
+                                              "description" : lambda e: f"{e['email']} ({e.get('role', 'client')})" if 'email' in e else ""
+                                             }
+                    },
+    "TeamTable" : {
+                        "listing_view_fields": ["name", "location", "status"],
+                        "card_view_fields": { "title" : lambda e: e['name'] if 'name' in e else "",
+                                              "subtitle" : lambda e: e['location'] if 'location' in e else "",
+                                              "image_url" : None,
+                                              "description" : lambda e: e['description'] if 'description' in e else ""
                                              }
                     },
     "ExerciseTable" : { 

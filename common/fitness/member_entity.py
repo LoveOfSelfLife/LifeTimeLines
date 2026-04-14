@@ -14,7 +14,7 @@ class UnregisteredMemberException(Exception):
 
 class MemberEntity (EntityObject):
     table_name="MemberTable"
-    fields=["id", "name", "level", "short_name", "email", "mobile", "sms_consent", "email_consent", "image_url"]
+    fields=["id", "name", "level", "short_name", "email", "mobile", "sms_consent", "email_consent", "image_url", "role"]
     key_field="id"
     partition_value="member"
     schema = member_schema

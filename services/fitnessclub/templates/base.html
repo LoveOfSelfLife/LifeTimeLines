@@ -34,6 +34,15 @@
       <a class="navbar-brand" hx-get="/home" hx-target="#content" hx-swap="innerHTML">
         🏋️ Active Friends Club {{ version_info.short_version }}
       </a>
+      {% if member and member.name %}
+      <span class="badge bg-primary bg-gradient me-3 px-3 py-2 fs-6" 
+            style="cursor: pointer; transition: all 0.3s ease; border-radius: 20px;" 
+            hx-get="/home" hx-target="#content" hx-swap="innerHTML"
+            onmouseover="this.style.backgroundColor='#0a58ca'; this.style.transform='scale(1.05)'"
+            onmouseout="this.style.backgroundColor=''; this.style.transform='scale(1)'">
+        <i class="bi bi-person-circle-fill me-2"></i>{{ member.name }}
+      </span>
+      {% endif %}
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -46,6 +55,7 @@
             </a>
           </li>
 
+          {% if role_context.role == 'coach' or role_context.is_admin %}
           <li class="nav-item">
             <a class="nav-link" hx-get="/program" hx-target="#content" hx-swap="innerHTML">
               <i class="bi bi-list-check"></i> Programs
@@ -63,13 +73,40 @@
               <i class="bi bi-list-check"></i> Exercises
             </a>
           </li>
+          {% endif %}
 
-          <li class="nav-item">
-            <a class="nav-link" hx-get="/about" hx-target="#content" hx-swap="innerHTML">
-              About
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" id="clubDropdown" role="button" data-bs-toggle="dropdown">
+              <i class="bi bi-info-circle"></i> Club
             </a>
+            <ul class="dropdown-menu" aria-labelledby="clubDropdown">
+              <li><a class="dropdown-item" hx-get="/about" hx-target="#content" hx-swap="innerHTML">
+                <i class="bi bi-info-circle"></i> About the Club
+              </a></li>
+              <li><a class="dropdown-item" hx-get="/members" hx-target="#content" hx-swap="innerHTML">
+                <i class="bi bi-people"></i> Members
+              </a></li>
+            </ul>
           </li>
 
+          {% if role_context.can_select_team %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" id="teamDropdown" role="button" data-bs-toggle="dropdown">
+              <i class="bi bi-people-fill"></i> 
+              {% if role_context.current_team %}
+                {{ role_context.current_team.name }}
+              {% else %}
+                Select Team
+              {% endif %}
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="teamDropdown">
+              {% for team in role_context.available_teams %}
+              <li><a class="dropdown-item" hx-post="/teams/select" hx-vals='{"team_id": "{{ team.id }}"}' 
+                  hx-target="#content" hx-swap="innerHTML show:top">{{ team.name }}</a></li>
+              {% endfor %}
+            </ul>
+          </li>
+          {% endif %}
 
       {% if member.admin %}
           <li class="nav-item dropdown">
@@ -77,14 +114,8 @@
               <i class="bi bi-person"></i> Admin
             </a>
             <ul class="dropdown-menu" aria-labelledby="adminDropdown">
-            {# <li><a class="dropdown-item" hx-get="/admin?entity_table=ExerciseTable" hx-target="#content"
-                hx-swap="innerHTML" >Exercises</a></li> #}
-            {# <li><a class="dropdown-item" hx-get="/admin?entity_table=WorkoutDefinitionTable" hx-target="#content"
-                hx-swap="innerHTML" >Workouts</a></li> #}
-            {# <li><a class="dropdown-item" hx-get="/admin?entity_table=MemberProgramTable" hx-target="#content"
-                hx-swap="innerHTML" >Programs</a></li> #}
-            {# <li><a class="dropdown-item" hx-get="/workouts/exercise_reviewer" hx-target="#content" 
-                hx-swap="innerHTML" >Exercise Reviewer</a></li> #}
+            <li><a class="dropdown-item" hx-get="/admin/teams" hx-target="#content"
+                hx-swap="innerHTML" >Teams</a></li>
             <li><a class="dropdown-item" hx-get="/admin/profile" hx-target="#content"
                 hx-swap="innerHTML" >Members</a></li>
             <li><a class="dropdown-item" hx-get="/admin/impersonate_dialog" 

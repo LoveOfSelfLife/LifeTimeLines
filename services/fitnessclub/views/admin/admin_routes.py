@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import json
 from flask import Blueprint, abort, jsonify, make_response, render_template, request, redirect, session, url_for
@@ -8,28 +9,37 @@ from common.env_context import Env
 from common.fitness.entities_getter import delete_entity
 from common.fitness.exercise_entity import render_exercise_popup_viewer_html
 from common.fitness.member_entity import get_member_id_from_user_context, get_members_list
+from common.fitness.team_entity import get_teams_list, get_team_by_id, save_team
+from common.fitness.member_team_entity import add_member_to_team, remove_member_from_team, get_team_members
+from common.fitness.coach_team_entity import assign_coach_to_team, remove_coach_from_team, get_team_coaches
+from common.fitness.roles_service import get_member_role, is_member_coach, is_member_client
 from common.fitness.impersonation import start_impersonation, stop_impersonation, get_impersonated_member_id
 from common.fitness.utils import generate_id
 from common.fitness.hx_common import hx_render_template
 from common.entity_store import EntityStore
 from common.fitness.entities_getter import get_entities
+from common.fitness.member_team_entity import get_members_teams
+
 bp = Blueprint('admin', __name__, template_folder='templates')
 
 @bp.route('/')
 @auth.login_required
 def root(context=None):
     entity_table = request.args.get('entity_table')    
-    return redirect(url_for('admin.entities_listing', entity_table=entity_table), 302)
+    return entities_listing2(context=context, entity_name=entity_table)
 
 @bp.route('/profile')
 @auth.login_required
 def profile(context=None):
-    return redirect(url_for('admin.entities_listing', entity_table='MemberTable'), 302)
+    return entities_listing2(context=context, entity_name='MemberTable')
 
 @bp.route('/entities-listing', methods=['GET', 'POST'])
 @auth.login_required
 def entities_listing(context=None):
     entity_name = request.args.get('entity_table', None)    
+    return entities_listing2(context=context, entity_name=entity_name)
+
+def entities_listing2(context=None, entity_name=None):
     page = int(request.args.get('page', 1))
     page_size = 100
 
@@ -241,17 +251,10 @@ def update_entity_save_json(context=None, table_id=None):
     entity.initialize(data)
     es.upsert_item(entity)
 
-    # return jsonify({
-    #     "status": "success",
-    #     "message": "JSON saved",
-    # }), 200
-
-    response = make_response('')
+    response = make_response(entities_listing2(context=context, entity_name=table_id))
     response.headers['HX-Trigger'] = json.dumps({
-        "entityListChanged": True,
         "showMessage": { "value" : f"item was saved.", "target": "body" }
     })
-    response.headers['HX-Redirect'] = f'/admin?entity_table={table_id}'
     return response
 
 @bp.route('/impersonate_dialog')
@@ -300,5 +303,182 @@ def stop_impersonation_route(context=None):
     })
     # Redirect to home page to refresh with normal context
     response.headers['HX-Redirect'] = '/'
+    return response
+
+# Team Management Routes
+
+@bp.route('/teams')
+@auth.login_required
+def teams_listing(context=None):
+    """Admin page for managing teams"""
+    return teams_listing2(context=context)
+
+def teams_listing2(context=None):
+    """Admin page for managing teams"""
+    return hx_render_template('teams_listing.html', 
+                              teams=get_teams_list(), 
+                              context=context)
+
+@bp.route('/teams/create', methods=['GET', 'POST'])
+@auth.login_required
+def create_team(context=None):
+    """Create a new team"""
+    if request.method == 'POST':
+
+        team_data = {
+            'id': generate_id('tem'),
+            'name': request.form.get('name'),
+            'location': request.form.get('location', ''),
+            'description': request.form.get('description', ''),
+            'created_date': datetime.now().isoformat(),
+            'status': 'active'
+        }
+        
+        try:
+            save_team(team_data)
+            response = make_response(teams_listing2(context=context))
+            response.headers['HX-Trigger'] = json.dumps({
+                "showMessage": {"value": f"Team '{team_data['name']}' created successfully", "target": "body"}
+            })
+            return response
+        except Exception as e:
+            return hx_render_template('create_team.html', 
+                                      error=str(e), 
+                                      form_data=request.form,
+                                      context=context)
+    
+    return hx_render_template('create_team.html', context=context)
+
+@bp.route('/teams/<team_id>/manage')
+@auth.login_required
+def manage_team(team_id, context=None):
+    """Manage team members and coaches"""
+    return manage_team2(team_id, context=context)
+
+def manage_team2(team_id, context=None):
+    """Manage team members and coaches"""
+    team = get_team_by_id(team_id)
+    if not team:
+        return "Team not found", 404
+    
+    # Get current team members and coaches
+    team_members = get_team_members(team_id)
+    team_coaches = get_team_coaches(team_id)
+    
+    # Get member details for team members
+    members_with_details = []
+    for mt in team_members:
+        from common.fitness.member_entity import get_user_profile
+        member = get_user_profile(mt['member_id'])
+        if member:
+            member_info = dict(member)
+            member_info['team_joined_date'] = mt.get('joined_date')
+            members_with_details.append(member_info)
+    
+    # Get member details for team coaches
+    coaches_with_details = []
+    for ct in team_coaches:
+        from common.fitness.member_entity import get_user_profile
+        coach = get_user_profile(ct['coach_id'])
+        if coach:
+            coach_info = dict(coach)
+            coach_info['team_assigned_date'] = ct.get('assigned_date')
+            coaches_with_details.append(coach_info)
+    
+    # Get all members for potential assignment
+    all_members = get_members_list()
+    available_members = [m for m in all_members if not any(tm['member_id'] == m['id'] for tm in team_members)]
+    available_coaches = [m for m in all_members if get_member_role(m['id']) == 'coach' and not any(tc['coach_id'] == m['id'] for tc in team_coaches)]
+    
+    return hx_render_template('manage_team.html',
+                              team=team,
+                              team_members=members_with_details,
+                              team_coaches=coaches_with_details,
+                              available_members=available_members,
+                              available_coaches=available_coaches,
+                              context=context)
+
+@bp.route('/teams/<team_id>/add_member', methods=['POST'])
+@auth.login_required
+def add_member_to_team_route(team_id, context=None):
+    response_status = 200
+
+    """Add a member to a team"""
+    member_id = request.form.get('member_id')
+    if not member_id:
+        response_message = json.dumps({
+                "showMessage": {"value": "Member ID required", "target": "body"}
+            })
+        response_status = 400
+    else:
+        # Check if member is already on another team (clients can only be on one team)
+        member_role = get_member_role(member_id)
+        if member_role == 'client':
+            existing_teams = get_members_teams(member_id)
+            if len(existing_teams) > 0:
+                response_message = json.dumps({
+                    "showMessage": {"value": "Client is already on another team. Clients can only be on one team at a time.", "target": "body"}
+                })
+                response_status = 400
+
+        if response_status == 200:
+            add_member_to_team(member_id, team_id)
+
+        response = make_response(manage_team2(team_id, context=context))
+        
+        if response_status == 200:
+            response_message = json.dumps({
+                "showMessage": {"value": "Member added to team successfully", "target": "body"}
+            })
+
+    response.headers['HX-Trigger'] = response_message
+    return response, response_status 
+
+@bp.route('/teams/<team_id>/remove_member', methods=['POST'])
+@auth.login_required
+def remove_member_from_team_route(team_id, context=None):
+    """Remove a member from a team"""
+    member_id = request.form.get('member_id')
+    if not member_id:
+        return "Member ID required", 400
+    
+    remove_member_from_team(member_id, team_id)
+    
+    response = make_response(manage_team2(team_id, context=context))
+    response.headers['HX-Trigger'] = json.dumps({
+        "showMessage": {"value": "Member removed from team successfully", "target": "body"}
+    })
+    return response
+
+@bp.route('/teams/<team_id>/add_coach', methods=['POST'])
+@auth.login_required
+def add_coach_to_team_route(team_id, context=None):
+    """Assign a coach to a team"""
+    coach_id = request.form.get('coach_id')
+    if not coach_id:
+        return "Coach ID required", 400
+    
+    assign_coach_to_team(coach_id, team_id)
+    
+    response = make_response(manage_team2(team_id, context=context))
+    response.headers['HX-Trigger'] = json.dumps({
+        "showMessage": {"value": "Coach assigned to team successfully", "target": "body"}
+    })
+    return response
+
+@bp.route('/teams/<team_id>/remove_coach', methods=['POST'])
+@auth.login_required
+def remove_coach_from_team_route(team_id, context=None):
+    """Remove a coach from a team"""
+    coach_id = request.form.get('coach_id')
+    if not coach_id:
+        return "Coach ID required", 400
+    
+    remove_coach_from_team(coach_id, team_id)
+    
+    response = make_response(manage_team2(team_id, context=context))
+    response.headers['HX-Trigger'] = json.dumps({
+        "showMessage": {"value": "Coach removed from team successfully", "target": "body"}
+    })
     return response
     
