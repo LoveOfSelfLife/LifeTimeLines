@@ -77,11 +77,11 @@
 
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" id="clubDropdown" role="button" data-bs-toggle="dropdown">
-              <i class="bi bi-info-circle"></i> Club
+              <i class="bi bi-info-circle"></i> About
             </a>
             <ul class="dropdown-menu" aria-labelledby="clubDropdown">
               <li><a class="dropdown-item" hx-get="/about" hx-target="#content" hx-swap="innerHTML">
-                <i class="bi bi-info-circle"></i> About the Club
+                <i class="bi bi-info-circle"></i> Club
               </a></li>
               <li><a class="dropdown-item" hx-get="/members" hx-target="#content" hx-swap="innerHTML">
                 <i class="bi bi-people"></i> Members
@@ -108,23 +108,6 @@
           </li>
           {% endif %}
 
-      {% if member.admin %}
-          <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" id="adminDropdown" role="button" data-bs-toggle="dropdown">
-              <i class="bi bi-person"></i> Admin
-            </a>
-            <ul class="dropdown-menu" aria-labelledby="adminDropdown">
-            <li><a class="dropdown-item" hx-get="/admin/teams" hx-target="#content"
-                hx-swap="innerHTML" >Teams</a></li>
-            <li><a class="dropdown-item" hx-get="/admin/profile" hx-target="#content"
-                hx-swap="innerHTML" >Members</a></li>
-            <li><a class="dropdown-item" hx-get="/admin/impersonate_dialog" 
-                hx-target="#modals-here" hx-swap="innerHTML"
-                data-bs-toggle="modal" data-bs-target="#modals-here">Impersonate</a></li>
-            </ul>
-          </li>
-	  {% endif %}
-
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" role="button" data-bs-toggle="dropdown">
               <i class="bi bi-person"></i> Settings
@@ -132,6 +115,18 @@
             <ul class="dropdown-menu dropdown-menu-end">
               <li><a class="dropdown-item" hx-get="/profile/profile2" hx-target="#content"
                 hx-swap="innerHTML"><i class="bi bi-gear"></i> Profile</a></li>
+              {% if member.admin %}
+              <li><hr class="dropdown-divider"></li>
+              <li><h6 class="dropdown-header">Admin Functions</h6></li>
+              <li><a class="dropdown-item" hx-get="/admin/teams" hx-target="#content"
+                  hx-swap="innerHTML"><i class="bi bi-people-fill"></i> Teams</a></li>
+              <li><a class="dropdown-item" hx-get="/admin/profile" hx-target="#content"
+                  hx-swap="innerHTML"><i class="bi bi-people"></i> Members</a></li>
+              <li><a class="dropdown-item" hx-get="/admin/impersonate_dialog" 
+                  hx-target="#modals-here" hx-swap="innerHTML"
+                  data-bs-toggle="modal" data-bs-target="#modals-here"><i class="bi bi-person-vcard"></i> Impersonate</a></li>
+              {% endif %}
+              <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="/logout2"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
             </ul>
           </li>
