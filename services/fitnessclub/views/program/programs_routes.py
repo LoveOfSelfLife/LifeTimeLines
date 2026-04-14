@@ -79,6 +79,7 @@ def program_listing_base(context, entity_name, page, page_size, view, fields_to_
     # displays workouts at the top level
     return hx_render_template(
         template_file_name,
+        title="Programs Library",
         entity_name=entity_name,
         main_content_container="entities-container",        
         fields_to_display=fields_to_display,
@@ -163,6 +164,7 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
     # displays workouts at the top level
     return hx_render_template(
         template_file_name,
+        title="Workouts Library",
         fields_to_display=fields_to_display,
         main_content_container=div_id,        
         entities=current,

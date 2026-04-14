@@ -97,6 +97,7 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
     return hx_render_template(
         template_file_name,
         entity_name=entity_name,
+        title="Workouts Library",
         main_content_container="entities-container",        
         fields_to_display=fields_to_display,
         entities=current,
@@ -545,6 +546,7 @@ def exercise_listing(context=None):
 
     return hx_render_template(template_file_name,
                               fields_to_display=fields_to_display,
+                              title="Exercises Library",                              
                               main_content_container=div_id,
                               entities=current,
                               entity_name=entity_name,
@@ -608,6 +610,7 @@ def builder_workouts_listing(context=None):
     # displays workouts at the top level
     return render_template(template_file_name,
         entity_name=entity_name,
+        title="Workouts Library",
         main_content_container=div_id,
         fields_to_display=fields_to_display,
         entities=current,
