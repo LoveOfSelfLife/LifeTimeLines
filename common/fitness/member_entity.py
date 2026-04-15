@@ -80,13 +80,18 @@ def get_member_detail_from_user_context(user_context):
 
 def is_member_an_admin(member_id):
     # if a member is being impersonated, then the person doing the impersonation must be an admin, so we will return true in that case
-    impersonated_member_id = get_impersonated_member_id()
-    if impersonated_member_id:
-        return True
+    # impersonated_member_id = get_impersonated_member_id()
+    # if impersonated_member_id:
+    #     return True
 
     members_registry = MembershipRegistry()
     member = members_registry.get_member(member_id)
     return member.get('level') >= 10
+
+def is_member_advanced(member_id):
+    members_registry = MembershipRegistry()
+    member = members_registry.get_member(member_id)
+    return member.get('level') == 5
 
 def get_member_email_from_member_id(member_id):
     member_registry = MembershipRegistry()

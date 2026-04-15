@@ -148,6 +148,14 @@ def get_accessible_members_for_context(member_id):
         coaches = get_team_coaches_with_details(current_team['id'])
         return members + coaches
     
+    # No team context - for coaches, at least return themselves
+    role = get_member_role(member_id)
+    if role == 'coach':
+        from common.fitness.member_entity import get_user_profile
+        coach_details = get_user_profile(member_id)
+        if coach_details:
+            return [coach_details]
+    
     # No team context, return empty list
     return []
 

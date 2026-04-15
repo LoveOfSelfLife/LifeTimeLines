@@ -27,7 +27,9 @@ class MemberWorkoutDefinitionEntity (EntityObject):
             "base_workout_def_id",      # references a base workout definition if applicable
             "tags",                     # list of tags associated with the workout
             "member_program_id",        # reference the member program this workout is part of, if any
-            "order_index"               # index to determine the order of workouts within a program
+            "order_index",              # index to determine the order of workouts within a program
+            "purpose",                  # optional field to describe the purpose of this workout within the context of a program
+            "workout_type"              # type of workout: "standard" (default) or "alternative"
             ]
     key_field="id"
     partition_field="member_id"
@@ -45,7 +47,7 @@ class MemberWorkoutInstanceEntity (EntityObject):
             "finished_ts", 
             "scheduled_workout_event_id", 
             "adjustments_for_next_workout",
-            "member_workout_def_id",         # reference to the member workout definition from which this instance was created
+            "member_workout_def_id",          # reference to the member workout definition from which this instance was created
             "member_program_id",              # reference to the member program this workout instance is part of, if any
             "member_program_name"             # name of the member program this workout instance is part of, if any
             ]
