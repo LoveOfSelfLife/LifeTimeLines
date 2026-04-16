@@ -75,7 +75,85 @@ def get_exercises_from_workout(workout):
                 ex['parameters'] = it['parameters']
                 exercises.append(ex)
     return exercises
+'''
+RAMP = Raise Activate Mobilize Potentiate
+Raise (Body Temperature/Heart Rate): Elevate core body temperature, heart rate, respiration rate, and blood flow using low-intensity activities like jogging, skipping, or light cycling.
+Activate (Key Muscles): Engage core, stabilizing, and specific muscle groups required for the session (e.g., glutes, core) to enhance stability and movement efficiency.
+Mobilize (Joint Movement): Perform dynamic stretching or active mobility exercises targeting joints and movement patterns needed for the workout.
+Potentiate (Performance Priming): Increase intensity to sport-specific levels, using high-intensity movements like sprinting, jumping, or shuttle runs to prime the nervous system for peak performance
+'''
+def map_exercise_to_sections(ex):
+    physical_fitness_components = [ 'flexibility', 
+                                   'core', 
+                                   'mobility', 
+                                   'strength', 
+                                   'balance', 
+                                   'cardio', 
+                                   'myofascia', 
+                                   'power', 
+                                   'endurance'
+                                   ]
+    categories =  ['strength', 
+                   'stretching', 
+                   'mobility', 
+                   'plyometrics', 
+                   'strongman', 
+                   'powerlifting', 
+                   'olympic weightlifting', 
+                   'cardio', 
+                   'warmup', 
+                   'core'
+                   ]
+    sections_map = [
+                {'name':'warmup',
+                 'physical_fitness_components':['flexibility', 'mobility', 'myofascia', 'balance'], 
+                 'categories':['warmup', 'stretching', 'mobility']
+                 },
+                {'name':'ramp',
+                 'physical_fitness_components':['flexibility', 'mobility', 'myofascia', 'balance'], 
+                 'categories':['warmup', 'stretching', 'mobility']
+                 },
+                {'name':'core',
+                 'physical_fitness_components':['core'], 
+                 'categories':['core']
+                 },
+                {'name':'power',
+                 'physical_fitness_components':['power'], 
+                 'categories':['powerlifting', 'olympic weightlifting', 'strongman']
+                 },            
+                {'name':'core-power',
+                 'physical_fitness_components':['power', 'core'], 
+                 'categories':['powerlifting', 'olympic weightlifting', 'strongman', 'core', 'plyometrics']
+                 },
+                {'name':'combination',
+                 'physical_fitness_components':[], 
+                 'categories':[]
+                 },
+                {'name':'strength',
+                 'physical_fitness_components':['strength'], 
+                 'categories':['strength', 'powerlifting', 'olympic weightlifting', 'strongman']
+                 },
+                {'name':'resistance',
+                 'physical_fitness_components':['strength'], 
+                 'categories':['strength']
+                 },
+                {'name':'cardio',
+                 'physical_fitness_components':['cardio', 'endurance'], 
+                 'categories':['cardio']
+                 }
+            ]    
+    # given the exercise's physical fitness components and category, use the sections map to find all the potental sections this exercise could belong to
+    # collect the potential sections in a list and return the list. if there are no matches, return an empty list. 
+    
+    # first check the exercise's physical fitness components against the sections map
+    sections_list = []
+    for s in sections_map:
+        if any(pfc in ex.get('physical_fitness_components', []) for pfc in s['physical_fitness_components']):
+            sections_list.append(s['name'])
+    
+    for s in sections_map:
+        if ex.get('category', '') in s['categories']:
+            sections_list.append(s['name'])
 
-
-
-        
+    sections_list = list(set(sections_list))
+    return sections_list
