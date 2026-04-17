@@ -88,7 +88,8 @@ def exercise_listing_base(entity_name, page, page_size, view, fields_to_display,
         entity_action_route='/exercises/edit?',
         entity_action_icon='bi-pencil-square',
         entity_action_label='Edit Exercise',
-        results_target_container=results_target_container
+        results_target_container=results_target_container,
+        entity_card_view_html='exercise_card_view.html'        
     )
 
 

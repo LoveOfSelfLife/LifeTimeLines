@@ -1,6 +1,9 @@
 
+from flask import request
+
 from common.entity_store import EntityObject
 from common.fitness.entities_getter import get_entity
+from common.fitness.hx_common import hx_render_template
 
 
 class WorkoutDefinitionEntity (EntityObject):
@@ -157,3 +160,43 @@ def map_exercise_to_sections(ex):
 
     sections_list = list(set(sections_list))
     return sections_list
+
+
+
+def workouts_listing_base(context, entity_name, program_id, page, target, view, page_size, fields_to_display, div_id, filter_terms, entities):
+    total_pages = (len(entities) + page_size - 1) // page_size
+    start = (page - 1) * page_size
+    end = start + page_size
+    current = entities[start:end]
+
+    if request.headers.get('HX-Target') == 'results-area':
+        template_file_name = 'entity_results_partial.html'
+    else:
+        template_file_name = 'entity_list_component.html'
+
+    # Set results_target_container based on target parameter
+    results_target_container = target if target else 'results-area'
+
+    # displays workouts at the top level
+    return hx_render_template(
+        template_file_name,
+        title="Workouts Library",
+        fields_to_display=fields_to_display,
+        main_content_container=div_id,        
+        entities=current,
+        entity_name=entity_name,
+        filter_terms=filter_terms,
+        args=request.args,
+        page=page,
+        view=view,
+        total_pages=total_pages,
+        entities_listing_route=f'/program/workouts-listing?entity_table={entity_name}&target={target}&program_id={program_id}',
+        entity_view_route=f'/workouts/viewer/workout?entity_table={entity_name}',
+        entity_action_route=f'/program/builder/{program_id}/add?entity_table={entity_name}',
+        entity_action_route_method='post',
+        entity_action_route_target="program-canvas",
+        entity_action_icon='bi-plus',  
+        entity_action_label='Add Workout',
+        results_target_container=results_target_container,
+        entity_card_view_html='workout_card_view.html',
+        context=context)

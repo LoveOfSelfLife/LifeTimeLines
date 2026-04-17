@@ -114,8 +114,8 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
         entity_action_label='Edit Workout',
         results_target_container=results_target_container,
         # filter_dialog_route=f'/exercises/filter-dialog?entity_table={WORKOUT_ENTITY_NAME}',
+        entity_card_view_html='workout_card_view.html',        
         context=context)
-
 
 @bp.route('/filter-dialog')
 @auth.login_required
@@ -607,7 +607,9 @@ def exercise_listing(context=None):
                               entity_action_icon='bi-plus',
                               entity_action_label='Add Exercise',
                               results_target_container=target if target else 'results-area',
-                              context=context)      
+                              context=context,
+                              entity_card_view_html='exercise_card_view.html'                                      
+                              )      
 
 ########################################
 # displays the workouts library within the workout builder
