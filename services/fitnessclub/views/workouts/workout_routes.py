@@ -7,7 +7,7 @@ from common.fitness.entities_getter import get_entities
 from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.hx_common import hx_render_template
 from common.fitness.hx_common import rm_spaces
-from common.fitness.member_entity import get_member_id_from_user_context
+from common.fitness.member_entity import get_member_id_from_user_context, is_member_an_admin
 from common.fitness.member_workout_entity import WorkoutDefinitionEntity, get_exercises_from_workout, map_exercise_to_sections
 from common.fitness.edit_workout_object import edit_workout_object
 from common.fitness.workout_state import get_active_workout_state, update_active_workout_state
@@ -187,12 +187,25 @@ def builder_new(context=None):
 @bp.route('/builder/<workout_id>')
 @auth.login_required
 def builder(context=None, workout_id=None):
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
 
     workout = get_cache_value('current_workout')
     editing_program_workout = request.args.get('editing_program_workout', None)
 
     if workout and workout['id'] == workout_id:
-            return hx_render_template('workout_builder.html', workout=workout, context=context, source='exercises', editing_program_workout=editing_program_workout)
+        # Check if current user can save this workout
+        can_save_workout = True
+        if workout.get('created_by'):
+            can_save_workout = (workout.get('created_by') == member_id) or is_member_an_admin(member_id)
+        
+        return hx_render_template('workout_builder.html', 
+                                workout=workout, 
+                                context=context, 
+                                source='exercises', 
+                                editing_program_workout=editing_program_workout,
+                                can_save_workout=can_save_workout)
 
 
 # ── Fragments ────────────────────────────────────────────────────

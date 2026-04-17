@@ -26,11 +26,6 @@
       <div id="lib-list">
         Loading…
       </div>
-      <button class="btn btn-sm btn-outline-secondary mt-3"
-              data-bs-toggle="offcanvas"
-              data-bs-target="#libDrawer">
-        Filter/Search
-      </button>
     </div>
 
     <!-- Offcanvas for mobile library -->
@@ -86,14 +81,19 @@
                 </button>
                 
                 <button class="btn btn-success"
-                      {% if not editing_program_workout %}
-                          hx-post="{{ url_for('workouts.save_workout', workout_id=workout.id) }}"
+                      {% if can_save_workout %}
+                          {% if not editing_program_workout %}
+                              hx-post="{{ url_for('workouts.save_workout', workout_id=workout.id) }}"
+                          {% else %}
+                              hx-post="{{ url_for('workouts.save_program_workout', workout_id=workout.id) }}"
+                          {% endif %}
+                          hx-vals='{"workout_id":"{{ workout.id }}"}}'
+                          hx-target="#entities-container"
+                          hx-swap="innerHTML show:top"
                       {% else %}
-                          hx-post="{{ url_for('workouts.save_program_workout', workout_id=workout.id) }}"
-                      {% endif %}
-                      hx-vals='{"workout_id":"{{ workout.id }}"}'
-                      hx-target="#entities-container"
-                      hx-swap="innerHTML show:top">
+                          disabled
+                          title="Only the workout creator can save changes"
+                      {% endif %}>
                     <i class="bi bi-check-circle"></i> Save
                 </button>
                 
