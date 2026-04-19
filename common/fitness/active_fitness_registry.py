@@ -3,7 +3,7 @@ from flask import request, url_for
 from common.entity_store import EntityObject
 from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
 from common.fitness.member_program_entity import MemberProgramEntity
-from common.fitness.member_entity import MemberEntity
+from common.fitness.member_entity import MemberEntity, get_member_name_from_member_id
 from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity, exercise_entity_filter_term, render_exercise_popup_viewer_html
 from common.fitness.exercise_entity import exercise_filters
 from common.fitness.member_entity import MemberEntity
@@ -44,10 +44,10 @@ editable_entities = {
     PROGRAM_ENTITY_NAME : { 
                         "listing_view_fields": ["name", "start_date", "end_date"],
                         "card_view_fields": { "title" : lambda e: e['name'] if 'name' in e else "",
-                                              "subtitle" : lambda e: (("Start Date: " + (e['start_date'] if 'start_date' in e and e['start_date'] else "?")) + \
-                                                                      (" End Date: " + (e['end_date'] if 'end_date' in e and e['end_date'] else "?"))),
+                                              "subtitle" : lambda e: (("" + (e['start_date'] if 'start_date' in e and e['start_date'] else "?")) + \
+                                                                      (" to " + (e['end_date'] if 'end_date' in e and e['end_date'] else "?"))),
                                               "image_url" : None,
-                                              "description" : lambda e: ""
+                                              "member_name" : lambda e: get_member_name_from_member_id(e['member_id']) if 'member_id' in e else "",
                                              }                        
                     },
     WORKOUT_ENTITY_NAME : { 

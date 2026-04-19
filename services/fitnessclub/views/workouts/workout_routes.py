@@ -671,6 +671,7 @@ def builder_workouts_listing(context=None):
         entity_action_icon='bi-plus',  
         entity_action_label='Add Workout',
         results_target_container=target if target else 'results-area',
+        entity_card_view_html='workout_card_view.html',
         context=context)
 
 # ── Main exercise reviewer View ─────────────────────────────────────────────
