@@ -7,8 +7,8 @@ from common.fitness.entities_getter import get_entities
 from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.hx_common import hx_render_template
 from common.fitness.hx_common import rm_spaces
-from common.fitness.member_entity import get_member_id_from_user_context
-from common.fitness.member_workout_entity import WorkoutDefinitionEntity, get_exercises_from_workout
+from common.fitness.member_entity import get_member_id_from_user_context, is_member_an_admin
+from common.fitness.member_workout_entity import WorkoutDefinitionEntity, get_exercises_from_workout, map_exercise_to_sections
 from common.fitness.edit_workout_object import edit_workout_object
 from common.fitness.workout_state import get_active_workout_state, update_active_workout_state
 bp = Blueprint('workouts', __name__, template_folder='templates')
@@ -97,6 +97,7 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
     return hx_render_template(
         template_file_name,
         entity_name=entity_name,
+        title="Workouts Library",
         main_content_container="entities-container",        
         fields_to_display=fields_to_display,
         entities=current,
@@ -105,7 +106,7 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
         page=page,
         view=view,
         total_pages=total_pages,
-        entity_add_route=url_for('workouts.builder_new'),
+        entity_add_route=f"{url_for('workouts.builder_new')}?x=1",
         entities_listing_route=f'/workouts/workouts-listing?entity_table={entity_name}&target={target}',
         entity_view_route=f'/workouts/viewer/workout?entity_table={entity_name}',
         entity_action_route=f'/workouts/edit?entity_table={entity_name}',
@@ -113,8 +114,8 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
         entity_action_label='Edit Workout',
         results_target_container=results_target_container,
         # filter_dialog_route=f'/exercises/filter-dialog?entity_table={WORKOUT_ENTITY_NAME}',
+        entity_card_view_html='workout_card_view.html',        
         context=context)
-
 
 @bp.route('/filter-dialog')
 @auth.login_required
@@ -186,12 +187,25 @@ def builder_new(context=None):
 @bp.route('/builder/<workout_id>')
 @auth.login_required
 def builder(context=None, workout_id=None):
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
 
     workout = get_cache_value('current_workout')
     editing_program_workout = request.args.get('editing_program_workout', None)
 
     if workout and workout['id'] == workout_id:
-            return hx_render_template('workout_builder.html', workout=workout, context=context, source='exercises', editing_program_workout=editing_program_workout)
+        # Check if current user can save this workout
+        can_save_workout = True
+        if workout.get('created_by'):
+            can_save_workout = (workout.get('created_by') == member_id) or is_member_an_admin(member_id)
+        
+        return hx_render_template('workout_builder.html', 
+                                workout=workout, 
+                                context=context, 
+                                source='exercises', 
+                                editing_program_workout=editing_program_workout,
+                                can_save_workout=can_save_workout)
 
 
 # ── Fragments ────────────────────────────────────────────────────
@@ -242,19 +256,48 @@ def add_exercise(context=None, workout_id=None):
         abort(404)
     
     exid = ex['id']
-
-    # auto‐assign section
-    sect = ex['category'] if ex['category'] in [s['name'] for s in w[WORKOUT_SECTIONS]] else 'strength'
-    for s in w[WORKOUT_SECTIONS]:
-        if s['name']==sect:
-            s['exercises'].append({
-              'id':exid,
-              'parameters':{'sets':None,'reps':None,'weight':None, 'time':None,'weight_unit':'lbs', 'tempo': None}
+    # this returns the list of potential sections that the exercise should go into
+    secs = map_exercise_to_sections(ex)
+    
+    if secs:
+        # check all the sections of the workout and add the exercise to first section that matches one of the potential sections for the exercise
+        added = False
+        for s in w[WORKOUT_SECTIONS]:
+            if s['name'] in secs:
+                s['exercises'].append({
+                  'id':exid,
+                  'parameters':{'sets':None,'reps':None,'weight':None,'time':None,'weight_unit':'lbs', 'tempo': None}
+                })
+                added = True
+                break
+            
+        if not added:
+            # given that no section was found in the workout that matches one of the potential sections for the exercise,
+            # choose the first potential section and add the exercise to that section (creating the section if it does not exist in the workout)
+            section = secs[0]
+            w[WORKOUT_SECTIONS].append({
+                'name': section,
+                'exercises': [{
+                  'id':exid,
+                  'parameters':{'sets':None,'reps':None,'weight':None,'time':None,'weight_unit':'lbs', 'tempo': None}
+                }]
             })
-            break
-
+    else:
+        # add the exercise to the first section, but first check if there is a section named the same as the exercise category and add it there instead
+        if len(w[WORKOUT_SECTIONS]) > 0:
+            w[WORKOUT_SECTIONS][0]['exercises'].append({
+              'id':exid,
+              'parameters':{'sets':None,'reps':None,'weight':None,'time':None,'weight_unit':'lbs', 'tempo': None}
+            })
+        else:
+            w[WORKOUT_SECTIONS].append({
+                'name': 'general',
+                'exercises': [{
+                  'id':exid,
+                  'parameters':{'sets':None,'reps':None,'weight':None,'time':None,'weight_unit':'lbs', 'tempo': None}
+                }]
+            })
     set_cache_value('current_workout', w)
-
     return workout_canvas2(context, workout_id)
 
 @bp.route('/builder/<workout_id>/add_workout', methods=['POST'])
@@ -545,6 +588,7 @@ def exercise_listing(context=None):
 
     return hx_render_template(template_file_name,
                               fields_to_display=fields_to_display,
+                              title="Exercises Library",                              
                               main_content_container=div_id,
                               entities=current,
                               entity_name=entity_name,
@@ -563,7 +607,9 @@ def exercise_listing(context=None):
                               entity_action_icon='bi-plus',
                               entity_action_label='Add Exercise',
                               results_target_container=target if target else 'results-area',
-                              context=context)      
+                              context=context,
+                              entity_card_view_html='exercise_card_view.html'                                      
+                              )      
 
 ########################################
 # displays the workouts library within the workout builder
@@ -608,6 +654,7 @@ def builder_workouts_listing(context=None):
     # displays workouts at the top level
     return render_template(template_file_name,
         entity_name=entity_name,
+        title="Workouts Library",
         main_content_container=div_id,
         fields_to_display=fields_to_display,
         entities=current,
@@ -624,6 +671,7 @@ def builder_workouts_listing(context=None):
         entity_action_icon='bi-plus',  
         entity_action_label='Add Workout',
         results_target_container=target if target else 'results-area',
+        entity_card_view_html='workout_card_view.html',
         context=context)
 
 # ── Main exercise reviewer View ─────────────────────────────────────────────

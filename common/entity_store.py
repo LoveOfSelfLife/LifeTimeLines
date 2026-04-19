@@ -158,11 +158,11 @@ class EntityStore :
             EntityStore.storage_map[table_name] = storage
         return storage
 
-    def list_items(self, eobj:EntityObject, filter=[], select=None, start_time_iso=None, end_time_iso=None,
+    def list_items(self, eobj:EntityObject, filter1=[], select=None, start_time_iso=None, end_time_iso=None,
                    include_start_time=False, include_end_time=True):
-        return self.list_items2(eobj, filter, select, start_time_iso, end_time_iso, include_start_time, include_end_time)
+        return self.list_items2(eobj, filter2=filter1, select=select, start_time_iso=start_time_iso, end_time_iso=end_time_iso, include_start_time=include_start_time, include_end_time=include_end_time)
 
-    def list_items2(self, eobj:EntityObject, filter=[], select=None, start_time_iso=None, end_time_iso=None,
+    def list_items2(self, eobj:EntityObject, filter2=[], select=None, start_time_iso=None, end_time_iso=None,
                    include_start_time=False, include_end_time=True):
         """return a iterator of objects from the underlying Table store
         Args:
@@ -182,14 +182,18 @@ class EntityStore :
             pass
             # filter = filter
             # TODO: complete this
+        filter3=[]
         if eobj.get_partition_value():
-            filter.append(Filter("PartitionKey", eobj.get_partition_value(), op="eq"))
+            filter3 = filter2 + [Filter("PartitionKey", eobj.get_partition_value(), op="eq")]
+            # filter2.append(Filter("PartitionKey", eobj.get_partition_value(), op="eq"))
 
-        for r in storage.query2(filter=filter, select=select, 
+        results = storage.query2(filter=filter3, select=select, 
                                 start_time_iso=start_time_iso, 
                                 end_time_iso=end_time_iso,
                                 include_start_time=include_start_time, 
-                                include_end_time=include_end_time):
+                                include_end_time=include_end_time)
+
+        for r in results:
             yield self._loads_from_storage_format(r, type(eobj))
 
     def get_item(self, eobj):

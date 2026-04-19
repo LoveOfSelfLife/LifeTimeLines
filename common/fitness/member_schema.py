@@ -29,6 +29,13 @@ member_schema = {
 			"propertyOrder": 2,
 			"range": [0, 10]
 		},
+		"role": {
+			"type": "string",
+			"propertyOrder": 10,
+			"default": "client",
+			"enum": ["client", "coach"]
+
+		},
         "short_name": {
             "type": "string",
             "minLength": 1,
