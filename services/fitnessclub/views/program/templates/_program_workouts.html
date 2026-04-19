@@ -1,0 +1,154 @@
+<div class="card mb-3">
+Workouts in this program:
+    <ul class="list-group list-group-flush workout-list"
+        data-section="workouts">
+
+      {% for workout in workouts %}
+        {% set workout_type = workout.workout_type or 'standard' %}
+        {% set is_alternative = workout_type == 'alternative' %}
+        
+        <li class="list-group-item py-3 mb-2 {{ 'border-start border-warning border-3' if is_alternative else '' }}"
+            data-workout-id="{{ workout.id }}" data-program-id="{{ program.id }}">
+
+          <!-- Main workout row -->
+          <div class="d-flex align-items-start gap-3">
+            
+            <!-- Drag handle -->
+            <span class="drag-handle mt-2" style="cursor:grab;" title="Drag to reorder">☰</span>
+
+            <!-- Main content area -->
+            <div class="flex-fill">
+              
+              <!-- Top row: workout type toggle and action buttons -->
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                
+                <!-- Workout type selector -->
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge {{ 'bg-warning text-dark' if is_alternative else 'bg-secondary' }} small">
+                    {{ 'Alternative' if is_alternative else 'Standard' }}
+                  </span>
+                  
+                  <form hx-post="{{ url_for('program.update_workout_name', workout_id=workout.id) }}"
+                        hx-trigger="change delay:500ms"
+                        hx-swap="none"
+                        hx-include="[name='workout_name'][data-workout-id='{{ workout.id }}'], [name='purpose'][data-workout-id='{{ workout.id }}']">
+                    <select name="workout_type" 
+                            class="form-select form-select-sm"
+                            style="width: auto;"
+                            onchange="togglePurposeField('{{ workout.id }}', this.value)">
+                      <option value="standard" {{ 'selected' if not is_alternative else '' }}>Standard</option>
+                      <option value="alternative" {{ 'selected' if is_alternative else '' }}>Alternative</option>
+                    </select>
+                  </form>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="d-flex align-items-center gap-2">
+                  <button type="button"
+                          class="btn btn-outline-secondary btn-sm"
+                          onclick="toggleWorkoutDetails('{{ workout.id }}', '{{ workout.key_str }}', '{{ program.id }}')"
+                          title="Edit Workout Details">
+                    <i class="bi bi-pencil-square"></i>
+                  </button>
+                  
+                  <button class="btn btn-outline-primary btn-sm"
+                          hx-post="{{ url_for('program.edit_workout', program_id=program.id) }}"
+                          hx-vals='{"workout_id":"{{ workout.id }}"}'
+                          hx-target="#entities-container"
+                          hx-swap="innerHTML"
+                          title="Edit Workout">
+                    Edit
+                  </button>
+                  
+                  <button class="btn btn-outline-danger btn-sm"
+                          hx-post="{{ url_for('program.remove_workout', program_id=program.id) }}"
+                          hx-vals='{"workout_id":"{{ workout.id }}"}'
+                          hx-target="#program-canvas"
+                          hx-swap="innerHTML"
+                          title="Remove Workout"
+                          onclick="return confirm('Remove this workout from the program?')">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Workout name input -->
+              <div class="mb-2">
+                <label for="workout-name-{{ workout.id }}" class="form-label small text-muted mb-1">
+                  Workout Name
+                </label>
+                <form hx-post="{{ url_for('program.update_workout_name', workout_id=workout.id) }}"
+                      hx-trigger="change delay:500ms, focusout"
+                      hx-swap="none"
+                      hx-include="[name='workout_type'][data-workout-id='{{ workout.id }}'], [name='purpose'][data-workout-id='{{ workout.id }}']">
+                  <input type="text" 
+                         name="workout_name"
+                         id="workout-name-{{ workout.id }}"
+                         data-workout-id="{{ workout.id }}"
+                         class="form-control"
+                         placeholder="Enter workout name"
+                         value="{{ workout.name or '' }}">
+                </form>
+              </div>
+
+              <!-- Purpose input (conditional for alternative workouts) -->
+              <div id="purpose-container-{{ workout.id }}" class="{{ 'd-none' if not is_alternative else '' }}">
+                <label for="workout-purpose-{{ workout.id }}" class="form-label small text-muted mb-1">
+                  Purpose <span class="text-warning">*</span>
+                </label>
+                <form hx-post="{{ url_for('program.update_workout_name', workout_id=workout.id) }}"
+                      hx-trigger="change delay:500ms, focusout"
+                      hx-swap="none"
+                      hx-include="[name='workout_name'][data-workout-id='{{ workout.id }}'], [name='workout_type'][data-workout-id='{{ workout.id }}']">
+                  <input type="text" 
+                         name="purpose"
+                         id="workout-purpose-{{ workout.id }}"
+                         data-workout-id="{{ workout.id }}"
+                         class="form-control"
+                         placeholder="e.g., take-it-easy, at-home, quick-session"
+                         value="{{ workout.purpose or '' }}">
+                </form>
+                <small class="text-muted">Describe when to use this alternative workout</small>
+              </div>
+
+              <!-- Purpose display for alternative workouts -->
+              {% if is_alternative and workout.purpose %}
+              <div class="mt-1">
+                <small class="text-muted">
+                  <i class="bi bi-info-circle me-1"></i>
+                  <strong>Purpose:</strong> {{ workout.purpose }}
+                </small>
+              </div>
+              {% endif %}
+
+            </div>
+          </div>
+        </li>
+        
+        <!-- Placeholder for workout details -->
+        <div id="workout-details-{{ workout.id }}" class="workout-details"></div>
+        
+      {% endfor %}
+    </ul>
+  </div>
+
+<script>
+function togglePurposeField(workoutId, workoutType) {
+  const purposeContainer = document.getElementById(`purpose-container-${workoutId}`);
+  const badge = purposeContainer.closest('.list-group-item').querySelector('.badge');
+  
+  if (workoutType === 'alternative') {
+    purposeContainer.classList.remove('d-none');
+    badge.textContent = 'Alternative';
+    badge.className = 'badge bg-warning text-dark small';
+    // Add border highlight
+    purposeContainer.closest('.list-group-item').classList.add('border-start', 'border-warning', 'border-3');
+  } else {
+    purposeContainer.classList.add('d-none');
+    badge.textContent = 'Standard';
+    badge.className = 'badge bg-secondary small';
+    // Remove border highlight
+    purposeContainer.closest('.list-group-item').classList.remove('border-start', 'border-warning', 'border-3');
+  }
+}
+</script>

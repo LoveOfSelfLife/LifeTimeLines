@@ -3,56 +3,14 @@
               
 <input type="hidden" name="view" value="{{ view }}">
 {% if view == 'card' %}
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-4 row-cols-xxl-4 g-3">
         {% for entity in entities %}
             <div class="col">
-                <div class="card">
-                    {% if entity.card_view_fields.image_url %}
-                    <div class="img-wrapper">
-                        <img src="{{ entity.card_view_fields.image_url }}" 
-                             class="img-top-centered"
-                        alt="{{ entity.card_view_fields.title }}">
-                    </div>
-                    {% endif %}
-                    <div class="card-body">
-                        {% if entity_view_route %}
-                            <a href="#"
-                                hx-get="{{ entity_view_route }}&key={{ entity.key }}"
-                                hx-target="#modals-here"
-                                hx-swap="innerHTML"
-                                data-bs-toggle="modal"
-                                data-bs-target="#modals-here"
-                                >
-                                <h5 class="card-title">{{ entity.card_view_fields.title }}</h5>
-                            </a>
-                        {% else %}
-                            <h5 class="card-title">{{ entity.card_view_fields.title }}</h5>
-                        {% endif %}
-                            <p class="card-text">{{ entity.card_view_fields.subtitle }}</p>
-                            <p class="card-text">{{ entity.card_view_fields.description }}</p>
-
-                        {% if entity_action_route_method %}
-                                {% set action_method = entity_action_route_method %}
-                        {% else %}
-                            {% set action_method = "get" %}
-                        {% endif %}
-
-                        {% if entity_action_route_target %}
-                                {% set action_target = entity_action_route_target %}
-                        {% else %}
-                            {% set action_target = main_content_container %}
-                        {% endif %}
-
-                        {% if entity_action_route %}
-                            <button class="btn btn-sm btn-outline-light"
-                                hx-{{ action_method }}="{{ entity_action_route }}&key={{ entity.key }}&page={{ page }}&filter={{ filter_terms }}"
-                                hx-target="#{{ action_target }}"
-                                hx-swap="innerHTML show:top">
-                                <i class="bi {{ entity_action_icon}}"></i>
-                            </button>
-                        {% endif %}
-                    </div>
-                </div>
+                {% if entity_card_view_html %}
+                    {% include entity_card_view_html %}
+                {% else %}
+                    {% include 'entity_default_card_view.html' %}
+                {% endif %}
             </div>
         {% endfor%}
     </div>

@@ -78,12 +78,12 @@ class TestEntityStore(unittest.TestCase):
         print("Filtering")
                                                              
         # gel = storage.list_items(ge, filter="photos_album eq 'Someones_Photo_Album'")
-        gel = storage.list_items(ge, filter="city eq 'pocono pines'")
+        gel = storage.list_items(ge, filter1="city eq 'pocono pines'")
         # gel = storage.list_items(ge, filter="photos_album eq '""John_Masons_Photo_Album""'")
         for g in gel:
             print(json.dumps(g, indent=4))
                                                
-        gel = storage.list_items(ge, filter="city eq 'pocono pines'", start_time_iso='2024-03-06T18:24:23Z')
+        gel = storage.list_items(ge, filter1="city eq 'pocono pines'", start_time_iso='2024-03-06T18:24:23Z')
 
         print("Filtering by timestamp")
         for g in gel:

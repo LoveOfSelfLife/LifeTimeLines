@@ -18,6 +18,7 @@ from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, 
 from common.fitness.programs import get_program_workouts
 from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state
 from common.fitness.edit_workout_object import edit_workout_object
+from common.fitness.roles_service import get_accessible_members_for_context, get_member_role
 bp = Blueprint('program', __name__, template_folder='templates')
 from auth import auth
 
@@ -57,8 +58,18 @@ def programs_listing2(context=None):
     member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
+    entities = []
 
-    entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member_id, sort_by='end_date', sort_ascending=False, member_id=member_id)
+    # if the member is a coach, we want to show them programs for all of their teams, so we need to get the list of members they have access to (themselves and any clients on their teams) and then get programs for all of those members
+    if get_member_role(member_id) == 'coach':
+        accessible_members = get_accessible_members_for_context(member_id)
+
+        for member in accessible_members:
+            print(f"Accessible member: {member.get('id')} - {member.get('name')}")
+            member_entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member.get('id'), sort_by='end_date', sort_ascending=False, member_id=member.get('id'))
+            entities.extend(member_entities)
+    else:
+        entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member_id, sort_by='end_date', sort_ascending=False, member_id=member_id)
 
     return program_listing_base(context, entity_name, page, page_size, view, fields_to_display, filter_terms, entities)
 
@@ -79,6 +90,7 @@ def program_listing_base(context, entity_name, page, page_size, view, fields_to_
     # displays workouts at the top level
     return hx_render_template(
         template_file_name,
+        title="Programs Library",
         entity_name=entity_name,
         main_content_container="entities-container",        
         fields_to_display=fields_to_display,
@@ -87,7 +99,7 @@ def program_listing_base(context, entity_name, page, page_size, view, fields_to_
         args=request.args,
         page=page,
         view=view,
-        entity_add_route=url_for('program.builder_new'),        
+        entity_add_route=f"{url_for('program.builder_new')}?x=1",        
         total_pages=total_pages,
         entity_view_route=f'/program/viewer?entity_table={entity_name}',
         entities_listing_route=f'/program/programs-listing?entity_table={entity_name}',
@@ -95,17 +107,48 @@ def program_listing_base(context, entity_name, page, page_size, view, fields_to_
         entity_action_icon='bi-pencil-square',  
         entity_action_label='Edit Program',
         results_target_container=results_target_container,
+        entity_card_view_html='program_card_view.html',
         context=context)
 
 @bp.route('/viewer')
 @auth.login_required
 def program_viewer(context=None):
+    # Get the composite key from query parameters
+    composite_key_str = request.args.get('key', None)
+    if not composite_key_str:
+        abort(400, "Missing program key")
+    
+    try:
+        composite_key = eval(composite_key_str)
+    except:
+        abort(400, "Invalid program key format")
+    
+    # Fetch the program entity
+    es = EntityStore()
+    program_data = es.get_item_by_composite_key(composite_key)
+    if not program_data:
+        abort(404, "Program not found")
+    
+    eoclass = EntityObject.get_entity_class_from_table_name(PROGRAM_ENTITY_NAME)
+    program = eoclass(program_data)
+    
+    # Get workouts for this program
+    workouts = get_workouts_from_program(program)
+    
+    # Separate standard and alternative workouts
+    standard_workouts = [w for w in workouts if w.get('workout_type', 'standard') == 'standard']
+    alternative_workouts = [w for w in workouts if w.get('workout_type', 'standard') == 'alternative']
+    
+    # Get member information
+    member = get_entity('MemberTable', program.get('member_id'))
+    member_name = member.get('name', 'Unknown Member') if member else 'Unknown Member'
+    
     return hx_render_template(
         "program_viewer.html",
-        entity_name=PROGRAM_ENTITY_NAME,
-        main_content_container="entities-container",
-        fields_to_display=['name', 'description', 'start_date', 'end_date', 'workouts'],
-        args=request.args,
+        program=program,
+        member_name=member_name,
+        standard_workouts=standard_workouts,
+        alternative_workouts=alternative_workouts,
         context=context
     )    
 
@@ -130,6 +173,7 @@ def workouts_listing(context=None):
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     filter_terms = _get_filter_terms_from_request()
 
+            
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
 
     # mobile = request.args.get('mobile', type=bool, default=False)
@@ -163,6 +207,7 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
     # displays workouts at the top level
     return hx_render_template(
         template_file_name,
+        title="Workouts Library",
         fields_to_display=fields_to_display,
         main_content_container=div_id,        
         entities=current,
@@ -180,6 +225,7 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
         entity_action_icon='bi-plus',  
         entity_action_label='Add Workout',
         results_target_container=results_target_container,
+        entity_card_view_html='workout_card_view.html',
         context=context)
 
 def new_program(name='new-workout-program', member_id=None):
@@ -226,15 +272,35 @@ def edit_program_details(context=None):
 def builder(context=None):
     current_program = get_cache_value('current_program')
     if current_program:
-        return hx_render_template('program_builder.html', program=current_program, context=context)
+        member_id = get_member_id_from_user_context(context)
+        if not member_id:
+            abort(401)
+            
+        # Get accessible members for coaches to assign programs to
+        accessible_members = get_accessible_members_for_context(member_id)
+        
+        # Get role context for template conditional rendering
+        from common.fitness.roles_service import get_member_role_context
+        role_context = get_member_role_context(member_id)
+        
+        # Debug: Check program member_id and accessible members
+        print(f"DEBUG - Program member_id: {current_program.get('member_id')} (type: {type(current_program.get('member_id'))})")
+        print(f"DEBUG - Accessible members: {[(m.get('id'), m.get('name')) for m in accessible_members]}")
+        print(f"DEBUG - Member IDs types: {[type(m.get('id')) for m in accessible_members]}")
+        
+        return hx_render_template('program_builder.html', 
+                                program=current_program, 
+                                accessible_members=accessible_members,
+                                role_context=role_context,
+                                context=context)
     abort(404)
 
 @bp.route('/builder/<program_id>/canvas')
 @auth.login_required
 def program_canvas(context=None, program_id=None):
-    return program_canvas2(context, program_id)
+    return program_workouts_canvas(context, program_id)
 
-def program_canvas2(context=None, program_id=None):
+def program_workouts_canvas(context=None, program_id=None):
     p = get_cache_value('current_program')
     if p:
         # we only want to populate the current_program_workouts cache the first time
@@ -247,13 +313,18 @@ def program_canvas2(context=None, program_id=None):
             for wk in workouts_list:
                 wk['key'] = wk.get_composite_key()
                 wk['key_str'] = '|'.join(wk.get_composite_key())
+                # Ensure default values for new fields to support existing workouts
+                if 'workout_type' not in wk or wk.get('workout_type') is None:
+                    wk['workout_type'] = 'standard'
+                if 'purpose' not in wk or wk.get('purpose') is None:
+                    wk['purpose'] = ''
             # store the workouts in the cache as well
             set_cache_value('current_program_workouts', workouts_list)
         else:
             workouts_list = get_cache_value('current_program_workouts')
 
         if p['id'] == program_id:
-            return hx_render_template('_program_canvas2.html',
+            return hx_render_template('_program_workouts.html',
                                         program=p,
                                         workouts=workouts_list,
                                         context=context)
@@ -342,7 +413,7 @@ def reorder_workouts(context=None, program_id=None):
     # here we save the program to the cache
     set_cache_value('current_program_workouts', reordered_workout_list)
 
-    return program_canvas2(context, program_id)
+    return program_workouts_canvas(context, program_id)
 
 @bp.route('/builder/<program_id>/updatename', methods=['POST'])
 @auth.login_required
@@ -354,7 +425,7 @@ def update_program_name(context=None, program_id=None):
     p['name'] = request.form['name']
 
     set_cache_value('current_program', p)
-    return program_canvas2(context, program_id)
+    return program_workouts_canvas(context, program_id)
 
 @bp.route('/builder/<program_id>/updatedate/<date_type>', methods=['POST'])
 @auth.login_required
@@ -374,6 +445,32 @@ def update_dates(context=None, program_id=None, date_type=None):
     response = make_response('', 200)
     return response
 
+@bp.route('/builder/<program_id>/update_assigned_member', methods=['POST'])
+@auth.login_required
+def update_assigned_member(context=None, program_id=None):
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+        
+    p = get_cache_value('current_program')
+    if not p:
+        abort(404)
+        
+    # Update the member_id for the program
+    assigned_member_id = request.form['assigned_member_id']
+    p['member_id'] = assigned_member_id
+    
+    set_cache_value('current_program', p)
+
+    # get all the workouts for the program and update their member_id as well
+    current_program_workouts = get_cache_value('current_program_workouts')
+    for wk in current_program_workouts:
+        wk['member_id'] = assigned_member_id
+    set_cache_value('current_program_workouts', current_program_workouts)
+
+    response = make_response('', 200)
+    return response
+
 @bp.route('/builder/updateworkoutname/<workout_id>', methods=['POST'])
 @auth.login_required
 def update_workout_name(context=None, program_id=None, workout_id=None):
@@ -381,6 +478,8 @@ def update_workout_name(context=None, program_id=None, workout_id=None):
     current_program_workouts = get_cache_value('current_program_workouts')
 
     workout_name = request.form.get('workout_name', '')
+    workout_type = request.form.get('workout_type', 'standard')
+    purpose = request.form.get('purpose', '')
 
     # find the workout in the current_program_workouts list that has an id matching workout_id
     workout = next((wk for wk in current_program_workouts if wk.get('id', None) == workout_id), None)
@@ -388,8 +487,10 @@ def update_workout_name(context=None, program_id=None, workout_id=None):
     if not workout:
         abort(404)
 
-    # set the new name
+    # set the new values
     workout['name'] = workout_name
+    workout['workout_type'] = workout_type
+    workout['purpose'] = purpose
 
     # current_program_workouts[workout_id] = workout
     set_cache_value('current_program_workouts', current_program_workouts)
@@ -439,7 +540,6 @@ def save_program(context=None, program_id=None):
     delete_from_cache('current_program')
     delete_from_cache('current_program_workouts')
     delete_from_cache('workouts_to_remove')
-
 
     member_id = get_member_id_from_user_context(context)
     if not member_id:
@@ -572,7 +672,7 @@ def edit_workout(context=None, program_id=None):
 
     set_cache_value('current_program_workouts', current_program_workouts)
 
-    return program_canvas2(context, program_id)
+    return program_workouts_canvas(context, program_id)
 
 
 @bp.route('/builder/<program_id>/remove', methods=['POST'])
@@ -596,7 +696,7 @@ def remove_workout(context=None, program_id=None):
 
     set_cache_value('current_program_workouts', current_program_workouts)
 
-    return program_canvas2(context, program_id)
+    return program_workouts_canvas(context, program_id)
 
 
 @bp.route('/builder/<program_id>/add', methods=['POST'])
@@ -648,7 +748,7 @@ def add_workout(context=None, program_id=None):
     set_cache_value('current_program', current_program)
     set_cache_value('current_program_workouts', current_program_workouts)
 
-    return program_canvas2(context, program_id)
+    return program_workouts_canvas(context, program_id)
 
 
 @bp.route('/start_workout/<workout_key>', methods=['POST'])

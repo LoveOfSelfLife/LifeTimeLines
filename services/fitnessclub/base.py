@@ -103,3 +103,56 @@ def api_upload_photo(context, container_name):
         "content_type": file.content_type
     }
 
+# Team selection and members routes
+
+@bp.route("/teams/select", methods=["POST"])
+@auth.login_required
+def select_team(context=None):
+    """Allow coaches to select their active team"""
+    from common.fitness.roles_service import set_primary_team_id_for_context, get_member_role, get_teams_managed_by_coach
+    import json
+    from flask import make_response
+    
+    team_id = request.form.get('team_id')
+    member_id = get_member_id_from_user_context(context)
+    
+    if not team_id:
+        return "Team ID required", 400
+    
+    # Verify user is a coach and has access to this team
+    if get_member_role(member_id) != 'coach':
+        return "Only coaches can select teams", 403
+    
+    coach_teams = get_teams_managed_by_coach(member_id)
+    if not any(t['id'] == team_id for t in coach_teams):
+        return "Access denied to this team", 403
+    
+    # Set the selected team in session
+    set_primary_team_id_for_context(team_id)
+    
+    # Find the team name for the success message
+    selected_team = next((t for t in coach_teams if t['id'] == team_id), None)
+    team_name = selected_team['name'] if selected_team else team_id
+    
+    response = make_response('')
+    response.headers['HX-Trigger'] = json.dumps({
+        "showMessage": {"value": f"Switched to team: {team_name}", "target": "body"}
+    })
+    response.headers['HX-Refresh'] = 'true'  # Refresh the page to update menu and context
+    return response
+
+@bp.route("/members")
+@auth.login_required
+def members_page(context=None):
+    """Show team members based on user's role and team context"""
+    from common.fitness.roles_service import get_accessible_members_for_context, get_current_team_context
+    
+    member_id = get_member_id_from_user_context(context)
+    accessible_members = get_accessible_members_for_context(member_id)
+    current_team = get_current_team_context(member_id)
+    
+    return hx_render_template('members_page.html', 
+                              members=accessible_members,
+                              current_team=current_team,
+                              context=context)
+
