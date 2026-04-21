@@ -1,0 +1,202 @@
+{# Completed Workouts Partial Template #}
+{% if data.workouts %}
+  <div class="completed-workouts-list">
+    <div class="table-responsive">
+      <table class="table table-hover table-dark">
+        <thead>
+          <tr>
+            <th><i class="bi bi-calendar3 me-2"></i>Date</th>
+            <th><i class="bi bi-dumbbell me-2"></i>Workout</th>
+            <th><i class="bi bi-stopwatch me-2"></i>Duration</th>
+            <th><i class="bi bi-graph-up me-2"></i>Performance</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for workout in data.workouts %}
+            <tr class="clickable-row"
+                hx-get="{{ url_for('home.completed_workout_details_modal') }}"
+                hx-vals='{"workout_instance_key": "{{ workout.workout_instance_key }}"}'
+                hx-target="#modals-here"
+                hx-swap="innerHTML"
+                style="cursor: pointer;">
+              
+              <td>
+                <div class="workout-date">
+                  {% if workout.completed_datetime %}
+                    {% set completed_dt = workout.completed_datetime %}
+                    {% if completed_dt is string %}
+                      {% set completed_dt = completed_dt|datetime %}
+                    {% endif %}
+                    <strong>{{ completed_dt.strftime('%b %d') }}</strong>
+                    <br>
+                    <small class="text-muted">{{ completed_dt.strftime('%I:%M %p') }}</small>
+                  {% else %}
+                    <span class="text-muted">Unknown</span>
+                  {% endif %}
+                </div>
+              </td>
+
+              <td>
+                <div class="workout-name-cell">
+                  <strong>{{ workout.workout_name }}</strong>
+                  {% if workout.workout_instance.get('program_name') %}
+                    <br>
+                    <small class="text-muted">{{ workout.workout_instance.get('program_name') }}</small>
+                  {% endif %}
+                </div>
+              </td>
+
+              <td>
+                <div class="duration-info">
+                  {% if workout.duration_minutes > 0 %}
+                    <span class="badge bg-info">
+                      {{ workout.duration_minutes }} min
+                    </span>
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
+                </div>
+              </td>
+
+              <td>
+                <div class="performance-indicators">
+                  {# Performance metrics - can be expanded later #}
+                  {% set total_exercises = workout.workout_instance.get('sections', [])|length %}
+                  {% if total_exercises > 0 %}
+                    <span class="badge bg-success">
+                      {{ total_exercises }} exercises
+                    </span>
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
+                </div>
+              </td>
+
+              <td class="text-end">
+                <div class="action-buttons">
+                  <button class="btn btn-sm btn-light"
+                          onclick="event.stopPropagation()"
+                          hx-get="{{ url_for('home.completed_workout_details_modal') }}"
+                          hx-vals='{"workout_instance_key": "{{ workout.workout_instance_key }}"}'
+                          hx-target="#modals-here"
+                          hx-swap="innerHTML">
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <button class="btn btn-sm btn-info"
+                          onclick="event.stopPropagation()"
+                          hx-get="{{ url_for('home.repeat_workout_modal') }}"
+                          hx-vals='{"workout_instance_key": "{{ workout.workout_instance_key }}"}'
+                          hx-target="#modals-here"
+                          hx-swap="innerHTML">
+                    <i class="bi bi-arrow-clockwise"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# View all workouts link #}
+    <div class="text-center mt-3">
+      <button class="btn btn-light"
+              hx-get="{{ url_for('home.completed_workouts_partial') }}"
+              hx-target="#content"
+              hx-swap="innerHTML">
+        <i class="bi bi-list-ul me-1"></i>View All Completed Workouts
+      </button>
+    </div>
+  </div>
+{% else %}
+  {# No completed workouts #}
+  <div class="empty-state text-center py-4">
+    <i class="bi bi-activity display-1 text-light opacity-50"></i>
+    <h5 class="mt-3 mb-2">No Completed Workouts</h5>
+    <p class="text-light opacity-75 mb-3">Start working out to see your history here!</p>
+    <button class="btn btn-outline-light"
+            hx-get="{{ url_for('schedule.index') }}"
+            hx-target="#content"
+            hx-swap="innerHTML">
+      <i class="bi bi-play-circle me-1"></i>Schedule Your First Workout
+    </button>
+  </div>
+{% endif %}
+
+<style>
+/* Completed Workouts Specific Styles */
+.completed-workouts-list .table {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.completed-workouts-list .table th {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.completed-workouts-list .table td {
+  border-color: rgba(255, 255, 255, 0.1);
+  vertical-align: middle;
+}
+
+.clickable-row:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.workout-date strong {
+  color: #fff;
+}
+
+.workout-name-cell strong {
+  color: #fff;
+}
+
+.duration-info .badge {
+  font-size: 0.8rem;
+}
+
+.performance-indicators .badge {
+  font-size: 0.75rem;
+}
+
+.action-buttons .btn {
+  margin-left: 0.25rem;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 767px) {
+  .completed-workouts-list .table th:nth-child(3),
+  .completed-workouts-list .table td:nth-child(3),
+  .completed-workouts-list .table th:nth-child(4),
+  .completed-workouts-list .table td:nth-child(4) {
+    display: none;
+  }
+  
+  .action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .action-buttons .btn {
+    margin: 0;
+    font-size: 0.8rem;
+  }
+}
+
+/* Empty state styling */
+.empty-state i {
+  font-size: 4rem;
+}
+</style>
+
+{# Custom datetime filter for template 
+{% set datetime_filter = (lambda dt_str: dt_str|strptime('%Y-%m-%dT%H:%M:%S.%f%z') if dt_str is string else dt_str) %}
+{% set filters = {'datetime': datetime_filter} %}
+
+#}  

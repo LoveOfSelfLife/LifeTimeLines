@@ -1,0 +1,49 @@
+{# Completed Workout Details Modal Template #}
+<div class="modal fade" id="completed-workout-modal" tabindex="-1" aria-labelledby="completed-workout-modal-label" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="completed-workout-modal-label">
+          <i class="bi bi-check-circle me-2"></i>{{ workout_name }}
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="workout-summary mb-4">
+          <div class="row">
+            <div class="col-md-6">
+              <strong>Start Time:</strong><br>
+              <span class="text-light opacity-75">{{ start_time }}</span>
+            </div>
+            <div class="col-md-6">
+              <strong>End Time:</strong><br>
+              <span class="text-light opacity-75">{{ end_time }}</span>
+            </div>
+          </div>
+        </div>
+        
+        {# Would include actual workout performance data here #}
+        <div class="text-center py-4">
+          <i class="bi bi-activity display-4 text-info opacity-50"></i>
+          <p class="mt-3 text-light opacity-75">Detailed workout performance data coming soon...</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Show the modal after it's loaded via HTMX
+  document.addEventListener('DOMContentLoaded', function() {
+    const modal = new bootstrap.Modal(document.getElementById('completed-workout-modal'));
+    modal.show();
+  });
+  // If DOM is already loaded (HTMX case), show immediately
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    const modal = new bootstrap.Modal(document.getElementById('completed-workout-modal'));
+    modal.show();
+  }
+</script>

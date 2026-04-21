@@ -1,0 +1,63 @@
+{# Repeat Workout Modal Template #}
+<div class="modal fade" id="repeat-workout-modal" tabindex="-1" aria-labelledby="repeat-workout-modal-label" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="repeat-workout-modal-label">
+          <i class="bi bi-arrow-clockwise me-2"></i>Repeat Workout
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form hx-post="{{ url_for('home.repeat_workout') }}" 
+            hx-target="#scheduled-workouts-content" 
+            hx-swap="innerHTML">
+        <div class="modal-body">
+          <input type="hidden" name="workout_instance_key" value="{{ workout_instance_key }}">
+          
+          <div class="mb-3">
+            <h6><i class="bi bi-dumbbell me-2"></i>{{ workout_name }}</h6>
+            <p class="text-light opacity-75">
+              Schedule this workout to repeat it. Choose when you'd like to do it again.
+            </p>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Schedule Date</label>
+            <input type="date" class="form-control" name="schedule_date" 
+                   min="{{ today_date }}" required>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Schedule Time</label>
+            <input type="time" class="form-control" name="schedule_time" required>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Notes (Optional)</label>
+            <textarea class="form-control" name="notes" rows="2" 
+                      placeholder="Any modifications or goals for this repeat workout..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-info">
+            <i class="bi bi-calendar-plus me-2"></i>Schedule Repeat
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Show the modal after it's loaded via HTMX
+  document.addEventListener('DOMContentLoaded', function() {
+    const modal = new bootstrap.Modal(document.getElementById('repeat-workout-modal'));
+    modal.show();
+  });
+  // If DOM is already loaded (HTMX case), show immediately
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    const modal = new bootstrap.Modal(document.getElementById('repeat-workout-modal'));
+    modal.show();
+  }
+</script>

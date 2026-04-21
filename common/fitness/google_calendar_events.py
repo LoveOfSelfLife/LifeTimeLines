@@ -148,7 +148,7 @@ class GoogleCalendarService:
         return events_list
 
 
-    def get_dates_and_events_stream(self, date_min:str=None, date_max:str=None):
+    def get_dates_and_events_stream(self, date_min:str=None, date_max:str=None, filter_by_member_id_func=None):
         """
         will return a list of json ojbects of two types, date and event
         date objects will starte at date_min and end at date_max
@@ -338,7 +338,12 @@ class GoogleCalendarService:
             # reflect that in the summmary
             if event['event_status'] == 'done':
                 event_summary = f"{event_summary} (Completed)"
-                
+
+            # if filter_by_member_id_func is provided, we will use it to filter the events by member id.  
+            # if the function returns false for the member id of the event, then we will skip that event and not include it in the output stream
+            if filter_by_member_id_func and not filter_by_member_id_func(event['member_id']):
+                continue                
+
             event_dict = {
                 'id': event_id,
                 'type': event_type,

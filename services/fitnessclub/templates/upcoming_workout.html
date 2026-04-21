@@ -43,7 +43,8 @@
             {% if completed_workouts|length >= 1 %}
               <tr>
                 <td colspan="2" class="text-center">
-                  <a href="{{ url_for('program.completed_workouts', program_key=program_key) }}">View all completed workouts</a>
+                  {# TODO: Add route for viewing all completed workouts #}
+                  <span class="text-muted">View all completed workouts (coming soon)</span>
                 </td>
               </tr>
             {% endif %} #}

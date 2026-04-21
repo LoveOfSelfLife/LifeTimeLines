@@ -1,0 +1,161 @@
+{# New home page template with three main sections #}
+<div class="home-dashboard">
+  <div class="container-fluid">
+    {# Header #}
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="welcome-header">
+          <h1 class="display-4 fw-bold mb-2">Welcome back, {{ member.name }}!</h1>
+          <p class="lead text-light opacity-75">Here's your fitness dashboard</p>
+        </div>
+      </div>
+    </div>
+
+    {# Three main sections in responsive layout #}
+    <div class="row g-4">
+      {# Scheduled Workouts Section #}
+      <div class="col-12">
+        <div class="dashboard-section">
+          <div class="section-header d-flex align-items-center mb-3">
+            <i class="bi bi-calendar3 me-2 fs-4"></i>
+            <h3 class="mb-0">Scheduled Workouts</h3>
+            <span class="badge bg-light text-dark ms-auto">Next 7 Days</span>
+          </div>
+          <div id="scheduled-workouts-content" 
+               hx-get="{{ url_for('home.scheduled_workouts_partial') }}" 
+               hx-trigger="load"
+               hx-swap="innerHTML">
+            {# Loading placeholder #}
+            <div class="text-center py-4">
+              <div class="spinner-border text-light" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2 text-light opacity-75">Loading scheduled workouts...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# Completed Workouts Section (Full Width) #}
+      <div class="col-12 col-xl-6">
+        <div class="dashboard-section">
+          <div class="section-header d-flex align-items-center mb-3">
+            <i class="bi bi-check-circle me-2 fs-4"></i>
+            <h3 class="mb-0">Recent Workouts</h3>
+            <span class="badge bg-success ms-auto">Last 5 Completed</span>
+          </div>
+          <div id="completed-workouts-content"
+               hx-get="{{ url_for('home.completed_workouts_partial') }}"
+               hx-trigger="load"
+               hx-swap="innerHTML">
+            {# Loading placeholder #}
+            <div class="text-center py-4">
+              <div class="spinner-border text-light" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2 text-light opacity-75">Loading workout history...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# Analytics Section #}
+      <div class="col-12 col-xl-6">
+        <div class="dashboard-section">
+          <div class="section-header d-flex align-items-center mb-3">
+            <i class="bi bi-graph-up me-2 fs-4"></i>
+            <h3 class="mb-0">Analytics</h3>
+            <span class="badge bg-info ms-auto">This Week</span>
+          </div>
+          <div id="analytics-content"
+               hx-get="{{ url_for('home.analytics_partial') }}"
+               hx-trigger="load"
+               hx-swap="innerHTML">
+            {# Loading placeholder #}
+            <div class="text-center py-4">
+              <div class="spinner-border text-light" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p class="mt-2 text-light opacity-75">Loading analytics...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{# Modal container for workout details, etc. #}
+<div id="modals-here"></div>
+
+<style>
+/* Home dashboard specific styles */
+.home-dashboard {
+  margin-top: 60px; /* Account for fixed navbar */
+  padding: 1rem;
+}
+
+.welcome-header {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.dashboard-section {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  height: 100%;
+  min-height: 400px;
+}
+
+.section-header {
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.section-header h3 {
+  color: #fff;
+  font-weight: 600;
+}
+
+.section-header i {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1199px) {
+  .dashboard-section {
+    min-height: 350px;
+  }
+}
+
+@media (max-width: 767px) {
+  .home-dashboard {
+    padding: 0.5rem;
+  }
+  
+  .dashboard-section {
+    min-height: 300px;
+    padding: 1rem;
+  }
+  
+  .welcome-header {
+    padding: 1rem 0;
+  }
+  
+  .welcome-header h1 {
+    font-size: 1.8rem;
+  }
+}
+
+/* Loading states */
+.spinner-border {
+  width: 2rem;
+  height: 2rem;
+}
+</style>

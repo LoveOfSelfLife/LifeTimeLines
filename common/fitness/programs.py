@@ -12,11 +12,24 @@ def get_members_current_active_program(member_id, current_date_dt=None):
     if not current_date_dt:
         from datetime import datetime
         current_date_dt = datetime.now()
-    # current_date_dt is a datetime object, but start_date and end_date are likely strings, so we need to convert them to datetime objects
+    
+    # currrent_date_dt is a datetime object with timezone info as UTC, we need to convert it to local timezone for comparison with the program start and end dates, which are in local timezone
+    import pytz
+    current_date_dt = current_date_dt.astimezone(pytz.timezone('US/Eastern'))
     
     for program in programs:
-        start_date = dt.fromisoformat(program.get('start_date'))if program.get('start_date') else None
+        # start_date and end_date are stored as ISO format strings in the program entity, we need to convert them to datetime objects with the local timezone for comparison
+        # by default, fromisoformat will set the tzinfo to null, so we need to make sure to add the local timezone to the start and end dates when converting them to datetime objects
+        start_date = dt.fromisoformat(program.get('start_date')) if program.get('start_date') else None
+        if start_date:
+            start_date = start_date.replace(tzinfo=pytz.timezone('US/Eastern'))
+            # start_date = start_date.astimezone(pytz.timezone('US/Eastern'))
+        
         end_date = dt.fromisoformat(program.get('end_date')) if program.get('end_date') else None
+        if end_date:
+            end_date = end_date.replace(tzinfo=pytz.timezone('US/Eastern'))
+            # end_date = end_date.astimezone(pytz.timezone('US/Eastern'))
+        
         if start_date and end_date:
             if start_date <= current_date_dt <= end_date:
                 # only return the program if it has workouts

@@ -5,7 +5,6 @@ from common.blob_store import BlobStore
 import os
 from common.fitness.hx_common import hx_render_template
 from common.fitness.member_entity import MembershipRegistry, get_member_detail_from_user_context, get_member_email_from_user_context, get_member_id_from_user_context, get_member_name_from_user_context, FirstTimeUserException, UnregisteredMemberException
-from common.fitness.home_page_view import generate_current_home_page_view
 
 bp = Blueprint('/', __name__, template_folder='templates')  
 
@@ -30,6 +29,7 @@ def home():
 @bp.route("/")
 @auth.login_required
 def index(context = None):
+    """Redirect to new home dashboard"""
     member_registry = MembershipRegistry()
     member_registry.refresh_members()   # always refresh members on index page load
 
@@ -38,8 +38,8 @@ def index(context = None):
     member_name = get_member_name_from_user_context(context)
     try:
         member = member_registry.verify_member_registration(member_id)
-        home_page_view = generate_current_home_page_view(member)
-        return hx_render_template(template_string=home_page_view, context=context, member=member)
+        # Redirect to new home dashboard
+        return redirect("/home/")
         
     except UnregisteredMemberException as e:
         print(f"User not registered: {e}")

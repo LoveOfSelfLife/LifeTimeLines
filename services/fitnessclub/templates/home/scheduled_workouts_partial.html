@@ -1,0 +1,237 @@
+{# Scheduled Workouts Partial Template #}
+
+{# Helper macro for formatting time until workout - must be defined before use #}
+{% macro format_seconds(seconds) -%}
+  {% if seconds < 0 %}
+    about now
+  {% else %}
+    {% set days = (seconds // 86400) | int %}
+    {% set hours = ((seconds % 86400) // 3600) | int %}
+    {% set minutes = ((seconds % 3600) // 60) | int %}
+    
+    {% set parts = [] %}
+    {% if days > 0 %}
+      {% set _ = parts.append(days|string + " day" + ("s" if days != 1 else "")) %}
+    {% endif %}
+    {% if hours > 0 %}
+      {% set _ = parts.append(hours|string + " hour" + ("s" if hours != 1 else "")) %}
+    {% endif %}
+    {% if minutes > 0 or (days == 0 and hours == 0) %}
+      {% set _ = parts.append(minutes|string + " minute" + ("s" if minutes != 1 else "")) %}
+    {% endif %}
+    
+    {% if parts|length > 1 %}
+      {{ parts[:-1]|join(", ") }} and {{ parts[-1] }} from now
+    {% else %}
+      {{ parts[0] }} from now
+    {% endif %}
+  {% endif %}
+{%- endmacro %}
+
+{% if data.has_active_program %}
+  {% if data.workouts %}
+    <div class="scheduled-workouts-list">
+      {% for workout in data.workouts %}
+        <div class="workout-card mb-3 {% if workout.status == 'missed' %}missed-workout{% endif %}">
+          <div class="card-body p-3">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div class="workout-info">
+                <h5 class="workout-name mb-1">{{ workout.scheduled_datetime.strftime('%A, %B %d @ %I:%M %p') }}</h5>
+                <small class="text-light opacity-75">
+                  Workout: {{ workout.workout_name }}
+                </small>
+              </div>
+              <div class="workout-status">
+                {% if workout.status == 'available' %}
+                  <span class="badge bg-success"><i class="bi bi-play-fill"></i> Ready</span>
+                {% elif workout.status == 'upcoming' %}
+                  <span class="badge bg-primary"><i class="bi bi-clock"></i> Upcoming</span>
+                {% elif workout.status == 'missed' %}
+                  <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Missed</span>
+                {% endif %}
+              </div>
+            </div>
+
+            {# Time until workout #}
+            {% if workout.status != 'missed' %}
+              <div class="time-until mb-3">
+                {% if workout.time_until_workout > 0 %}
+                  <small class="text-info">
+                    <i class="bi bi-stopwatch me-1"></i>
+                    {{ format_seconds(workout.time_until_workout) }}
+                  </small>
+                {% else %}
+                  <small class="text-success">
+                    <i class="bi bi-check-circle me-1"></i>
+                    Available now
+                  </small>
+                {% endif %}
+              </div>
+            {% endif %}
+
+            {# Team members scheduled around same time #}
+            {% if workout.team_members %}
+              <div class="team-members mb-3">
+                <small class="text-light opacity-75 d-block mb-1">
+                  <i class="bi bi-people me-1"></i>Also scheduled:
+                </small>
+                <div class="team-list">
+                  {% for member in workout.team_members %}
+                    <span class="badge bg-secondary me-1">{{ member.name }} @ {{ member.time }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+
+            {# Action buttons #}
+            <div class="workout-actions d-flex flex-wrap gap-2">
+              {# Start workout button (if available) #}
+              {% if workout.can_start and workout.workout_definition %}
+                <button class="btn btn-success btn-sm"
+                        hx-post="{{ url_for('program.start_workout', workout_key=workout.workout_definition.get_composite_key()) }}"
+                        hx-vals='{"program_key": "{{ data.program_key if 'program_key' in data else '' }}", "scheduled_workout_event_id": "{{ workout.event_id }}"}'
+                        hx-target="#content"
+                        hx-swap="innerHTML">
+                  <i class="bi bi-play-fill me-1"></i>Start Workout
+                </button>
+              {% endif %}
+
+              {# View workout details #}
+              {% if workout.workout_definition %}
+                <button class="btn btn-light btn-sm"
+                        hx-get="{{ url_for('home.workout_details_modal') }}"
+                        hx-vals='{"workout_key": "{{ workout.workout_definition.get_composite_key() }}"}'
+                        hx-target="#modals-here"
+                        hx-swap="innerHTML">
+                  <i class="bi bi-eye me-1"></i>View Details
+                </button>
+              {% endif %}
+
+              {# Reschedule workout #}
+              <button class="btn btn-warning btn-sm"
+                      hx-get="{{ url_for('home.reschedule_workout_modal') }}"
+                      hx-vals='{"event_id": "{{ workout.event_id }}"}'
+                      hx-target="#modals-here"
+                      hx-swap="innerHTML">
+                <i class="bi bi-calendar-event me-1"></i>Reschedule
+              </button>
+
+              {# Change workout #}
+              <button class="btn btn-info btn-sm"
+                      hx-get="{{ url_for('home.change_workout_modal') }}"
+                      hx-vals='{"event_id": "{{ workout.event_id }}", "program_name": "{{ data.program_name }}"}'
+                      hx-target="#modals-here"
+                      hx-swap="innerHTML">
+                <i class="bi bi-shuffle me-1"></i>Change Workout
+              </button>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    {# No scheduled workouts #}
+    <div class="empty-state text-center py-4">
+      <i class="bi bi-calendar-x display-1 text-light opacity-50"></i>
+      <h5 class="mt-3 mb-2">No Workouts Scheduled</h5>
+      <p class="text-light opacity-75 mb-3">You don't have any workouts scheduled for the next week.</p>
+      <button class="btn btn-outline-light"
+              hx-get="{{ url_for('schedule.index') }}"
+              hx-target="#content"
+              hx-swap="innerHTML">
+        <i class="bi bi-calendar-plus me-1"></i>Schedule Workouts
+      </button>
+    </div>
+  {% endif %}
+{% else %}
+  {# No active program #}
+  <div class="empty-state text-center py-4">
+    <i class="bi bi-exclamation-triangle display-1 text-warning opacity-75"></i>
+    <h5 class="mt-3 mb-2">No Active Program</h5>
+    <p class="text-light opacity-75 mb-3">You need an active fitness program to schedule workouts.</p>
+    <button class="btn btn-warning"
+            hx-get="{{ url_for('program.programs') }}"
+            hx-target="#content"
+            hx-swap="innerHTML">
+      <i class="bi bi-plus-circle me-1"></i>Get a Program
+    </button>
+  </div>
+{% endif %}
+
+<style>
+/* Scheduled Workouts Specific Styles */
+.workout-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.workout-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.missed-workout {
+  opacity: 0.7;
+  border-color: rgba(220, 53, 69, 0.3);
+}
+
+.workout-name {
+  color: #fff;
+  font-weight: 600;
+}
+
+.workout-actions .btn {
+  font-size: 0.8rem;
+}
+
+.team-list .badge {
+  font-size: 0.7rem;
+}
+
+.empty-state i {
+  font-size: 4rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+  .workout-actions {
+    flex-direction: column;
+  }
+  
+  .workout-actions .btn {
+    width: 100%;
+    margin-bottom: 0.25rem;
+  }
+}
+</style>
+
+{# Helper macro for formatting time until workout #}
+{% macro format_seconds(seconds) -%}
+  {% if seconds < 0 %}
+    about now
+  {% else %}
+    {% set days = (seconds // 86400) | int %}
+    {% set hours = ((seconds % 86400) // 3600) | int %}
+    {% set minutes = ((seconds % 3600) // 60) | int %}
+    
+    {% set parts = [] %}
+    {% if days > 0 %}
+      {% set _ = parts.append(days|string + " day" + ("s" if days != 1 else "")) %}
+    {% endif %}
+    {% if hours > 0 %}
+      {% set _ = parts.append(hours|string + " hour" + ("s" if hours != 1 else "")) %}
+    {% endif %}
+    {% if minutes > 0 or (days == 0 and hours == 0) %}
+      {% set _ = parts.append(minutes|string + " minute" + ("s" if minutes != 1 else "")) %}
+    {% endif %}
+    
+    {% if parts|length > 1 %}
+      {{ parts[:-1]|join(", ") }} and {{ parts[-1] }} from now
+    {% else %}
+      {{ parts[0] }} from now
+    {% endif %}
+  {% endif %}
+{%- endmacro %}
