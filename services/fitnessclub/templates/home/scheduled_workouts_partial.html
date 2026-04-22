@@ -99,18 +99,21 @@
               {# View workout details #}
               {% if workout.workout_definition %}
                 <button class="btn btn-light btn-sm"
-                        hx-get="{{ url_for('home.workout_details_modal') }}"
-                        hx-vals='{"workout_key": "{{ workout.workout_definition.get_composite_key() }}"}'
+                        hx-get="/workouts/viewer/workout?entity_table=WorkoutDefinitionTable&key={{ workout.workout_definition.get_composite_key() }}&is_modal=true"
                         hx-target="#modals-here"
-                        hx-swap="innerHTML">
-                  <i class="bi bi-eye me-1"></i>View Details
+                        hx-swap="innerHTML"
+                        >
+                    <i class="bi bi-eye me-1"></i>Peek workout
                 </button>
-              {% endif %}
 
+              {% endif %}
               {# Reschedule workout #}
               <button class="btn btn-warning btn-sm"
                       hx-get="{{ url_for('home.reschedule_workout_modal') }}"
-                      hx-vals='{"event_id": "{{ workout.event_id }}"}'
+                      hx-vals='{"event_id": "{{ workout.event_id }}", 
+                                "date": "{{ workout.scheduled_datetime }}", 
+                                "time": "{{ workout.scheduled_datetime }}", 
+                                "program_name": "{{ data.program_name }}"}'
                       hx-target="#modals-here"
                       hx-swap="innerHTML">
                 <i class="bi bi-calendar-event me-1"></i>Reschedule

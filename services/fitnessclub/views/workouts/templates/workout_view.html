@@ -1,3 +1,8 @@
+{% if is_modal %}
+<div class="modal fade" id="workout-view-modal" tabindex="-1" aria-labelledby="workout-view-modal-label" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+{% endif %}
 
 <div class="container py-3">
 
@@ -82,3 +87,21 @@
 {% endif %}
 </div>
 
+{% if is_modal %}
+    </div>
+  </div>
+</div>
+
+<script>
+  // Show the modal after it's loaded via HTMX
+  document.addEventListener('DOMContentLoaded', function() {
+    const modal = new bootstrap.Modal(document.getElementById('workout-view-modal'));
+    modal.show();
+  });
+  // If DOM is already loaded (HTMX case), show immediately
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    const modal = new bootstrap.Modal(document.getElementById('workout-view-modal'));
+    modal.show();
+  }
+</script>
+{% endif %}

@@ -895,6 +895,7 @@ def reviewer_save_exercise(context=None):
 def view_workout(context=None):
 
     workout_key_str = request.args.get('key', None)
+    is_modal = request.args.get('is_modal', 'false').lower() == 'true'
     workout_composite_key = eval(workout_key_str) if workout_key_str else None
     es = EntityStore()
     entity_instance = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
@@ -926,7 +927,8 @@ def view_workout(context=None):
         current_parameters=current_parameters,
         default_section=last,
         show_finish_button=False,
-        rs=rm_spaces
+        rs=rm_spaces,
+        is_modal=is_modal
     )
 
 from common.fitness.entities_getter import get_entity
