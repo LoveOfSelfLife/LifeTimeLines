@@ -15,7 +15,7 @@ from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import hx_render_template
 from common.fitness.member_entity import get_member_id_from_user_context, get_member_detail_from_user_context, get_user_profile
 from common.fitness.home_data_service import HomePageDataService, format_seconds
-from common.fitness.programs import get_members_current_active_program
+from common.fitness.programs import get_members_current_active_program, get_program_workouts
 # from common.fitness.workout_state import set_active_workout_state
 from common.entity_store import EntityStore
 from datetime import datetime, timezone, date
@@ -23,28 +23,6 @@ import json
 
 bp = Blueprint('home', __name__, template_folder='../../templates')
 
-@bp.route("/")
-@auth.login_required
-def dashboard(context=None):
-    """Main home page dashboard with three sections"""
-    try:
-        member_id = get_member_id_from_user_context(context)
-        member = get_member_detail_from_user_context(context)
-        
-        # For the main dashboard, we load the template with placeholders
-        # Each section will load its content via HTMX
-        return hx_render_template(
-            template_file='home/dashboard.html',
-            member=member,
-            context=context
-        )
-        
-    except Exception as e:
-        print(f"Error loading home dashboard: {e}")
-        return hx_render_template(
-            template_string='<div class="alert alert-danger">Error loading dashboard</div>',
-            context=context
-        )
 
 @bp.route("/scheduled-workouts")
 @auth.login_required  
@@ -145,42 +123,6 @@ def start_workout(context=None):
         print(f"Error starting workout: {e}")
         return hx_render_template(
             template_string=f'<div class="alert alert-danger">Error starting workout: {str(e)}</div>',
-            context=context
-        )
-
-@bp.route("/workout-details-modal")
-@auth.login_required
-def workout_details_modal(context=None):
-    """Modal showing workout details"""
-    try:
-        workout_key = request.args.get('workout_key')
-        if not workout_key:
-            return hx_render_template(
-                template_string='<div class="alert alert-danger">No workout specified</div>',
-                context=context
-            )
-        
-        # Get workout definition
-        entity_store = EntityStore()
-        workout_key_parsed = eval(workout_key) if isinstance(workout_key, str) else workout_key
-        workout_definition = entity_store.get_item_by_composite_key(workout_key_parsed)
-        
-        if not workout_definition:
-            return hx_render_template(
-                template_string='<div class="alert alert-danger">Workout not found</div>',
-                context=context
-            )
-        
-        return hx_render_template(
-            template_file='home/modals/workout_details_modal.html',
-            workout_definition=workout_definition,
-            context=context
-        )
-        
-    except Exception as e:
-        print(f"Error loading workout details: {e}")
-        return hx_render_template(
-            template_string='<div class="alert alert-danger">Error loading workout details</div>',
             context=context
         )
 
@@ -296,108 +238,78 @@ def reschedule_workout(context=None):
             context=context
         )
 
-@bp.route("/change-workout-modal")
+@bp.route("/start-workout-modal")
 @auth.login_required
-def change_workout_modal(context=None):
-    """Modal for changing to a different workout from the program"""
+def start_workout_modal(context=None):
+    """Modal for confirming workout start and selecting alternative workouts"""
     try:
-        event_id = request.args.get('event_id')
-        program_name = request.args.get('program_name', 'Current Program')
-        member_id = get_member_id_from_user_context(context)
+        workout_key = request.args.get('workout_key')
+        event_id = request.args.get('event_id') 
+        program_key = request.args.get('program_key')
+        scheduled_datetime = request.args.get('scheduled_datetime')
         
-        # Get alternative workouts from the current program
-        current_program = get_members_current_active_program(member_id)
-        alternative_workouts = []
-        
-        if current_program:
-            # Get alternative workouts (this would need to be implemented)
-            # For now, show placeholder options
-            alternative_workouts = [
-                {'name': 'Home Workout', 'key': 'home_workout_key', 'description': 'Bodyweight exercises for home'},
-                {'name': 'Travel Workout', 'key': 'travel_workout_key', 'description': 'Minimal equipment workout'},
-                {'name': 'Light Activity', 'key': 'light_workout_key', 'description': 'Recovery day workout'}
-            ]
-        
-        return hx_render_template(
-            template_file='home/modals/change_workout_modal.html',
-            event_id=event_id,
-            program_name=program_name,
-            alternative_workouts=alternative_workouts,
-            context=context
-        )
-        
-    except Exception as e:
-        print(f"Error loading change workout modal: {e}")
-        return hx_render_template(
-            template_string='<div class="alert alert-danger">Error loading workout options</div>',
-            context=context
-        )
-
-
-@bp.route("/repeat-workout-modal")
-@auth.login_required
-def repeat_workout_modal(context=None):
-    """Modal for repeating a completed workout"""
-    try:
-        workout_instance_key = request.args.get('workout_instance_key')
-        if not workout_instance_key:
+        if not workout_key:
             return hx_render_template(
                 template_string='<div class="alert alert-danger">No workout specified</div>',
                 context=context
             )
         
-        # Get workout instance to display workout name
+        member_id = get_member_id_from_user_context(context)
+        
+        # Get the current workout definition
         entity_store = EntityStore()
-        workout_key_parsed = eval(workout_instance_key) if isinstance(workout_instance_key, str) else workout_instance_key
-        workout_instance = entity_store.get_item_by_composite_key(workout_key_parsed)
+        workout_key_parsed = eval(workout_key) if isinstance(workout_key, str) else workout_key
+        current_workout_def = entity_store.get_item_by_composite_key(workout_key_parsed)
         
-        workout_name = 'Workout'
-        if workout_instance:
-            workout_name = workout_instance.get('workout_name', 'Workout')
+        if not current_workout_def:
+            return hx_render_template(
+                template_string='<div class="alert alert-danger">Workout not found</div>',
+                context=context
+            )
         
-        # Get today's date for the date input minimum
-        today_date = date.today().isoformat()
+        # Get current program and alternative workouts
+        current_program = get_members_current_active_program(member_id)
+        alternative_workouts = []
+        program_name = 'Current Program'
+        
+        if current_program:
+            program_name = current_program.get('name', 'Current Program')
+            # Get all workouts from the program
+            program_workouts = get_program_workouts(current_program, member_id)
+            
+            # Create alternative workout options
+            for workout_def in program_workouts:
+                workout_info = {
+                    'key': str(workout_def.get_composite_key()),
+                    'name': workout_def.get('name', 'Unnamed Workout'),
+                    'description': workout_def.get('description', ''),
+                    'estimated_duration_minutes': workout_def.get('estimated_duration_minutes', 0)
+                }
+                alternative_workouts.append(workout_info)
+        
+        # Current workout info
+        current_workout = {
+            'key': str(current_workout_def.get_composite_key()),
+            'name': current_workout_def.get('name', 'Unnamed Workout'),
+            'description': current_workout_def.get('description', ''),
+            'estimated_duration_minutes': current_workout_def.get('estimated_duration_minutes', 0)
+        }
         
         return hx_render_template(
-            template_file='home/modals/repeat_workout_modal.html',
-            workout_instance_key=workout_instance_key,
-            workout_name=workout_name,
-            today_date=today_date,
+            template_file='home/modals/start_workout_modal.html',
+            current_workout=current_workout,
+            alternative_workouts=alternative_workouts,
+            program_name=program_name,
+            program_key=program_key or '',
+            event_id=event_id or '',
+            scheduled_datetime=scheduled_datetime or 'Now',
             context=context
         )
         
     except Exception as e:
-        print(f"Error loading repeat workout modal: {e}")
+        print(f"Error loading start workout modal: {e}")
         return hx_render_template(
-            template_string='<div class="alert alert-danger">Error loading repeat workout form</div>',
-            context=context
-        )
-
-@bp.route("/change-workout", methods=['POST'])
-@auth.login_required  
-def change_workout(context=None):
-    """Process workout change to alternative"""
-    try:
-        # This would update the scheduled workout to use the alternative
-        # For now, return success message and refresh scheduled workouts
-        return hx_render_template(
-            template_string='''
-            <div class="alert alert-success">
-              <i class="bi bi-check-circle me-2"></i>Workout changed successfully!
-            </div>
-            <script>
-              setTimeout(() => {
-                htmx.trigger('#scheduled-workouts-content', 'refresh');
-              }, 2000);
-            </script>
-            ''',
-            context=context
-        )
-        
-    except Exception as e:
-        print(f"Error changing workout: {e}")
-        return hx_render_template(
-            template_string=f'<div class="alert alert-danger">Error changing workout: {str(e)}</div>',
+            template_string='<div class="alert alert-danger">Error loading workout options</div>',
             context=context
         )
 

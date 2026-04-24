@@ -1,7 +1,10 @@
 import json
 from flask import Blueprint, abort, make_response, render_template, request
+from common.fitness.coach_team_entity import get_team_coaches
 from common.fitness.member_entity import get_member_id_from_user_context, get_user_profile
 from common.fitness.hx_common import hx_render_template
+from common.fitness.member_team_entity import get_team_members
+from common.fitness.roles_service import get_current_team_context
 from common.fitness.workout_sessions import WorkoutSessionEntity, EventTypes, create_new_workout_session, list_workout_sessions, get_workout_session, store_workout_session, delete_workout_session, generate_id
 from common.fitness.get_calendar_service import get_calendar_service
 bp = Blueprint('schedule', __name__, template_folder='templates')
@@ -31,7 +34,12 @@ def schedule_by_time_slots(context = None):
     today = datetime.now()
     start_date = today.strftime("%Y-%m-%d")
     end_date = (today + timedelta(days=14)).strftime("%Y-%m-%d")
-    events, _ = cal.get_dates_and_events_stream(date_min=start_date, date_max=end_date)
+    current_team = get_current_team_context(member_id)        
+    team_members = get_team_members(current_team['id'])
+    team_coaches = get_team_coaches(current_team['id'])
+    all_members_of_team = [tm.get('member_id') for tm in team_members] + [tc.get('coach_id') for tc in team_coaches]         
+    team_member_filter_func = lambda m_id: any(tm_id == m_id for tm_id in all_members_of_team)
+    events, _ = cal.get_dates_and_events_stream(date_min=start_date, date_max=end_date, filter_by_member_id_func=team_member_filter_func)
     
     # Get user profiles for all members in the events
     user_profiles = {}

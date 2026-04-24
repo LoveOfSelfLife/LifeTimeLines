@@ -88,9 +88,12 @@
               {# Start workout button (if available) #}
               {% if workout.can_start and workout.workout_definition %}
                 <button class="btn btn-success btn-sm"
-                        hx-post="{{ url_for('program.start_workout', workout_key=workout.workout_definition.get_composite_key()) }}"
-                        hx-vals='{"program_key": "{{ data.program_key if 'program_key' in data else '' }}", "scheduled_workout_event_id": "{{ workout.event_id }}"}'
-                        hx-target="#content"
+                        hx-get="{{ url_for('home.start_workout_modal') }}"
+                        hx-vals='{"workout_key": "{{ workout.workout_definition.get_composite_key() }}", 
+                                  "program_key": "{{ data.program_key if 'program_key' in data else '' }}", 
+                                  "event_id": "{{ workout.event_id }}",
+                                  "scheduled_datetime": "{{ workout.scheduled_datetime.strftime('%A, %B %d @ %I:%M %p') }}"}'
+                        hx-target="#modals-here"
                         hx-swap="innerHTML">
                   <i class="bi bi-play-fill me-1"></i>Start Workout
                 </button>
@@ -117,15 +120,6 @@
                       hx-target="#modals-here"
                       hx-swap="innerHTML">
                 <i class="bi bi-calendar-event me-1"></i>Reschedule
-              </button>
-
-              {# Change workout #}
-              <button class="btn btn-info btn-sm"
-                      hx-get="{{ url_for('home.change_workout_modal') }}"
-                      hx-vals='{"event_id": "{{ workout.event_id }}", "program_name": "{{ data.program_name }}"}'
-                      hx-target="#modals-here"
-                      hx-swap="innerHTML">
-                <i class="bi bi-shuffle me-1"></i>Change Workout
               </button>
             </div>
           </div>

@@ -7,7 +7,6 @@
           <tr>
             <th><i class="bi bi-calendar3 me-2"></i>Date</th>
             <th><i class="bi bi-dumbbell me-2"></i>Workout</th>
-            <th><i class="bi bi-stopwatch me-2"></i>Duration</th>
             <th><i class="bi bi-graph-up me-2"></i>Performance</th>
             <th class="text-end">Actions</th>
           </tr>
@@ -48,18 +47,6 @@
               </td>
 
               <td>
-                <div class="duration-info">
-                  {% if workout.duration_minutes > 0 %}
-                    <span class="badge bg-info">
-                      {{ workout.duration_minutes }} min
-                    </span>
-                  {% else %}
-                    <span class="text-muted">-</span>
-                  {% endif %}
-                </div>
-              </td>
-
-              <td>
                 <div class="performance-indicators">
                   {# Performance metrics - can be expanded later #}
                   {% set total_exercises = workout.workout_instance.get('sections', [])|length %}
@@ -82,14 +69,6 @@
                           hx-target="#modals-here"
                           hx-swap="innerHTML">
                     <i class="bi bi-eye"></i>
-                  </button>
-                  <button class="btn btn-sm btn-info"
-                          onclick="event.stopPropagation()"
-                          hx-get="{{ url_for('home.repeat_workout_modal') }}"
-                          hx-vals='{"workout_instance_key": "{{ workout.workout_instance_key }}"}'
-                          hx-target="#modals-here"
-                          hx-swap="innerHTML">
-                    <i class="bi bi-arrow-clockwise"></i>
                   </button>
                 </div>
               </td>

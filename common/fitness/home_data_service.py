@@ -224,7 +224,6 @@ class HomePageDataService:
                     'workout_name': str,
                     'workout_instance': dict,
                     'completed_datetime': datetime,
-                    'duration_minutes': int,
                     'workout_instance_key': str
                 }
             ],
@@ -257,19 +256,10 @@ class HomePageDataService:
                 else:
                     continue
 
-                # start_time = instance.get('start_datetime')
-                duration_minutes = 60
-                
-                # if start_time and end_time:
-                #     start_dt = datetime.fromisoformat(start_time) if isinstance(start_time, str) else start_time
-                #     end_dt = datetime.fromisoformat(end_time) if isinstance(end_time, str) else end_time
-                #     duration_minutes = int((end_dt - start_dt).total_seconds() / 60)
-                
                 completed_workouts.append({
                     'workout_name': workout_name,
                     'workout_instance': instance,
                     'completed_datetime': end_time,
-                    'duration_minutes': duration_minutes,
                     'workout_instance_key': instance.get_composite_key()
                 })
             

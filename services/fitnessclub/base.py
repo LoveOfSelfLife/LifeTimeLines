@@ -39,7 +39,24 @@ def index(context = None):
     try:
         member = member_registry.verify_member_registration(member_id)
         # Redirect to new home dashboard
-        return redirect("/home/")
+        # return redirect("/home/")
+
+        member_detail = get_member_detail_from_user_context(context)
+        
+        # For the main dashboard, we load the template with placeholders
+        # Each section will load its content via HTMX
+        return hx_render_template(
+            template_file='home/dashboard.html',
+            member=member_detail,
+            context=context
+        )
+        
+    except Exception as e:
+        print(f"Error loading home dashboard: {e}")
+        return hx_render_template(
+            template_string='<div class="alert alert-danger">Error loading dashboard</div>',
+            context=context
+        )        
         
     except UnregisteredMemberException as e:
         print(f"User not registered: {e}")
