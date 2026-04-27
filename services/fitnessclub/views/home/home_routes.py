@@ -326,7 +326,7 @@ def update_peek_button(context=None):
                 hx-target="#modals-here"
                 hx-swap="innerHTML"
                 style="border-left: 1px solid rgba(0,0,0,0.125);">
-          <i class="bi bi-eye me-1"></i>Peek
+          <i class="bi bi-eye me-1"></i>
         </button>
         '''
     else:
@@ -337,7 +337,7 @@ def update_peek_button(context=None):
                 disabled
                 title="Select a workout to peek"
                 style="border-left: 1px solid rgba(0,0,0,0.125);">
-          <i class="bi bi-eye me-1"></i>Peek
+          <i class="bi bi-eye me-1"></i>
         </button>
         '''
     
