@@ -448,6 +448,33 @@ background: #f9f9f9;
     font-weight: bold;
     text-align: left; /* Ensure labels are left-justified */
   }
+
+/* Glass morphism select element styling */
+.form-select {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+  color: white !important;
+  backdrop-filter: blur(10px);
+}
+
+.form-select:focus {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(76, 161, 175, 0.8) !important;
+  box-shadow: 0 0 0 0.25rem rgba(76, 161, 175, 0.25) !important;
+  color: white !important;
+}
+
+.form-select option {
+  background-color: #212529 !important;
+  color: white !important;
+  padding: 8px 12px;
+}
+
+.form-select option:hover,
+.form-select option:checked {
+  background-color: #34495e !important;
+  color: white !important;
+}
 .form-label {
     color:rgb(225, 225, 235);
     font-weight: bold;
@@ -653,4 +680,108 @@ background: #f9f9f9;
 
 .section-header .text-secondary {
   color: #eceff2;
+}
+
+/* Dashboard section styling */
+.dashboard-section {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
+
+.dashboard-section-compact {
+  padding: 0.5rem 1rem 0.25rem 1rem;
+  min-height: auto !important;
+  height: auto !important;
+  flex-grow: 0 !important;
+  max-height: 80px !important;
+}
+
+.section-header {
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Quick Start specific styling */
+.quick-start-badge {
+  font-size: 0.7rem;
+}
+
+.quick-start-button {
+  border-right: none;
+}
+
+.quick-start-select {
+  min-width: 250px;
+}
+
+/* Force minimal height for Quick Start row and container */
+.quick-start-row {
+  min-height: auto !important;
+  height: auto !important;
+  align-items: flex-start !important;
+  max-height: 80px !important;
+}
+
+.quick-start-row .col-12 {
+  min-height: auto !important;
+  height: auto !important;
+  flex-grow: 0 !important;
+  max-height: 80px !important;
+}
+
+/* Ultra-specific Bootstrap overrides for Quick Start */
+.container-fluid .quick-start-row.row {
+  min-height: 0 !important;
+  height: auto !important;
+  display: flex !important;
+  align-items: flex-start !important;
+}
+
+.container-fluid .quick-start-row.row .col-12 {
+  min-height: 0 !important;
+  height: auto !important;
+  flex: 0 0 100% !important;
+  max-width: 100% !important;
+}
+
+.home-dashboard .quick-start-row {
+  min-height: 0 !important;
+  height: auto !important;
+}
+
+.dashboard-section-compact * {
+  box-sizing: border-box;
+}
+
+/* Enhanced workout selector styling */
+/* .workout-selector {
+  max-width: 400px;
+  box-shadow: 0 4px 8px rgba(199, 14, 82, 0.2);
+  border-radius: 40px;
+  overflow: hidden;
+} */
+
+/* NUCLEAR OPTION: Force exact height for Quick Start */
+div.quick-start-row.row.mb-2 {
+  /* height: 60px !important; */
+  min-height: 60px !important;
+  /* max-height: 60px !important; */
+  overflow: visible !important;
+}
+
+div.quick-start-row.row.mb-2 .col-12 {
+  /* height: 60px !important; */
+  min-height: 60px !important;
+  /* max-height: 60px !important; */
+}
+
+div.quick-start-row.row.mb-2 .dashboard-section-compact {
+  /* height: 60px !important; */
+  min-height: 60px !important;
+  /* max-height: 60px !important; */
 }

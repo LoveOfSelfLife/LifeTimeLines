@@ -5,6 +5,7 @@ from common.blob_store import BlobStore
 import os
 from common.fitness.hx_common import hx_render_template
 from common.fitness.member_entity import MembershipRegistry, get_member_detail_from_user_context, get_member_email_from_user_context, get_member_id_from_user_context, get_member_name_from_user_context, FirstTimeUserException, UnregisteredMemberException
+from common.fitness.programs import get_members_current_active_program, get_program_workouts
 
 bp = Blueprint('/', __name__, template_folder='templates')  
 
@@ -43,12 +44,31 @@ def index(context = None):
 
         member_detail = get_member_detail_from_user_context(context)
         
+        # Get alternative workout options for global workout starter
+        current_program = get_members_current_active_program(member_id)
+        workouts_in_program = []
+        
+        if current_program:
+            # Get all workouts from the program
+            program_workouts = get_program_workouts(current_program, member_id)
+            
+            # Create alternative workout options
+            for workout_def in program_workouts:
+                workout_info = {
+                    'key': str(workout_def.get_composite_key()),
+                    'name': workout_def.get('name', 'Unnamed Workout'),
+                    'description': workout_def.get('description', '')
+                }
+                workouts_in_program.append(workout_info)
+        
         # For the main dashboard, we load the template with placeholders
         # Each section will load its content via HTMX
         return hx_render_template(
             template_file='home/dashboard.html',
             member=member_detail,
-            context=context
+            workouts_in_program=workouts_in_program,
+            context=context,
+            program_key=current_program.get_composite_key() if current_program else None
         )
         
     except Exception as e:

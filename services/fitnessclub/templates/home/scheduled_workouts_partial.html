@@ -85,30 +85,54 @@
 
             {# Action buttons #}
             <div class="workout-actions d-flex flex-wrap gap-2">
-              {# Start workout button (if available) #}
+              {# Start workout with select element (if available) #}
               {% if workout.can_start and workout.workout_definition %}
-                <button class="btn btn-success btn-sm"
-                        hx-get="{{ url_for('home.start_workout_modal') }}"
-                        hx-vals='{"workout_key": "{{ workout.workout_definition.get_composite_key() }}", 
-                                  "program_key": "{{ data.program_key if 'program_key' in data else '' }}", 
-                                  "event_id": "{{ workout.event_id }}",
-                                  "scheduled_datetime": "{{ workout.scheduled_datetime.strftime('%A, %B %d @ %I:%M %p') }}"}'
-                        hx-target="#modals-here"
-                        hx-swap="innerHTML">
-                  <i class="bi bi-play-fill me-1"></i>Start Workout
-                </button>
-              {% endif %}
-
-              {# View workout details #}
-              {% if workout.workout_definition %}
-                <button class="btn btn-light btn-sm"
-                        hx-get="/workouts/viewer/workout?entity_table=WorkoutDefinitionTable&key={{ workout.workout_definition.get_composite_key() }}&is_modal=true"
-                        hx-target="#modals-here"
-                        hx-swap="innerHTML"
-                        >
-                    <i class="bi bi-eye me-1"></i>Peek workout
-                </button>
-
+                <form id="start-form-{{ workout.event_id }}" 
+                      class="d-flex" 
+                      style="margin: 0;"
+                      hx-post="{{ url_for('home.confirm_start_workout') }}"
+                      hx-target="#modals-here"
+                      hx-swap="innerHTML">
+                  <input type="hidden" name="program_key" value="{{ data.program_key if 'program_key' in data else '' }}">
+                  <input type="hidden" name="event_id" value="{{ workout.event_id }}">
+                  <select id="workout-select"
+                          class="form-select form-select-sm quick-start-select" 
+                          name="workout_key" 
+                          hx-get="{{ url_for('home.update_peek_button') }}?button_id=peek-workout-btn-scheduled"
+                          hx-target="#peek-workout-btn-scheduled"
+                          hx-swap="outerHTML"
+                          hx-trigger="load, change"
+                          hx-include="#workout-select"
+                          style="border-radius: 0;"
+                          required>
+                    <option value="">Choose Workout...</option>
+                    {% if program_workouts %}
+                      {% for prog_workout in program_workouts %}
+                        <option value="{{ prog_workout.key }}"
+                                {% if prog_workout.key == workout.workout_definition.get_composite_key()|string %}selected{% endif %}>
+                          {{ prog_workout.name }}
+                        </option>
+                      {% endfor %}
+                    {% else %}
+                      <option value="{{ workout.workout_definition.get_composite_key() }}" 
+                              selected>
+                        {{ workout.workout_name }}
+                      </option>
+                    {% endif %}
+                  </select>
+                  <button id="peek-workout-btn-scheduled"
+                          type="button"
+                          class="btn btn-light btn-sm rounded-0 rounded-end"
+                          {% if program_workouts and workout.workout_definition %}
+                          title="Preview selected workout"
+                          {% else %}
+                          disabled
+                          title="Select a workout to peek"
+                          {% endif %}
+                          style="border-left: 1px solid rgba(0,0,0,0.125);">
+                    <i class="bi bi-eye me-1"></i>Peek
+                  </button>
+                </form>
               {% endif %}
               {# Reschedule workout #}
               <button class="btn btn-warning btn-sm"
