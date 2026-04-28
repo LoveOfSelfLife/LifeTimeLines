@@ -28,6 +28,49 @@ def format_seconds(N: int) -> str:
         return ", ".join(parts[:-1]) + " and " + parts[-1] + " from now"
     return parts[0] + " from now"
 
+def render_home_page_workout(member, current_state):
+
+    # render the workout that is in progress
+    workout_instance_key = current_state.get('workout_instance_key', None)
+    program_key = current_state.get('program_key', None)
+    program_composite_key = eval(program_key) if program_key else None
+    scheduled_workout_event_id = current_state.get('scheduled_workout_event_id', None)
+    es = EntityStore()
+    workout_instance = es.get_item_by_composite_key(workout_instance_key)
+    if not workout_instance:
+        # The workout instance is not found, so we display an error message
+        return render_template_string('<h1>Workout in progress not found</h1>')
+    program_entity = es.get_item_by_composite_key(program_composite_key)
+
+    # only use the session value if it exists
+    last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
+    # The member has a workout in progress
+    wrkout_exercises = get_exercises_from_workout(workout_instance)
+    exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
+    if 'workout_sections' in workout_instance:
+        workout_sections = workout_instance.get('workout_sections', [])
+    else:
+        workout_sections = workout_instance.get('sections', [])             
+    return hx_render_template(
+        "workout_view.html",
+        workout=workout_instance,
+        workout_sections=workout_sections,
+        exercises=exercises,
+        current_parameters=current_state.get('exercise_parameters', {}),
+        default_section=last,
+        program=program_entity,
+        program_key=program_composite_key,
+        workout_instance_key=workout_instance_key,
+        scheduled_workout_event_id=scheduled_workout_event_id,
+        finish_workout_url=url_for('program.finish_workout', 
+                                workout_instance_key=workout_instance_key),
+        cancel_workout_url=url_for('program.cancel_workout',
+                                workout_instance_key=workout_instance_key),
+        adjustments=current_state.get('adjustments', {}),
+        show_finish_button=True,
+        rs=rm_spaces
+    )
+
 def generate_current_home_page_view(member):
     """
     Generates the current home page view based on the situation of the member.

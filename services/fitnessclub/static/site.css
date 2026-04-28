@@ -715,9 +715,9 @@ background: #f9f9f9;
   border-right: none;
 }
 
-.quick-start-select {
+/* .quick-start-select {
   min-width: 250px;
-}
+} */
 
 /* Force minimal height for Quick Start row and container */
 .quick-start-row {

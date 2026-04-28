@@ -3,9 +3,11 @@ from flask import redirect, render_template, request, Blueprint, url_for, sessio
 from auth import auth
 from common.blob_store import BlobStore
 import os
+from common.fitness.home_page_view import render_home_page_workout
 from common.fitness.hx_common import hx_render_template
 from common.fitness.member_entity import MembershipRegistry, get_member_detail_from_user_context, get_member_email_from_user_context, get_member_id_from_user_context, get_member_name_from_user_context, FirstTimeUserException, UnregisteredMemberException
 from common.fitness.programs import get_members_current_active_program, get_program_workouts
+from common.fitness.workout_state import get_active_workout_state
 
 bp = Blueprint('/', __name__, template_folder='templates')  
 
@@ -39,11 +41,15 @@ def index(context = None):
     member_name = get_member_name_from_user_context(context)
     try:
         member = member_registry.verify_member_registration(member_id)
-        # Redirect to new home dashboard
-        # return redirect("/home/")
 
         member_detail = get_member_detail_from_user_context(context)
         
+        current_state = get_active_workout_state()
+        if current_state:
+            if current_state.get('state', None) == 'workout_started':
+                # render the workout that is in progress
+                return render_home_page_workout(member_detail, current_state)
+
         # Get alternative workout options for global workout starter
         current_program = get_members_current_active_program(member_id)
         workouts_in_program = []
@@ -71,13 +77,6 @@ def index(context = None):
             program_key=current_program.get_composite_key() if current_program else None
         )
         
-    except Exception as e:
-        print(f"Error loading home dashboard: {e}")
-        return hx_render_template(
-            template_string='<div class="alert alert-danger">Error loading dashboard</div>',
-            context=context
-        )        
-        
     except UnregisteredMemberException as e:
         print(f"User not registered: {e}")
         member = member_registry.get_member(member_id)
@@ -89,7 +88,13 @@ def index(context = None):
         member = member_registry.get_member(member_id)
         return render_template("first_time_user.html", member=member)
     
-
+    except Exception as e:
+        print(f"Error loading home dashboard: {e}")
+        return hx_render_template(
+            template_string='<div class="alert alert-danger">Error loading dashboard</div>',
+            context=context
+        )    
+    
 @bp.route("/logout2")
 def logout():
     print("logout")

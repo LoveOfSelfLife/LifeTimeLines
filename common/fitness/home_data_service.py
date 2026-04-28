@@ -188,7 +188,7 @@ class HomePageDataService:
                     team_members2 = [ { 'name': get_member_name_from_member_id(m['member_id']), 'time':f"{m['scheduled_display_time']}" } for m in team_members ]
 
                     final_scheduled_workout_events.append({
-                        'workout_name': workout_definition.get('name', 'Unnamed Workout') if workout_definition else 'TBD',
+                        'workout_name': workout_definition.get('name', 'Unnamed Workout') if workout_definition else None,
                         'workout_definition': workout_definition,
                         'scheduled_datetime': event_datetime,
                         'can_start': can_start,
