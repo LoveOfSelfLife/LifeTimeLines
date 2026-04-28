@@ -35,41 +35,6 @@
                             <p class="mt-2 text-light opacity-75">Loading ad-hoc workouts...</p>
                         </div>
                     </div>
-
-                    {# <div id="global-workout-selector" class="workout-selector d-flex">
-                        <button type="button" class="btn btn-primary btn-sm rounded-0 rounded-start quick-start-button"
-                            onclick="document.getElementById('global-start-form').requestSubmit();"
-                            title="Start selected workout">
-                            <i class="bi bi-play-fill"></i>
-                        </button>
-                        <form id="global-start-form" class="d-flex" style="margin: 0;"
-                            hx-post="{{ url_for('home.confirm_start_workout') }}" hx-target="#modals-here"
-                            hx-swap="innerHTML">
-                            <input type="hidden" name="program_key" value="{{ program_key if program_key else '' }}">
-                            <input type="hidden" name="event_id" value="global-starter">
-                            <div class="custom-select-wrapper flex-grow-1" style="min-width: 120px;">
-                                <select id="global-workout-select"
-                                    class="form-select form-select-sm quick-start-select custon-select"
-                                    name="workout_key"
-                                    hx-get="{{ url_for('home.update_peek_button') }}?button_id=peek-workout-btn"
-                                    hx-target="#peek-workout-btn" hx-swap="outerHTML" hx-trigger="change"
-                                    hx-include="#global-workout-select" style="border-radius: 0; min-width:0;" required>
-                                    <option value="">Choose a workout to start...</option>
-                                    {% for workout in workouts_in_program %}
-                                    <option value="{{ workout.key }}">
-                                        {{ workout.name }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <button id="peek-workout-btn" type="button"
-                                class="btn btn-light btn-sm rounded-0 rounded-end" disabled
-                                title="Select a workout to peek" style="border-left: 1px solid rgba(0,0,0,0.125);">
-                                <i class="bi bi-eye me-1"></i>
-                            </button>
-                        </form>
-                    </div> #}
-
                 </div>
             </div>
             {% endif %}

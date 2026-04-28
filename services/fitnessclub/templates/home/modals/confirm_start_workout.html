@@ -14,11 +14,14 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <form class="d-inline" method="POST" 
-              hx-post="{{ url_for('program.start_workout', workout_key=workout_key) }}"
+              hx-post="{{ url_for('program.start_workout') }}"
               hx-target="#content" 
               hx-swap="innerHTML">
+          <input type="hidden" name="workout_key" value="{{ workout_key }}">          
           <input type="hidden" name="program_key" value="{{ program_key }}">
-          <input type="hidden" name="scheduled_workout_event_id" value="{{ event_id }}">
+          {% if event_id %}
+            <input type="hidden" name="scheduled_workout_event_id" value="{{ event_id }}">
+          {% endif %}
           <button type="submit" class="btn btn-success" data-bs-dismiss="modal">
             <i class="bi bi-check-lg me-1"></i>OK
           </button>

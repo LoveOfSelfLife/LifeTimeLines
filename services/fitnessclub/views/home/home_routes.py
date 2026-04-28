@@ -98,6 +98,7 @@ def adhoc_workouts_partial2(context=None):
         return hx_render_template(
             template_file='home/adhoc_workouts_partial.html',
             program_workouts=prog_workouts,
+            program_key = str(current_program.get_composite_key()) if current_program else None,
             context=context
         )
         

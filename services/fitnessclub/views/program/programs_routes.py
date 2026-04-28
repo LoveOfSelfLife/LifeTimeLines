@@ -751,12 +751,29 @@ def add_workout(context=None, program_id=None):
     return program_workouts_canvas(context, program_id)
 
 
-@bp.route('/start_workout/<workout_key>', methods=['POST'])
+@bp.route('/start_workout', methods=['POST'])
 @auth.login_required
-def start_workout(context=None, workout_key=None):
+def start_workout(context=None):
+    member_id = get_member_id_from_user_context(context)
+    short_name = get_user_profile(member_id).get('short_name', None)
 
     scheduled_workout_event_id = request.form.get('scheduled_workout_event_id', None)
-    workout_composite_key = eval(workout_key) if workout_key else None
+
+    # If no event ID provided, create a new scheduled event (adhoc workout)
+    if not scheduled_workout_event_id:
+        calendar_service = get_calendar_service()
+        current_date = datetime.now().date().strftime("%Y-%m-%d")
+        current_time = datetime.now().time().strftime("%H:%M")
+        scheduled_workout_event_id = calendar_service.add_workout_event(
+            member_short_name=short_name,
+            event_date=current_date, 
+            event_time=current_time,
+            location="YMCA", 
+            metadata=f'#id={member_id}'
+        )
+
+    workout_key_str = request.form.get('workout_key', None)
+    workout_key = eval(workout_key_str) if workout_key_str else None
 
     program_composite_key_str = request.form.get('program_key', None)
     program_composite_key = eval(program_composite_key_str) if program_composite_key_str else None
@@ -766,7 +783,7 @@ def start_workout(context=None, workout_key=None):
 
     adjustments_for_next_workout = request.form.get('adjustments_for_next_workout', None)
 
-    workout_instance, exercises, program_entity, workout_instance_key, adjustments = _start_workout_logic(workout_key, 
+    workout_instance, exercises, program_entity, workout_instance_key, adjustments = _start_workout_logic(workout_key_str, 
                                                                                                           program_composite_key_str, 
                                                                                                           scheduled_workout_event_id,
                                                                                                           last_program_workout_instance_key,
@@ -792,78 +809,6 @@ def start_workout(context=None, workout_key=None):
         default_section=last,
         program=program_entity,
         program_key=program_composite_key,
-        workout_instance_key=workout_instance_key,
-        scheduled_workout_event_id=scheduled_workout_event_id,
-        finish_workout_url=url_for('program.finish_workout', workout_instance_key=workout_instance_key),
-        cancel_workout_url=url_for('program.cancel_workout', workout_instance_key=workout_instance_key),
-        adjustments=adjustments,
-        show_finish_button=True,
-        rs=rm_spaces
-    )
- 
-
-@bp.route('/schedule_and_start', methods=['POST'])
-@auth.login_required
-def schedule_and_start(context=None):
-    member_id = get_member_id_from_user_context(context)
-    short_name = get_user_profile(member_id).get('short_name', None)    
-
-    # This function is called when the user does not have a workout scheduled on their calendar
-    # and they click on the "Start Workout" button
-    # It will schedule the workout for now and then start it
-    # It will also update the current state in the session
-    # and return the workout view with the exercises
-
-    # workout_key = eval(workout_instance_key) if workout_instance_key else None
-    # es = EntityStore()
-    # workout_instance = es.get_item_by_composite_key2(workout_key)
-    
-    # if not workout_instance:
-    #     abort(404)
-
-    # post to the google calendar service that the workout is finished
-
-    program_key_str = request.form.get('program_key', None)
-    workout_key_str = request.form.get('workout_key', None)
-
-    last_program_workout_instance_key_str = request.form.get('last_program_workout_instance_key', None)
-    last_program_workout_instance_key = eval(last_program_workout_instance_key_str) if last_program_workout_instance_key_str else None
-
-    adjustments_for_next_workout = request.form.get('adjustments_for_next_workout', None)
-
-    calendar_service = get_calendar_service()
-    current_date = datetime.now().date().strftime("%Y-%m-%d")
-    current_time = datetime.now().time().strftime("%H:%M")
-    scheduled_workout_event_id = calendar_service.add_workout_event(member_short_name=short_name,
-                                               event_date=current_date, event_time=current_time,
-                                               location="YMCA", metadata=f'#id={member_id}')
-    
-    workout_instance, exercises, program_entity, workout_instance_key, adjustments = _start_workout_logic(workout_key_str, 
-                                                                                                          program_key_str, 
-                                                                                                          scheduled_workout_event_id,
-                                                                                                          last_program_workout_instance_key,
-                                                                                                          adjustments_for_next_workout)
-  
-    last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
-    
-    # Get current workout state to see if there are any parameter overrides
-    current_workout_state = get_active_workout_state()
-    current_parameters = {}
-    if current_workout_state:
-        current_parameters = current_workout_state.get('exercise_parameters', {})
-    if 'workout_sections' in workout_instance:
-        workout_sections = workout_instance['workout_sections']
-    else:
-        workout_sections = workout_instance['sections']       
-    return render_template(
-        "workout_view.html",
-        workout=workout_instance,
-        workout_sections=workout_sections,
-        exercises=exercises,
-        current_parameters=current_parameters,
-        default_section=last,
-        program=program_entity,
-        program_key=program_key_str,
         workout_instance_key=workout_instance_key,
         scheduled_workout_event_id=scheduled_workout_event_id,
         finish_workout_url=url_for('program.finish_workout', workout_instance_key=workout_instance_key),

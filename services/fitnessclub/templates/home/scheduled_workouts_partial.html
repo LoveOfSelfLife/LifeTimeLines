@@ -94,8 +94,7 @@
                     <form id="start-form-{{ workout.event_id }}" class="d-flex flex-shrink-1"
                         style="margin: 0; min-width: 0;" hx-post="{{ url_for('home.confirm_start_workout') }}"
                         hx-target="#modals-here" hx-swap="innerHTML">
-                        <input type="hidden" name="program_key"
-                            value="{{ data.program_key if 'program_key' in data else '' }}">
+                        <input type="hidden" name="program_key" value="{{ data.program_key if 'program_key' in data else '' }}">
                         <input type="hidden" name="event_id" value="{{ workout.event_id }}">
                         <div class="custom-select-wrapper flex-grow-1" style="min-width: 120px;">
                             <select id="workout-select"
