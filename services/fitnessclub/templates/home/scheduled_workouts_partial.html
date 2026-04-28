@@ -27,25 +27,20 @@
         {% for workout in data.workouts %}
         <div class="workout-card mb-3 {% if workout.status == 'missed' %}missed-workout{% endif %}">
             <div class="card-body p-3">
-                <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="d-flex justify-content-between align-items-start mb-1">
                     <div class="workout-info">
-                        <div class="d-flex gap-2 align-items-center">
-                            <h5 class="workout-name mb-1">{{ workout.scheduled_datetime.strftime('%A, %B %d @ %I:%M %p')
-                                }}</h5>
+                        <div class="d-flex gap-2 align-items-center ">
+                            <h6 class="workout-name mb-1">{{ workout.scheduled_datetime.strftime('%A, %B %d @ %I:%M %p')
+                                }}</h6>
                             {# Reschedule workout #}
                             <button class="btn btn-sm" hx-get="{{ url_for('home.reschedule_workout_modal') }}" hx-vals='{"event_id": "{{ workout.event_id }}", 
                                         "date": "{{ workout.scheduled_datetime }}", 
                                         "time": "{{ workout.scheduled_datetime }}", 
                                         "program_name": "{{ data.program_name }}"}' hx-target="#modals-here"
                                 hx-swap="innerHTML">
-                                <i class="bi bi-calendar-event"></i>
+                                <i class="bi bi-calendar-week" style="font-size: 1.5rem; color: rgb(246, 247, 249);"></i>
                             </button>
                         </div>
-                        {# <small class="text-light opacity-75">
-                            {% if workout.workout_name %}
-                            Workout: {{ workout.workout_name }}
-                            {% endif %}
-                        </small> #}
                     </div>
                     <div class="workout-status">
                         {% if workout.status == 'available' %}
@@ -60,26 +55,21 @@
 
                 {# Time until workout #}
                 {% if workout.status != 'missed' %}
-                <div class="time-until mb-3">
                     {% if workout.time_until_workout > 0 %}
-                    <small class="text-light">
-                        <i class="bi bi-stopwatch me-1"></i>
-                        {{ format_seconds(workout.time_until_workout) }}
-                    </small>
-                    {% else %}
-                    <small class="text-success">
-                        <i class="bi bi-check-circle me-1"></i>
-                        Available now
-                    </small>
+                    <div class="time-until mb-3">
+                        <small class="text-light">
+                            <i class="bi bi-stopwatch me-1"></i>
+                            {{ format_seconds(workout.time_until_workout) }}
+                        </small>
+                    </div>
                     {% endif %}
-                </div>
                 {% endif %}
 
                 {# Team members scheduled around same time #}
                 {% if workout.team_members %}
                 <div class="team-members mb-3">
                     <small class="text-light opacity-75 d-block mb-1">
-                        <i class="bi bi-people me-1"></i>Also scheduled:
+                        <i class="bi bi-people me-1"></i>Also scheduled to workout:
                     </small>
                     <div class="team-list">
                         {% for member in workout.team_members %}

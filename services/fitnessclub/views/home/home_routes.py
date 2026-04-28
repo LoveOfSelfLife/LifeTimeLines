@@ -69,6 +69,45 @@ def scheduled_workouts_partial2(context=None):
             context=context
         )
 
+@bp.route("/adhoc-workouts")
+@auth.login_required  
+def adhoc_workouts_partial(context=None):
+    return adhoc_workouts_partial2(context)
+
+def adhoc_workouts_partial2(context=None):
+    """HTMX partial for adhoc workouts section"""
+    try:
+        member_id = get_member_id_from_user_context(context)
+        
+        current_program = get_members_current_active_program(member_id)
+        prog_workouts = []
+        
+        if current_program:
+            # Get all workouts from the program
+            all_program_workouts = get_program_workouts(current_program, member_id)
+            
+            # Create alternative workout options
+            for workout_def in all_program_workouts:
+                workout_info = {
+                    'key': str(workout_def.get_composite_key()),
+                    'name': workout_def.get('name', 'Unnamed Workout'),
+                    'description': workout_def.get('description', '')
+                    }
+                prog_workouts.append(workout_info)
+        
+        return hx_render_template(
+            template_file='home/adhoc_workouts_partial.html',
+            program_workouts=prog_workouts,
+            context=context
+        )
+        
+    except Exception as e:
+        print(f"Error loading adhoc workouts: {e}")
+        return hx_render_template(
+            template_string=f'<div class="alert alert-danger">Error loading adhoc workouts: {str(e)}</div>',
+            context=context
+        )
+
 @bp.route("/completed-workouts")
 @auth.login_required
 def completed_workouts_partial(context=None):
