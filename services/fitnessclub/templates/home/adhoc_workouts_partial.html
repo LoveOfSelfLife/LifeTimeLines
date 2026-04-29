@@ -18,7 +18,7 @@
                             hx-get="{{ url_for('home.update_peek_button') }}?button_id=peek-workout-btn"
                             hx-target="#peek-workout-btn" hx-swap="outerHTML" hx-trigger="change"
                             hx-include="#global-workout-select" style="border-radius: 0; min-width:0;" required>
-                            <option value="">Choose a workout to start...</option>
+                            <option value="">Choose workout...</option>
                             {% for workout in program_workouts %}
                             <option value="{{ workout.key }}">
                                 {{ workout.name }}

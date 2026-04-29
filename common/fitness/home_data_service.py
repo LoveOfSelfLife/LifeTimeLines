@@ -88,7 +88,7 @@ class HomePageDataService:
                     'time_until_workout': int (seconds),
                     'team_members': [{'name': str, 'id': str}],
                     'event_id': str,
-                    'status': 'upcoming|available|missed'
+                    'status': 'upcoming|available|missed|completed'
                 }
             ],
             'has_active_program': bool,
@@ -116,20 +116,20 @@ class HomePageDataService:
             end_date = (current_datetime + timedelta(days=7)).strftime("%Y-%m-%d")
             scheduled_calendar_events, sorted_events = cal.get_dates_and_events_stream(date_min=start_date, date_max=end_date, filter_by_member_id_func=team_member_filter_func)
             
-            scheduled_events_list = []
+            scheduled_workouts_by_date_list = []
 
-            scheduled_workout = {
+            scheduled_workouts_by_date = {
                 'members_scheduled' : []
             }
             for rec in scheduled_calendar_events:
                 if rec.get('type') == 'date':
                     # if this date has no members, then reuse it
-                    if len(scheduled_workout.get('members_scheduled')) == 0:
-                        scheduled_workout['date'] = rec.get('display_date')
+                    if len(scheduled_workouts_by_date.get('members_scheduled')) == 0:
+                        scheduled_workouts_by_date['date'] = rec.get('display_date')
                     else:
                         # otherwise, we need to start a new scheduled workout
-                        scheduled_events_list.append(scheduled_workout)
-                        scheduled_workout = {
+                        scheduled_workouts_by_date_list.append(scheduled_workouts_by_date)
+                        scheduled_workouts_by_date = {
                             'date': rec.get('display_date'),
                             'members_scheduled' : []
                         }
@@ -141,28 +141,38 @@ class HomePageDataService:
                     scheduled_time = rec.get('time')
                     scheduled_date = rec.get('date')
                     scheduled_event_id = rec.get('id')
-                    scheduled_member = { 'member_id': scheduled_member_id, 'scheduled_display_time': scheduled_display_time, 'scheduled_time': scheduled_time, 'scheduled_date': scheduled_date, 'event_id': scheduled_event_id }
-                    scheduled_workout['members_scheduled'] = scheduled_workout['members_scheduled'] + [scheduled_member]
+                    scheduled_event_status = rec.get('status')
+                    if scheduled_event_status == 'done':
+                        continue
+                    scheduled_member = { 'member_id': scheduled_member_id, 
+                                        'scheduled_display_time': scheduled_display_time, 
+                                        'scheduled_time': scheduled_time, 
+                                        'scheduled_date': scheduled_date, 
+                                        'event_id': scheduled_event_id, 
+                                        'status': scheduled_event_status }
+                    scheduled_workouts_by_date['members_scheduled'] = scheduled_workouts_by_date['members_scheduled'] + [scheduled_member]
             
             # this is for the last scheduled workout that we were building in the loop, we need to add it to the list if it has any members scheduled for it
-            if len(scheduled_workout.get('members_scheduled')) > 0:
-                scheduled_events_list.append(scheduled_workout)
+            if len(scheduled_workouts_by_date.get('members_scheduled')) > 0:
+                scheduled_workouts_by_date_list.append(scheduled_workouts_by_date)
 
-            final_scheduled_workout_events = []
-            is_my_first_event = True
-            for event in scheduled_events_list:
-                # if the current member is scheduled for this event, then we will include it in the output stream
-                if member_id in [m['member_id'] for m in event.get('members_scheduled', [])]:
+            final_scheduled_workout_by_date = []
+            is_my_first_incomplete_workout_event = True
+
+            for workouts_on_date in scheduled_workouts_by_date_list:
+                # if the current member is scheduled to workout on this date, then we will include it in the output stream
+                if member_id in [m['member_id'] for m in workouts_on_date.get('members_scheduled', [])]:
                     # this event is for the current member
-                    if is_my_first_event:
+                    member_workouts_scheduled_for_date = workouts_on_date.get('members_scheduled', [])
+
+                    if is_my_first_incomplete_workout_event:
                         next_workout = get_next_workout_in_program(current_program, member_id)
                         workout_key = next_workout.get('next_workout_key')
                         workout_definition = self.entity_store.get_item_by_composite_key(workout_key)
-                        is_my_first_event = False
+                        is_my_first_incomplete_workout_event = False
                     else:
                         workout_definition = None
-                    members_scheduled_for_event = event.get('members_scheduled', [])
-                    my_event = list(filter(lambda m: m['member_id'] == member_id, members_scheduled_for_event))
+                    my_event = list(filter(lambda m: m['member_id'] == member_id, member_workouts_scheduled_for_date))
                     if not my_event:
                         continue
                     my_event = my_event[0]
@@ -183,11 +193,11 @@ class HomePageDataService:
                     status = self._get_workout_status(event_datetime, current_datetime)
                     
                     # # Get team members scheduled around same time (placeholder for API call)
-                    team_members = [m for m in members_scheduled_for_event if m['member_id'] != member_id]
+                    team_members = [m for m in member_workouts_scheduled_for_date if m['member_id'] != member_id]
                     # we want to display the member's name and the time they are scheduled for in the team members list, so we will create a new list of strings that combines the member's name and the time they are scheduled for
                     team_members2 = [ { 'name': get_member_name_from_member_id(m['member_id']), 'time':f"{m['scheduled_display_time']}" } for m in team_members ]
 
-                    final_scheduled_workout_events.append({
+                    final_scheduled_workout_by_date.append({
                         'workout_name': workout_definition.get('name', 'Unnamed Workout') if workout_definition else None,
                         'workout_definition': workout_definition,
                         'scheduled_datetime': event_datetime,
@@ -199,7 +209,7 @@ class HomePageDataService:
                     })
             
             return {
-                'workouts': final_scheduled_workout_events,
+                'workouts': final_scheduled_workout_by_date,
                 'has_active_program': True,
                 'program_name': current_program.get('name', 'Current Program'),
                 'program_key': str(current_program.get_composite_key())

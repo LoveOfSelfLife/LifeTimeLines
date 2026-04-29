@@ -5,8 +5,9 @@
         <div class="row mb-1">
             <div class="col-12">
                 <div class="welcome-header">
-                    <h1 class="display-6 fw-bold mb-2">Welcome back, {{ member.name }}!</h1>
-                    <p class="lead text-light opacity-75">Here's your fitness dashboard</p>
+                    {# <h1 class="display-6 fw-bold mb-2">Welcome back, {{ member.name }}!</h1> #}
+                    <h2 class="display-6 fw-bold">Fitness Dashboard</h2>
+                    {# <p class="lead text-light opacity-75">Here's your fitness dashboard</p> #}
                 </div>
             </div>
         </div>
@@ -20,9 +21,16 @@
 
             <div class="col-12">
                 <div class="dashboard-section ">
-                    <div class="section-header d-flex align-items-center mb-3">
-                        <i class="bi bi-calendar3 me-2 fs-4"></i>
-                        <h3 class="mb-0">Ad-hoc Workouts</h3>
+                    <div class="section-header d-flex align-items-center mb-1">
+                        <div class="d-block">
+                            <div class="d-flex align-items-center">
+                                <i class="bi bi-calendar3 me-2 fs-4"></i>
+                                <h4 class="mb-0">Ad hoc Workout</h4>
+                            </div>
+                        <small class="text-light opacity-75 mb-0">
+                            Start a workout without scheduling it first
+                        </small>                        
+                        </div>
                         <span class="badge bg-warning text-dark ms-auto">Anytime</span>
                     </div>
                    <div id="adhoc-workouts-content" hx-get="{{ url_for('home.adhoc_workouts_partial') }}"
@@ -32,7 +40,7 @@
                             <div class="spinner-border text-light" role="status">
                                 <span class="visually-hidden">Loading...</span>
                             </div>
-                            <p class="mt-2 text-light opacity-75">Loading ad-hoc workouts...</p>
+                            <p class="mt-2 text-light opacity-75">Loading ad hoc workouts...</p>
                         </div>
                     </div>
                 </div>
@@ -42,8 +50,15 @@
             <div class="col-12">
                 <div class="dashboard-section">
                     <div class="section-header d-flex align-items-center mb-3">
-                        <i class="bi bi-calendar3 me-2 fs-4"></i>
-                        <h3 class="mb-0">Scheduled Workouts</h3>
+                        <div class="d-block">
+                            <div class="d-flex align-items-center">                    
+                            <i class="bi bi-calendar3 me-2 fs-4"></i>
+                            <h4 class="mb-0">Scheduled Workouts</h4>
+                        </div>
+                        <small class="text-light opacity-75 mb-1">
+                            These are workouts you've scheduled in advance.
+                        </small>                        
+                        </div>
                         <span class="badge bg-light text-dark ms-auto">Next 7 Days</span>
                     </div>
                     <div id="scheduled-workouts-content" hx-get="{{ url_for('home.scheduled_workouts_partial') }}"
@@ -64,7 +79,7 @@
                 <div class="dashboard-section">
                     <div class="section-header d-flex align-items-center mb-3">
                         <i class="bi bi-check-circle me-2 fs-4"></i>
-                        <h3 class="mb-0">Recent Workouts</h3>
+                        <h4 class="mb-0">Recent Workouts</h4>
                         <span class="badge bg-success ms-auto">Last 5 Completed</span>
                     </div>
                     <div id="completed-workouts-content" hx-get="{{ url_for('home.completed_workouts_partial') }}"
@@ -85,7 +100,7 @@
                 <div class="dashboard-section">
                     <div class="section-header d-flex align-items-center mb-3">
                         <i class="bi bi-graph-up me-2 fs-4"></i>
-                        <h3 class="mb-0">Analytics</h3>
+                        <h4 class="mb-0">Analytics</h4>
                         <span class="badge bg-info ms-auto">This Week</span>
                     </div>
                     <div id="analytics-content" hx-get="{{ url_for('home.analytics_partial') }}" hx-trigger="load"

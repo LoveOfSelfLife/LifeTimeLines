@@ -30,7 +30,7 @@
                 <div class="d-flex justify-content-between align-items-start mb-1">
                     <div class="workout-info">
                         <div class="d-flex gap-2 align-items-center ">
-                            <h6 class="workout-name mb-1">{{ workout.scheduled_datetime.strftime('%A, %B %d @ %I:%M %p')
+                            <h6 class="workout-name mb-1">{{ workout.scheduled_datetime.strftime('%a, %b %d @ %I:%M %p')
                                 }}</h6>
                             {# Reschedule workout #}
                             <button class="btn btn-sm" hx-get="{{ url_for('home.reschedule_workout_modal') }}" hx-vals='{"event_id": "{{ workout.event_id }}", 
@@ -52,37 +52,21 @@
                         {% endif %}
                     </div>
                 </div>
-
                 {# Time until workout #}
                 {% if workout.status != 'missed' %}
                     {% if workout.time_until_workout > 0 %}
                     <div class="time-until mb-3">
                         <small class="text-light">
                             <i class="bi bi-stopwatch me-1"></i>
-                            {{ format_seconds(workout.time_until_workout) }}
+                            Scheduled for {{ format_seconds(workout.time_until_workout) }}
                         </small>
                     </div>
                     {% endif %}
                 {% endif %}
-
-                {# Team members scheduled around same time #}
-                {% if workout.team_members %}
-                <div class="team-members mb-3">
-                    <small class="text-light opacity-75 d-block mb-1">
-                        <i class="bi bi-people me-1"></i>Also scheduled to workout:
-                    </small>
-                    <div class="team-list">
-                        {% for member in workout.team_members %}
-                        <span class="badge bg-secondary me-1">{{ member.name }} @ {{ member.time }}</span>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
-
                 {# Action buttons #}
                 {% if workout.can_start and workout.workout_definition %}
                 <small class="text-light opacity-75 d-block mb-1">
-                    <i class="fas fa-dumbbell me-2"></i>Next Workout:
+                    <i class="fas fa-dumbbell me-2"></i>Recommended Workout:
                 </small>
                 <div class="workout-actions d-flex ">
                     <button type="button"
@@ -128,6 +112,23 @@
                     </form>
                 </div>
                 {% endif %}
+
+
+                {# Team members scheduled around same time #}
+                {% if workout.team_members %}
+                <div class="team-members mb-1 mt-3">
+                    <small class="text-light opacity-75 d-block mb-1">
+                        <i class="bi bi-people me-1"></i>Other members:
+                    </small>
+                    <div class="team-list">
+                        {% for member in workout.team_members %}
+                        <span class="badge bg-secondary me-1">{{ member.name }} @ {{ member.time }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+
             </div>
         </div>
         {% endfor %}
