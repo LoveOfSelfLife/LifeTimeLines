@@ -39,11 +39,15 @@ def get_members_current_active_program(member_id, current_date_dt=None):
                         return program
     return None
 
-def get_program_workouts(program, member_id):
+def get_program_workouts(program, member_id, workout_type=None):
 
     # in the new data model, all workouts are stored as MemberWorkoutDefinitionEntity entities
     member_workouts = get_filtered_entities("MemberWorkoutDefinitionTable", partition_key=member_id)
     workouts_in_program = [w for w in member_workouts if w.get('member_program_id', None) == program.get('id', None)]
+    if workout_type:
+        workouts_in_program = [w for w in workouts_in_program if w.get('workout_type') == workout_type]
+    # sort program_workouts by the order_index field in ascending order
+    workouts_in_program.sort(key=lambda w: w.get('order_index', 0))
     return workouts_in_program
 
 
@@ -63,7 +67,7 @@ def get_next_workout_in_program(program, member_id):
     
 
     # first make sure that there are workouts in the program, return None if there are none
-    workouts_in_program = get_program_workouts(program, member_id)
+    workouts_in_program = get_program_workouts(program, member_id, workout_type='standard')
     if not workouts_in_program:
         return None  # No workouts in the program
 

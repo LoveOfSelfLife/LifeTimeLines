@@ -57,13 +57,14 @@ def index(context = None):
         if current_program:
             # Get all workouts from the program
             program_workouts = get_program_workouts(current_program, member_id)
-            
+
             # Create alternative workout options
             for workout_def in program_workouts:
                 workout_info = {
                     'key': str(workout_def.get_composite_key()),
                     'name': workout_def.get('name', 'Unnamed Workout'),
-                    'description': workout_def.get('description', '')
+                    'description': workout_def.get('description', ''),
+                    'workout_type': workout_def.get('workout_type', 'alternative')
                 }
                 workouts_in_program.append(workout_info)
         

@@ -40,25 +40,22 @@ def scheduled_workouts_partial2(context=None):
         
         # Get alternative workout options for select elements
         current_program = get_members_current_active_program(member_id)
-        prog_workouts = []
+        current_prog_workouts = []
         
         if current_program:
-            # Get all workouts from the program
-            all_program_workouts = get_program_workouts(current_program, member_id)
-            
             # Create alternative workout options
-            for workout_def in all_program_workouts:
+            for workout_def in get_program_workouts(current_program, member_id):
                 workout_info = {
                     'key': str(workout_def.get_composite_key()),
                     'name': workout_def.get('name', 'Unnamed Workout'),
                     'description': workout_def.get('description', '')
                     }
-                prog_workouts.append(workout_info)
+                current_prog_workouts.append(workout_info)
         
         return hx_render_template(
             template_file='home/scheduled_workouts_partial.html',
             data=scheduled_data,
-            program_workouts=prog_workouts,
+            program_workouts=current_prog_workouts,
             context=context
         )
         
