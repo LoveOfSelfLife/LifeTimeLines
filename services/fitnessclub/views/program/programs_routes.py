@@ -800,6 +800,13 @@ def start_workout(context=None):
         workout_sections = workout_instance['workout_sections']
     else:
         workout_sections = workout_instance['sections']       
+    
+    workout_sections = [s for s in workout_sections if len(s.get('exercises', [])) > 0]
+    if not last:
+        for section in workout_sections:
+            if len(section.get('exercises', [])) > 0:
+                last = section.get('name', None)
+                break        
     return render_template(
         "workout_view.html",
         workout=workout_instance,

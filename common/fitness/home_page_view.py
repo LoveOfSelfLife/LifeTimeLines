@@ -42,8 +42,6 @@ def render_home_page_workout(member, current_state):
         return render_template_string('<h1>Workout in progress not found</h1>')
     program_entity = es.get_item_by_composite_key(program_composite_key)
 
-    # only use the session value if it exists
-    last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
     # The member has a workout in progress
     wrkout_exercises = get_exercises_from_workout(workout_instance)
     exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
@@ -51,6 +49,17 @@ def render_home_page_workout(member, current_state):
         workout_sections = workout_instance.get('workout_sections', [])
     else:
         workout_sections = workout_instance.get('sections', [])             
+
+    # only use the session value if it exists
+    last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
+
+    # if last section is not set, then we set the last section to be the first section of the workout that has more than one exercise in it
+    if not last:
+        for section in workout_sections:
+            if len(section.get('exercises', [])) > 0:
+                last = section.get('name', None)
+                break
+        
     return hx_render_template(
         "workout_view.html",
         workout=workout_instance,
@@ -113,8 +122,6 @@ def generate_current_home_page_view(member):
                 return render_template_string('<h1>Workout in progress not found</h1>')
             program_entity = es.get_item_by_composite_key(program_composite_key)
 
-            # only use the session value if it exists
-            last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
             # The member has a workout in progress
             wrkout_exercises = get_exercises_from_workout(workout_instance)
             exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
@@ -122,6 +129,15 @@ def generate_current_home_page_view(member):
                 workout_sections = workout_instance.get('workout_sections', [])
             else:
                 workout_sections = workout_instance.get('sections', [])             
+
+            # only use the session value if it exists
+            last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
+            # if last section is not set, then we set the last section to be the first section of the workout that has more than one exercise in it
+            if not last:
+                for section in workout_sections:
+                    if len(section.get('exercises', [])) > 0:
+                        last = section.get('name', None)
+                        break
             return render_template(
                 "workout_view.html",
                 workout=workout_instance,
