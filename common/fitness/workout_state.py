@@ -2,7 +2,7 @@
 from flask import session
 import json
 
-def initialize_active_workout_state(workout_instance_key, program_key, scheduled_workout_event_id):
+def initialize_active_workout_state(workout_instance_key, program_key, scheduled_workout_event_id, is_adhoc_workout=False):
     """
     Initialize the workout state in the session.
     This is called when the user starts a workout.
@@ -13,6 +13,7 @@ def initialize_active_workout_state(workout_instance_key, program_key, scheduled
         'program_key': program_key,
         'scheduled_workout_event_id': scheduled_workout_event_id,
         'workout_adjustments': {},
+        'is_adhoc_workout': is_adhoc_workout,
         'exercise_parameters': {}
     }
     session['current_workout_instance_state'] = json.dumps(current_state)

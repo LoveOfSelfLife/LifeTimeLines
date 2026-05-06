@@ -771,6 +771,10 @@ def start_workout(context=None):
             location="YMCA", 
             metadata=f'#id={member_id}'
         )
+        is_adhoc_workout = True
+    else:
+        is_adhoc_workout = False
+
 
     workout_key_str = request.form.get('workout_key', None)
     workout_key = eval(workout_key_str) if workout_key_str else None
@@ -787,7 +791,8 @@ def start_workout(context=None):
                                                                                                           program_composite_key_str, 
                                                                                                           scheduled_workout_event_id,
                                                                                                           last_program_workout_instance_key,
-                                                                                                          adjustments_for_next_workout)
+                                                                                                          adjustments_for_next_workout,
+                                                                                                          is_adhoc_workout=is_adhoc_workout)
   
     last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
     
@@ -825,7 +830,7 @@ def start_workout(context=None):
         rs=rm_spaces
     )
 
-def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, last_program_workout_instance_key, adjustments_for_next_workout_str):
+def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, last_program_workout_instance_key, adjustments_for_next_workout_str, is_adhoc_workout=False):
     """
     Encapsulates the logic for starting a workout, including copying the workout,
     updating the program, and setting the session state.
@@ -899,7 +904,7 @@ def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, l
     wrkout_exercises = get_exercises_from_workout(workout_instance)
     exercises = {ex.get('id', None): ex for ex in wrkout_exercises}
 
-    initialize_active_workout_state(workout_instance_key, program_key, scheduled_workout_event_id)
+    initialize_active_workout_state(workout_instance_key, program_key, scheduled_workout_event_id, is_adhoc_workout=is_adhoc_workout)
     adjustments = {}
     return workout_instance, exercises, program_entity, workout_instance_key, adjustments
 
@@ -965,7 +970,15 @@ def cancel_workout(context=None, workout_instance_key=None):
     if not workout_instance:
         abort(404)
 
-
+    # check if the workout instance is adhoc or scheduled
+    workout_state = get_active_workout_state()
+    if workout_state and workout_state.get('is_adhoc_workout', False):
+        # if it is an adhoc workout, we need to delete the calendar event that was created for it
+        scheduled_workout_event_id = workout_instance.get('scheduled_workout_event_id', None)
+        if scheduled_workout_event_id:
+            cal = get_calendar_service()
+            cal.delete_workout_event(scheduled_workout_event_id)
+            
     # clear the 'current_workout_instance_state' from the session
     clear_active_workout_state()
     # session.pop('current_workout_instance_state', None)

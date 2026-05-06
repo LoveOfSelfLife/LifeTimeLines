@@ -76,10 +76,11 @@
                         <i class="bi bi-play-fill"></i>
                     </button>
                     <form id="start-form-{{ workout.event_id }}" class="d-flex flex-shrink-1"
-                        style="margin: 0; min-width: 0;" hx-post="{{ url_for('home.confirm_start_workout') }}"
-                        hx-target="#modals-here" hx-swap="innerHTML">
+                        style="margin: 0; min-width: 0;" hx-post="{{ url_for('program.start_workout') }}"
+                        hx-target="#content" hx-swap="innerHTML">
+
                         <input type="hidden" name="program_key" value="{{ data.program_key if 'program_key' in data else '' }}">
-                        <input type="hidden" name="event_id" value="{{ workout.event_id }}">
+                        <input type="hidden" name="scheduled_workout_event_id" value="{{ workout.event_id }}">
                         <div class="custom-select-wrapper flex-grow-1" style="min-width: 120px;">
                             <select id="workout-select"
                                 class="form-select form-select-sm quick-start-select custom-select" name="workout_key"
