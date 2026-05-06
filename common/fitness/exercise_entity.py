@@ -12,13 +12,31 @@ class ExerciseEntity (EntityObject):
     table_name="ExerciseTable"
     fields=["id", "type", "name", "force", "level", "mechanic", "equipment", "equipment_detail", 
             "origin",  "primaryMuscles", "secondaryMuscles", "instructions", "category", "images", "videos", 
-            "setCompletionMeasure", "udf1", "udf2", "physical_fitness_components", "hide"]
+            "setCompletionMeasure", 
+            "resistance_doubled", # has a boolean value
+            "only_one_set", # has a boolean value
+            "udf1", "udf2", "physical_fitness_components", "hide"]
+    
     key_field="id"
     partition_value="exercise"
     schema = exercise_schema
 
     def __init__(self, d={}):
         super().__init__(d)
+
+    def is_resistance_doubled(self):
+        if self.get("resistance_doubled", None) is not None:
+            return self.get("resistance_doubled")
+        # default resistance doubled is False, which means that the weight lifted is the same as the actual resistance specified for the exercise,
+        # if resistance doubled is True, it means that the weight indicated is for each hand, so the total weight lifted is double the resistance specified for the exercise
+        return False
+
+    def is_only_one_set(self):
+        # some exercises i.e. activities are only meant to be done once, e.g. a 5k run, a session of playing pickleball, etc. for these exercises, we set the onlyOneSet field to true, 
+        # therefore in the workout view we can use this information to simplify the Ux to avoid having to ask for # sets
+        if self.get("only_one_set", None) is not None:
+            return self.get("only_one_set")
+        return False
 
 class ExerciseReviewEntity (EntityObject):
     table_name="ExerciseReviewTable"

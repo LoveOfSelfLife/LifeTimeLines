@@ -129,7 +129,7 @@
             </div>
 
             <!-- Set Completion Measure -->
-            <div class="row mb-4">
+            <div class="row mb-3">
               <div class="col-md-6">
                 <label for="setCompletionMeasure" class="form-label fw-bold">Completion Measure *</label>
                 <select class="form-select" id="setCompletionMeasure" name="setCompletionMeasure" >
@@ -141,8 +141,11 @@
                   {% endfor %}
                 </select>
               </div>
-              
-              <div class="col-md-6 d-flex align-items-center">
+            </div>
+
+            <!-- Exercise Options -->
+            <div class="row mb-4">
+              <div class="col-md-4">
                 <div class="form-check">
                   <input class="form-check-input" type="checkbox" id="hide" name="hide" 
                          {% if exercise.hide %}checked{% endif %}>
@@ -150,6 +153,28 @@
                     Hide Exercise
                   </label>
                   <div class="form-text">Hide this exercise from listings</div>
+                </div>
+              </div>
+              
+              <div class="col-md-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="only_one_set" name="only_one_set" 
+                         {% if exercise.only_one_set %}checked{% endif %}>
+                  <label class="form-check-label fw-bold" for="only_one_set">
+                    Single Set Only
+                  </label>
+                  <div class="form-text">Exercise is done once (e.g., 5k run, sports)</div>
+                </div>
+              </div>
+              
+              <div class="col-md-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="resistance_doubled" name="resistance_doubled" 
+                         {% if exercise.resistance_doubled %}checked{% endif %}>
+                  <label class="form-check-label fw-bold" for="resistance_doubled">
+                    Resistance Doubled
+                  </label>
+                  <div class="form-text">Weight per hand (total = 2x weight)</div>
                 </div>
               </div>
             </div>
