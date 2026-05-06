@@ -16,7 +16,7 @@ from common.fitness.member_exercise_history import extract_and_load_exercise_eve
 from common.fitness.member_program_entity import MemberProgramEntity
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout
 from common.fitness.programs import get_program_workouts
-from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state
+from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state, update_active_workout_state
 from common.fitness.edit_workout_object import edit_workout_object
 from common.fitness.roles_service import get_accessible_members_for_context, get_member_role
 bp = Blueprint('program', __name__, template_folder='templates')
@@ -798,6 +798,7 @@ def start_workout(context=None):
     
     # Get current workout state to see if there are any parameter overrides
     current_workout_state = get_active_workout_state()
+    workout_started_ts = current_workout_state.get('time_workout_started', None) if current_workout_state else None
     current_parameters = {}
     if current_workout_state:
         current_parameters = current_workout_state.get('exercise_parameters', {})
@@ -827,6 +828,7 @@ def start_workout(context=None):
         cancel_workout_url=url_for('program.cancel_workout', workout_instance_key=workout_instance_key),
         adjustments=adjustments,
         show_finish_button=True,
+        time_workout_started=workout_started_ts,
         rs=rm_spaces
     )
 
@@ -913,6 +915,17 @@ def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, l
 @auth.login_required
 def finish_workout(context=None, workout_instance_key=None):
 
+    current_workout_state = get_active_workout_state()
+    if not current_workout_state:
+        abort(404)
+    current_workout_state['state'] = 'finishing_workout'
+    update_active_workout_state(current_workout_state)
+    return redirect('/')
+
+@bp.route('/really_finish_workout/<workout_instance_key>', methods=['POST'])
+@auth.login_required
+def really_finish_workout(context=None, workout_instance_key=None):
+
     es = EntityStore()
     workout_composite_key = eval(workout_instance_key) if workout_instance_key else None
     workout_instance = es.get_item_by_composite_key(workout_composite_key)
@@ -921,7 +934,7 @@ def finish_workout(context=None, workout_instance_key=None):
     program_composite_key = eval(program_composite_key_str) if program_composite_key_str else None
     program_entity = es.get_item_by_composite_key(program_composite_key)
     
-    # post to the google calenard service that the workout is finished
+    # post to the google calendar service that the workout is finished
     scheduled_workout_event_id = request.form.get('scheduled_workout_event_id', None)
 
     current_workout_state = get_active_workout_state()
@@ -953,6 +966,16 @@ def finish_workout(context=None, workout_instance_key=None):
     cal = get_calendar_service()
     cal.update_status_of_workout_event(scheduled_workout_event_id, 'done')
 
+    return redirect('/')
+
+@bp.route('/continue_workout/<workout_instance_key>', methods=['POST'])
+@auth.login_required
+def continue_workout(context=None, workout_instance_key=None):
+    current_workout_state = get_active_workout_state()
+    if not current_workout_state:
+        abort(404)
+    current_workout_state['state'] = 'workout_started'
+    update_active_workout_state(current_workout_state)
     return redirect('/')
 
 @bp.route('/cancel_workout/<workout_instance_key>', methods=['POST'])

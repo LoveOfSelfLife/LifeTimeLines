@@ -3,7 +3,7 @@ from flask import redirect, render_template, request, Blueprint, url_for, sessio
 from auth import auth
 from common.blob_store import BlobStore
 import os
-from common.fitness.home_page_view import render_home_page_workout
+from common.fitness.home_page_view import render_finishing_workout_page, render_home_page_workout
 from common.fitness.hx_common import hx_render_template
 from common.fitness.member_entity import MembershipRegistry, get_member_detail_from_user_context, get_member_email_from_user_context, get_member_id_from_user_context, get_member_name_from_user_context, FirstTimeUserException, UnregisteredMemberException
 from common.fitness.programs import get_members_current_active_program, get_program_workouts
@@ -14,6 +14,31 @@ bp = Blueprint('/', __name__, template_folder='templates')
 @bp.route("/about")
 def about():
     return hx_render_template('about.html', context=None)
+
+@bp.route("/get-edit-form/<item_id>")
+def get_edit_form(item_id, context=None):
+    new_text = request.args.get("new_text", "Click me (or hold 1s) to edit")
+    return f"""
+            <!-- The editable form (returned by server) -->
+            <form id="text-container" hx-put="/save-data/{item_id}" 
+                hx-target="#text-container" 
+                hx-swap="outerHTML" 
+                hx-trigger="focusout">
+                <input type="text" 
+                    name="new_text" 
+                    value="{new_text}" 
+                    onfocus="this.select()"
+                    autofocus>
+            </form>
+            """
+
+@bp.route("/save-data/<item_id>", methods=["PUT"])
+def save_data(item_id, context=None):
+    new_text = request.form.get("new_text", "")
+    # Here you would typically save the new text to your database
+    print(f"Saving new text for item {item_id}: {new_text}")
+    # Return the updated content to replace the form
+    return f'<div id="text-container" hx-get="/get-edit-form/{item_id}?new_text={new_text}" hx-target="#text-container" hx-trigger="dblclick, mousedown delay:1s" hx-swap="outerHTML">{new_text}</div>'
 
 
 @bp.route("/privacy")
@@ -49,8 +74,10 @@ def index(context = None):
             if current_state.get('state', None) == 'workout_started':
                 # render the workout that is in progress
                 return render_home_page_workout(member_detail, current_state)
-
-        # Get alternative workout options for global workout starter
+            elif current_state.get('state', None) == 'finishing_workout':
+                # render the finishing workout screen
+                return render_finishing_workout_page(member_detail, current_state)
+        
         current_program = get_members_current_active_program(member_id)
         workouts_in_program = []
         
