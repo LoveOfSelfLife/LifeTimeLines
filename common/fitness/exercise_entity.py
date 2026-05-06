@@ -38,6 +38,11 @@ class ExerciseEntity (EntityObject):
             return self.get("only_one_set")
         return False
 
+    def get_set_completion_measure(self):
+        # the setCompletionMeasure field indicates what measure is used to determine if a set of the exercise is completed, e.g. "reps", "time", "distance", "other"
+        # if the field is not specified for an exercise, we default to "reps"
+        return self.get("setCompletionMeasure", "reps")
+    
 class ExerciseReviewEntity (EntityObject):
     table_name="ExerciseReviewTable"
     fields=["id", "name", "category", "disposition", "setCompletionMeasure", "comments"]
