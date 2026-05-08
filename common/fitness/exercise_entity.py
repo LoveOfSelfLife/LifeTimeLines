@@ -43,6 +43,13 @@ class ExerciseEntity (EntityObject):
         # if the field is not specified for an exercise, we default to "reps"
         return self.get("setCompletionMeasure", "reps")
     
+    def exercises_uses_external_force(self):
+        # this function is used to determine if the exercise uses an external force, which is the case if the exercise has a non-bodyweight equipment
+        equipment = self.get("equipment", None)
+        if equipment and equipment.startswith("body"):
+            return False
+        return True
+    
 class ExerciseReviewEntity (EntityObject):
     table_name="ExerciseReviewTable"
     fields=["id", "name", "category", "disposition", "setCompletionMeasure", "comments"]

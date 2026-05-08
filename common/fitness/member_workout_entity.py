@@ -7,7 +7,7 @@ from common.fitness.hx_common import hx_render_template
 
 
 class WorkoutDefinitionEntity (EntityObject):
-    table_name="WorkoutDefinitionTable"
+    table_name="WorkoutDefinitionBackupTable"   # TODO: change back to "WorkoutDefinitionTable" after migration is complete
     # type is used to differentiate between full workouts vs partial workouts that are specific to one section, e.g. warmups or core workouts
     # type is set to "full" for full workouts, and "section" for section-specific workouts
     # default is "full"
@@ -19,7 +19,7 @@ class WorkoutDefinitionEntity (EntityObject):
         super().__init__(d)
 
 class MemberWorkoutDefinitionEntity (EntityObject):
-    table_name="MemberWorkoutDefinitionTable"
+    table_name="MemberWorkoutDefinitionBackupTable"   # TODO: change back to "MemberWorkoutDefinitionTable" after migration is complete
     fields=["id", 
             "member_id", 
             "name", 
@@ -41,7 +41,7 @@ class MemberWorkoutDefinitionEntity (EntityObject):
         super().__init__(d)
 
 class MemberWorkoutInstanceEntity (EntityObject):
-    table_name="MemberWorkoutInstanceTable"
+    table_name="MemberWorkoutInstanceBackupTable"   # TODO: change back to "MemberWorkoutInstanceTable" after migration is complete
     fields=["id", 
             'name',
             "member_id", 

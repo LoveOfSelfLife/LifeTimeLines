@@ -15,31 +15,47 @@ bp = Blueprint('/', __name__, template_folder='templates')
 def about():
     return hx_render_template('about.html', context=None)
 
-@bp.route("/get-edit-form/<item_id>")
-def get_edit_form(item_id, context=None):
-    new_text = request.args.get("new_text", "Click me (or hold 1s) to edit")
+@bp.route("/get-editor-for-parameter/<workout_id>/<exercise_id>/<param>")
+def get_edit_form(workout_id, exercise_id, param, context=None):
+    new_param_value = request.args.get("param", "")
+    component_id = f"param-{workout_id}-{exercise_id}-{param}"
     return f"""
             <!-- The editable form (returned by server) -->
-            <form id="text-container" hx-put="/save-data/{item_id}" 
-                hx-target="#text-container" 
+            <form id="{component_id}" hx-put="/update-workout-param-value/{workout_id}/{exercise_id}/{param}" 
+                hx-target="#{component_id}" 
                 hx-swap="outerHTML" 
                 hx-trigger="focusout">
                 <input type="text" 
-                    name="new_text" 
-                    value="{new_text}" 
+                    name="param" 
+                    value="{new_param_value}" 
                     onfocus="this.select()"
                     autofocus>
             </form>
             """
+@bp.route("/get-initial-editable-text-for-parameter/<workout_id>/<exercise_id>/<param>")
+def get_initial_editable_text(workout_id, exercise_id, param, param_value):
+    return get_initial_editable_text2(workout_id, exercise_id, param, param_value)
 
-@bp.route("/save-data/<item_id>", methods=["PUT"])
-def save_data(item_id, context=None):
-    new_text = request.form.get("new_text", "")
-    # Here you would typically save the new text to your database
-    print(f"Saving new text for item {item_id}: {new_text}")
+def get_initial_editable_text2(workout_id, exercise_id, param, param_value):
+    # This function would typically fetch the current text from a database based on the item_id
+    component_id = f"param-{workout_id}-{exercise_id}-{param}"
+    return f"""
+      <div id="{component_id}"
+	   hx-get="/get-editor-for-parameter/{workout_id}/{exercise_id}/{param}?value={param_value}"
+	   hx-target="#{component_id}"
+	   hx-trigger="dblclick, mousedown delay:1s"
+	   hx-swap="outerHTML">
+	   {param_value}
+	  </div>
+    """    
+@bp.route("/update-workout-param-value/<workout_id>/<exercise_id>/<param>", methods=["PUT"])
+def save_data(workout_id, exercise_id, param, context=None):
+    new_value = request.form.get("param", "")
+    # Here you would typically save the new value to your database
+    print(f"Saving new value for workout {workout_id}, exercise {exercise_id}, param {param}: {new_value}")
+
     # Return the updated content to replace the form
-    return f'<div id="text-container" hx-get="/get-edit-form/{item_id}?new_text={new_text}" hx-target="#text-container" hx-trigger="dblclick, mousedown delay:1s" hx-swap="outerHTML">{new_text}</div>'
-
+    return  get_initial_editable_text2(workout_id, exercise_id, param, new_value)
 
 @bp.route("/privacy")
 def privacy():

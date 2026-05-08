@@ -895,14 +895,6 @@ def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, l
     es.upsert_item(workout_instance)
     workout_instance_key = workout_instance.get_composite_key()
 
-    # # add the workout instance to the program's workout_instances list
-    # program_entity['workout_instances'] = program_entity.get('workout_instances', []) + [{'program_workout_instance_id': workout_instance.get('id'),
-    #                                                                                       'program_workout_instance_key': workout_instance_key,
-    #                                                                                       "started_ts": datetime.now().isoformat(),
-    #                                                                                       "finished_ts": "",
-    #                                                                                       "scheduled_workout_event_id": scheduled_workout_event_id}]
-    # es.upsert_item(program_entity)
-
     wrkout_exercises = get_exercises_from_workout(workout_instance)
     exercises = {ex.get('id', None): ex for ex in wrkout_exercises}
 

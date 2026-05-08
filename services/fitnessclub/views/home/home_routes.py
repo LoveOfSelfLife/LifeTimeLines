@@ -15,6 +15,7 @@ from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import hx_render_template
 from common.fitness.member_entity import get_member_id_from_user_context, get_member_detail_from_user_context, get_user_profile
 from common.fitness.home_data_service import HomePageDataService, format_seconds
+from common.fitness.member_workout_entity import WorkoutDefinitionEntity
 from common.fitness.programs import get_members_current_active_program, get_program_workouts
 # from common.fitness.workout_state import set_active_workout_state
 from common.entity_store import EntityStore
@@ -346,7 +347,7 @@ def update_peek_button(context=None):
     if workout_key and workout_key.strip():
         # Properly escape the workout_key for JSON and HTML
         hx_vals_json = json.dumps({
-            "entity_table": "WorkoutDefinitionTable",
+            "entity_table": WorkoutDefinitionEntity.table_name,
             "key": workout_key,
             "is_modal": "true"
         })
