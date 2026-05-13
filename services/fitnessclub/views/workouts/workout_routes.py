@@ -218,11 +218,14 @@ def workout_canvas(context=None, workout_id=None):
 def workout_canvas2(context=None, workout_id=None):
     return workout_dynamic_canvas2(context, workout_id)
 
-def exercise_has_param(exercise_id, param):
+
+def exercise_with_id_has_param(exercise_id, param):
     exercise : ExerciseEntity = get_entity('ExerciseTable', key=exercise_id, partition_key='exercise')
     if not exercise:
         return False
+    return exercise_has_param(exercise, param)
 
+def exercise_has_param(exercise, param):
     if param[0] == 'S':
         return not exercise.is_only_one_set()
     if param[0] == 'R':
@@ -335,21 +338,174 @@ def get_cached_param_value(exercise_id, param):
         value = parameters.get(param, '')
     return value
 
-def get_workout_sections(workout_instance):
-    if workout_instance:
-        return workout_instance.get('sections', []) if 'sections' in workout_instance else workout_instance.get('workout_sections', [])
+def get_workout_sections(workout):
+    if workout:
+        return workout.get('sections', []) if 'sections' in workout else workout.get('workout_sections', [])
     return []
 
-def get_param_from_session_or_workout_instance(current_parameters, exercise_id, param, workout_instance):
+def get_param_from_session_or_workout(current_parameters, exercise_id, param, workout_obj):
     # First check session parameters
     if current_parameters and exercise_id in current_parameters and param in current_parameters[exercise_id]:
         return current_parameters[exercise_id][param]
     # Then check workout instance adjustments
-    for sec in get_workout_sections(workout_instance):
+    for sec in get_workout_sections(workout_obj):
         for it in sec['exercises']:
             if it['id']==exercise_id:
                 return it['parameters'].get(param, '')
     return ''   
+
+#  /workouts/dynamic_parameters_for_section_viewer/{{workout.id}}/{{section.name}}?workout_instance_key={{workout_instance_key}}
+
+@bp.route('/dynamic_parameters_for_section_viewer/<workout_id>/<section_name>')
+@auth.login_required
+def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section_name=None):
+
+    es = EntityStore()
+
+    workout_instance_key = request.args.get('workout_instance_key', None)
+    workout_definition_key = request.args.get('workout_definition_key', None)
+    workout_instance = None
+    if workout_instance_key:
+        workout_instance = es.get_item_by_composite_key(workout_instance_key)
+
+    if workout_definition_key:
+        workout_definion = es.get_item_by_composite_key(workout_definition_key)
+
+    wrkout_exercises = get_exercises_from_workout(workout_instance if workout_instance else workout_definion)
+    exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
+
+    exercise_parameters = {}
+
+    current_workout_state = get_active_workout_state()
+    current_parameters = current_workout_state.get('exercise_parameters', {}) if current_workout_state else {}
+    update_url = url_for('workouts.update_param_in_session')
+
+    sections = get_workout_sections(workout_instance if workout_instance else workout_definion)
+    for sec in sections:
+        if sec['name'] == section_name:
+            section = sec
+            for item in sec['exercises']:
+                ex = exercises[item['id']]
+                exercise_parameters[ex['id']] = { 'param_list': get_param_objects_for_exercise(ex, 
+                                                                                               current_parameters, 
+                                                                                               workout_instance if workout_instance else workout_definion, 
+                                                                                               workout_id, update_url) }
+            break
+    
+    return render_template(
+        "_section_dynamic_view.html",
+        workout=workout_instance if workout_instance else workout_definion,
+        exercise_parameters=exercise_parameters,
+        section=section,
+        exercises=exercises,
+        workout_instance_key=workout_instance_key,
+        workout_definition_key=workout_definition_key,
+        show_finish_button=True,
+        can_edit_parameters=True if workout_instance else False,  # only allow editing parameters if we are in a workout instance (actively doing a workout)
+        rs=rm_spaces
+    )
+
+
+def get_param_objects_for_exercise(exercise, current_parameters, workout_instance, workout_id, update_url):
+    param_objects = []
+    # TODO:  this method has a lot of repeated code in it, we should refactor it to be more concise and easier to maintain. 
+    # maybe have a config that defines the parameters and their properties, then loop through that config to generate the param objects.
+    if exercise_has_param(exercise, 'S'):
+        param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'S', workout_instance)
+        param_objects.append({
+            'type': 'var',
+            'value': param_value,
+            'update_url': update_url,
+            'param': 'S',
+            'wkout_id': workout_id,
+            'ex_id': exercise['id']
+        })
+        param_objects.append({
+            'type': 'text',
+            'value': "sets, "
+        })
+
+
+    if exercise_has_param(exercise, 'R'):
+        param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'R', workout_instance)
+        param_objects.append({
+            'type': 'var',
+            'value': param_value,
+            'update_url': update_url,
+            'param': 'R',
+            'wkout_id': workout_id,
+            'ex_id': exercise['id']
+        })
+            
+        param_objects.append({
+            'type': 'text',
+            'value': "reps, "
+        })
+
+    if exercise_has_param(exercise, 'T'):
+        param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'T', workout_instance)
+        if param_value:
+            param_objects.append({
+                'type': 'var',
+                'value': param_value,
+                'update_url': update_url,
+                'param': 'T',
+                'wkout_id': workout_id,
+                'ex_id': exercise['id']
+            })
+            param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'Tu', workout_instance)
+            param_objects.append({
+                'type': 'var',
+                'value': param_value,
+                'update_url': update_url,
+                'param': 'Tu',
+                'wkout_id': workout_id,
+                'ex_id': exercise['id']
+            })
+
+    if exercise_has_param(exercise, 'D'):
+        
+        param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'D', workout_instance)
+        if param_value: 
+            param_objects.append({
+                'type': 'var',
+                'value': param_value,
+                'update_url': update_url,
+                'param': 'D',
+                'wkout_id': workout_id,
+                'ex_id': exercise['id']
+            })
+            param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'Du', workout_instance)
+            param_objects.append({
+                'type': 'var',
+                'value': param_value,
+                'update_url': update_url,
+                'param': 'Du',
+                'wkout_id': workout_id,
+                'ex_id': exercise['id']
+            })
+
+    if exercise_has_param(exercise, 'F'):
+        param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'F', workout_instance)
+        if param_value:
+            param_objects.append({
+                'type': 'var',
+                'value': param_value,
+                'update_url': update_url,
+                'param': 'F',
+                'wkout_id': workout_id,
+                'ex_id': exercise['id']
+            })
+            param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'Fu', workout_instance)
+            param_objects.append({
+                'type': 'var',
+                'value': param_value,
+                'update_url': update_url,
+                'param': 'Fu',
+                'wkout_id': workout_id,
+                'ex_id': exercise['id']
+            })
+    return param_objects
 
 @bp.route('/dynamic_parameters_for_workout_viewer/<workout_id>/<exercise_id>')
 @auth.login_required
@@ -375,29 +531,29 @@ def dynamic_parameters_for_workout_viewer(context=None, workout_id=None, exercis
     update_url = url_for('workouts.update_param_in_session')
     if current_workout_state:
         current_parameters = current_workout_state.get('exercise_parameters', {})
-    if exercise_has_param(exercise_id, 'S'):
-        param_value = get_param_from_session_or_workout_instance(current_parameters, exercise_id, 'S', workout_instance)
+    if exercise_with_id_has_param(exercise_id, 'S'):
+        param_value = get_param_from_session_or_workout(current_parameters, exercise_id, 'S', workout_instance)
         htmx_template += generate_dynamic_workout_viewer_parameter_component(exercise_id, workout_id, 'S', param_value, update_url, "", "sets,")
-    if exercise_has_param(exercise_id, 'R'):
-        param_value = get_param_from_session_or_workout_instance(current_parameters, exercise_id, 'R', workout_instance)
+    if exercise_with_id_has_param(exercise_id, 'R'):
+        param_value = get_param_from_session_or_workout(current_parameters, exercise_id, 'R', workout_instance)
         htmx_template += generate_dynamic_workout_viewer_parameter_component(exercise_id, workout_id, 'R', param_value, update_url, "", "reps")
-    if exercise_has_param(exercise_id, 'T'):
-        param_value = get_param_from_session_or_workout_instance(current_parameters, exercise_id, 'T', workout_instance)
+    if exercise_with_id_has_param(exercise_id, 'T'):
+        param_value = get_param_from_session_or_workout(current_parameters, exercise_id, 'T', workout_instance)
         htmx_template += generate_dynamic_workout_viewer_parameter_component(exercise_id, workout_id, 'T', param_value, update_url)
         if param_value:
-            param_value = get_param_from_session_or_workout_instance(current_parameters, exercise_id, 'Tu', workout_instance)
+            param_value = get_param_from_session_or_workout(current_parameters, exercise_id, 'Tu', workout_instance)
             htmx_template += generate_dynamic_workout_viewer_parameter_component(exercise_id, workout_id, 'Tu', param_value, update_url)
-    if exercise_has_param(exercise_id, 'D'):
-        param_value = get_param_from_session_or_workout_instance(current_parameters, exercise_id, 'D', workout_instance)
+    if exercise_with_id_has_param(exercise_id, 'D'):
+        param_value = get_param_from_session_or_workout(current_parameters, exercise_id, 'D', workout_instance)
         htmx_template += generate_dynamic_workout_viewer_parameter_component(exercise_id, workout_id, 'D', param_value, update_url)
         if param_value:
-            param_value = get_param_from_session_or_workout_instance(current_parameters, exercise_id, 'Du', workout_instance)
+            param_value = get_param_from_session_or_workout(current_parameters, exercise_id, 'Du', workout_instance)
             htmx_template += generate_dynamic_workout_viewer_parameter_component(exercise_id, workout_id, 'Du', param_value, update_url)
-    if exercise_has_param(exercise_id, 'F'):
-        param_value = get_param_from_session_or_workout_instance(current_parameters, exercise_id, 'F', workout_instance)
+    if exercise_with_id_has_param(exercise_id, 'F'):
+        param_value = get_param_from_session_or_workout(current_parameters, exercise_id, 'F', workout_instance)
         htmx_template += generate_dynamic_workout_viewer_parameter_component(exercise_id, workout_id, 'F', param_value, update_url)
         if param_value:
-            param_value = get_param_from_session_or_workout_instance(current_parameters, exercise_id, 'Fu', workout_instance)
+            param_value = get_param_from_session_or_workout(current_parameters, exercise_id, 'Fu', workout_instance)
             htmx_template += generate_dynamic_workout_viewer_parameter_component(exercise_id, workout_id, 'Fu', param_value, update_url)
 
     return htmx_template
@@ -409,23 +565,23 @@ def dynamic_parameters(context=None, workout_id=None, exercise_id=None):
     # this method generates the dynamic htmx code for the parameters of an exercise in the workout editor.
     update_url = url_for('workouts.update_param_in_cache')
     htmx_template = ""
-    if exercise_has_param(exercise_id, 'S'):
+    if exercise_with_id_has_param(exercise_id, 'S'):
         param_value = get_cached_param_value(exercise_id, 'S')
         htmx_template += gets_dynamic_parameters_component(exercise_id, workout_id, 'S', param_value, update_url)
-    if exercise_has_param(exercise_id, 'R'):
+    if exercise_with_id_has_param(exercise_id, 'R'):
         param_value = get_cached_param_value(exercise_id, 'R')
         htmx_template += gets_dynamic_parameters_component(exercise_id, workout_id, 'R', param_value, update_url)
-    if exercise_has_param(exercise_id, 'T'):
+    if exercise_with_id_has_param(exercise_id, 'T'):
         param_value = get_cached_param_value(exercise_id, 'T')
         htmx_template += gets_dynamic_parameters_component(exercise_id, workout_id, 'T', param_value, update_url)
         param_value = get_cached_param_value(exercise_id, 'Tu')
         htmx_template += gets_dynamic_parameters_component(exercise_id, workout_id, 'Tu', param_value, update_url)
-    if exercise_has_param(exercise_id, 'D'):
+    if exercise_with_id_has_param(exercise_id, 'D'):
         param_value = get_cached_param_value(exercise_id, 'D')
         htmx_template += gets_dynamic_parameters_component(exercise_id, workout_id, 'D', param_value, update_url)
         param_value = get_cached_param_value(exercise_id, 'Du')
         htmx_template += gets_dynamic_parameters_component(exercise_id, workout_id, 'Du', param_value, update_url)
-    if exercise_has_param(exercise_id, 'F'):
+    if exercise_with_id_has_param(exercise_id, 'F'):
         param_value = get_cached_param_value(exercise_id, 'F')
         htmx_template += gets_dynamic_parameters_component(exercise_id, workout_id, 'F', param_value, update_url)
         param_value = get_cached_param_value(exercise_id, 'Fu')
@@ -1152,6 +1308,7 @@ def view_workout(context=None):
         workout_sections=workout_sections,
         exercises=exercises,
         current_parameters=current_parameters,
+        workout_definition_key=workout_key_str,
         default_section=last,
         show_finish_button=False,
         rs=rm_spaces,
