@@ -1836,9 +1836,7 @@ def get_edit_form(workout_id, exercise_id, param, context=None):
     else:
         editor_info = get_editor_type_for_value_parameter(param, unit_param_value, None)
 
-    if editor_info['type'] == 'numeric':
-        return get_param_editor_element(workout_id, exercise_id, param, orig_param_value, input_type="number", active_workout=active_workout, purpose_of_parameter_edit=purpose_of_parameter_edit)
-    elif editor_info['type'] == 'choice':
+    if editor_info['type'] == 'choice':
         options_html = "".join([f'<option value="{opt}" {"selected" if opt == orig_param_value else ""}>{opt}</option>' for opt in editor_info['options']])
         return f"""
             <form id="{component_id}" 
@@ -1860,29 +1858,27 @@ def get_edit_form(workout_id, exercise_id, param, context=None):
                 </select>                
             </form>
         """
-    else: 
-        return get_param_editor_element(workout_id, exercise_id, param, orig_param_value, active_workout=active_workout, purpose_of_parameter_edit=purpose_of_parameter_edit, unit_param_value=unit_param_value)
-    
-def get_param_editor_element(workout_id, exercise_id, param, orig_param_value, input_type="text", active_workout=False, purpose_of_parameter_edit=None, unit_param_value=""):
-    component_id = f"param-{workout_id}-{exercise_id}-{param}"
-    return f"""
-            <!-- The editable form (returned by server) -->
-            <form id="{component_id}" hx-put="/workouts/update-workout-param-value/{workout_id}/{exercise_id}/{param}?purpose_of_parameter_edit={purpose_of_parameter_edit}" 
-                hx-target="#{component_id}" 
-                hx-swap="outerHTML" 
-                hx-trigger="focusout">
-                <input type="hidden" name="orig_param_value" value="{orig_param_value}">
-                <input type="hidden" name="active_workout" value="{active_workout}">
-                <input type="hidden" name="unit_param_value" value="{unit_param_value}">                
-                <input type="{input_type}" 
-                    name="new-param-value" 
-                    value="{orig_param_value}" 
-                    style="width: 6ch; max-width: 8ch;"
-                    onfocus="this.select()"
-                    onkeydown="if (event.key === 'Enter') {{ event.preventDefault(); this.blur(); }}"
-                    autofocus>
-            </form>
-            """
+    else:
+        input_type = "number" if editor_info['type'] == 'numeric' else "text"
+        return f"""
+                <!-- The editable form (returned by server) -->
+                <form id="{component_id}" 
+                    hx-put="/workouts/update-workout-param-value/{workout_id}/{exercise_id}/{param}?purpose_of_parameter_edit={purpose_of_parameter_edit}" 
+                    hx-target="#{component_id}" 
+                    hx-swap="outerHTML" 
+                    hx-trigger="focusout">
+                    <input type="hidden" name="orig_param_value" value="{orig_param_value}">
+                    <input type="hidden" name="active_workout" value="{active_workout}">
+                    <input type="hidden" name="unit_param_value" value="{unit_param_value}">                
+                    <input type="{input_type}" 
+                        name="new-param-value" 
+                        value="{orig_param_value}" 
+                        style="width: 6ch; max-width: 8ch;"
+                        onfocus="this.select()"
+                        onkeydown="if (event.key === 'Enter') {{ event.preventDefault(); this.blur(); }}"
+                        autofocus>
+                </form>
+                """
 
 def get_initial_editable_text2(workout_id, exercise_id, param, param_value, active_workout="false", purpose_of_parameter_edit=None):
     # This function would typically fetch the current text from a database based on the item_id
