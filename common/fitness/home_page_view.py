@@ -79,6 +79,7 @@ def render_home_page_workout(member, current_state):
                                 workout_instance_key=workout_instance_key),
         adjustments=current_state.get('adjustments', {}),
         show_finish_button=True,
+        active_workout=True,
         time_workout_started=workout_started_ts,
         rs=rm_spaces
     )

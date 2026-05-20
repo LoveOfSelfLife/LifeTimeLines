@@ -117,3 +117,12 @@ def get_next_workout_in_program(program, member_id):
     return {'next_workout_key' : next_workout.get_composite_key(), 
             'last_workout_instance_key': last_workout_intance_key, 
             'adjustments_for_next_workout': last_workout_adjustments}
+
+
+def get_workouts_from_program(program):
+    # in the 1.0 data model, the workouts are stored as embedded objects in the program
+    # in the 2.0 data model, the workouts are stored as separate entities in the MemberWorkoutDefinitionTable, where 
+    # those entities have a member_program_id field that references the program they belong to
+    workouts = get_program_workouts(program, program['member_id'])
+    workouts = sorted(workouts, key=lambda x: x.get('order_index', 0))
+    return workouts

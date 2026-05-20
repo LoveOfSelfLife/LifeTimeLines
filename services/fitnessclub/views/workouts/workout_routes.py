@@ -5,13 +5,14 @@ from common.fitness.active_fitness_registry import _get_filter_terms_from_reques
 from common.fitness.cacher import get_cache_value, set_cache_value, delete_from_cache
 from common.fitness.entities_getter import get_entities
 from common.fitness.exercise_entity import ExerciseEntity
+from common.fitness.exercise_parameters import get_editor_type_for_unit_parameter, get_editor_type_for_value_parameter
 from common.fitness.hx_common import hx_render_template
 from common.fitness.hx_common import rm_spaces
 from common.fitness.member_entity import get_member_id_from_user_context, is_member_an_admin
 from common.fitness.member_workout_entity import WorkoutDefinitionEntity, get_exercises_from_workout, map_exercise_to_sections
 from common.fitness.edit_workout_object import edit_workout_object
 from common.fitness.workout_state import get_active_workout_state, update_active_workout_state
-from services.fitnessclub.base import get_initial_editable_text2
+
 bp = Blueprint('workouts', __name__, template_folder='templates')
 from auth import auth
 from flask import Flask, render_template, request, redirect, url_for, session, abort
@@ -93,7 +94,7 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
 
     # Set results_target_container based on target parameter
     results_target_container = target if target else 'results-area'
-
+    target = target if target else 'results-area'
     # displays workouts at the top level
     return hx_render_template(
         template_file_name,
@@ -192,8 +193,13 @@ def builder(context=None, workout_id=None):
     if not member_id:
         abort(401)
 
-    workout = get_cache_value('current_workout')
+    # this will be set when this workout editor has been opened while editing a workout that is part of a program in the program builder.
+    # in that case, we want to load the workout that is being edited as part of the program builder flow, which is stored in the cache 
+    # with the key 'editing_program_workout'
+
     editing_program_workout = request.args.get('editing_program_workout', None)
+
+    workout = get_cache_value('current_workout')
 
     if workout and workout['id'] == workout_id:
         # Check if current user can save this workout
@@ -255,35 +261,6 @@ def get_parameter_map():
         'Pu': 'tempo_unit'
     }
 
-def gets_dynamic_parameters_component(ex_id, wrk_id, param, param_value, update_url):
-
-    param_map = get_parameter_map()
-
-    template = f"""
-        <!-- { param } -->
-        <div class="d-flex flex-column align-items-start">
-        <label class="form-label small" for="{param}-{ ex_id}">{param_map.get(param, param)}</label>
-        <form class="d-flex align-items-center"
-                hx-post="{ update_url }"
-                hx-trigger="change delay:500ms, focusout"
-                hx-swap="none">
-            <input type="hidden" name="workout_id" value="{ wrk_id }">
-            <input type="hidden" name="exercise_id" value="{ ex_id }">
-            <input type="hidden" name="param" value="{param}">
-            <input type="text" name="value" id="{param}-{ ex_id}"
-                class="form-control form-control-sm"
-                style="width:4.5rem;"
-                placeholder="{param_map.get(param, param)}"
-                value="{param_value or ''}"
-                >
-        </form>
-        </div>
-    """
-    return template
-
-def generate_dynamic_workout_viewer_parameter_component(ex_id, wrk_id, param, param_value, update_url, prefix="", suffix=""):
-    return get_initial_editable_text2(wrk_id, ex_id, param, param_value)
-
 
 @bp.route('/builder/update_param_in_cache', methods=['POST'])
 @auth.login_required
@@ -343,44 +320,118 @@ def get_workout_sections(workout):
         return workout.get('sections', []) if 'sections' in workout else workout.get('workout_sections', [])
     return []
 
-def get_param_from_session_or_workout(current_parameters, exercise_id, param, workout_obj):
+def get_workout_section(workout, section_name):
+    for sec in get_workout_sections(workout):
+        if sec['name'] == section_name:
+            return sec
+    return None
+
+def get_param_from_session_or_workout(current_parameters, exercise_id, param, workout_obj, default_value=''):
     # First check session parameters
     if current_parameters and exercise_id in current_parameters and param in current_parameters[exercise_id]:
-        return current_parameters[exercise_id][param]
-    # Then check workout instance adjustments
+        param_value = current_parameters[exercise_id][param]
+        if param_value is None or param_value.strip() == 'None':
+            return default_value
+        else:
+            return param_value
+    # Then check workout object parameters
     for sec in get_workout_sections(workout_obj):
         for it in sec['exercises']:
             if it['id']==exercise_id:
-                return it['parameters'].get(param, '')
-    return ''   
-
-#  /workouts/dynamic_parameters_for_section_viewer/{{workout.id}}/{{section.name}}?workout_instance_key={{workout_instance_key}}
+                return it['parameters'].get(param, default_value)
+    return default_value   
 
 @bp.route('/dynamic_parameters_for_section_viewer/<workout_id>/<section_name>')
 @auth.login_required
 def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section_name=None):
 
-    es = EntityStore()
+    # this method as written assumes that the workout parameters are stored in the active_workout_state in the session
+    # but when we are editing the parameters of a workout in the program builder, we want to get those parameters from the
+    # cache value 'current_workout' instead of the session, since the session is meant to store the state of an active workout that the user is doing, 
+    # whereas when we are editing a workout in the program builder, we are not doing that workout, we are just editing the workout object that is stored in the cache.
 
-    workout_instance_key = request.args.get('workout_instance_key', None)
-    workout_definition_key = request.args.get('workout_definition_key', None)
+    # need to determine here if we are actively working out and editing the workout parameters for the workout we are doing, in which case we want to get and update the parameters in the session,
+    # or if we are editing a workout in the workout builder, in which case we want to get and update the parameters in the cache.
+    # we can determine this based on a flag that is passed in the request args, if editing_program_workout is true, then we are editing the workout in the workout builder, 
+    # otherwise we are actively working out and editing the parameters for the workout we are doing.
+
+    editing_program_workout = request.args.get('editing_program_workout', 'false').lower() == 'true'
+    purpose_of_parameter_edit = request.args.get("purpose_of_parameter_edit", None)
+    active_workout = request.args.get('active_workout', 'false').lower() == 'true'
     workout_instance = None
-    if workout_instance_key:
-        workout_instance = es.get_item_by_composite_key(workout_instance_key)
+    workout_definition = None
+    
+    # if active_workout:
+    if editing_program_workout is False:
+        # this block is for when we are doing a workout and want to edit the parameters for that workout, in which case we want to get and update the parameters in the session
 
-    if workout_definition_key:
-        workout_definion = es.get_item_by_composite_key(workout_definition_key)
+        es = EntityStore()
+        workout_instance_key = request.args.get('workout_instance_key', None)
+        workout_definition_key = request.args.get('workout_definition_key', None)
+        can_edit=request.args.get('can_edit', 'false').lower() == 'true'
+        active_workout=request.args.get('active_workout', 'false').lower() == 'true'
 
-    wrkout_exercises = get_exercises_from_workout(workout_instance if workout_instance else workout_definion)
-    exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
 
+        if workout_instance_key:
+            workout_instance = es.get_item_by_composite_key(workout_instance_key)
+
+        if workout_definition_key:
+            workout_definition = es.get_item_by_composite_key(workout_definition_key)
+
+        wrkout_exercises = get_exercises_from_workout(workout_instance if workout_instance else workout_definition)
+        exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
+
+        current_workout_state = get_active_workout_state()
+        current_parameters = current_workout_state.get('exercise_parameters', {}) if current_workout_state else {}
+        update_url = url_for('workouts.update_param_in_session')
+
+        section = get_workout_section(workout_instance if workout_instance else workout_definition, section_name)
+
+        exercise_parameters_map = extract_workout_parameters_for_workout(workout_id, 
+                                                                        workout_instance if workout_instance else workout_definition, 
+                                                                        exercises, 
+                                                                        current_parameters, 
+                                                                        update_url)
+        can_edit_parameters = can_edit or workout_instance 
+
+    else:
+        # we enter this block when we are viewing the workout in the workout builder and want to edit the parameters for the workout
+        # there are situations where this may occur:
+        #
+        # 1) we are in the workout builder and we want to edit the parameters for the workout we are building.  Any updates to the parameters in this situation
+        #    should update the workout object that is stored in the cache with the key 'current_workout'
+        #
+        # 2) we are in the program builder and we are editing the parameters of a workout that is part of a program, in which case the updates to the parameters
+        #    should update the workout object that is stored im current_program_workouts in the cache. (me thinks...)
+
+        workout = get_cache_value('current_workout')
+        exercises = { ex['id']: ex for ex in get_exercises_from_workout(workout) }
+        update_url = url_for('workouts.update_param_in_cache')
+        section = get_workout_section(workout, section_name)
+        exercise_parameters_map = extract_workout_parameters_for_workout(workout_id, workout, exercises, {}, update_url)
+        can_edit_parameters = True
+        workout_definition = workout
+        workout_definition_key = None
+        active_workout = False
+        
+
+
+    return render_template(
+        "_section_dynamic_view.html",
+        workout=workout_instance if workout_instance else workout_definition,
+        exercise_parameters=exercise_parameters_map.get(section_name, {}),
+        section=section,
+        exercises=exercises,
+        workout_definition_key=workout_definition_key,
+        can_edit_parameters=can_edit_parameters, 
+        active_workout=active_workout,
+        in_program_builder=editing_program_workout,
+        purpose_of_parameter_edit=purpose_of_parameter_edit,
+        rs=rm_spaces
+    )
+
+def extract_workout_parameters_for_section(workout_id, section_name, workout_obj, exercises, current_parameters, update_url, sections):
     exercise_parameters = {}
-
-    current_workout_state = get_active_workout_state()
-    current_parameters = current_workout_state.get('exercise_parameters', {}) if current_workout_state else {}
-    update_url = url_for('workouts.update_param_in_session')
-
-    sections = get_workout_sections(workout_instance if workout_instance else workout_definion)
     for sec in sections:
         if sec['name'] == section_name:
             section = sec
@@ -388,30 +439,33 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
                 ex = exercises[item['id']]
                 exercise_parameters[ex['id']] = { 'param_list': get_param_objects_for_exercise(ex, 
                                                                                                current_parameters, 
-                                                                                               workout_instance if workout_instance else workout_definion, 
+                                                                                               workout_obj, 
                                                                                                workout_id, update_url) }
             break
-    
-    return render_template(
-        "_section_dynamic_view.html",
-        workout=workout_instance if workout_instance else workout_definion,
-        exercise_parameters=exercise_parameters,
-        section=section,
-        exercises=exercises,
-        workout_instance_key=workout_instance_key,
-        workout_definition_key=workout_definition_key,
-        show_finish_button=True,
-        can_edit_parameters=True if workout_instance else False,  # only allow editing parameters if we are in a workout instance (actively doing a workout)
-        rs=rm_spaces
-    )
+    return exercise_parameters,section
 
+def extract_workout_parameters_for_workout(workout_id, workout_obj, exercises, current_parameters, update_url):
+    exercise_parameters_map = {}
+    sections = get_workout_sections(workout_obj)
+    for sec in sections:
+        exercise_parameters_map[sec['name']] = {}
+        for item in sec['exercises']:
+            ex = exercises[item['id']]
+            exercise_parameters_map[sec['name']][ex['id']] = { 'param_list': get_param_objects_for_exercise(ex, 
+                                                                                                            current_parameters, 
+                                                                                                            workout_obj, 
+                                                                                                            workout_id, 
+                                                                                                            update_url) }
+    return exercise_parameters_map
 
 def get_param_objects_for_exercise(exercise, current_parameters, workout_instance, workout_id, update_url):
     param_objects = []
     # TODO:  this method has a lot of repeated code in it, we should refactor it to be more concise and easier to maintain. 
     # maybe have a config that defines the parameters and their properties, then loop through that config to generate the param objects.
+
+    # TODO:  the default value for a parameter should be based on the exercise definition, not just a hardcoded value, as it is implemented now.  
     if exercise_has_param(exercise, 'S'):
-        param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'S', workout_instance)
+        param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'S', workout_instance, default_value='0')
         param_objects.append({
             'type': 'var',
             'value': param_value,
@@ -427,7 +481,7 @@ def get_param_objects_for_exercise(exercise, current_parameters, workout_instanc
 
 
     if exercise_has_param(exercise, 'R'):
-        param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'R', workout_instance)
+        param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'R', workout_instance, default_value='0')
         param_objects.append({
             'type': 'var',
             'value': param_value,
@@ -443,150 +497,70 @@ def get_param_objects_for_exercise(exercise, current_parameters, workout_instanc
         })
 
     if exercise_has_param(exercise, 'T'):
-        param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'T', workout_instance)
-        if param_value:
-            param_objects.append({
-                'type': 'var',
-                'value': param_value,
-                'update_url': update_url,
-                'param': 'T',
-                'wkout_id': workout_id,
-                'ex_id': exercise['id']
-            })
-            param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'Tu', workout_instance)
-            param_objects.append({
-                'type': 'var',
-                'value': param_value,
-                'update_url': update_url,
-                'param': 'Tu',
-                'wkout_id': workout_id,
-                'ex_id': exercise['id']
-            })
+        param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'T', workout_instance, default_value='0')
+        # if param_value:
+        param_objects.append({
+            'type': 'var',
+            'value': param_value,
+            'update_url': update_url,
+            'param': 'T',
+            'wkout_id': workout_id,
+            'ex_id': exercise['id']
+        })
+        param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'Tu', workout_instance, default_value='sec')
+        param_objects.append({
+            'type': 'var',
+            'value': param_value,
+            'update_url': update_url,
+            'param': 'Tu',
+            'wkout_id': workout_id,
+            'ex_id': exercise['id']
+        })
 
     if exercise_has_param(exercise, 'D'):
         
-        param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'D', workout_instance)
-        if param_value: 
-            param_objects.append({
-                'type': 'var',
-                'value': param_value,
-                'update_url': update_url,
-                'param': 'D',
-                'wkout_id': workout_id,
-                'ex_id': exercise['id']
-            })
-            param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'Du', workout_instance)
-            param_objects.append({
-                'type': 'var',
-                'value': param_value,
-                'update_url': update_url,
-                'param': 'Du',
-                'wkout_id': workout_id,
-                'ex_id': exercise['id']
-            })
+        param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'D', workout_instance, default_value='0')
+        # if param_value: 
+        param_objects.append({
+            'type': 'var',
+            'value': param_value,
+            'update_url': update_url,
+            'param': 'D',
+            'wkout_id': workout_id,
+            'ex_id': exercise['id']
+        })
+        param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'Du', workout_instance, default_value='meters')
+        param_objects.append({
+            'type': 'var',
+            'value': param_value,
+            'update_url': update_url,
+            'param': 'Du',
+            'wkout_id': workout_id,
+            'ex_id': exercise['id']
+        })
 
     if exercise_has_param(exercise, 'F'):
-        param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'F', workout_instance)
-        if param_value:
-            param_objects.append({
-                'type': 'var',
-                'value': param_value,
-                'update_url': update_url,
-                'param': 'F',
-                'wkout_id': workout_id,
-                'ex_id': exercise['id']
-            })
-            param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'Fu', workout_instance)
-            param_objects.append({
-                'type': 'var',
-                'value': param_value,
-                'update_url': update_url,
-                'param': 'Fu',
-                'wkout_id': workout_id,
-                'ex_id': exercise['id']
-            })
+        param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'F', workout_instance, default_value='0')
+        # if param_value:
+        param_objects.append({
+            'type': 'var',
+            'value': param_value,
+            'update_url': update_url,
+            'param': 'F',
+            'wkout_id': workout_id,
+            'ex_id': exercise['id']
+        })
+        param_value = get_param_from_session_or_workout(current_parameters, exercise['id'], 'Fu', workout_instance, default_value='lbs')
+        param_objects.append({
+            'type': 'var',
+            'value': param_value,
+            'update_url': update_url,
+            'param': 'Fu',
+            'wkout_id': workout_id,
+            'ex_id': exercise['id']
+        })
     return param_objects
 
-@bp.route('/dynamic_parameters_for_workout_viewer/<workout_id>/<exercise_id>')
-@auth.login_required
-def dynamic_parameters_for_workout_viewer(context=None, workout_id=None, exercise_id=None):
-    htmx_template = ""    
-    es = EntityStore()
-
-    # this method generates the dynamic htmx code for the parameters of an exercise in workout viewer
-    # which is used when a member is actively doing their workout.
-    # this viewer should allow a member to update the parameters as they go through the workout, 
-    # and those updates should be reflected in the workout state in the session, and then saved
-    # into the MemberWorkoutInstance so that they can be used for tracking progress and for analytics.
-    workout_instance_key = request.args.get('workout_instance_key', None)
-    workout_instance = None
-    if workout_instance_key:
-        workout_instance = es.get_item_by_composite_key(workout_instance_key)
-
-    current_workout_state = get_active_workout_state()
-    current_parameters = current_workout_state.get('exercise_parameters', {}) if current_workout_state else {}
-
-    # current_parameters[ex.id].sets if current_parameters and current_parameters[ex.id] else item.parameters.sets
-
-    update_url = url_for('workouts.update_param_in_session')
-    if current_workout_state:
-        current_parameters = current_workout_state.get('exercise_parameters', {})
-    if exercise_with_id_has_param(exercise_id, 'S'):
-        param_value = get_param_from_session_or_workout(current_parameters, exercise_id, 'S', workout_instance)
-        htmx_template += generate_dynamic_workout_viewer_parameter_component(exercise_id, workout_id, 'S', param_value, update_url, "", "sets,")
-    if exercise_with_id_has_param(exercise_id, 'R'):
-        param_value = get_param_from_session_or_workout(current_parameters, exercise_id, 'R', workout_instance)
-        htmx_template += generate_dynamic_workout_viewer_parameter_component(exercise_id, workout_id, 'R', param_value, update_url, "", "reps")
-    if exercise_with_id_has_param(exercise_id, 'T'):
-        param_value = get_param_from_session_or_workout(current_parameters, exercise_id, 'T', workout_instance)
-        htmx_template += generate_dynamic_workout_viewer_parameter_component(exercise_id, workout_id, 'T', param_value, update_url)
-        if param_value:
-            param_value = get_param_from_session_or_workout(current_parameters, exercise_id, 'Tu', workout_instance)
-            htmx_template += generate_dynamic_workout_viewer_parameter_component(exercise_id, workout_id, 'Tu', param_value, update_url)
-    if exercise_with_id_has_param(exercise_id, 'D'):
-        param_value = get_param_from_session_or_workout(current_parameters, exercise_id, 'D', workout_instance)
-        htmx_template += generate_dynamic_workout_viewer_parameter_component(exercise_id, workout_id, 'D', param_value, update_url)
-        if param_value:
-            param_value = get_param_from_session_or_workout(current_parameters, exercise_id, 'Du', workout_instance)
-            htmx_template += generate_dynamic_workout_viewer_parameter_component(exercise_id, workout_id, 'Du', param_value, update_url)
-    if exercise_with_id_has_param(exercise_id, 'F'):
-        param_value = get_param_from_session_or_workout(current_parameters, exercise_id, 'F', workout_instance)
-        htmx_template += generate_dynamic_workout_viewer_parameter_component(exercise_id, workout_id, 'F', param_value, update_url)
-        if param_value:
-            param_value = get_param_from_session_or_workout(current_parameters, exercise_id, 'Fu', workout_instance)
-            htmx_template += generate_dynamic_workout_viewer_parameter_component(exercise_id, workout_id, 'Fu', param_value, update_url)
-
-    return htmx_template
-
-@bp.route('/dynamic_params/<workout_id>/<exercise_id>')
-@auth.login_required
-def dynamic_parameters(context=None, workout_id=None, exercise_id=None):
-
-    # this method generates the dynamic htmx code for the parameters of an exercise in the workout editor.
-    update_url = url_for('workouts.update_param_in_cache')
-    htmx_template = ""
-    if exercise_with_id_has_param(exercise_id, 'S'):
-        param_value = get_cached_param_value(exercise_id, 'S')
-        htmx_template += gets_dynamic_parameters_component(exercise_id, workout_id, 'S', param_value, update_url)
-    if exercise_with_id_has_param(exercise_id, 'R'):
-        param_value = get_cached_param_value(exercise_id, 'R')
-        htmx_template += gets_dynamic_parameters_component(exercise_id, workout_id, 'R', param_value, update_url)
-    if exercise_with_id_has_param(exercise_id, 'T'):
-        param_value = get_cached_param_value(exercise_id, 'T')
-        htmx_template += gets_dynamic_parameters_component(exercise_id, workout_id, 'T', param_value, update_url)
-        param_value = get_cached_param_value(exercise_id, 'Tu')
-        htmx_template += gets_dynamic_parameters_component(exercise_id, workout_id, 'Tu', param_value, update_url)
-    if exercise_with_id_has_param(exercise_id, 'D'):
-        param_value = get_cached_param_value(exercise_id, 'D')
-        htmx_template += gets_dynamic_parameters_component(exercise_id, workout_id, 'D', param_value, update_url)
-        param_value = get_cached_param_value(exercise_id, 'Du')
-        htmx_template += gets_dynamic_parameters_component(exercise_id, workout_id, 'Du', param_value, update_url)
-    if exercise_with_id_has_param(exercise_id, 'F'):
-        param_value = get_cached_param_value(exercise_id, 'F')
-        htmx_template += gets_dynamic_parameters_component(exercise_id, workout_id, 'F', param_value, update_url)
-        param_value = get_cached_param_value(exercise_id, 'Fu')
-        htmx_template += gets_dynamic_parameters_component(exercise_id, workout_id, 'Fu', param_value, update_url)
-    return htmx_template
 
 
 @bp.route('/builder/<workout_id>/dynamic_canvas')
@@ -599,9 +573,14 @@ def workout_dynamic_canvas2(context=None, workout_id=None):
     if w:
         wrkout_exercises = get_exercises_from_workout(w)
         exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
+        exercise_parameters_map = extract_workout_parameters_for_workout(workout_id, w, exercises, {}, url_for('workouts.update_param_in_cache'))
         return hx_render_template('_workout_dynamic_canvas.html',
                                     workout=w,
                                     exercises=exercises,
+                                    exercise_parameters = exercise_parameters_map,
+                                    workout_id=workout_id,
+                                    purpose_of_parameter_edit='workout_builder',
+                                    can_edit_parameters=True,
                                     context=context)
     else:
         abort(404)
@@ -813,6 +792,67 @@ def update_param(context=None, workout_id=None):
     set_cache_value('current_workout', w)
 
     return ('', 204)
+
+@bp.route("/update-workout-param-value/<workout_id>/<exercise_id>/<param>", methods=["PUT"])
+def save_data(workout_id, exercise_id, param, context=None):
+    orig_value = request.form.get("orig_param_value", "")
+    new_value = request.form.get("new-param-value", "")
+    is_active_workout = request.form.get("active_workout", "false").lower() == "true"
+    unit_param_value = request.form.get("unit_param_value", "")
+    purpose_of_parameter_edit = request.args.get("purpose_of_parameter_edit", None)
+    unit_param_id = request.form.get("unit_param_id", None)
+
+    # if the new_value is empty of just whitespace, then revert back to the original value
+    if not new_value or not new_value.strip():
+        new_value = orig_value
+
+    # Here you would typically save the new value to your database
+    print(f"Saving new value for workout {workout_id}, exercise {exercise_id}, param {param}: '{orig_value}' -> '{new_value}'")
+
+    if is_active_workout:
+        print(f"Active workout flag is set. This means the user is currently doing the workout and we should update the workout state in the session with the new parameter value for real-time tracking and analytics purposes.")
+        current_workout_state = get_active_workout_state()
+        if not current_workout_state:
+            print("No active workout state found in session. This should not happen if the active workout flag is set. Aborting update.")
+            return ('', 400)
+
+        exercise = current_workout_state['exercise_parameters'].get(exercise_id, {})
+        exercise[param] = new_value
+        current_workout_state['exercise_parameters'][exercise_id] = exercise
+
+        update_active_workout_state(current_workout_state)
+
+    else:
+        print(f"Active workout flag is not set. This means the user is editing the workout in the workout builder and we should update the workout in the cache with the new parameter value so that it is reflected in the workout builder view.")
+
+        if purpose_of_parameter_edit == "editing_workout_in_program_builder":
+            print(f"Purpose of parameter edit is editing_workout_in_program_builder. This means we are editing a workout that is part of a program in the program builder, so we need to update the workout object that is stored in current_program_workouts in the cache with the new parameter value.")
+            current_program_workouts = get_cache_value('current_program_workouts')
+            if not current_program_workouts:
+                print("No current program workouts found in cache. This should not happen if we are editing a workout in the program builder. Aborting update.")
+                return ('', 400)
+
+            for wk in current_program_workouts:
+                if wk['id'] == workout_id:
+                    for s in wk[WORKOUT_SECTIONS]:
+                        for it in s['exercises']:
+                            if it['id']==exercise_id:
+                                it['parameters'][param] = new_value
+                    break
+            set_cache_value('current_program_workouts', current_program_workouts)
+            
+        else:
+            w = get_cache_value('current_workout')
+            if w:   
+                for s in w[WORKOUT_SECTIONS]:
+                    for it in s['exercises']:
+                        if it['id']==exercise_id:
+                            it['parameters'][param] = new_value
+
+                set_cache_value('current_workout', w)
+
+    # Return the updated content to replace the form
+    return  get_initial_editable_text2(workout_id, exercise_id, param, new_value, active_workout=is_active_workout, purpose_of_parameter_edit=purpose_of_parameter_edit)
 
 @bp.route('/builder/<workout_id>/save', methods=['POST'])
 @auth.login_required
@@ -1303,7 +1343,7 @@ def view_workout(context=None):
     workout_sections = workout['workout_sections']
 
     return render_template(
-        "workout_view.html",
+        "popup_workout_view.html",
         workout=workout,
         workout_sections=workout_sections,
         exercises=exercises,
@@ -1755,3 +1795,135 @@ def replace_exercise(context=None):
         return f'<div class="alert alert-success">Exercise replaced successfully! Now using: {new_exercise.name}</div>'
     else:
         return '<div class="alert alert-danger">Failed to replace exercise.</div>'
+    
+
+
+@bp.route("/get-editor-for-parameter/<workout_id>/<exercise_id>/<param>")
+def get_edit_form(workout_id, exercise_id, param, context=None):
+    orig_param_value = request.args.get("value", "")
+    unit_param_value = request.args.get("unit-param-value", "")
+    active_workout = request.args.get("active_workout", "false").lower() == "true"
+    purpose_of_parameter_edit = request.args.get('purpose_of_parameter_edit', None)
+    component_id = f"param-{workout_id}-{exercise_id}-{param}"
+    # this is where we would look at the exercise definition to determine the type of the parameter and return the appropriate editor. 
+    # which for now is just return a text input for all parameters.
+    # the types of editors we want to support include:
+    # - numeric input for parameters like "R", "S", and "F", when "Fu" is kg or lbs.  
+    # - if Fu is "bands", then F 
+    #   becomes a dropdown with options like "light (yellow)", "medium (green)", "heavy (black)". 
+    #   So we would need to look at the current values of the parameter unit to determine the type of editor to return.
+    # - dropdown for parameters for standard units,
+    #   e.g Fu force units - [kg, lbs], or for Tu time units - (sec, min, hour), Du distance units - (meters, yards, miles) and Pu - pace units (rate, tempo)
+    # - text input 
+    # 
+    # seems like the exercise object would hold the relationship between parameter units and the domain of values for that parameter
+    # e.g. if Fu is kg or lb, then F would be numeric, perhaps with a certain range of valid values. If Fu is bands, then F would be a dropdown 
+    # with options like light, medium, heavy. So we would need to look at the current value of Fu to determine the type of editor to return for F.
+    # so the logic would be:
+    # 1) get the current value of the parameter that we want to edit (which is passed in as a query parameter for now, but could also be looked up from the workout definition or workout instance)
+    # 2) determine the type of the parameter (numeric, dropdown, text) based on the current value and the exercise definition
+    # 3) return the appropriate editor for that parameter type, with the current value pre-filled in the editor.
+    #
+    # I think we need 2 functions to determine the range of values for a parameter (both funcs would take the exercise definition as input):
+    # 1) a function that accepts a unit parameter, Fu, Tu, Du, or Pu, and returns the range of values for that unit, e.g Fu is ["kg", "lbs"], Tu is ["sec", "min", "hour"], Du is ["meters", "yards", "miles"], Pu is ["rate", "tempo"]
+    # 2) a funtion that accepts the parameter we want to edit, e.g. F, T, D, or P, and the current value of the unit parameter, e.g. Fu, Tu, Du, or Pu, and 
+    # returns the appropriate editor type and range of values for that parameter.
+    # so the editor for a F parameter would be numeric if Fu is kg or lbs, but would be a dropdown with options light, medium, heavy if Fu is bands.
+    #
+
+    if param in ['Fu', 'Tu', 'Du', 'Pu']:
+        editor_info = get_editor_type_for_unit_parameter(param, None)
+    else:
+        editor_info = get_editor_type_for_value_parameter(param, unit_param_value, None)
+
+    if editor_info['type'] == 'numeric':
+        return get_param_editor_element(workout_id, exercise_id, param, orig_param_value, input_type="number", active_workout=active_workout, purpose_of_parameter_edit=purpose_of_parameter_edit)
+    elif editor_info['type'] == 'choice':
+        options_html = "".join([f'<option value="{opt}" {"selected" if opt == orig_param_value else ""}>{opt}</option>' for opt in editor_info['options']])
+        return f"""
+            <form id="{component_id}" 
+                hx-put="/workouts/update-workout-param-value/{workout_id}/{exercise_id}/{param}?purpose_of_parameter_edit={purpose_of_parameter_edit}" 
+                hx-target="#{component_id}" 
+                hx-swap="outerHTML" 
+                class="d-inline-block flex-shrink-0"
+                hx-trigger="change, focusout">
+                <input type="hidden" name="orig_param_value" value="{orig_param_value}">
+                <input type="hidden" name="active_workout" value="{active_workout}">
+                <input type="hidden" name="unit_param_value" value="{unit_param_value}">
+                <select
+                    name="new-param-value"
+                    class="form-select form-select-sm"
+                    size="3"
+                    style="width: 7rem; min-width: 7rem; color: #212529; background-color: #fff; flex: 0 0 auto;"
+                    autofocus >
+                    {options_html}
+                </select>                
+            </form>
+        """
+    else: 
+        return get_param_editor_element(workout_id, exercise_id, param, orig_param_value, active_workout=active_workout, purpose_of_parameter_edit=purpose_of_parameter_edit, unit_param_value=unit_param_value)
+    
+def get_param_editor_element(workout_id, exercise_id, param, orig_param_value, input_type="text", active_workout=False, purpose_of_parameter_edit=None, unit_param_value=""):
+    component_id = f"param-{workout_id}-{exercise_id}-{param}"
+    return f"""
+            <!-- The editable form (returned by server) -->
+            <form id="{component_id}" hx-put="/workouts/update-workout-param-value/{workout_id}/{exercise_id}/{param}?purpose_of_parameter_edit={purpose_of_parameter_edit}" 
+                hx-target="#{component_id}" 
+                hx-swap="outerHTML" 
+                hx-trigger="focusout">
+                <input type="hidden" name="orig_param_value" value="{orig_param_value}">
+                <input type="hidden" name="active_workout" value="{active_workout}">
+                <input type="hidden" name="unit_param_value" value="{unit_param_value}">                
+                <input type="{input_type}" 
+                    name="new-param-value" 
+                    value="{orig_param_value}" 
+                    style="width: 6ch; max-width: 8ch;"
+                    onfocus="this.select()"
+                    onkeydown="if (event.key === 'Enter') {{ event.preventDefault(); this.blur(); }}"
+                    autofocus>
+            </form>
+            """
+
+def get_initial_editable_text2(workout_id, exercise_id, param, param_value, active_workout="false", purpose_of_parameter_edit=None):
+    # This function would typically fetch the current text from a database based on the item_id
+    component_id = f"param-{workout_id}-{exercise_id}-{param}"
+    unit_param_component_id = f"param-{workout_id}-{exercise_id}-{param}u"
+    is_a_unit_param = True if len(param) == 2 and param[1] == 'u' else False
+
+    if is_a_unit_param:
+        unit_param_htmx = 'name="unit-param-value"'
+    else:
+        unit_param_htmx = f"""
+        hx-vals='js:{{ "unit-param-value": document.getElementById("{unit_param_component_id}")?.textContent.trim() || "" }}' 
+        name="{param}"
+        """
+
+    new_html =  f"""
+                <div id="{component_id}"
+                  class="d-flex align-items-baseline"
+                  hx-get="/workouts/get-editor-for-parameter/{workout_id}/{exercise_id}/{param}?value={param_value}&active_workout={active_workout}&purpose_of_parameter_edit={purpose_of_parameter_edit}"
+                  {unit_param_htmx}
+                  hx-target="#{component_id}" 
+                  hx-trigger="click"
+                  hx-swap="outerHTML">
+                  { param_value }
+                  <i class="bi bi-pencil-square text-muted ms-1" style="font-size: 0.75rem; margin-left:0px;" title="Click to edit"
+                    aria-hidden="true"></i>
+                </div>           
+           """
+
+    # old_html = f"""
+    #   <div id="{component_id}"
+    #    class="d-flex align-items-baseline"
+	#    hx-get="/workouts/get-editor-for-parameter/{workout_id}/{exercise_id}/{param}?value={param_value}"
+	#    hx-target="#{component_id}"
+	#    hx-trigger="click"
+	#    hx-swap="outerHTML">
+	#    { param_value }
+    #    <i class="bi bi-pencil-square text-muted ms-1" style="font-size: 0.75rem; margin-left:0px;" title="Click to edit"
+    #           aria-hidden="true"></i>
+	#   </div>
+    # """   
+
+    return new_html
+

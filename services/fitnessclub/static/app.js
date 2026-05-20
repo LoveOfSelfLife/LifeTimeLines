@@ -206,7 +206,7 @@ function toggleWorkoutDetails(id, key, programId) {
     });
   // And fire an HTMX request to load this one
   htmx.ajax('GET',
-    '/program/viewer/workout2/' + id + '?keyStrPipeDelimited=' + key + '&program_id=' + programId,
+    '/program/viewer/workout2/' + id + '?workout_key_str=' + key + '&program_id=' + programId,
     { target: '#workout-details-' + id, swap: 'innerHTML' }
   );
 }

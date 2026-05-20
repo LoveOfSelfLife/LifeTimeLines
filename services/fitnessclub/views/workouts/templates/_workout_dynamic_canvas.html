@@ -5,7 +5,7 @@
         data-section="{{ sec.name }}">
       {% for item in sec.exercises %}
         {% set ex = exercises[item.id] %}
-        <li class="list-group-item py-2 d-flex align-items-center"
+        <li class="list-group-item py-2 d-flex flex-column align-items-center"
             data-exercise-id="{{ item.id }}" data-workout-id="{{ workout.id }}">
 
           <!-- Drag handle -->
@@ -23,20 +23,11 @@
                 title="Remove"
               >&times;</button>
             </div>
-
-            <!-- Reps, Sets, Weight all in one row -->
-            <div class="d-flex flex-wrap gap-2 mt-2">
-      #       <span id="params-{{ item.id }}-{{ workout.id }}">
-                <div id="dynamic-canvas-{{ item.id }}"
-                    hx-get="{{ url_for('workouts.dynamic_parameters', workout_id=workout.id, exercise_id=item.id) }}"
-                    hx-trigger="load"
-                    hx-swap="outerHTML">
-                  Loading…
-                </div>
-              </span>
-            </div>  
           </div>
-
+          {% set param_ns = namespace(unit_param_id=None, param_list=[]) %}          
+          {% set timer = namespace(has_timer=False, timer_value=None, timer_units=None) %}
+          {% set param_ns.param_list = exercise_parameters[sec.name] %}
+          {% include "_dynamic_parameter.html" %}
         </li>
       {% endfor %}
     </ul>

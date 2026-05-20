@@ -48,7 +48,8 @@ Workouts in this program:
                           class="btn btn-outline-secondary btn-sm"
                           onclick="toggleWorkoutDetails('{{ workout.id }}', '{{ workout.key_str }}', '{{ program.id }}')"
                           title="Edit Workout Details">
-                    <i class="bi bi-pencil-square"></i>
+                    {# <i class="bi bi-pencil-square"></i> #}
+                    Edit Params
                   </button>
                   
                   <button class="btn btn-outline-primary btn-sm"
@@ -57,7 +58,7 @@ Workouts in this program:
                           hx-target="#entities-container"
                           hx-swap="innerHTML"
                           title="Edit Workout">
-                    Edit
+                    Edit Workout
                   </button>
                   
                   <button class="btn btn-outline-danger btn-sm"

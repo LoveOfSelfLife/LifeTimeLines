@@ -15,7 +15,7 @@ from common.fitness.member_entity import MembershipRegistry, get_member_id_from_
 from common.fitness.member_exercise_history import extract_and_load_exercise_events_from_workout_instance
 from common.fitness.member_program_entity import MemberProgramEntity
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout
-from common.fitness.programs import get_program_workouts
+from common.fitness.programs import get_workouts_from_program
 from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state, update_active_workout_state
 from common.fitness.edit_workout_object import edit_workout_object
 from common.fitness.roles_service import get_accessible_members_for_context, get_member_role
@@ -307,9 +307,7 @@ def program_workouts_canvas(context=None, program_id=None):
         # if it is already populated, we will use that
         if not get_cache_value('current_program_workouts'):
             # get the workouts from the program
-            program_workouts = get_workouts_from_program(p)
-            # workouts_dict = { wk.get('id', None): wk for wk in program_workouts }
-            workouts_list = program_workouts
+            workouts_list = get_workouts_from_program(p)
             for wk in workouts_list:
                 wk['key'] = wk.get_composite_key()
                 wk['key_str'] = '|'.join(wk.get_composite_key())
@@ -334,11 +332,17 @@ def program_workouts_canvas(context=None, program_id=None):
 @bp.route("/viewer/workout2/<workout_id>")
 @auth.login_required
 def view_workout2(context=None, workout_id=None):
+    es = EntityStore()
     member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
+    workout_key_str = request.args.get('workout_key_str', None)
+    workout_composite_key = workout_key_str.split('|')
+    workout = es.get_item_by_composite_key(workout_composite_key)
+    workout_definition_key = workout.get_composite_key()
 
     current_program = get_cache_value('current_program')
+    
     current_program_workouts = get_cache_value('current_program_workouts')
     
     # workout = current_program_workouts.get(workout_id, None)
@@ -371,10 +375,49 @@ def view_workout2(context=None, workout_id=None):
         workout=workout,
         exercises=exercises,
         workout_sections=workout_sections,
+        workout_definition_key=workout_definition_key,
         program_id=program_id,
         member_id=member_id
     )
+@bp.route('/update_param_in_cache/<workout_id>', methods=['POST'])
+@auth.login_required
+def update_param_in_cache(context=None, workout_id=None):
 
+    workouts = get_cache_value('current_program_workouts')
+    # get workout from the list that has id matching workout_id
+    current_workout = next((wk for wk in workouts if wk.get('id', None) == workout_id), None)
+    if not current_workout:
+        abort(404)
+
+    exid  = request.form['exercise_id']
+    param = request.form['param']
+    value = request.form['value'] or None
+    for s in current_workout['workout_sections']:
+        for it in s['exercises']:
+            if it['id']==exid:
+                it['parameters'][param] = value
+
+    set_cache_value('current_program_workouts', workouts)
+
+    # w = get_cache_value('current_workout')
+    # exid  = request.form['exercise_id']
+    # workout_id = request.form['workout_id']
+    # param = request.form['param']
+    # value = request.form['value'] or None
+
+    # for s in w[WORKOUT_SECTIONS]:
+    #     for it in s['exercises']:
+    #         if it['id']==exid:
+    #             it['parameters'][param] = value
+
+    # set_cache_value('current_workout', w)
+
+    return ('', 204)
+
+
+## this route does not appear to be used anymore
+## - but the basic idea is to get the workout from the current_program_workouts cache, update the parameter value, then save back to cache
+##
 @bp.route('/builder/<workout_id>/update_param', methods=['POST'])
 @auth.login_required
 def update_param(context=None, workout_id=None):
@@ -497,14 +540,6 @@ def update_workout_name(context=None, program_id=None, workout_id=None):
     
     response = make_response('', 200)
     return response
-
-def get_workouts_from_program(program):
-    # in the 1.0 data model, the workouts are stored as embedded objects in the program
-    # in the 2.0 data model, the workouts are stored as separate entities in the MemberWorkoutDefinitionTable, where 
-    # those entities have a member_program_id field that references the program they belong to
-    workouts = get_program_workouts(program, program['member_id'])
-    workouts = sorted(workouts, key=lambda x: x.get('order_index', 0))
-    return workouts
 
 @bp.route('/builder/<program_id>/save', methods=['POST'])
 @auth.login_required
@@ -651,6 +686,9 @@ def save_copy_of_program(context=None, program_id=None):
         })
     return response
 
+# this is called when you click the edit button on a workout in the program builder canvas 
+# - it loads the workout into the workout editor and sets a cache value to keep track of which workout we are editing 
+# so that when we save the workout, we can update the correct workout in the current_program_workouts cache
 @bp.route('/builder/<program_id>/edit', methods=['POST'])
 @auth.login_required
 def edit_workout(context=None, program_id=None):
@@ -664,15 +702,6 @@ def edit_workout(context=None, program_id=None):
     set_cache_value('workout_editor_context', { 'editing_program_workout': workout_to_edit,
                                                 'program_id': program_id } )
     return edit_workout_object(workout_to_edit)
-
-    # workout_to_edit['member_program_id'] = None  # unlink from program
-
-    # now remove that workout from the current_program_workouts list
-    # current_program_workouts = [it for it in current_program_workouts if it['id']!=wk_id]
-
-    set_cache_value('current_program_workouts', current_program_workouts)
-
-    return program_workouts_canvas(context, program_id)
 
 
 @bp.route('/builder/<program_id>/remove', methods=['POST'])
@@ -829,6 +858,7 @@ def start_workout(context=None):
         adjustments=adjustments,
         show_finish_button=True,
         time_workout_started=workout_started_ts,
+        active_workout=True,
         rs=rm_spaces
     )
 

@@ -38,7 +38,14 @@
         data-bs-parent="#sectionsAccordion"
       >
         <div class="accordion-body p-0">
-          {% include "_section_view2.html" %}
+          <div class="list-group">
+            <div id="dynamic-params-{{ section.name }}"
+              hx-get="/workouts/dynamic_parameters_for_section_viewer/{{workout.id}}/{{section.name}}?workout_instance_key={{workout_instance_key}}&workout_definition_key={{workout_definition_key}}""
+              hx-vals='{"can_edit": "true", "active_workout": "false", "editing_program_workout": "true", "purpose_of_parameter_edit": "editing_workout_in_program_builder"}'
+              hx-trigger="load" hx-swap="outerHTML">
+              Loading…
+            </div>
+          </div>          
         </div>
       </div>
     </div>
@@ -46,3 +53,5 @@
     {% endfor %}
 </div>
 
+{% include "_section_dynamic_view.css" %}
+{% include "_section_dynamic_view.js" %}
