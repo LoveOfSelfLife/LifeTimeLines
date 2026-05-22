@@ -22,6 +22,16 @@ from common.fitness.roles_service import get_accessible_members_for_context, get
 bp = Blueprint('program', __name__, template_folder='templates')
 from auth import auth
 
+
+def _normalize_form_datetime(value, fallback=None):
+    if not value:
+        return fallback
+
+    try:
+        return datetime.fromisoformat(value).isoformat()
+    except ValueError:
+        return fallback
+
 @bp.route('/')
 @auth.login_required
 def index(context=None):
@@ -958,10 +968,21 @@ def really_finish_workout(context=None, workout_instance_key=None):
     
     # post to the google calendar service that the workout is finished
     scheduled_workout_event_id = request.form.get('scheduled_workout_event_id', None)
+    started_ts = request.form.get('started_ts', None)
+    finished_ts = request.form.get('finished_ts', None)
+    member_feedback = request.form.get('member_feedback', '')
+    next_time_strategy = request.form.get('next_time_strategy', 'custom')
 
     current_workout_state = get_active_workout_state()
     adjustments_for_next_workout = current_workout_state.get('adjustments', {})
     exercise_parameters = current_workout_state.get('exercise_parameters', {})
+
+    original_parameters = {}
+    for section in workout_instance.get('workout_sections', []):
+        for exercise in section.get('exercises', []):
+            exercise_id = exercise.get('id', None)
+            if exercise_id:
+                original_parameters[exercise_id] = exercise.get('parameters', {}).copy()
 
     # here we want to update the parameters of the exercises in the workout instance
     # with the parameters from the current workout state
@@ -971,8 +992,17 @@ def really_finish_workout(context=None, workout_instance_key=None):
             for ex in section.get('exercises', []):
                 if ex.get('id', None) == exercise:
                     ex['parameters'] = params
+
+    if next_time_strategy == 'original':
+        adjustments_for_next_workout = original_parameters
+    elif next_time_strategy == 'performed_today':
+        adjustments_for_next_workout = exercise_parameters
+    else:
+        adjustments_for_next_workout = adjustments_for_next_workout if adjustments_for_next_workout else exercise_parameters
     
-    workout_instance['finished_ts'] = datetime.now().isoformat()
+    workout_instance['started_ts'] = _normalize_form_datetime(started_ts, workout_instance.get('started_ts'))
+    workout_instance['finished_ts'] = _normalize_form_datetime(finished_ts, datetime.now().isoformat())
+    workout_instance['member_feedback'] = member_feedback.strip()
     workout_instance['adjustments_for_next_workout'] = adjustments_for_next_workout
     
     es.upsert_item(workout_instance)

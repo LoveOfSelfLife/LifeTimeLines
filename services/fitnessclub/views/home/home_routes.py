@@ -204,15 +204,68 @@ def completed_workout_details_modal(context=None):
                 template_string='<div class="alert alert-danger">Workout not found</div>',
                 context=context
             )
+
+        from views.workouts.workout_routes import (
+            extract_workout_parameters_for_workout,
+            get_exercises_from_workout,
+            get_workout_sections,
+        )
+
+        def _format_dt(dt_value):
+            if not dt_value:
+                return None
+            if isinstance(dt_value, datetime):
+                return dt_value.strftime('%b %d, %Y %I:%M %p')
+            try:
+                return datetime.fromisoformat(dt_value).strftime('%b %d, %Y %I:%M %p')
+            except (TypeError, ValueError):
+                return dt_value
         
-        # Build modal with workout instance details
-        workout_name = workout_instance.get('workout_name', 'Completed Workout')
-        start_time = workout_instance.get('start_datetime', '')
-        end_time = workout_instance.get('end_datetime', '')
+        # Reuse the workout viewer parameter extraction for a read-only completed workout view.
+        workout_sections = get_workout_sections(workout_instance)
+        workout_exercises = get_exercises_from_workout(workout_instance)
+        exercises = {exercise.get('id'): exercise for exercise in workout_exercises}
+        exercise_parameters_map = extract_workout_parameters_for_workout(
+            workout_instance_key,
+            workout_instance,
+            exercises,
+            {},
+            ''
+        )
+
+        populated_sections = []
+        for section in workout_sections:
+            section_items = []
+            for item in section.get('exercises', []):
+                exercise = exercises.get(item.get('id'))
+                if exercise:
+                    section_items.append({
+                        'exercise': exercise,
+                        'param_list': exercise_parameters_map.get(section.get('name'), {}).get(exercise.get('id'), {}).get('param_list', [])
+                    })
+            if section_items:
+                populated_sections.append({
+                    'name': section.get('name'),
+                    'items': section_items
+                })
+
+        workout_name = workout_instance.get('workout_name') or workout_instance.get('name') or 'Completed Workout'
+        completed_time = _format_dt(
+            workout_instance.get('completed_datetime') or workout_instance.get('finished_ts')
+        )
+        start_time = _format_dt(
+            workout_instance.get('start_datetime') or workout_instance.get('started_ts')
+        )
+        end_time = _format_dt(
+            workout_instance.get('end_datetime') or workout_instance.get('finished_ts')
+        )
         
         return hx_render_template(
             template_file='home/modals/completed_workout_details_modal.html',
+            workout_instance=workout_instance,
             workout_name=workout_name,
+            workout_sections=populated_sections,
+            completed_time=completed_time,
             start_time=start_time,
             end_time=end_time,
             context=context
@@ -383,49 +436,3 @@ def update_peek_button(context=None):
         template_string=button_html,
         context=context
     )
-
-@bp.route("/repeat-workout", methods=['POST'])
-@auth.login_required
-def repeat_workout(context=None):
-    """Process repeating a completed workout by scheduling it again"""
-    try:
-        workout_instance_key = request.form.get('workout_instance_key')
-        schedule_date = request.form.get('schedule_date')
-        schedule_time = request.form.get('schedule_time')
-        notes = request.form.get('notes', '')
-        
-        if not all([workout_instance_key, schedule_date, schedule_time]):
-            return hx_render_template(
-                template_string='<div class="alert alert-danger">Missing required fields</div>',
-                context=context
-            )
-        
-        # TODO: Implement the actual repeat workout logic
-        # This would involve:
-        # 1. Getting the original workout details
-        # 2. Creating a new scheduled workout entry
-        # 3. Adding it to the member's schedule
-        
-        # For now, return success message
-        member_id = get_member_id_from_user_context(context)
-        
-        # Refresh the scheduled workouts data
-        home_service = HomePageDataService()
-        scheduled_data = home_service.get_scheduled_workouts_data(member_id, datetime.now(timezone.utc))
-        
-        # Return updated scheduled workouts partial with success message
-        return hx_render_template(
-            template_file='home/scheduled_workouts_partial.html',
-            data=scheduled_data,
-            success_message=f"Workout scheduled for {schedule_date} at {schedule_time}",
-            context=context
-        )
-        
-    except Exception as e:
-        print(f"Error processing repeat workout: {e}")
-        return hx_render_template(
-            template_string='<div class="alert alert-danger">Error scheduling repeat workout</div>',
-            context=context
-        )
-
-# Additional routes for analytics reports, data export, etc. can be added here

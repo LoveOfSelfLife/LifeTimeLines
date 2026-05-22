@@ -375,7 +375,7 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
         if workout_instance_key:
             workout_instance = es.get_item_by_composite_key(workout_instance_key)
 
-        if workout_definition_key:
+        elif workout_definition_key:
             workout_definition = es.get_item_by_composite_key(workout_definition_key)
 
         wrkout_exercises = get_exercises_from_workout(workout_instance if workout_instance else workout_definition)
@@ -383,6 +383,8 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
 
         current_workout_state = get_active_workout_state()
         current_parameters = current_workout_state.get('exercise_parameters', {}) if current_workout_state else {}
+        if purpose_of_parameter_edit == 'finishing_workout_next_time' and current_workout_state:
+            current_parameters = current_workout_state.get('adjustments') or current_parameters
         update_url = url_for('workouts.update_param_in_session')
 
         section = get_workout_section(workout_instance if workout_instance else workout_definition, section_name)
@@ -825,7 +827,22 @@ def save_data(workout_id, exercise_id, param, context=None):
     else:
         print(f"Active workout flag is not set. This means the user is editing the workout in the workout builder and we should update the workout in the cache with the new parameter value so that it is reflected in the workout builder view.")
 
-        if purpose_of_parameter_edit == "editing_workout_in_program_builder":
+        if purpose_of_parameter_edit == "finishing_workout_next_time":
+            current_workout_state = get_active_workout_state()
+            if not current_workout_state:
+                print("No active workout state found in session while saving next-time workout adjustments. Aborting update.")
+                return ('', 400)
+
+            adjustments = current_workout_state.get('adjustments', {})
+            exercise = adjustments.get(exercise_id)
+            if exercise is None:
+                exercise = current_workout_state.get('exercise_parameters', {}).get(exercise_id, {}).copy()
+            exercise[param] = new_value
+            adjustments[exercise_id] = exercise
+            current_workout_state['adjustments'] = adjustments
+            update_active_workout_state(current_workout_state)
+
+        elif purpose_of_parameter_edit == "editing_workout_in_program_builder":
             print(f"Purpose of parameter edit is editing_workout_in_program_builder. This means we are editing a workout that is part of a program in the program builder, so we need to update the workout object that is stored in current_program_workouts in the cache with the new parameter value.")
             current_program_workouts = get_cache_value('current_program_workouts')
             if not current_program_workouts:

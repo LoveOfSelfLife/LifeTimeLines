@@ -42,7 +42,8 @@
                   {% else %}
                     name="unit-param-value"
                   {% endif %}
-                  hx-target="#param-{{param.wkout_id}}-{{param.ex_id}}-{{param.param}}" hx-trigger="click"
+                  hx-target="#param-{{param.wkout_id}}-{{param.ex_id}}-{{param.param}}" 
+                  hx-trigger="click"
                   hx-swap="outerHTML">
                   {# {{ param.value }} #}
                   {{ '____' if param.value == '' or (param.value | trim) == 'None' else param.value }}

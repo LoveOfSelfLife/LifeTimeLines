@@ -250,7 +250,7 @@ class HomePageDataService:
             
             completed_instances = self.entity_store.list_items(MemberWorkoutInstanceEntity({"member_id": member_id}))
             completed_instances = sorted(completed_instances, key=lambda x: x.get('finished_ts', ''), reverse=True)
-            max_completed_to_show = 5
+            max_completed_to_show = 15
             completed_workouts = []
             for instance in completed_instances:
                 if len(completed_workouts) >= max_completed_to_show:

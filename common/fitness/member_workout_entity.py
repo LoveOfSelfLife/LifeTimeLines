@@ -48,6 +48,7 @@ class MemberWorkoutInstanceEntity (EntityObject):
             "workout_sections", 
             "started_ts", 
             "finished_ts", 
+            "member_feedback",
             "scheduled_workout_event_id", 
             "adjustments_for_next_workout",
             "member_workout_def_id",          # reference to the member workout definition from which this instance was created

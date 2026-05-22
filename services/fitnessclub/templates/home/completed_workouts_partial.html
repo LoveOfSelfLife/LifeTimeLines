@@ -2,7 +2,7 @@
 {% if data.workouts %}
   <div class="completed-workouts-list">
     <div class="table-responsive">
-      <table class="table table-hover table-dark">
+      <table class="table table-hover table-sm completed-workouts-table">
         <thead>
           <tr>
             <th><i class="bi bi-calendar3 me-2"></i>Date</th>
@@ -26,7 +26,6 @@
                       {% set completed_dt = completed_dt|datetime %}
                     {% endif %}
                     <strong>{{ completed_dt.strftime('%b %d') }}</strong>
-                    <br>
                     <small class="text-muted">{{ completed_dt.strftime('%I:%M %p') }}</small>
                   {% else %}
                     <span class="text-muted">Unknown</span>
@@ -49,7 +48,7 @@
       </table>
     </div>
 
-    {# View all workouts link #}
+    {# View all workouts link 
     <div class="text-center mt-3">
       <button class="btn btn-light"
               hx-get="{{ url_for('home.completed_workouts_partial') }}"
@@ -58,7 +57,7 @@
         <i class="bi bi-list-ul me-1"></i>View All Completed Workouts
       </button>
     </div>
-  </div>
+  </div>#}
 {% else %}
   {# No completed workouts #}
   <div class="empty-state text-center py-4">
@@ -76,34 +75,68 @@
 
 <style>
 /* Completed Workouts Specific Styles */
+.completed-workouts-list .table-responsive {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
 .completed-workouts-list .table {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 0;
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .completed-workouts-list .table th {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.14);
   color: #fff;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  padding: 0.65rem 0.85rem;
 }
 
 .completed-workouts-list .table td {
+  background: transparent;
   border-color: rgba(255, 255, 255, 0.1);
   vertical-align: middle;
+  color: rgba(255, 255, 255, 0.95);
+  padding: 0.4rem 0.85rem;
+}
+
+.completed-workouts-list .table tbody tr {
+  transition: background-color 0.2s ease;
 }
 
 .clickable-row:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
+  background: rgba(255, 255, 255, 0.1) !important;
 }
 
 .workout-date strong {
   color: #fff;
+  display: inline;
+  line-height: 1.1;
+}
+
+.workout-date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.workout-date small,
+.workout-name-cell small {
+  color: rgba(255, 255, 255, 0.65) !important;
+  line-height: 1.1;
 }
 
 .workout-name-cell strong {
   color: #fff;
+  display: block;
+  line-height: 1.2;
 }
 
 .duration-info .badge {

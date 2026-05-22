@@ -30,14 +30,17 @@ def get_editor_type_for_value_parameter(value_parameter, unit_parameter_value, e
             return { "type": "numeric" }
         elif unit_parameter_value == "bands":
             return { "type": "choice", "options": ["yellow", "green", "black"] }
-    if value_parameter == 'T':
+    elif value_parameter == 'T':
         if unit_parameter_value in ["sec", "min", "hour"]:
             return { "type": "numeric" }
-    if value_parameter == 'D':
+    elif value_parameter == 'D':
         if unit_parameter_value in ["meters", "kilometers", "feet", "yards", "miles"]:
             return { "type": "numeric" }    
-    if value_parameter == 'P':
+    elif value_parameter == 'P':
         if unit_parameter_value in ["rate", "tempo"]:
             return { "type": "text" }
-
+    elif value_parameter == 'S':
+        return { "type": "numeric" }
+    elif value_parameter == 'R':
+        return { "type": "numeric" }
     return { "type": "text" }

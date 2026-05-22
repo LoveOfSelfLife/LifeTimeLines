@@ -1,34 +1,138 @@
 
 <div class="container py-3">
 
-<h2 class="mb-4 text-center">Finishing Workout: {{ workout.name }}</h2>
+  <h2 class="mb-4 text-center">Finishing Workout: {{ workout.name }}</h2>
 
-{# this template needs to be populated with the details of the workout that was just completed 
-   it should display the start-date & time as well as the finish date & time, and it should allow
-   the member to change those 
-   it should also present a text area for the member to add notes or provide comments/feedback about the workout 
-   if there were any changes to the workout parameters for the workout, those should be presented for the member 
-   to review, and if they want to make any changes to those they can
-   also there can be a way here for the user to adjust the parameters for the next time they start the workout
-   #}
-    This is the finishing workout page.  Here we can show a summary of the workout that was just completed, and allow the member to make any adjustments or add any notes about the workout before they officially finish it.
+  <div class="row g-4">
+    <div class="col-12 col-xl-5">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body">
+          <h3 class="h5 mb-3">Workout Summary</h3>
+          <p class="text-muted mb-4">Review the times for this workout and add any notes you want saved with the completed session.</p>
 
-  <!-- Optional “Finish Workout” button -->
-  <form hx-post="{{ really_finish_workout_url }}"
-        hx-target="#content"
-        hx-swap="innerHTML">
+          <form hx-post="{{ really_finish_workout_url }}"
+                hx-target="#content"
+                hx-swap="innerHTML">
 
-    <input type="hidden" name="workout_id" value="{{ workout.id }}">
-    <input type="hidden" name="program_id" value="{{ program.id }}">
-    <input type="hidden" name="scheduled_workout_event_id" value="{{ scheduled_workout_event_id }}">
-    <input type="hidden" name="workout_instance_key" value="{{ workout_instance_key }}">
-    <input type="hidden" name="program_key" value="{{ program_key }}">
-    <button type="submit" class="btn btn-success mt-3">Finish Workout!!!</button>
+            <input type="hidden" name="workout_id" value="{{ workout.id }}">
+            <input type="hidden" name="program_id" value="{{ program.id if program else '' }}">
+            <input type="hidden" name="scheduled_workout_event_id" value="{{ scheduled_workout_event_id }}">
+            <input type="hidden" name="workout_instance_key" value="{{ workout_instance_key }}">
+            <input type="hidden" name="program_key" value="{{ program_key }}">
 
-    <button type="button" class="btn btn-danger mt-3"
-            hx-post="{{ continue_workout_url }}"
-            hx-target="#content"
-            hx-swap="innerHTML">Go back to continue your Workout</button>
-  </form>
+            <div class="mb-3">
+              <label for="started-ts" class="form-label">Workout Start</label>
+              <input id="started-ts"
+                     name="started_ts"
+                     type="datetime-local"
+                     class="form-control"
+                     value="{{ workout_started_ts_local }}">
+            </div>
+
+            <div class="mb-3">
+              <label for="finished-ts" class="form-label">Workout End</label>
+              <input id="finished-ts"
+                     name="finished_ts"
+                     type="datetime-local"
+                     class="form-control"
+                     value="{{ workout_finished_ts_local }}">
+            </div>
+
+            <div class="mb-3">
+              <label for="member-feedback" class="form-label">Workout Feedback</label>
+              <textarea id="member-feedback"
+                        name="member_feedback"
+                        class="form-control"
+                        rows="6"
+                        placeholder="How did the workout feel? Any notes for your records?">{{ workout_feedback }}</textarea>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label d-block mb-2">Next Time Workout Setup</label>
+
+              <div class="form-check mb-2">
+                <input class="form-check-input"
+                       type="radio"
+                       name="next_time_strategy"
+                       id="next-time-original"
+                       value="original"
+                       data-next-time-strategy="original">
+                <label class="form-check-label" for="next-time-original">
+                  Use the original workout from before today's changes.
+                </label>
+              </div>
+
+              <div class="form-check mb-2">
+                <input class="form-check-input"
+                       type="radio"
+                       name="next_time_strategy"
+                       id="next-time-performed"
+                       value="performed_today"
+                       data-next-time-strategy="performed_today">
+                <label class="form-check-label" for="next-time-performed">
+                  Use exactly what I did today, including in-workout parameter changes.
+                </label>
+              </div>
+
+              <div class="form-check">
+                <input class="form-check-input"
+                       type="radio"
+                       name="next_time_strategy"
+                       id="next-time-custom"
+                       value="custom"
+                       data-next-time-strategy="custom"
+                       checked>
+                <label class="form-check-label" for="next-time-custom">
+                  Let me adjust parameters for next time.
+                </label>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 pt-2">
+              <button type="submit" class="btn btn-success">Finish Workout</button>
+
+              <button type="button"
+                      class="btn btn-outline-danger"
+                      hx-post="{{ continue_workout_url }}"
+                      hx-target="#content"
+                      hx-swap="innerHTML">Go back to continue your Workout</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div id="next-time-adjustments-editor-panel" class="col-12 col-xl-7">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body">
+          <h3 class="h5 mb-3">Adjust Parameters For Next Time</h3>
+          <p class="text-muted mb-3">These edits will be saved as next-time adjustments and will not change the workout you just completed.</p>
+
+          {% include "workout_view.html" %}
+        </div>
+      </div>
+    </div>
+  </div>
 
 </div>
+
+<script>
+  (function () {
+    const panel = document.getElementById('next-time-adjustments-editor-panel');
+    if (!panel) {
+      return;
+    }
+
+    function updatePanelVisibility() {
+      const selected = document.querySelector('input[name="next_time_strategy"]:checked');
+      const showPanel = selected && selected.value === 'custom';
+      panel.classList.toggle('d-none', !showPanel);
+    }
+
+    document.querySelectorAll('input[name="next_time_strategy"]').forEach((radio) => {
+      radio.addEventListener('change', updatePanelVisibility);
+    });
+
+    updatePanelVisibility();
+  })();
+</script>

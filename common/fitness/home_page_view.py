@@ -10,6 +10,16 @@ from flask import render_template, render_template_string, request, redirect, se
 from common.fitness.hx_common import rm_spaces
 from common.fitness.get_calendar_service import get_calendar_service
 
+
+def to_datetime_local_value(timestamp):
+    if not timestamp:
+        return ""
+
+    try:
+        return datetime.fromisoformat(str(timestamp).replace('Z', '+00:00')).strftime('%Y-%m-%dT%H:%M')
+    except ValueError:
+        return ""
+
 def format_seconds(N: int) -> str:
     if N < 0:
         return "about now"
@@ -128,11 +138,20 @@ def render_finishing_workout_page(member, current_state):
         program_key=program_composite_key,
         workout_instance_key=workout_instance_key,
         scheduled_workout_event_id=scheduled_workout_event_id,
+        workout_started_ts=workout_started_ts,
+        workout_started_ts_local=to_datetime_local_value(workout_started_ts or workout_instance.get('started_ts')),
+        workout_finished_ts_local=to_datetime_local_value(workout_instance.get('finished_ts')),
+        workout_feedback=workout_instance.get('member_feedback', ''),
         really_finish_workout_url=url_for('program.really_finish_workout', 
                                 workout_instance_key=workout_instance_key),
         continue_workout_url=url_for('program.continue_workout',
                                 workout_instance_key=workout_instance_key),
-        adjustments=current_state.get('adjustments', {})
+        adjustments=current_state.get('adjustments', {}),
+        show_finish_button=False,
+        active_workout=False,
+        purpose_of_parameter_edit='finishing_workout_next_time',
+        workout_definition_key=None,
+        rs=rm_spaces
     )
 
 # def generate_current_home_page_view(member):
