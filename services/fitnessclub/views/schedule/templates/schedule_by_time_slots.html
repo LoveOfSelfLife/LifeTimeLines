@@ -6,11 +6,9 @@
     {# Top-level Add Workout button #}
     <div style="text-align: center; margin-bottom: 1.5rem;">
         <button class="btn btn-primary"
-            hx-get="/schedule/create_event" 
+            hx-get="/schedule/create_event?modal=1" 
             hx-target="#modals-here"
-            hx-swap="innerHTML"
-            data-bs-toggle="modal"
-            data-bs-target="#modals-here">
+            hx-swap="innerHTML">
             <i class="bi bi-plus-lg"></i> Schedule Workout
         </button>
     </div>
@@ -47,11 +45,9 @@
             <div class="day-header">
                 <h5 class="day-title">{{ date_display.dayOfWeek }} {{ date_display.display_date }}</h5>
                 <button class="btn btn-sm btn-outline-primary add-workout-btn"
-                    hx-get="/schedule/create_event?date={{ date_key }}" 
+                    hx-get="/schedule/create_event?date={{ date_key }}&modal=1" 
                     hx-target="#modals-here"
-                    hx-swap="innerHTML"
-                    data-bs-toggle="modal"
-                    data-bs-target="#modals-here">
+                    hx-swap="innerHTML">
                     <i class="bi bi-plus-lg"></i> Schedule Workout
                 </button>
             </div>
@@ -87,11 +83,9 @@
                                 <span class="duration-label">1 hour workout</span>
                             </div>
                             <button class="btn btn-sm btn-outline-light"
-                                hx-get="/schedule/create_event?date={{ date_key }}&time={{ time_slot }}" 
+                                hx-get="/schedule/create_event?date={{ date_key }}&time={{ time_slot }}&modal=1" 
                                 hx-target="#modals-here"
                                 hx-swap="innerHTML"
-                                data-bs-toggle="modal"
-                                data-bs-target="#modals-here"
                                 title="Join this time slot">
                                 <i class="bi bi-person-plus"></i>
                             </button>
@@ -119,11 +113,9 @@
                                     {% if member_event.member_id == member_id %}
                                         <div class="member-controls">
                                             <button class="btn btn-sm btn-outline-secondary edit-btn" 
-                                                hx-get="/schedule/edit_event?id={{ member_event.id }}&date={{ member_event.date }}&time={{ member_event.time }}" 
+                                                hx-get="/schedule/edit_event?id={{ member_event.id }}&date={{ member_event.date }}&time={{ member_event.time }}&modal=1" 
                                                 hx-target="#modals-here"
                                                 hx-swap="innerHTML"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#modals-here"
                                                 title="Edit workout time/date">
                                                 <i class="bi bi-pencil-square"></i>
                                             </button>
@@ -154,11 +146,9 @@
                 <h4 class="text-muted">No workouts scheduled</h4>
                 <p class="text-muted">Schedule your first workout to get started!</p>
                 <button class="btn btn-primary"
-                    hx-get="/schedule/create_event" 
+                    hx-get="/schedule/create_event?modal=1" 
                     hx-target="#modals-here"
-                    hx-swap="innerHTML"
-                    data-bs-toggle="modal"
-                    data-bs-target="#modals-here">
+                    hx-swap="innerHTML">
                     <i class="bi bi-plus-lg"></i> Schedule Workout
                 </button>
             </div>

@@ -1,8 +1,9 @@
-<div id="dialog" class="modal-dialog modal-dialog-centered">
+<div class="modal fade" id="create-event-modal" tabindex="-1" aria-labelledby="create-event-modal-label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
     <form hx-post="{{ request.path }}"
         class="modal-content">
         <div class="modal-header text-black">
-            <h5 class="modal-title">{{ 'Modify your appointment' if event and event['id'] else 'Make appointment at gym' }}</h5>
+            <h5 class="modal-title" id="create-event-modal-label">{{ 'Modify your appointment' if event and event['id'] else 'Make appointment at gym' }}</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
 
@@ -38,4 +39,12 @@
             <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">Save</button>
         </div>
     </form>
+  </div>
 </div>
+
+<script>
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    const modal = new bootstrap.Modal(document.getElementById('create-event-modal'));
+    modal.show();
+  }
+</script>

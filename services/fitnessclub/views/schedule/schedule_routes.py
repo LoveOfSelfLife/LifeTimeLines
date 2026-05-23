@@ -153,7 +153,7 @@ def edit_event(context):
             })
             return response
 
-    return render_template('event_editor.html', event=event, update_url=f"/schedule/edit_event")
+    return hx_render_template('event_editor.html', event=event, update_url=f"/schedule/edit_event")
 
 @bp.route('/event_status/<event_id>/<status>', methods=['POST'])
 @auth.login_required

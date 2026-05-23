@@ -62,7 +62,8 @@
                         <span class="badge bg-light text-dark ms-auto">Next 7 Days</span>
                     </div>
                     <div id="scheduled-workouts-content" hx-get="{{ url_for('home.scheduled_workouts_partial') }}"
-                        hx-trigger="load" hx-swap="innerHTML">
+                        hx-trigger="load, eventListChanged from:body" 
+                        hx-swap="innerHTML">
                         {# Loading placeholder #}
                         <div class="text-center py-4">
                             <div class="spinner-border text-light" role="status">
@@ -120,7 +121,7 @@
     </div>
 </div>
 
-{# Modal container for workout details, etc. #}
+{# Modal container for modals injected from partials (e.g. reschedule, create event) #}
 <div id="modals-here"></div>
 
 <style>

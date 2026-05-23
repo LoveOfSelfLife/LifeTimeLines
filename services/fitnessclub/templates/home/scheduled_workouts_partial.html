@@ -144,6 +144,13 @@
             hx-swap="innerHTML">
             <i class="bi bi-calendar-plus me-1"></i>Schedule Workouts
         </button>
+
+        <button class="btn btn-primary"
+            hx-get="/schedule/create_event?modal=1" 
+            hx-target="#modals-here"
+            hx-swap="innerHTML">
+            <i class="bi bi-plus-lg"></i> Schedule Workout
+        </button>
     </div>
     {% endif %}
     {% else %}
