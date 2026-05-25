@@ -112,7 +112,7 @@ class HomePageDataService:
             team_member_filter_func = lambda m_id: any(tm_id == m_id for tm_id in all_members_of_team)
             # Get scheduled events from calendar for next 7 days
             cal = get_calendar_service()
-            start_date = current_datetime.strftime("%Y-%m-%d")
+            start_date = (current_datetime - timedelta(days=5)).strftime("%Y-%m-%d")
             end_date = (current_datetime + timedelta(days=7)).strftime("%Y-%m-%d")
             scheduled_calendar_events, sorted_events = cal.get_dates_and_events_stream(date_min=start_date, date_max=end_date, filter_by_member_id_func=team_member_filter_func)
             
@@ -165,13 +165,6 @@ class HomePageDataService:
                     # this event is for the current member
                     member_workouts_scheduled_for_date = workouts_on_date.get('members_scheduled', [])
 
-                    if is_my_first_incomplete_workout_event:
-                        next_workout = get_next_workout_in_program(current_program, member_id)
-                        workout_key = next_workout.get('next_workout_key')
-                        workout_definition = self.entity_store.get_item_by_composite_key(workout_key)
-                        is_my_first_incomplete_workout_event = False
-                    else:
-                        workout_definition = None
                     my_event = list(filter(lambda m: m['member_id'] == member_id, member_workouts_scheduled_for_date))
                     if not my_event:
                         continue
@@ -192,6 +185,14 @@ class HomePageDataService:
                     # Determine workout status
                     status = self._get_workout_status(event_datetime, current_datetime)
                     
+                    if is_my_first_incomplete_workout_event and can_start and status != 'missed':
+                        next_workout = get_next_workout_in_program(current_program, member_id)
+                        workout_key = next_workout.get('next_workout_key')
+                        workout_definition = self.entity_store.get_item_by_composite_key(workout_key)
+                        is_my_first_incomplete_workout_event = False
+                    else:
+                        workout_definition = None
+
                     # # Get team members scheduled around same time (placeholder for API call)
                     team_members = [m for m in member_workouts_scheduled_for_date if m['member_id'] != member_id]
                     # we want to display the member's name and the time they are scheduled for in the team members list, so we will create a new list of strings that combines the member's name and the time they are scheduled for
@@ -379,7 +380,7 @@ class HomePageDataService:
     
     def _get_workout_status(self, workout_datetime: datetime, current_datetime: datetime) -> str:
         """Determine workout status: upcoming, available, or missed"""
-        time_diff = (workout_datetime - current_datetime).total_seconds()
+        time_diff = abs((workout_datetime - current_datetime).total_seconds())
         same_day = workout_datetime.date() == current_datetime.date()
         
         if same_day or time_diff <= 6 * 3600:

@@ -250,9 +250,7 @@ def completed_workout_details_modal(context=None):
                 })
 
         workout_name = workout_instance.get('workout_name') or workout_instance.get('name') or 'Completed Workout'
-        completed_time = _format_dt(
-            workout_instance.get('completed_datetime') or workout_instance.get('finished_ts')
-        )
+
         start_time = _format_dt(
             workout_instance.get('start_datetime') or workout_instance.get('started_ts')
         )
@@ -265,7 +263,6 @@ def completed_workout_details_modal(context=None):
             workout_instance=workout_instance,
             workout_name=workout_name,
             workout_sections=populated_sections,
-            completed_time=completed_time,
             start_time=start_time,
             end_time=end_time,
             context=context

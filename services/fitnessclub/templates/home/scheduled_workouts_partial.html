@@ -73,7 +73,7 @@
                         class="btn btn-success btn-sm rounded-0 rounded-start quick-start-button flex-shrink-0"
                         onclick="document.getElementById('start-form-{{ workout.event_id }}').requestSubmit();"
                         title="Start selected workout">
-                        <i class="bi bi-play-fill"></i>
+                        Start <i class="bi bi-play-fill"></i>
                     </button>
                     <form id="start-form-{{ workout.event_id }}" class="d-flex flex-shrink-1"
                         style="margin: 0; min-width: 0;" hx-post="{{ url_for('program.start_workout') }}"

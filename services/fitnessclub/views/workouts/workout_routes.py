@@ -1358,7 +1358,13 @@ def view_workout(context=None):
     # new: only use the session value if it exists
     last = session.get(f"last_section_{workout_key_str}")  # no fallback
     workout_sections = workout['workout_sections']
-
+    # if last section is not set, then we set the last section to be the first section of the workout that has more than one exercise in it
+    if not last:
+        for section in workout_sections:
+            if len(section.get('exercises', [])) > 0:
+                last = section.get('name', None)
+                break
+        
     return render_template(
         "popup_workout_view.html",
         workout=workout,

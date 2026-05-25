@@ -11,12 +11,6 @@
       <div class="modal-body">
         <div class="workout-summary mb-4">
           <div class="row g-3">
-            {% if completed_time %}
-            <div class="col-md-4">
-              <strong>Completed</strong><br>
-              <span class="text-light opacity-75">{{ completed_time }}</span>
-            </div>
-            {% endif %}
             <div class="col-md-4">
               <strong>Started</strong><br>
               <span class="text-light opacity-75">{{ start_time or 'Unknown' }}</span>
