@@ -2,6 +2,7 @@
 <div class="container py-3">
 
 <!-- <h2 class="mb-4 text-center">{{ workout.name }}</h2> -->
+{% set counter = namespace(first_time=True) %}
 
 <div class="accordion" id="sectionsAccordion">
   {% for section in workout_sections %}
@@ -13,11 +14,11 @@
       <h2 class="accordion-header" id="hdr-{{ section.name }}">
 
       <button
-        class="accordion-button collapsed"
+        class="accordion-button {% if counter.first_time %}  {% else %} collapsed {% endif %}"
         type="button"
         data-bs-toggle="collapse"
         data-bs-target="#collapse-{{ section.name }}"
-        aria-expanded="false"
+        aria-expanded="{{ 'true' if counter.first_time else 'false' }}"
         aria-controls="collapse-{{ section.name }}"
       >
         <span class="accordion-header-icon">
@@ -34,7 +35,7 @@
       </h2>
       <div
         id="collapse-{{ section.name }}"
-        class="accordion-collapse collapse"
+        class="accordion-collapse collapse {% if counter.first_time %} show {% endif %}"
         data-bs-parent="#sectionsAccordion"
       >
         <div class="accordion-body p-0">
@@ -49,6 +50,7 @@
         </div>
       </div>
     </div>
+    {% set counter.first_time = False %}
     {% endif %}
     {% endfor %}
 </div>

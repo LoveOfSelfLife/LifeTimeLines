@@ -414,8 +414,17 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
         #
         # 2) we are in the program builder and we are editing the parameters of a workout that is part of a program, in which case the updates to the parameters
         #    should update the workout object that is stored im current_program_workouts in the cache. (me thinks...)
+        if purpose_of_parameter_edit == 'editing_workout_in_program_builder':
 
-        workout = get_cache_value('current_workout')
+            current_program_workouts = get_cache_value('current_program_workouts')
+            workout = next((wk for wk in current_program_workouts if wk.get('id', None) == workout_id), None)
+            
+            if not workout:
+                abort(404)
+                
+        else:
+            workout = get_cache_value('current_workout')
+            
         exercises = { ex['id']: ex for ex in get_exercises_from_workout(workout) }
         update_url = url_for('workouts.update_param_in_cache')
         section = get_workout_section(workout, section_name)

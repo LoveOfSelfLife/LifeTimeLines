@@ -46,7 +46,7 @@ class ExerciseEntity (EntityObject):
     def exercises_uses_external_force(self):
         # this function is used to determine if the exercise uses an external force, which is the case if the exercise has a non-bodyweight equipment
         equipment = self.get("equipment", None)
-        if equipment and equipment.startswith("body"):
+        if not equipment or equipment.lower().startswith("body"):
             return False
         return True
     

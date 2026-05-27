@@ -78,11 +78,16 @@ def programs_listing2(context=None):
 
         for member in accessible_members:
             print(f"Accessible member: {member.get('id')} - {member.get('name')}")
-            member_entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member.get('id'), sort_by='end_date', sort_ascending=False, member_id=member.get('id'))
+            member_entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member.get('id'), member_id=member.get('id'))
             entities.extend(member_entities)
     else:
-        entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member_id, sort_by='end_date', sort_ascending=False, member_id=member_id)
+        entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member_id, member_id=member_id)
 
+    sort_by='end_date'
+    sort_ascending=False
+    sort_key = lambda x: str(x.get('entity', {}).get(sort_by, '')).lower()
+
+    entities = sorted(entities, key=sort_key, reverse=not sort_ascending)    
     return program_listing_base(context, entity_name, page, page_size, view, fields_to_display, filter_terms, entities)
 
 def program_listing_base(context, entity_name, page, page_size, view, fields_to_display, filter_terms, entities):
@@ -316,8 +321,14 @@ def program_workouts_canvas(context=None, program_id=None):
     p = get_cache_value('current_program')
     if p:
         # we only want to populate the current_program_workouts cache the first time
-        # if it is already populated, we will use that
-        if not get_cache_value('current_program_workouts'):
+        # we check the current_program_workouts cache for this.  It can be empty for a few reasons
+        # 1) we have not populated it yet - this is the first time we are loading the builder view for this program, and
+        # 2) we have populated it, but there are no workouts for this program yet - this could be the case if we just created a new program and have not added any workouts to it yet
+        # 3) it was previously populated, but we deleted all the workouts using the program builder.  In this case, the workouts that we removed will be in the workouts_to_remove cache,
+        # and we will check that when we load the workouts for the program.  If there are workouts in the workouts_to_remove cache, we know that the current_program_workouts cache is empty because 
+        # we removed all the workouts from it, so we will not populate it with an empty list - instead, we will just leave it as is (empty) until we add new workouts to the program.  
+        # 
+        if not get_cache_value('current_program_workouts') and not get_cache_value('workouts_to_remove'):
             # get the workouts from the program
             workouts_list = get_workouts_from_program(p)
             for wk in workouts_list:
@@ -351,8 +362,9 @@ def view_workout2(context=None, workout_id=None):
     workout_key_str = request.args.get('workout_key_str', None)
     workout_composite_key = workout_key_str.split('|')
     workout = es.get_item_by_composite_key(workout_composite_key)
-    workout_definition_key = workout.get_composite_key()
+    workout_definition_key = workout.get_composite_key() if workout else None
 
+    
     current_program = get_cache_value('current_program')
     
     current_program_workouts = get_cache_value('current_program_workouts')
@@ -387,7 +399,7 @@ def view_workout2(context=None, workout_id=None):
         workout=workout,
         exercises=exercises,
         workout_sections=workout_sections,
-        workout_definition_key=workout_definition_key,
+        workout_definition_key=workout_definition_key if workout_definition_key else workout.get('id',None),
         program_id=program_id,
         member_id=member_id
     )
@@ -579,7 +591,8 @@ def save_program(context=None, program_id=None):
     workouts_to_remove = get_cache_value('workouts_to_remove') or []
 
     for wtr in workouts_to_remove:
-        es.delete_item(MemberWorkoutDefinitionEntity(wtr))
+        # es.delete_item(MemberWorkoutDefinitionEntity(wtr))
+        es.upsert_item(MemberWorkoutDefinitionEntity(wtr))
     
     es.upsert_items(workouts_in_program)
     es.upsert_item(MemberProgramEntity(current_program))
