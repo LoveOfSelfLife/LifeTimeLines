@@ -112,7 +112,7 @@ class HomePageDataService:
             team_member_filter_func = lambda m_id: any(tm_id == m_id for tm_id in all_members_of_team)
             # Get scheduled events from calendar for next 7 days
             cal = get_calendar_service()
-            start_date = (current_datetime - timedelta(days=5)).strftime("%Y-%m-%d")
+            start_date = (current_datetime - timedelta(days=2)).strftime("%Y-%m-%d")
             end_date = (current_datetime + timedelta(days=7)).strftime("%Y-%m-%d")
             scheduled_calendar_events, sorted_events = cal.get_dates_and_events_stream(date_min=start_date, date_max=end_date, filter_by_member_id_func=team_member_filter_func)
             

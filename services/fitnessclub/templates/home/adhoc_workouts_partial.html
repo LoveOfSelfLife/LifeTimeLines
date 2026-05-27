@@ -3,10 +3,10 @@
     <div class="workout-card">
         <div class="card-body p-1">
             <div id="global-workout-selector" class="workout-selector d-flex">
-                <button type="button" class="btn btn-primary btn-sm rounded-0 rounded-start quick-start-button"
+                <button type="button" class="btn btn-primary btn-sm rounded-0 rounded-start quick-start-button flex-shrink-0"
                     onclick="document.getElementById('global-start-form').requestSubmit();"
                     title="Start selected workout">
-                    <i class="bi bi-play-fill"></i>
+                    Start <i class="bi bi-play-fill"></i>
                 </button>
                 <form id="global-start-form" class="d-flex" style="margin: 0;"
                     hx-post="{{ url_for('program.start_workout') }}" hx-target="#content" hx-swap="innerHTML">
