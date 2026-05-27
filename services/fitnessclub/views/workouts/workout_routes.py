@@ -11,6 +11,8 @@ from common.fitness.hx_common import rm_spaces
 from common.fitness.member_entity import get_member_id_from_user_context, is_member_an_admin
 from common.fitness.member_workout_entity import WorkoutDefinitionEntity, get_exercises_from_workout, map_exercise_to_sections
 from common.fitness.edit_workout_object import edit_workout_object
+from common.fitness.programs import get_last_workout_instance_for_workout
+from common.fitness.programs import get_last_workout_instance_for_workout
 from common.fitness.workout_state import get_active_workout_state, update_active_workout_state
 
 bp = Blueprint('workouts', __name__, template_folder='templates')
@@ -371,6 +373,13 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
         can_edit=request.args.get('can_edit', 'false').lower() == 'true'
         active_workout=request.args.get('active_workout', 'false').lower() == 'true'
 
+        # TODO:  trying to figure out how to display the parameters of a workout when the user is previewing
+        # the workout from the home page dashboard, in which case we want to show the parameters with the adjustments for the next time already applied, 
+        # so that they can see exactly what they will be doing in their next workout.
+        # on the home page dashboard, when the user clicks on the workout preview, we can set a flag in the request args to indicate that 
+        # we want to show the parameters with the adjustments for the next time already applied, and then in this method, if that flag is set, we can get the last workout instance 
+        # for that workout and use the parameters from that workout instance instead of the parameters from the workout definition.
+        # issue is that searching for the last workout instance is expensive, so may want to do it before we get here and somehow pass it down
 
         if workout_instance_key:
             workout_instance = es.get_item_by_composite_key(workout_instance_key)
@@ -1336,15 +1345,30 @@ def view_workout(context=None):
 
     workout_key_str = request.args.get('key', None)
     is_modal = request.args.get('is_modal', 'false').lower() == 'true'
+
     workout_composite_key = eval(workout_key_str) if workout_key_str else None
     es = EntityStore()
-    entity_instance = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
+
     workout = es.get_item_by_composite_key(workout_composite_key)
-    import json
-    # print(json.dumps(workout, indent=4))
+
+    # if we are previewing the workout from the home page dashboard, then we want to 
+    # use the last instance of the workout and then apply any adjustments that are to be
+    # applied to the workout for the next time, so that the user sees exactly what
+    # they will be doing in their next workout.
+    use_last_instance = request.args.get('use_last_instance', 'false').lower() == 'true'
+
+    # if use_last_instance:
+    #     member_id = get_member_id_from_user_context(context)
+    #     if not member_id:
+    #         abort(401)
+    #     last_instance = get_last_workout_instance_for_workout(workout['id'], member_id)
+    #     if last_instance and last_instance.get('next_time_workout_sections', None):
+    #         workout = last_instance
+    #         workout[WORKOUT_SECTIONS] = workout['next_time_workout_sections']
+
     wrkout_exercises = get_exercises_from_workout(workout)
     exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
-    print(json.dumps(exercises, indent=4))
+
 
     if not workout:
         abort(404)
@@ -1357,7 +1381,10 @@ def view_workout(context=None):
     
     # new: only use the session value if it exists
     last = session.get(f"last_section_{workout_key_str}")  # no fallback
-    workout_sections = workout['workout_sections']
+    if use_last_instance:
+        workout_sections = workout['next_time_workout_sections'] if workout.get('next_time_workout_sections', None) else workout[WORKOUT_SECTIONS]
+    else:
+        workout_sections = workout[WORKOUT_SECTIONS]        
     # if last section is not set, then we set the last section to be the first section of the workout that has more than one exercise in it
     if not last:
         for section in workout_sections:

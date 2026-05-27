@@ -1,4 +1,6 @@
 import json
+
+import pytz
 from common.entity_store import EntityStore
 from common.fitness.hx_common import hx_render_template
 from common.fitness.programs import get_members_current_active_program, get_next_workout_in_program
@@ -126,21 +128,27 @@ def render_finishing_workout_page(member, current_state):
             if len(section.get('exercises', [])) > 0:
                 last = section.get('name', None)
                 break
-        
+    started_ts_local = to_datetime_local_value(workout_started_ts or workout_instance.get('started_ts'))
+    local_time_now = datetime.now(timezone.utc).astimezone(pytz.timezone('US/Eastern')).isoformat()
+    fininshed_ts_local = to_datetime_local_value(workout_instance.get('finished_ts') or local_time_now)
+
+    exercise_parameters = current_state.get('exercise_parameters', {})
+    parameters_changed = len(exercise_parameters) > 0
     return hx_render_template(
         "home/finishing_workout.html",
         workout=workout_instance,
         workout_sections=workout_sections,
         exercises=exercises,
-        current_parameters=current_state.get('exercise_parameters', {}),
+        current_parameters=exercise_parameters,
+        parameters_changed=parameters_changed,
         default_section=last,
         program=program_entity,
         program_key=program_composite_key,
         workout_instance_key=workout_instance_key,
         scheduled_workout_event_id=scheduled_workout_event_id,
         workout_started_ts=workout_started_ts,
-        workout_started_ts_local=to_datetime_local_value(workout_started_ts or workout_instance.get('started_ts')),
-        workout_finished_ts_local=to_datetime_local_value(workout_instance.get('finished_ts')),
+        workout_started_ts_local=started_ts_local,
+        workout_finished_ts_local=fininshed_ts_local,
         workout_feedback=workout_instance.get('member_feedback', ''),
         really_finish_workout_url=url_for('program.really_finish_workout', 
                                 workout_instance_key=workout_instance_key),

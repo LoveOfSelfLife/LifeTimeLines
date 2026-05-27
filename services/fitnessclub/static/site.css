@@ -493,8 +493,8 @@ background: #f9f9f9;
 }
 .form-check-label {
     margin-left: 5px;
-    color:black;
-    font-size: x-small;
+    color:white;
+    font-size: medium;
     text-align: left; /* Ensure labels are left-justified */
 }
 .form-check-input {

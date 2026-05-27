@@ -9,14 +9,14 @@ Handles the new three-section home page dashboard:
 All routes use HTMX for dynamic updates and follow the existing authentication patterns.
 """
 
-from flask import Blueprint, make_response, render_template, request, jsonify, session, redirect, url_for
+from flask import Blueprint, abort, make_response, render_template, request, jsonify, session, redirect, url_for
 from auth import auth
 from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import hx_render_template
 from common.fitness.member_entity import get_member_id_from_user_context, get_member_detail_from_user_context, get_user_profile
 from common.fitness.home_data_service import HomePageDataService, format_seconds
 from common.fitness.member_workout_entity import WorkoutDefinitionEntity
-from common.fitness.programs import get_members_current_active_program, get_program_workouts
+from common.fitness.programs import get_last_workout_instance_for_workout, get_members_current_active_program, get_program_workouts
 # from common.fitness.workout_state import set_active_workout_state
 from common.entity_store import EntityStore
 from datetime import datetime, timezone, date
@@ -394,12 +394,22 @@ def update_peek_button(context=None):
     workout_key = request.args.get('workout_key', '')
     button_id = request.args.get('button_id', 'peek-workout-btn')  # default button ID if not provided
     # Determine button state based on selection
+    use_last_instance = False
     if workout_key and workout_key.strip():
+        (wkt_id, mbr_id, entity) = eval(workout_key) if isinstance(workout_key, str) else workout_key
+        member_id = get_member_id_from_user_context(context)
+        if not member_id:
+            abort(401)
+        last_instance = get_last_workout_instance_for_workout(wkt_id, member_id)
+        if last_instance and last_instance.get('next_time_workout_sections', None):
+            workout_key = last_instance.get_composite_key()
+            use_last_instance = True
+        
         # Properly escape the workout_key for JSON and HTML
         hx_vals_json = json.dumps({
-            "entity_table": WorkoutDefinitionEntity.table_name,
-            "key": workout_key,
-            "is_modal": "true"
+            "key": str(workout_key),
+            "is_modal": "true",
+            "use_last_instance": str(use_last_instance).lower()
         })
         # Escape quotes for HTML attribute
         hx_vals_escaped = hx_vals_json.replace('"', '&quot;')

@@ -39,7 +39,7 @@
             </div>
 
             <div class="mb-3">
-              <label for="member-feedback" class="form-label">Workout Feedback</label>
+              <label for="member-feedback" class="form-label">Feedback</label>
               <textarea id="member-feedback"
                         name="member_feedback"
                         class="form-control"
@@ -56,12 +56,18 @@
                        name="next_time_strategy"
                        id="next-time-original"
                        value="original"
-                       data-next-time-strategy="original">
+                       data-next-time-strategy="original"
+                       checked>
                 <label class="form-check-label" for="next-time-original">
-                  Use the original workout from before today's changes.
+                  {% if parameters_changed %}
+                    Next time, will do the original workout without any of the adjustments I made today
+                  {% else %}
+                    Next time, will do this same workout again.
+                  {% endif %}
                 </label>
               </div>
 
+              {% if parameters_changed %}
               <div class="form-check mb-2">
                 <input class="form-check-input"
                        type="radio"
@@ -70,9 +76,10 @@
                        value="performed_today"
                        data-next-time-strategy="performed_today">
                 <label class="form-check-label" for="next-time-performed">
-                  Use exactly what I did today, including in-workout parameter changes.
+                  Next time, will do the workout I did today including the adjustments I made today
                 </label>
               </div>
+              {% endif %}
 
               <div class="form-check">
                 <input class="form-check-input"
@@ -81,18 +88,19 @@
                        id="next-time-custom"
                        value="custom"
                        data-next-time-strategy="custom"
-                       checked>
+                       >
                 <label class="form-check-label" for="next-time-custom">
                   Let me adjust parameters for next time.
                 </label>
               </div>
             </div>
 
+
             <div class="d-flex flex-wrap gap-2 pt-2">
               <button type="submit" class="btn btn-success">Finish Workout</button>
 
               <button type="button"
-                      class="btn btn-outline-danger"
+                      class="btn btn-danger"
                       hx-post="{{ continue_workout_url }}"
                       hx-target="#content"
                       hx-swap="innerHTML">Go back to continue your Workout</button>
@@ -107,11 +115,12 @@
         <div class="card-body">
           <h3 class="h5 mb-3">Adjust Parameters For Next Time</h3>
           <p class="text-muted mb-3">These edits will be saved as next-time adjustments and will not change the workout you just completed.</p>
-
           {% include "workout_view.html" %}
         </div>
       </div>
-    </div>
+    </div> 
+
+    
   </div>
 
 </div>

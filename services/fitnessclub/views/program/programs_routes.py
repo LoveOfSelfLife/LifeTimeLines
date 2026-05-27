@@ -1,9 +1,11 @@
+import copy
 from datetime import datetime
 import json
 
 import uuid
 from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, session, url_for
 from common.entity_store import EntityObject, EntityStore
+from common.fitness import workout_entity
 from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import delete_from_cache, get_cache_value, set_cache_value
 from common.fitness.entities_getter import get_entity, get_entities
@@ -15,7 +17,7 @@ from common.fitness.member_entity import MembershipRegistry, get_member_id_from_
 from common.fitness.member_exercise_history import extract_and_load_exercise_events_from_workout_instance
 from common.fitness.member_program_entity import MemberProgramEntity
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout
-from common.fitness.programs import get_workouts_from_program
+from common.fitness.programs import get_last_workout_instance_for_workout, get_next_workout_in_program, get_workouts_from_program
 from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state, update_active_workout_state
 from common.fitness.edit_workout_object import edit_workout_object
 from common.fitness.roles_service import get_accessible_members_for_context, get_member_role
@@ -817,20 +819,17 @@ def start_workout(context=None):
 
     workout_key_str = request.form.get('workout_key', None)
     workout_key = eval(workout_key_str) if workout_key_str else None
+    workout = EntityStore().get_item_by_composite_key(workout_key) if workout_key else None
 
     program_composite_key_str = request.form.get('program_key', None)
     program_composite_key = eval(program_composite_key_str) if program_composite_key_str else None
 
-    last_program_workout_instance_key_str = request.form.get('last_program_workout_instance_key', None)
-    last_program_workout_instance_key = eval(last_program_workout_instance_key_str) if last_program_workout_instance_key_str else None
-
-    adjustments_for_next_workout = request.form.get('adjustments_for_next_workout', None)
+    
 
     workout_instance, exercises, program_entity, workout_instance_key, adjustments = _start_workout_logic(workout_key_str, 
                                                                                                           program_composite_key_str, 
                                                                                                           scheduled_workout_event_id,
-                                                                                                          last_program_workout_instance_key,
-                                                                                                          adjustments_for_next_workout,
+                                                                                                          member_id,
                                                                                                           is_adhoc_workout=is_adhoc_workout)
   
     last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
@@ -872,7 +871,7 @@ def start_workout(context=None):
         rs=rm_spaces
     )
 
-def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, last_program_workout_instance_key, adjustments_for_next_workout_str, is_adhoc_workout=False):
+def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, member_id, is_adhoc_workout=False):
     """
     Encapsulates the logic for starting a workout, including copying the workout,
     updating the program, and setting the session state.
@@ -883,33 +882,36 @@ def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, l
 
     workout_entity = es.get_item_by_composite_key(workout_composite_key)
     program_entity = es.get_item_by_composite_key(program_composite_key)
-    last_program_workout_instance = es.get_item_by_composite_key(last_program_workout_instance_key) if last_program_workout_instance_key else None
-    adjustments_for_next_workout = eval(adjustments_for_next_workout_str) if adjustments_for_next_workout_str else {}   
 
-    # we first copy the workout to the MemberWorkoutInstanceTable
-    # all workouts in this program are bassed on the workout definitions in the MemberWorkoutDefinitionTable, that is the reps & sets for exercises are defined there
-    # however, if there is a workout instance from a previous workout in the program, then we should copy the resistance & time parameters from that instance
-    # to the new workout instance
-    # then, finally, we will apply any adjustments that were made during the last workout to the new workout instance
+    workout_def_id = workout_entity.get('id', None) if workout_entity else None
+
+    last_workout_instance = get_last_workout_instance_for_workout(workout_def_id, member_id)
+
+    if last_workout_instance:
+        adjustments_for_next_workout = last_workout_instance.get('adjustments_for_next_workout', {})
+    else:
+        last_workout_instance = MemberWorkoutInstanceEntity(workout_entity.copy())    
+        adjustments_for_next_workout = {}
+    # current_program = es.get_item_by_composite_key(program_composite_key)
+
+    # current_program_key = current_program.get_composite_key()
+    # next_workout = get_next_workout_in_program(current_program, member_id)
+    # next_workout_key = next_workout.get('next_workout_key', None)
+
     workout_instance = MemberWorkoutInstanceEntity(workout_entity.copy())
-    if last_program_workout_instance:
+
+    if last_workout_instance:
         # go through each of the exercises in the last workout instance
         # and copy the parameters to the new workout instance
-        for last_section, new_section in zip(last_program_workout_instance.get('workout_sections', []), workout_instance.get('workout_sections', [])):
+        for last_section, new_section in zip(last_workout_instance.get('workout_sections', []), workout_instance.get('workout_sections', [])):
             for last_exercise, new_exercise in zip(last_section.get('exercises', []), new_section.get('exercises', [])):
                 # copy just the weight, units & time parameters from the last exercise to the new exercise
                 last_params = last_exercise.get('parameters', {})
                 new_params = new_exercise.get('parameters', {})
-                new_params['weight'] = last_params.get('weight', 0)
-                new_params['units'] = last_params.get('units', '')
-                new_params['time'] = last_params.get('time', 0)
+                for k,v in last_params.items():
+                    new_params[k] = v
                 new_exercise['parameters'] = new_params
-    
-    # now we want to apply the adjustments in the adjustments dict to the new workout instance
-    # we do this by going through each of the  exercises in the workout instance
-    # and applying the adjustments to the parameters of the exercises
-    # for now, we will just apply the adjustment to the "weight" parameter, but we should figure out how to apply the adjustment to the time parameter as well
-    # TODO:  figure out how to apply the adjustment to the time parameter as well
+
     if adjustments_for_next_workout:
         for section in workout_instance.get('workout_sections', []):
             for exercise in section.get('exercises', []):
@@ -920,7 +922,7 @@ def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, l
                     continue
                 if exercise_id in adjustments_for_next_workout:
                     adjustment = adjustments_for_next_workout[exercise_id]
-                    exercise['parameters'] = adjustment
+                    exercise['parameters'].update(adjustment)
 
     workout_instance.update({
         'id': str(uuid.uuid4()),
@@ -991,7 +993,9 @@ def really_finish_workout(context=None, workout_instance_key=None):
         for section in workout_instance.get('workout_sections', []):
             for ex in section.get('exercises', []):
                 if ex.get('id', None) == exercise:
-                    ex['parameters'] = params
+                    # here I want to update the parameters of the exercise with the params from the current workout state
+                    for k, v in params.items():
+                        ex['parameters'][k] = v
 
     if next_time_strategy == 'original':
         adjustments_for_next_workout = original_parameters
@@ -1000,10 +1004,19 @@ def really_finish_workout(context=None, workout_instance_key=None):
     else:
         adjustments_for_next_workout = adjustments_for_next_workout if adjustments_for_next_workout else exercise_parameters
     
+    next_time_workout_sections = copy.deepcopy(workout_instance.get('workout_sections', []))
+    for section in next_time_workout_sections:
+        for exercise in section.get('exercises', []):
+            exercise_id = exercise.get('id', None)
+            if exercise_id and exercise_id in adjustments_for_next_workout:
+                adjustment = adjustments_for_next_workout[exercise_id]
+                exercise['parameters'].update(adjustment)
+
     workout_instance['started_ts'] = _normalize_form_datetime(started_ts, workout_instance.get('started_ts'))
     workout_instance['finished_ts'] = _normalize_form_datetime(finished_ts, datetime.now().isoformat())
     workout_instance['member_feedback'] = member_feedback.strip()
     workout_instance['adjustments_for_next_workout'] = adjustments_for_next_workout
+    workout_instance['next_time_workout_sections'] = next_time_workout_sections
     
     es.upsert_item(workout_instance)
     

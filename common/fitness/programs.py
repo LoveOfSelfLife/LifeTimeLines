@@ -9,7 +9,7 @@ def get_members_current_active_program(member_id, current_date_dt=None):
 
     programs = get_filtered_entities(MemberProgramEntity.table_name, partition_key=member_id)
     
-    print(f"Programs for member {member_id}: {programs}")
+    # print(f"Programs for member {member_id}: {programs}")
     # find the program that is active for the current date, based on the start and end dates of the program
     if not current_date_dt:
         from datetime import datetime
@@ -52,6 +52,15 @@ def get_program_workouts(program, member_id, workout_type=None):
     workouts_in_program.sort(key=lambda w: w.get('order_index', 0))
     return workouts_in_program
 
+
+def get_last_workout_instance_for_workout(workout_def_id, member_id):
+    member_workout_instances = get_filtered_entities(MemberWorkoutInstanceEntity.table_name, partition_key=member_id)
+    workout_instances_for_workout = [i for i in member_workout_instances if i.get('member_workout_def_id', None) == workout_def_id]
+    if not workout_instances_for_workout:
+        return None
+    # find the most recent instance based on the finished_ts field
+    most_recent_instance = max(workout_instances_for_workout, key=lambda x: x.get('finished_ts', ''))
+    return most_recent_instance
 
 def get_next_workout_in_program(program, member_id):
     # This function should return the next workout in the program for the member
@@ -111,7 +120,7 @@ def get_next_workout_in_program(program, member_id):
     least_recent_workout_id = min(workout_last_completion, key=lambda k: workout_last_completion[k]['finished_ts'])
     next_workout = [w for w in workouts_in_program if w['id'] == least_recent_workout_id][0]
     last_workout_intance_key = workout_last_completion[least_recent_workout_id].get('instance_key', None)
-    last_workout_adjustments = workout_last_completion[least_recent_workout_id].get('adjustments', {})
+    last_workout_adjustments = workout_last_completion[least_recent_workout_id].get('adjustments_for_next_workout', {})
     print(f"Next workout for member {member_id} in program {program.get('id')}: {next_workout}, last instance key: {last_workout_intance_key}")
 
     return {'next_workout_key' : next_workout.get_composite_key(), 
