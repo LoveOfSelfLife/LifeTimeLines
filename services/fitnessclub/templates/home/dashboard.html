@@ -17,6 +17,35 @@
         {# Three main sections in responsive layout #}
         <div class="row g-4">
             {# Global Quick Start Workout Section #}
+
+            {# Scheduled Workouts Section #}
+            <div class="col-12">
+                <div class="dashboard-section">
+                    <div class="section-header d-flex align-items-center mb-3">
+                        <div class="d-block">
+                            <div class="d-flex align-items-center">                    
+                            <i class="bi bi-calendar3 me-2 fs-4"></i>
+                            <h4 class="mb-0">Scheduled Workouts</h4>
+                        </div>
+                        <small class="text-light opacity-75 mb-1">
+                            These are workouts you've scheduled in advance.
+                        </small>                        
+                        </div>
+                        <span class="badge bg-light text-dark ms-auto">Next 7 Days</span>
+                    </div>
+                    <div id="scheduled-workouts-content" hx-get="{{ url_for('home.scheduled_workouts_partial') }}"
+                        hx-trigger="load, eventListChanged from:body" 
+                        hx-swap="innerHTML">
+                        {# Loading placeholder #}
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-light" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-light opacity-75">Loading scheduled workouts...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
             {% if workouts_in_program %}
 
             <div class="col-12">
@@ -46,35 +75,7 @@
                 </div>
             </div>
             {% endif %}
-            {# Scheduled Workouts Section #}
-            <div class="col-12">
-                <div class="dashboard-section">
-                    <div class="section-header d-flex align-items-center mb-3">
-                        <div class="d-block">
-                            <div class="d-flex align-items-center">                    
-                            <i class="bi bi-calendar3 me-2 fs-4"></i>
-                            <h4 class="mb-0">Scheduled Workouts</h4>
-                        </div>
-                        <small class="text-light opacity-75 mb-1">
-                            These are workouts you've scheduled in advance.
-                        </small>                        
-                        </div>
-                        <span class="badge bg-light text-dark ms-auto">Next 7 Days</span>
-                    </div>
-                    <div id="scheduled-workouts-content" hx-get="{{ url_for('home.scheduled_workouts_partial') }}"
-                        hx-trigger="load, eventListChanged from:body" 
-                        hx-swap="innerHTML">
-                        {# Loading placeholder #}
-                        <div class="text-center py-4">
-                            <div class="spinner-border text-light" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <p class="mt-2 text-light opacity-75">Loading scheduled workouts...</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+            
             {# Completed Workouts Section (Full Width) #}
             <div class="col-12 col-xl-6">
                 <div class="dashboard-section">
