@@ -50,7 +50,9 @@ class GoogleCalendarService (AbstractCalendarService):
             time_max = None
 
         try:
-            events_result = self.service.events().list(calendarId=self.calendar_id,  
+            events_result = self.service.events().list(calendarId=self.calendar_id, 
+                                                       singleEvents=True,
+                                                       orderBy='startTime', 
                                                        timeMin=time_min, timeMax=time_max).execute()
             return events_result.get('items', [])
         except Exception as error:
@@ -59,6 +61,8 @@ class GoogleCalendarService (AbstractCalendarService):
             self._reset_calendar_service()
             try:
                 events_result = self.service.events().list(calendarId=self.calendar_id,  
+                                                           singleEvents=True,
+                                                           orderBy='startTime', 
                                                            timeMin=time_min, timeMax=time_max).execute()
                 return events_result.get('items', [])
             except Exception as error:
@@ -378,7 +382,7 @@ class GoogleCalendarService (AbstractCalendarService):
         return events_list, sorted_events
 
 
-    def add_workout_event(self, member_short_name, event_date, event_time, location, metadata):
+    def add_workout_event(self, member_short_name, event_date, event_time, location, metadata, duration_hours=1):
         """
         Adds an event to the Google Calendar.
 
@@ -394,8 +398,8 @@ class GoogleCalendarService (AbstractCalendarService):
         event_date = datetime.strptime(event_date, "%Y-%m-%d").date()
         event_time = datetime.strptime(event_time, "%H:%M").time()
         event_datetime = datetime.combine(event_date, event_time)
-        #end time is 1 hour later
-        event_datetime_end = event_datetime + timedelta(hours=1)
+        #end time is duration_hours later
+        event_datetime_end = event_datetime + timedelta(hours=duration_hours)
 
         event = {
             'summary': f'{member_short_name}',
@@ -418,8 +422,53 @@ class GoogleCalendarService (AbstractCalendarService):
         except Exception as error:
             print(f"An error occurred: {error}")
             return None  # Return None if the event creation fails
+
+    def add_recurring_workout_event(self, member_short_name, event_date, event_time, frequency, byday, location, metadata, duration_hours=1):
+        """
+        Adds a recurring event to the Google Calendar.
+
+        Args:
+            frequency (str): The frequency of the recurring event (e.g., "WEEKLY").
+            byday (str): The days of the week on which the event occurs (e.g., "MO,WE,FR").
+        """
         
-    def update_workout_event(self, event_id, member_short_name, event_date, event_time, location, metadata):
+        # date is formatted as MM/DD/YYYY
+        # time is formatted as HH:MM in military time
+        # location is formatted as "YMCA, Cranford, NJ" 
+        # convert date & time to ISO 8601 format
+
+        event_date = datetime.strptime(event_date, "%Y-%m-%d").date()
+        event_time = datetime.strptime(event_time, "%H:%M").time()
+        event_datetime = datetime.combine(event_date, event_time)
+        #end time is duration_hours later
+        event_datetime_end = event_datetime + timedelta(hours=duration_hours)
+
+        event = {
+            'summary': f'{member_short_name}',
+            'location': location,
+            'description': metadata,
+            'start': {
+                'dateTime': f'{event_datetime.isoformat()}',
+                'timeZone': 'America/New_York'
+            },
+            'end': {
+                'dateTime': f'{event_datetime_end.isoformat()}',
+                'timeZone': 'America/New_York', 
+            },
+            'recurrence': [
+                f'RRULE:FREQ={frequency};BYDAY={byday}'
+            ]
+        }
+
+        try:
+            event = self.service.events().insert(calendarId=self.calendar_id, body=event).execute()
+            print("Event created: %s" % (event.get("htmlLink")))
+            return event.get('id', None)  # Return the event ID for further processing
+        except Exception as error:
+            print(f"An error occurred: {error}")
+            return None  # Return None if the event creation fails
+             
+    def update_workout_event(self, event_id, member_short_name, event_date, event_time, location, metadata, duration_hours=1):
         """
         Adds an event to the Google Calendar.
 
@@ -433,8 +482,8 @@ class GoogleCalendarService (AbstractCalendarService):
         event_date = datetime.strptime(event_date, "%Y-%m-%d").date()
         event_time = datetime.strptime(event_time, "%H:%M").time()
         event_datetime = datetime.combine(event_date, event_time)
-        #end time is 1 hour later
-        event_datetime_end = event_datetime + timedelta(hours=1)
+        #end time is duration_hours later
+        event_datetime_end = event_datetime + timedelta(hours=duration_hours)
     
         event = {
             'summary': f'{member_short_name}',

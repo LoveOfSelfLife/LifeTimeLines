@@ -5,11 +5,17 @@
     
     {# Top-level Add Workout button #}
     <div style="text-align: center; margin-bottom: 1.5rem;">
+        <button class="btn btn-primary me-2"
+            hx-get="/schedule/create_recurring_event?modal=1" 
+            hx-target="#modals-here"
+            hx-swap="innerHTML">
+            <i class="bi bi-arrow-repeat"></i> Schedule Recurring Workout
+        </button>
         <button class="btn btn-primary"
             hx-get="/schedule/create_event?modal=1" 
             hx-target="#modals-here"
             hx-swap="innerHTML">
-            <i class="bi bi-plus-lg"></i> Schedule Workout
+            <i class="bi bi-plus-lg"></i> Schedule Single Workout
         </button>
     </div>
     

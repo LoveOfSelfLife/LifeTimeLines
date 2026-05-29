@@ -11,6 +11,52 @@ bp = Blueprint('schedule', __name__, template_folder='templates')
 from auth import auth
 from datetime import datetime, timedelta
 
+WEEKDAY_LABELS = [
+    ("MO", "Monday"),
+    ("TU", "Tuesday"),
+    ("WE", "Wednesday"),
+    ("TH", "Thursday"),
+    ("FR", "Friday"),
+    ("SA", "Saturday"),
+    ("SU", "Sunday"),
+]
+
+WEEKDAY_TO_INDEX = {
+    "MO": 0,
+    "TU": 1,
+    "WE": 2,
+    "TH": 3,
+    "FR": 4,
+    "SA": 5,
+    "SU": 6,
+}
+
+
+def _get_first_occurrence_date(start_date, event_time, byday_values):
+    """Return the first date/time in the recurrence after now and not before start_date."""
+    now_dt = datetime.now()
+    selected_weekdays = {WEEKDAY_TO_INDEX[day] for day in byday_values if day in WEEKDAY_TO_INDEX}
+    if not selected_weekdays:
+        return None
+
+    for offset in range(0, 370):
+        candidate_date = start_date + timedelta(days=offset)
+        if candidate_date.weekday() not in selected_weekdays:
+            continue
+        candidate_dt = datetime.combine(candidate_date, event_time)
+        if candidate_dt > now_dt:
+            return candidate_date
+
+    return None
+
+
+def _normalize_weekdays(selected_days):
+    ordered_unique_days = []
+    for day_code, _ in WEEKDAY_LABELS:
+        if day_code in selected_days:
+            ordered_unique_days.append(day_code)
+    return ordered_unique_days
+
 
 @bp.route('/')
 @auth.login_required
@@ -106,6 +152,92 @@ def create_new_event(context=None):
             return response
 
     return hx_render_template('event_editor.html', event=event, update_url="/schedule/create_event")
+
+
+@bp.route('/create_recurring_event', methods=['GET', 'POST'])
+@auth.login_required
+def create_recurring_event(context=None):
+    calendar_service = get_calendar_service()
+    member_id = get_member_id_from_user_context(context)
+    profile = get_user_profile(member_id)
+    if profile:
+        member_short_name = profile.get('short_name', member_id)
+    else:
+        print(f"Unable to get profile for member id {member_id}")
+        abort(404)
+
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    event = {
+        "start_date": request.args.get('start_date', today_str),
+        "time": request.args.get('time', "06:00"),
+        "days": request.args.getlist('days')
+    }
+
+    if request.method == 'POST':
+        start_date = request.form.get('start_date')
+        event_time = request.form.get('time')
+        selected_days = _normalize_weekdays(request.form.getlist('days'))
+
+        event['start_date'] = start_date
+        event['time'] = event_time
+        event['days'] = selected_days
+
+        if not selected_days:
+            return hx_render_template(
+                'recurring_event_editor.html',
+                event=event,
+                day_options=WEEKDAY_LABELS,
+                error_message="Pick at least one day of the week."
+            )
+
+        if start_date and event_time:
+            try:
+                parsed_start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
+                parsed_event_time = datetime.strptime(event_time, "%H:%M").time()
+            except ValueError:
+                return hx_render_template(
+                    'recurring_event_editor.html',
+                    event=event,
+                    day_options=WEEKDAY_LABELS,
+                    error_message="Invalid date or time value."
+                )
+
+            first_occurrence_date = _get_first_occurrence_date(parsed_start_date, parsed_event_time, selected_days)
+            if not first_occurrence_date:
+                return hx_render_template(
+                    'recurring_event_editor.html',
+                    event=event,
+                    day_options=WEEKDAY_LABELS,
+                    error_message="Unable to compute the first occurrence for this recurrence."
+                )
+
+            byday = ",".join(selected_days)
+            event_meta = f"#id={member_id}"
+            calendar_service.add_recurring_workout_event(
+                member_short_name=member_short_name,
+                event_date=first_occurrence_date.strftime("%Y-%m-%d"),
+                event_time=event_time,
+                frequency="WEEKLY",
+                byday=byday,
+                location="YMCA",
+                metadata=event_meta
+            )
+
+            response = make_response('', 204)
+            response.headers['HX-Trigger'] = json.dumps({
+                "eventListChanged": {"target": "body"},
+                "showMessage": {
+                    "target": "body",
+                    "value": "recurring workout scheduled"
+                }
+            })
+            return response
+
+    return hx_render_template(
+        'recurring_event_editor.html',
+        event=event,
+        day_options=WEEKDAY_LABELS
+    )
 
 
 @bp.route('/edit_event', methods=['GET', 'POST'])
