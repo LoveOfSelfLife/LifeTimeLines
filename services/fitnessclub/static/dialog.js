@@ -1,25 +1,36 @@
 ;(function () {
-  const modal = new bootstrap.Modal(document.getElementById("modals-here"))
+  const modalHost = document.getElementById("modals-here")
+  if (!modalHost) {
+    return
+  }
+  const defaultHostMarkup = modalHost.innerHTML
+
+  const modal = bootstrap.Modal.getOrCreateInstance(modalHost)
+
+  const isModalSwapTarget = (target) => {
+    if (!target || !target.id) {
+      return false
+    }
+    return target.id === "modals-here" || target.id === "dialog"
+  }
 
   htmx.on("htmx:afterSwap", (e) => {
-    // Response targeting #dialog => show the modal
-    if (e.detail.target.id == "dialog") {
+    // Support both legacy #dialog targets and current #modals-here targets.
+    if (isModalSwapTarget(e.detail.target)) {
       modal.show()
     }
   })
 
   htmx.on("htmx:beforeSwap", (e) => {
-    // Empty response targeting #dialog => hide the modal
-    if (e.detail.target.id == "dialog" && !e.detail.xhr.response) {
+    // Empty response targeting modal host => hide the modal.
+    if (isModalSwapTarget(e.detail.target) && !e.detail.xhr.response) {
       modal.hide()
       e.detail.shouldSwap = false
     }
   })
 
-  // Remove dialog content after hiding
-  htmx.on("hidden.bs.modal", () => {
-    console.log("Modal hidden, removing content");
-    elem =  document.getElementById("modals-here");
-    if (elem) elem.innerHTML = "";
+  // Restore the default shell after hiding to keep legacy selectors stable.
+  modalHost.addEventListener("hidden.bs.modal", () => {
+    modalHost.innerHTML = defaultHostMarkup
   })
 })()
