@@ -1,62 +1,47 @@
-<div class="modal fade" id="impersonate-modal" tabindex="-1" aria-labelledby="impersonate-modal-label" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="impersonate-modal-label">Impersonate Member</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
+<div class="modal-dialog modal-dialog-centered modal-lg">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title" id="impersonate-modal-label">Impersonate Member</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    
+    <div class="modal-body">
+      {% if current_impersonated_member %}
+        <div class="alert alert-info">
+          <strong>Currently impersonating:</strong> {{ current_impersonated_member.name }} ({{ current_impersonated_member.email }})
+        </div>
+      {% endif %}
       
-      <div class="modal-body">
-        {% if current_impersonated_member %}
-          <div class="alert alert-info">
-            <strong>Currently impersonating:</strong> {{ current_impersonated_member.name }} ({{ current_impersonated_member.email }})
-          </div>
-        {% endif %}
+      <form hx-post="/admin/start_impersonation" hx-target="body">
+        <div class="mb-3">
+          <label for="member_id" class="form-label">Select Member to Impersonate:</label>
+          <select class="form-select" id="member_id" name="member_id" required>
+            <option value="">Choose a member...</option>
+            {% for member in members %}
+              <option value="{{ member.id }}">{{ member.name }} ({{ member.email }})</option>
+            {% endfor %}
+          </select>
+        </div>
         
-        <form hx-post="/admin/start_impersonation" hx-target="body">
-          <div class="mb-3">
-            <label for="member_id" class="form-label">Select Member to Impersonate:</label>
-            <select class="form-select" id="member_id" name="member_id" required>
-              <option value="">Choose a member...</option>
-              {% for member in members %}
-                <option value="{{ member.id }}">{{ member.name }} ({{ member.email }})</option>
-              {% endfor %}
-            </select>
-          </div>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">
+            Start Impersonation
+          </button>
           
-          <div class="d-flex gap-2">
-            <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">
-              Start Impersonation
+          {% if current_impersonated_member %}
+            <button type="button" class="btn btn-secondary" 
+                    hx-post="/admin/stop_impersonation" 
+                    hx-target="body"
+                    data-bs-dismiss="modal">
+              Stop Impersonation
             </button>
-            
-            {% if current_impersonated_member %}
-              <button type="button" class="btn btn-secondary" 
-                      hx-post="/admin/stop_impersonation" 
-                      hx-target="body"
-                      data-bs-dismiss="modal">
-                Stop Impersonation
-              </button>
-            {% endif %}
-            
-            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-              Cancel
-            </button>
-          </div>
-        </form>
-      </div>
+          {% endif %}
+          
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            Cancel
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 </div>
-
-<script>
-  // Show the modal after it's loaded via HTMX
-  document.addEventListener('DOMContentLoaded', function() {
-    const modal = new bootstrap.Modal(document.getElementById('impersonate-modal'));
-    modal.show();
-  });
-  // If DOM is already loaded (HTMX case), show immediately
-  if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    const modal = new bootstrap.Modal(document.getElementById('impersonate-modal'));
-    modal.show();
-  }
-</script>

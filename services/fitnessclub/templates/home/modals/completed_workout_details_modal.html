@@ -1,77 +1,75 @@
 {# Completed Workout Details Modal Template #}
-<div class="modal fade" id="completed-workout-modal" tabindex="-1" aria-labelledby="completed-workout-modal-label" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content completed-workout-modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="completed-workout-modal-label">
-          <i class="bi bi-check-circle me-2"></i>{{ workout_name }}
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div class="workout-summary mb-4">
-          <div class="row g-3">
-            <div class="col-md-4">
-              <strong>Started</strong><br>
-              <span class="text-light opacity-75">{{ start_time or 'Unknown' }}</span>
-            </div>
-            <div class="col-md-4">
-              <strong>Finished</strong><br>
-              <span class="text-light opacity-75">{{ end_time }}</span>
-            </div>
+<div class="modal-dialog modal-lg">
+  <div class="modal-content completed-workout-modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title" id="completed-workout-modal-label">
+        <i class="bi bi-check-circle me-2"></i>{{ workout_name }}
+      </h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+      <div class="workout-summary mb-4">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <strong>Started</strong><br>
+            <span class="text-light opacity-75">{{ start_time or 'Unknown' }}</span>
+          </div>
+          <div class="col-md-4">
+            <strong>Finished</strong><br>
+            <span class="text-light opacity-75">{{ end_time }}</span>
           </div>
         </div>
-
-        {% if workout_sections %}
-          {% for section in workout_sections %}
-            <section class="completed-workout-section mb-4">
-              <div class="section-heading d-flex align-items-center justify-content-between">
-                <h6 class="mb-0 text-uppercase">{{ section.name }}</h6>
-                <span class="section-count">{{ section['items']|length }} exercises</span>
-              </div>
-
-              <div class="table-responsive mt-2">
-                <table class="table table-sm completed-workout-details-table align-middle mb-0">
-                  <thead>
-                    <tr>
-                      <th>Exercise</th>
-                      <th>Parameters</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for item in section['items'] %}
-                        <tr>
-                          <td class="exercise-name-cell">
-                            <strong>{{ item['exercise'].name }}</strong>
-                          </td>
-                          <td class="exercise-params-cell">
-                            <div class="parameter-string">
-                              {% for param in item['param_list'] %}
-                                {% if param.type == 'text' %}
-                                  <span class="param-text">{{ param.value }}</span>
-                                {% elif param.type == 'var' %}
-                                  <span class="param-value">{{ '____' if param.value == '' or (param.value | string | trim) == 'None' else param.value }}</span>
-                                {% endif %}
-                              {% endfor %}
-                            </div>
-                          </td>
-                        </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          {% endfor %}
-        {% else %}
-          <div class="text-center py-4">
-            <i class="bi bi-activity display-4 text-info opacity-50"></i>
-            <p class="mt-3 text-light opacity-75 mb-0">No exercise details were found for this completed workout.</p>
-          </div>
-        {% endif %}
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
+
+      {% if workout_sections %}
+        {% for section in workout_sections %}
+          <section class="completed-workout-section mb-4">
+            <div class="section-heading d-flex align-items-center justify-content-between">
+              <h6 class="mb-0 text-uppercase">{{ section.name }}</h6>
+              <span class="section-count">{{ section['items']|length }} exercises</span>
+            </div>
+
+            <div class="table-responsive mt-2">
+              <table class="table table-sm completed-workout-details-table align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Exercise</th>
+                    <th>Parameters</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for item in section['items'] %}
+                      <tr>
+                        <td class="exercise-name-cell">
+                          <strong>{{ item['exercise'].name }}</strong>
+                        </td>
+                        <td class="exercise-params-cell">
+                          <div class="parameter-string">
+                            {% for param in item['param_list'] %}
+                              {% if param.type == 'text' %}
+                                <span class="param-text">{{ param.value }}</span>
+                              {% elif param.type == 'var' %}
+                                <span class="param-value">{{ '____' if param.value == '' or (param.value | string | trim) == 'None' else param.value }}</span>
+                              {% endif %}
+                            {% endfor %}
+                          </div>
+                        </td>
+                      </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        {% endfor %}
+      {% else %}
+        <div class="text-center py-4">
+          <i class="bi bi-activity display-4 text-info opacity-50"></i>
+          <p class="mt-3 text-light opacity-75 mb-0">No exercise details were found for this completed workout.</p>
+        </div>
+      {% endif %}
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
     </div>
   </div>
 </div>
@@ -143,16 +141,3 @@
   color: rgba(255, 255, 255, 0.78);
 }
 </style>
-
-<script>
-  // Show the modal after it's loaded via HTMX
-  document.addEventListener('DOMContentLoaded', function() {
-    const modal = new bootstrap.Modal(document.getElementById('completed-workout-modal'));
-    modal.show();
-  });
-  // If DOM is already loaded (HTMX case), show immediately
-  if (document.readyState === 'complete' || document.readyState === 'interactive') {
-    const modal = new bootstrap.Modal(document.getElementById('completed-workout-modal'));
-    modal.show();
-  }
-</script>
