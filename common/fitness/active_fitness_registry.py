@@ -47,7 +47,7 @@ editable_entities = {
                                               "subtitle" : lambda e: (("" + (e['start_date'] if 'start_date' in e and e['start_date'] else "?")) + \
                                                                       (" to " + (e['end_date'] if 'end_date' in e and e['end_date'] else "?"))),
                                               "image_url" : None,
-                                              "member_name" : lambda e: get_member_name_from_member_id(e['member_id']) if 'member_id' in e else "",
+                                              "member_name" : lambda e: get_member_name_from_member_id(e.get('assigned_to_member_id') or e.get('member_id')) if (e.get('assigned_to_member_id') or e.get('member_id')) else "",
                                              }                        
                     },
     WORKOUT_ENTITY_NAME : { 

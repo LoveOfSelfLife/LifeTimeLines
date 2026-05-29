@@ -51,7 +51,7 @@
                       hx-post="{{ url_for('program.update_assigned_member', program_id=program.id) }}"
                       hx-swap="none">
                 {% for member in accessible_members %}
-                <option value="{{ member.id }}" {% if member.id == program.member_id %}selected{% endif %}>
+                <option value="{{ member.id }}" {% if member.id == (program.assigned_to_member_id or program.member_id) %}selected{% endif %}>
                   {{ member.name }}
                 </option>
                 {% endfor %}

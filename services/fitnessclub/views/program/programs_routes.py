@@ -20,7 +20,8 @@ from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, 
 from common.fitness.programs import get_last_workout_instance_for_workout, get_next_workout_in_program, get_workouts_from_program
 from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state, update_active_workout_state
 from common.fitness.edit_workout_object import edit_workout_object
-from common.fitness.roles_service import get_accessible_members_for_context, get_member_role
+from common.fitness.roles_service import get_accessible_members_for_context, get_team_coaches_with_details, get_team_for_client, is_member_client, is_member_coach
+from common.fitness.coach_team_entity import get_coachs_team_members
 bp = Blueprint('program', __name__, template_folder='templates')
 from auth import auth
 
@@ -70,18 +71,38 @@ def programs_listing2(context=None):
     member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
-    entities = []
+    entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member_id, member_id=member_id)
 
-    # if the member is a coach, we want to show them programs for all of their teams, so we need to get the list of members they have access to (themselves and any clients on their teams) and then get programs for all of those members
-    if get_member_role(member_id) == 'coach':
-        accessible_members = get_accessible_members_for_context(member_id)
+    if is_member_client(member_id):
+        team = get_team_for_client(member_id)
+        if team:
+            team_coaches = get_team_coaches_with_details(team.get('id'))
+            for coach in team_coaches:
+                coach_id = coach.get('id')
+                if not coach_id:
+                    continue
+                coach_entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=coach_id, member_id=member_id)
+                assigned_to_client = [
+                    e for e in coach_entities
+                    if e.get('entity', {}).get('assigned_to_member_id') == member_id
+                ]
+                entities.extend(assigned_to_client)
+    elif is_member_coach(member_id):
+        team_members = get_coachs_team_members(member_id)
+        visible_assignee_ids = {member_id}
+        visible_assignee_ids.update(tm.get('member_id') for tm in team_members if tm.get('member_id'))
 
-        for member in accessible_members:
-            print(f"Accessible member: {member.get('id')} - {member.get('name')}")
-            member_entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member.get('id'), member_id=member.get('id'))
-            entities.extend(member_entities)
-    else:
-        entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member_id, member_id=member_id)
+        entities = [
+            e for e in entities
+            if e.get('entity', {}).get('member_id') == member_id
+            or not e.get('entity', {}).get('assigned_to_member_id')
+            or e.get('entity', {}).get('assigned_to_member_id') in visible_assignee_ids
+        ]
+
+    deduped_entities = {}
+    for entity in entities:
+        deduped_entities[entity.get('key')] = entity
+    entities = list(deduped_entities.values())
 
     sort_by='end_date'
     sort_ascending=False
@@ -157,7 +178,8 @@ def program_viewer(context=None):
     alternative_workouts = [w for w in workouts if w.get('workout_type', 'standard') == 'alternative']
     
     # Get member information
-    member = get_entity('MemberTable', program.get('member_id'))
+    assigned_member_id = program.get('assigned_to_member_id') or program.get('member_id')
+    member = get_entity('MemberTable', assigned_member_id)
     member_name = member.get('name', 'Unknown Member') if member else 'Unknown Member'
     
     return hx_render_template(
@@ -250,6 +272,7 @@ def new_program(name='new-workout-program', member_id=None):
     return {
         'id': program_id,
         'member_id': member_id,
+        'assigned_to_member_id': member_id,
         'name': name,
         'start_date': None,
         'end_date': None
@@ -523,17 +546,11 @@ def update_assigned_member(context=None, program_id=None):
     if not p:
         abort(404)
         
-    # Update the member_id for the program
+    # Keep member_id as the creator/owner. Update assignment separately.
     assigned_member_id = request.form['assigned_member_id']
-    p['member_id'] = assigned_member_id
+    p['assigned_to_member_id'] = assigned_member_id
     
     set_cache_value('current_program', p)
-
-    # get all the workouts for the program and update their member_id as well
-    current_program_workouts = get_cache_value('current_program_workouts')
-    for wk in current_program_workouts:
-        wk['member_id'] = assigned_member_id
-    set_cache_value('current_program_workouts', current_program_workouts)
 
     response = make_response('', 200)
     return response
@@ -667,6 +684,7 @@ def save_copy_of_program(context=None, program_id=None):
     current_program['id'] = new_program_id
     current_program['name'] = f"{current_program['name']} (copy)"
     current_program['member_id'] = member_id
+    current_program['assigned_to_member_id'] = member_id
     current_program['created_by'] = member_id
 
     workouts_in_program = []

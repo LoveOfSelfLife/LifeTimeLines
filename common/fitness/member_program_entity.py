@@ -3,7 +3,7 @@ from common.entity_store import EntityObject
 
 class MemberProgramEntity (EntityObject):
     table_name="MemberProgramTable"
-    fields=["id", "member_id", "name", "created_ts", "description", "start_date", "end_date"]
+    fields=["id", "member_id", "name", "created_ts", "description", "start_date", "end_date", "assigned_to_member_id"]
     key_field="id"
     partition_field="member_id"
 

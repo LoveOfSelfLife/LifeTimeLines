@@ -2,12 +2,54 @@ import sys
 from common.fitness.entities_getter import get_filtered_entities
 from common.fitness.member_program_entity import MemberProgramEntity
 from datetime import datetime as dt
+from common.fitness.roles_service import get_member_role, get_team_coaches_with_details, get_team_for_client
 
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity
 
+def _parse_program_boundary(boundary_value):
+    if not boundary_value:
+        return None
+
+    import pytz
+    parsed_value = dt.fromisoformat(boundary_value)
+    if parsed_value.tzinfo is None:
+        return parsed_value.replace(tzinfo=pytz.timezone('US/Eastern'))
+    return parsed_value.astimezone(pytz.timezone('US/Eastern'))
+
+
+def _get_candidate_programs_for_member(member_id):
+    programs = [
+        p for p in get_filtered_entities(MemberProgramEntity.table_name, partition_key=member_id)
+        if p.get('assigned_to_member_id') == member_id
+    ]
+
+    if get_member_role(member_id) != 'client':
+        return programs
+
+    team = get_team_for_client(member_id)
+    if not team:
+        return programs
+
+    for coach in get_team_coaches_with_details(team.get('id')):
+        coach_id = coach.get('id')
+        if not coach_id:
+            continue
+        coach_programs = get_filtered_entities(MemberProgramEntity.table_name, partition_key=coach_id)
+        assigned_programs = [
+            p for p in coach_programs
+            if p.get('assigned_to_member_id') == member_id
+        ]
+        programs.extend(assigned_programs)
+
+    deduped = {}
+    for program in programs:
+        deduped[tuple(program.get_composite_key())] = program
+    return list(deduped.values())
+
+
 def get_members_current_active_program(member_id, current_date_dt=None):
 
-    programs = get_filtered_entities(MemberProgramEntity.table_name, partition_key=member_id)
+    programs = _get_candidate_programs_for_member(member_id)
     
     # print(f"Programs for member {member_id}: {programs}")
     # find the program that is active for the current date, based on the start and end dates of the program
@@ -19,38 +61,47 @@ def get_members_current_active_program(member_id, current_date_dt=None):
     import pytz
     current_date_dt = current_date_dt.astimezone(pytz.timezone('US/Eastern'))
     
+    active_programs = []
     for program in programs:
         # start_date and end_date are stored as ISO format strings in the program entity, we need to convert them to datetime objects with the local timezone for comparison
         # by default, fromisoformat will set the tzinfo to null, so we need to make sure to add the local timezone to the start and end dates when converting them to datetime objects
-        start_date = dt.fromisoformat(program.get('start_date')) if program.get('start_date') else None
-        if start_date:
-            start_date = start_date.replace(tzinfo=pytz.timezone('US/Eastern'))
-            # start_date = start_date.astimezone(pytz.timezone('US/Eastern'))
-        
-        end_date = dt.fromisoformat(program.get('end_date')) if program.get('end_date') else None
-        if end_date:
-            end_date = end_date.replace(tzinfo=pytz.timezone('US/Eastern'))
-            # end_date = end_date.astimezone(pytz.timezone('US/Eastern'))
+        start_date = _parse_program_boundary(program.get('start_date'))
+        end_date = _parse_program_boundary(program.get('end_date'))
         
         if start_date and end_date:
             if start_date <= current_date_dt <= end_date:
                 # only return the program if it has workouts
-                workouts_in_program = get_program_workouts(program, member_id)
+                workouts_in_program = get_program_workouts_for_program(program)
                 if workouts_in_program:
-                        print(f"Found active program for member {member_id}: {program}")
-                        return program
-    return None
+                    active_programs.append(program)
 
-def get_program_workouts(program, member_id, workout_type=None):
+    if not active_programs:
+        return None
 
-    # in the new data model, all workouts are stored as MemberWorkoutDefinitionEntity entities
-    member_workouts = get_filtered_entities(MemberWorkoutDefinitionEntity.table_name, partition_key=member_id)
+    active_programs.sort(
+        key=lambda p: (str(p.get('created_ts', '')), str(p.get('id', ''))),
+        reverse=True
+    )
+    selected_program = active_programs[0]
+    print(f"Found active program for member {member_id}: {selected_program}")
+    return selected_program
+
+
+def get_program_workouts_for_program(program, workout_type=None):
+    owner_member_id = program.get('member_id')
+    if not owner_member_id:
+        return []
+
+    member_workouts = get_filtered_entities(MemberWorkoutDefinitionEntity.table_name, partition_key=owner_member_id)
     workouts_in_program = [w for w in member_workouts if w.get('member_program_id', None) == program.get('id', None)]
     if workout_type:
         workouts_in_program = [w for w in workouts_in_program if w.get('workout_type') == workout_type]
-    # sort program_workouts by the order_index field in ascending order
     workouts_in_program.sort(key=lambda w: w.get('order_index', 0))
     return workouts_in_program
+
+
+def get_program_workouts(program, member_id=None, workout_type=None):
+    return get_program_workouts_for_program(program, workout_type=workout_type)
 
 
 def get_last_workout_instance_for_workout(workout_def_id, member_id):
@@ -78,7 +129,7 @@ def get_next_workout_in_program(program, member_id):
     
 
     # first make sure that there are workouts in the program, return None if there are none
-    workouts_in_program = get_program_workouts(program, member_id, workout_type='standard')
+    workouts_in_program = get_program_workouts_for_program(program, workout_type='standard')
     if not workouts_in_program:
         return None  # No workouts in the program
 

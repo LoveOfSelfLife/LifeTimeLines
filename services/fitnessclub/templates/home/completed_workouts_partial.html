@@ -64,12 +64,6 @@
     <i class="bi bi-activity display-1 text-light opacity-50"></i>
     <h5 class="mt-3 mb-2">No Completed Workouts</h5>
     <p class="text-light opacity-75 mb-3">Start working out to see your history here!</p>
-    <button class="btn btn-outline-light"
-            hx-get="{{ url_for('schedule.index') }}"
-            hx-target="#content"
-            hx-swap="innerHTML">
-      <i class="bi bi-play-circle me-1"></i>Schedule Your First Workout
-    </button>
   </div>
 {% endif %}
 
