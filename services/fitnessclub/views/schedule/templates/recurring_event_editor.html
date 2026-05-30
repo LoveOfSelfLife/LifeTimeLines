@@ -1,11 +1,12 @@
 <div class="modal-dialog modal-dialog-centered">
-  <form hx-post="{{ request.path }}" class="modal-content">
+  <form hx-post="{{ update_url if update_url else request.path }}" class="modal-content">
     <div class="modal-header text-black">
-      <h5 class="modal-title">Schedule recurring workout</h5>
+      <h5 class="modal-title">{{ modal_title if modal_title else 'Schedule recurring workout' }}</h5>
       <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
 
     <div class="modal-body">
+      <input type="hidden" name="recurring_event_id" value="{{ event['recurring_event_id'] if event else '' }}">
       {% if error_message %}
       <div class="alert alert-danger" role="alert">
         {{ error_message }}
@@ -76,7 +77,7 @@
 
     <div class="modal-footer">
       <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-      <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">Save recurring schedule</button>
+      <button type="submit" class="btn btn-primary" data-bs-dismiss="modal">{{ submit_label if submit_label else 'Save recurring schedule' }}</button>
     </div>
   </form>
 </div>

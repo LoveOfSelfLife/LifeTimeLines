@@ -58,6 +58,18 @@ def _normalize_weekdays(selected_days):
     return ordered_unique_days
 
 
+def _build_hx_trigger_response(message):
+    response = make_response('', 204)
+    response.headers['HX-Trigger'] = json.dumps({
+        "eventListChanged": {"target": "body"},
+        "showMessage": {
+            "target": "body",
+            "value": message
+        }
+    })
+    return response
+
+
 @bp.route('/')
 @auth.login_required
 def index(context = None):
@@ -199,6 +211,28 @@ def create_new_event(context=None):
         accessible_members=accessible_members,
         role_context=role_context,
         show_assignment=True
+    )
+
+
+@bp.route('/recurring_action_choice')
+@auth.login_required
+def recurring_action_choice(context=None):
+    action = request.args.get('action', 'edit')
+    event = {
+        'id': request.args.get('id', ''),
+        'date': request.args.get('date', ''),
+        'time': request.args.get('time', ''),
+        'recurring_event_id': request.args.get('recurring_event_id', '')
+    }
+    if action not in ['edit', 'delete']:
+        abort(400)
+    if not event['id'] or not event['recurring_event_id']:
+        abort(400)
+
+    return hx_render_template(
+        'recurring_action_choice.html',
+        action=action,
+        event=event
     )
 
 
@@ -344,7 +378,8 @@ def edit_event(context):
             "date": event_date,
             "time": event_time,
             "member": member_short_name,
-            "member_id": member_id
+            "member_id": member_id,
+            "recurring_event_id": request.args.get('recurring_event_id', '')
         }
 
     if request.method == 'POST':
@@ -377,6 +412,117 @@ def edit_event(context):
         update_url=f"/schedule/edit_event",
         show_assignment=False
     )
+
+
+@bp.route('/edit_recurring_event', methods=['GET', 'POST'])
+@auth.login_required
+def edit_recurring_event(context=None):
+    calendar_service = get_calendar_service()
+    member_id = get_member_id_from_user_context(context)
+    role_context = get_member_role_context(member_id)
+    accessible_members = get_accessible_members_for_context(member_id)
+    accessible_member_ids = {str(m.get('id')) for m in accessible_members if m and m.get('id')}
+
+    if request.method == 'GET':
+        recurring_event_id = request.args.get('recurring_event_id', '')
+        if not recurring_event_id:
+            abort(400)
+
+        event = calendar_service.get_recurring_workout_event_details(recurring_event_id)
+        if not event:
+            abort(404)
+
+        event['recurring_event_id'] = recurring_event_id
+        event['member_id'] = member_id
+        assigned_member_id = event.get('assigned_to_member_id') or event.get('member_id') or member_id
+        if role_context.get('role') == 'coach' and str(assigned_member_id) in accessible_member_ids:
+            event['assigned_to_member_id'] = assigned_member_id
+        else:
+            event['assigned_to_member_id'] = member_id
+
+        return hx_render_template(
+            'recurring_event_editor.html',
+            event=event,
+            day_options=WEEKDAY_LABELS,
+            accessible_members=accessible_members,
+            role_context=role_context,
+            update_url='/schedule/edit_recurring_event',
+            modal_title='Edit recurring workout',
+            submit_label='Save recurring changes'
+        )
+
+    recurring_event_id = request.form.get('recurring_event_id', '')
+    if not recurring_event_id:
+        abort(400)
+
+    start_date = request.form.get('start_date')
+    event_time = request.form.get('time')
+    selected_days = _normalize_weekdays(request.form.getlist('days'))
+    selected_member_id = request.form.get('assigned_member_id', member_id)
+
+    if role_context.get('role') == 'coach' and str(selected_member_id) in accessible_member_ids:
+        assigned_member_id = selected_member_id
+    else:
+        assigned_member_id = member_id
+
+    event = {
+        'start_date': start_date,
+        'time': event_time,
+        'days': selected_days,
+        'member_id': member_id,
+        'assigned_to_member_id': assigned_member_id,
+        'recurring_event_id': recurring_event_id
+    }
+
+    profile = get_user_profile(assigned_member_id)
+    if profile:
+        member_short_name = profile.get('short_name', assigned_member_id)
+    else:
+        print(f"Unable to get profile for member id {assigned_member_id}")
+        abort(404)
+
+    if not selected_days:
+        return hx_render_template(
+            'recurring_event_editor.html',
+            event=event,
+            day_options=WEEKDAY_LABELS,
+            error_message='Pick at least one day of the week.',
+            accessible_members=accessible_members,
+            role_context=role_context,
+            update_url='/schedule/edit_recurring_event',
+            modal_title='Edit recurring workout',
+            submit_label='Save recurring changes'
+        )
+
+    try:
+        datetime.strptime(start_date, "%Y-%m-%d").date()
+        datetime.strptime(event_time, "%H:%M").time()
+    except (TypeError, ValueError):
+        return hx_render_template(
+            'recurring_event_editor.html',
+            event=event,
+            day_options=WEEKDAY_LABELS,
+            error_message='Invalid date or time value.',
+            accessible_members=accessible_members,
+            role_context=role_context,
+            update_url='/schedule/edit_recurring_event',
+            modal_title='Edit recurring workout',
+            submit_label='Save recurring changes'
+        )
+
+    byday = ",".join(selected_days)
+    event_meta = f"#id={assigned_member_id}\n#created_by={member_id}"
+    calendar_service.update_recurring_workout_event(
+        recurring_event_id=recurring_event_id,
+        member_short_name=member_short_name,
+        event_date=start_date,
+        event_time=event_time,
+        frequency='WEEKLY',
+        byday=byday,
+        location='YMCA',
+        metadata=event_meta
+    )
+    return _build_hx_trigger_response('Recurring workout updated.')
 
 @bp.route('/event_status/<event_id>/<status>', methods=['POST'])
 @auth.login_required
@@ -434,12 +580,18 @@ def set_event_status(context, event_id, status):
 @bp.route('/delete_event/<id>', methods=['POST'])
 @auth.login_required
 def remove_workout_session(context=None, id=None):
-    calendar_service = get_calendar_service()    
-    calendar_service.delete_workout_event(id)
+    calendar_service = get_calendar_service()
+    delete_scope = request.args.get('scope', 'single')
+    recurring_event_id = request.args.get('recurring_event_id', '')
 
-    response = make_response('', 204)
-    response.headers['HX-Trigger'] = json.dumps({
-        "eventListChanged": { "target": "body" },
-        "showMessage": { "value" : f"Event deleted.", "target": "body" }
-    })
-    return response
+    if delete_scope == 'series':
+        if not recurring_event_id:
+            abort(400)
+        calendar_service.delete_recurring_workout_event(recurring_event_id)
+        return _build_hx_trigger_response('Recurring series deleted.')
+
+    if delete_scope != 'single':
+        abort(400)
+
+    calendar_service.delete_workout_event(id)
+    return _build_hx_trigger_response('Event deleted.')

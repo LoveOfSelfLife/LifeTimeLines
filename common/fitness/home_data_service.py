@@ -142,6 +142,7 @@ class HomePageDataService:
                     scheduled_date = rec.get('date')
                     scheduled_event_id = rec.get('id')
                     scheduled_event_status = rec.get('status')
+                    recurring_event_id = rec.get('recurring_event_id', None)
                     if scheduled_event_status == 'done':
                         continue
                     scheduled_member = { 'member_id': scheduled_member_id, 
@@ -149,7 +150,8 @@ class HomePageDataService:
                                         'scheduled_time': scheduled_time, 
                                         'scheduled_date': scheduled_date, 
                                         'event_id': scheduled_event_id, 
-                                        'status': scheduled_event_status }
+                                        'status': scheduled_event_status,
+                                        'recurring_event_id': recurring_event_id }
                     scheduled_workouts_by_date['members_scheduled'] = scheduled_workouts_by_date['members_scheduled'] + [scheduled_member]
             
             # this is for the last scheduled workout that we were building in the loop, we need to add it to the list if it has any members scheduled for it
@@ -206,6 +208,7 @@ class HomePageDataService:
                         'time_until_workout': time_until_workout,
                         'team_members': team_members2,
                         'event_id': my_event.get('event_id'),
+                        'recurring_event_id': my_event.get('recurring_event_id', None),
                         'status': status
                     })
             

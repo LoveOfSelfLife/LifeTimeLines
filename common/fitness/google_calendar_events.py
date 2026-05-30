@@ -85,6 +85,59 @@ class GoogleCalendarService (AbstractCalendarService):
         except Exception as error:
             print(f"An error occurred: {error}")
             return None
+
+    def get_recurring_workout_event_details(self, recurring_event_id: str):
+        event = self.get_event(recurring_event_id)
+        if not event:
+            return None
+
+        start_value = event.get('start', {}).get('dateTime', event.get('start', {}).get('date'))
+        start_dt = datetime.fromisoformat(start_value)
+        recurrence = event.get('recurrence', []) or []
+        byday = []
+        frequency = 'WEEKLY'
+        for rule in recurrence:
+            if not rule.startswith('RRULE:'):
+                continue
+            rule_parts = rule.replace('RRULE:', '').split(';')
+            for part in rule_parts:
+                if part.startswith('FREQ='):
+                    frequency = part.split('=', 1)[1]
+                if part.startswith('BYDAY='):
+                    byday = [day for day in part.split('=', 1)[1].split(',') if day]
+
+        metadata = extract_id_and_status(event.get('description', '') or '')
+        return {
+            'start_date': start_dt.date().strftime('%Y-%m-%d'),
+            'time': start_dt.time().strftime('%H:%M'),
+            'days': byday,
+            'frequency': frequency,
+            'assigned_to_member_id': metadata.get('id', ''),
+            'member_id': metadata.get('id', '')
+        }
+
+    def _build_workout_event_body(self, member_short_name, event_date, event_time, location, metadata, duration_hours=1, recurrence=None):
+        event_date = datetime.strptime(event_date, "%Y-%m-%d").date()
+        event_time = datetime.strptime(event_time, "%H:%M").time()
+        event_datetime = datetime.combine(event_date, event_time)
+        event_datetime_end = event_datetime + timedelta(hours=duration_hours)
+
+        event = {
+            'summary': f'{member_short_name}',
+            'location': location,
+            'description': metadata,
+            'start': {
+                'dateTime': f'{event_datetime.isoformat()}',
+                'timeZone': 'America/New_York'
+            },
+            'end': {
+                'dateTime': f'{event_datetime_end.isoformat()}',
+                'timeZone': 'America/New_York',
+            }
+        }
+        if recurrence:
+            event['recurrence'] = recurrence
+        return event
         
     # def get_scheduled_events(self, date_min:str=None, date_max:str=None):
     #     """
@@ -333,6 +386,7 @@ class GoogleCalendarService (AbstractCalendarService):
             event_id = event.get('id', '')
             event_type = 'event'
             event_metadata = event.get('description', '')
+            recurring_event_id = event.get('recurringEventId', None)
             # if the event has a description, we can extract the member id and created by id from it
             metadata = extract_id_and_status(event_metadata)
             event['member_id'] = metadata.get('id', '')
@@ -362,6 +416,7 @@ class GoogleCalendarService (AbstractCalendarService):
                 'member_id': metadata.get('id', ''),
                 'status': metadata.get('status', ''),
                 'name': metadata.get('name', ''),
+                'recurring_event_id': recurring_event_id,
                 'summary': event_summary
             }
             events_list.append(event_dict)
@@ -395,25 +450,7 @@ class GoogleCalendarService (AbstractCalendarService):
         # location is formatted as "YMCA, Cranford, NJ" 
         # convert date & time to ISO 8601 format
 
-        event_date = datetime.strptime(event_date, "%Y-%m-%d").date()
-        event_time = datetime.strptime(event_time, "%H:%M").time()
-        event_datetime = datetime.combine(event_date, event_time)
-        #end time is duration_hours later
-        event_datetime_end = event_datetime + timedelta(hours=duration_hours)
-
-        event = {
-            'summary': f'{member_short_name}',
-            'location': location,
-            'description': metadata,
-            'start': {
-                'dateTime': f'{event_datetime.isoformat()}',
-                'timeZone': 'America/New_York'
-            },
-            'end': {
-                'dateTime': f'{event_datetime_end.isoformat()}',
-                'timeZone': 'America/New_York', 
-            }
-        }
+        event = self._build_workout_event_body(member_short_name, event_date, event_time, location, metadata, duration_hours=duration_hours)
 
         try:
             event = self.service.events().insert(calendarId=self.calendar_id, body=event).execute()
@@ -437,28 +474,15 @@ class GoogleCalendarService (AbstractCalendarService):
         # location is formatted as "YMCA, Cranford, NJ" 
         # convert date & time to ISO 8601 format
 
-        event_date = datetime.strptime(event_date, "%Y-%m-%d").date()
-        event_time = datetime.strptime(event_time, "%H:%M").time()
-        event_datetime = datetime.combine(event_date, event_time)
-        #end time is duration_hours later
-        event_datetime_end = event_datetime + timedelta(hours=duration_hours)
-
-        event = {
-            'summary': f'{member_short_name}',
-            'location': location,
-            'description': metadata,
-            'start': {
-                'dateTime': f'{event_datetime.isoformat()}',
-                'timeZone': 'America/New_York'
-            },
-            'end': {
-                'dateTime': f'{event_datetime_end.isoformat()}',
-                'timeZone': 'America/New_York', 
-            },
-            'recurrence': [
-                f'RRULE:FREQ={frequency};BYDAY={byday}'
-            ]
-        }
+        event = self._build_workout_event_body(
+            member_short_name,
+            event_date,
+            event_time,
+            location,
+            metadata,
+            duration_hours=duration_hours,
+            recurrence=[f'RRULE:FREQ={frequency};BYDAY={byday}']
+        )
 
         try:
             event = self.service.events().insert(calendarId=self.calendar_id, body=event).execute()
@@ -479,25 +503,7 @@ class GoogleCalendarService (AbstractCalendarService):
         # date is formatted as MM/DD/YYYY
         # time is formatted as HH:MM in military time
 
-        event_date = datetime.strptime(event_date, "%Y-%m-%d").date()
-        event_time = datetime.strptime(event_time, "%H:%M").time()
-        event_datetime = datetime.combine(event_date, event_time)
-        #end time is duration_hours later
-        event_datetime_end = event_datetime + timedelta(hours=duration_hours)
-    
-        event = {
-            'summary': f'{member_short_name}',
-            'location': location,
-            'description': metadata,
-            'start': {
-                'dateTime': f'{event_datetime.isoformat()}',
-                'timeZone': 'America/New_York'
-            },
-            'end': {
-                'dateTime': f'{event_datetime_end.isoformat()}',
-                'timeZone': 'America/New_York', 
-            }
-        }
+        event = self._build_workout_event_body(member_short_name, event_date, event_time, location, metadata, duration_hours=duration_hours)
 
         try:
             event = self.service.events().update(calendarId=self.calendar_id, eventId=event_id, body=event).execute()
@@ -505,10 +511,34 @@ class GoogleCalendarService (AbstractCalendarService):
         except Exception as error:
             print(f"An error occurred: {error}")
 
+    def update_recurring_workout_event(self, recurring_event_id, member_short_name, event_date, event_time, frequency, byday, location, metadata, duration_hours=1):
+        event = self._build_workout_event_body(
+            member_short_name,
+            event_date,
+            event_time,
+            location,
+            metadata,
+            duration_hours=duration_hours,
+            recurrence=[f'RRULE:FREQ={frequency};BYDAY={byday}']
+        )
+
+        try:
+            event = self.service.events().update(calendarId=self.calendar_id, eventId=recurring_event_id, body=event).execute()
+            print("Recurring event updated: %s" % (event.get("htmlLink")))
+        except Exception as error:
+            print(f"An error occurred: {error}")
+
     def delete_workout_event(self, event_id):
         try:
             event = self.service.events().delete(calendarId=self.calendar_id, eventId=event_id).execute()
             print("Event deleted: %s" % (event.get("htmlLink"))) 
+        except Exception as error:
+            print(f"An error occurred: {error}")
+
+    def delete_recurring_workout_event(self, recurring_event_id):
+        try:
+            event = self.service.events().delete(calendarId=self.calendar_id, eventId=recurring_event_id).execute()
+            print("Recurring event deleted: %s" % (event.get("htmlLink")))
         except Exception as error:
             print(f"An error occurred: {error}")
 

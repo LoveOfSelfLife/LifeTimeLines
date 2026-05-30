@@ -1,5 +1,5 @@
 <div class="modal-dialog modal-dialog-centered">
-  <form hx-post="{{ request.path }}"
+  <form hx-post="{{ update_url if update_url else request.path }}"
     class="modal-content">
     <div class="modal-header text-black">
       <h5 class="modal-title" id="create-event-modal-label">{{ 'Modify your appointment' if event and event['id'] else 'Make appointment at gym' }}</h5>
@@ -9,6 +9,7 @@
     <div class="modal-body">
       <!-- add hidden event for the id here-->
       <input type="hidden" name="id" value="{{ event['id'] if event else '' }}">
+      <input type="hidden" name="recurring_event_id" value="{{ event['recurring_event_id'] if event else '' }}">
 
       <div class="mb-3">
         <label for="date" class="form-label text-white">Date</label>
@@ -39,10 +40,17 @@
     <div class="modal-footer">
       <!-- here I only want to include this code if the event object is not empty and it has a non null 'id' attribute  -->
       {% if event and event['id'] %}
+      {% if event.get('recurring_event_id') %}
+      <button type="button" class="btn btn-danger"
+        hx-get="/schedule/recurring_action_choice?action=delete&id={{ event['id'] }}&date={{ event['date'] }}&time={{ event['time'] }}&recurring_event_id={{ event['recurring_event_id'] }}&modal=1"
+        hx-target="#modals-here"
+        hx-swap="innerHTML">Remove</button>
+      {% else %}
       <button type="button" class="btn btn-danger" 
         hx-post="/schedule/delete_event/{{ event['id'] }}" 
         data-bs-dismiss="modal"
         hx-confirm="Are you sure you want to remove you appointment at the gym?">Remove</button>
+      {% endif %}
       <span class="flex-grow-1"></span>
       {% endif %}
 
