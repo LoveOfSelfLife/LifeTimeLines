@@ -4,7 +4,7 @@ from common.fitness.coach_team_entity import get_team_coaches
 from common.fitness.member_entity import get_member_id_from_user_context, get_user_profile
 from common.fitness.hx_common import hx_render_template
 from common.fitness.member_team_entity import get_team_members
-from common.fitness.roles_service import get_current_team_context
+from common.fitness.roles_service import get_accessible_members_for_context, get_current_team_context, get_member_role_context
 from common.fitness.workout_sessions import WorkoutSessionEntity, EventTypes, create_new_workout_session, list_workout_sessions, get_workout_session, store_workout_session, delete_workout_session, generate_id
 from common.fitness.get_calendar_service import get_calendar_service
 bp = Blueprint('schedule', __name__, template_folder='templates')
@@ -114,11 +114,22 @@ bp.add_app_template_filter(format_datetime, name='format_datetime')
 def create_new_event(context=None):
     calendar_service = get_calendar_service()
     member_id = get_member_id_from_user_context(context)
-    profile = get_user_profile(member_id)
-    if profile:
-        member_short_name = profile.get('short_name', member_id)
+    role_context = get_member_role_context(member_id)
+    accessible_members = get_accessible_members_for_context(member_id)
+    accessible_member_ids = {str(m.get('id')) for m in accessible_members if m and m.get('id')}
+
+    assigned_member_id = request.args.get('assigned_member_id', member_id)
+    if role_context.get('role') == 'coach':
+        if str(assigned_member_id) not in accessible_member_ids:
+            assigned_member_id = member_id
     else:
-        print(f"Unable to get profile for member id {member_id}")
+        assigned_member_id = member_id
+
+    profile = get_user_profile(assigned_member_id)
+    if profile:
+        member_short_name = profile.get('short_name', assigned_member_id)
+    else:
+        print(f"Unable to get profile for member id {assigned_member_id}")
         abort(404)
 
     event = None
@@ -126,19 +137,49 @@ def create_new_event(context=None):
     optional_time = request.args.get('time', None)
 
     if optional_date:
-        event = { "id": "", "date": optional_date, "time": optional_time if optional_time else "" }        
+        event = {
+            "id": "",
+            "date": optional_date,
+            "time": optional_time if optional_time else "",
+            "member_id": member_id,
+            "assigned_to_member_id": assigned_member_id
+        }
     else:
-        event = { "id": "", "date": "", "time": "" }
+        event = {
+            "id": "",
+            "date": "",
+            "time": "",
+            "member_id": member_id,
+            "assigned_to_member_id": assigned_member_id
+        }
 
     if request.method == 'POST':
         # retrieve the form data
         date = request.form.get('date')
         time = request.form.get('time')
+        selected_member_id = request.form.get('assigned_member_id', member_id)
+
+        if role_context.get('role') == 'coach':
+            if str(selected_member_id) in accessible_member_ids:
+                assigned_member_id = selected_member_id
+            else:
+                assigned_member_id = member_id
+        else:
+            assigned_member_id = member_id
+
+        profile = get_user_profile(assigned_member_id)
+        if profile:
+            member_short_name = profile.get('short_name', assigned_member_id)
+        else:
+            print(f"Unable to get profile for member id {assigned_member_id}")
+            abort(404)
+
+        event['assigned_to_member_id'] = assigned_member_id
 
         if date and time:
             # update the event in the back-end store
             # event_meta = f"#member_id:{appt_member_id}\n#created_by:{member_id}"
-            event_meta = f"#id={member_id}"            
+            event_meta = f"#id={assigned_member_id}\n#created_by={member_id}"
             calendar_service.add_workout_event(member_short_name=member_short_name, 
                                                event_date=date, event_time=time,
                                                location="YMCA", metadata=event_meta)
@@ -151,7 +192,14 @@ def create_new_event(context=None):
                 })
             return response
 
-    return hx_render_template('event_editor.html', event=event, update_url="/schedule/create_event")
+    return hx_render_template(
+        'event_editor.html',
+        event=event,
+        update_url="/schedule/create_event",
+        accessible_members=accessible_members,
+        role_context=role_context,
+        show_assignment=True
+    )
 
 
 @bp.route('/create_recurring_event', methods=['GET', 'POST'])
@@ -159,35 +207,67 @@ def create_new_event(context=None):
 def create_recurring_event(context=None):
     calendar_service = get_calendar_service()
     member_id = get_member_id_from_user_context(context)
-    profile = get_user_profile(member_id)
-    if profile:
-        member_short_name = profile.get('short_name', member_id)
+    role_context = get_member_role_context(member_id)
+    accessible_members = get_accessible_members_for_context(member_id)
+    accessible_member_ids = {str(m.get('id')) for m in accessible_members if m and m.get('id')}
+
+    assigned_member_id = request.args.get('assigned_member_id', member_id)
+    if role_context.get('role') == 'coach':
+        if str(assigned_member_id) not in accessible_member_ids:
+            assigned_member_id = member_id
     else:
-        print(f"Unable to get profile for member id {member_id}")
+        assigned_member_id = member_id
+
+    profile = get_user_profile(assigned_member_id)
+    if profile:
+        member_short_name = profile.get('short_name', assigned_member_id)
+    else:
+        print(f"Unable to get profile for member id {assigned_member_id}")
         abort(404)
 
     today_str = datetime.now().strftime("%Y-%m-%d")
     event = {
         "start_date": request.args.get('start_date', today_str),
         "time": request.args.get('time', "06:00"),
-        "days": request.args.getlist('days')
+        "days": request.args.getlist('days'),
+        "member_id": member_id,
+        "assigned_to_member_id": assigned_member_id
     }
 
     if request.method == 'POST':
         start_date = request.form.get('start_date')
         event_time = request.form.get('time')
         selected_days = _normalize_weekdays(request.form.getlist('days'))
+        selected_member_id = request.form.get('assigned_member_id', member_id)
+
+        if role_context.get('role') == 'coach':
+            if str(selected_member_id) in accessible_member_ids:
+                assigned_member_id = selected_member_id
+            else:
+                assigned_member_id = member_id
+        else:
+            assigned_member_id = member_id
+
+        profile = get_user_profile(assigned_member_id)
+        if profile:
+            member_short_name = profile.get('short_name', assigned_member_id)
+        else:
+            print(f"Unable to get profile for member id {assigned_member_id}")
+            abort(404)
 
         event['start_date'] = start_date
         event['time'] = event_time
         event['days'] = selected_days
+        event['assigned_to_member_id'] = assigned_member_id
 
         if not selected_days:
             return hx_render_template(
                 'recurring_event_editor.html',
                 event=event,
                 day_options=WEEKDAY_LABELS,
-                error_message="Pick at least one day of the week."
+                error_message="Pick at least one day of the week.",
+                accessible_members=accessible_members,
+                role_context=role_context
             )
 
         if start_date and event_time:
@@ -199,7 +279,9 @@ def create_recurring_event(context=None):
                     'recurring_event_editor.html',
                     event=event,
                     day_options=WEEKDAY_LABELS,
-                    error_message="Invalid date or time value."
+                    error_message="Invalid date or time value.",
+                    accessible_members=accessible_members,
+                    role_context=role_context
                 )
 
             first_occurrence_date = _get_first_occurrence_date(parsed_start_date, parsed_event_time, selected_days)
@@ -208,11 +290,13 @@ def create_recurring_event(context=None):
                     'recurring_event_editor.html',
                     event=event,
                     day_options=WEEKDAY_LABELS,
-                    error_message="Unable to compute the first occurrence for this recurrence."
+                    error_message="Unable to compute the first occurrence for this recurrence.",
+                    accessible_members=accessible_members,
+                    role_context=role_context
                 )
 
             byday = ",".join(selected_days)
-            event_meta = f"#id={member_id}"
+            event_meta = f"#id={assigned_member_id}\n#created_by={member_id}"
             calendar_service.add_recurring_workout_event(
                 member_short_name=member_short_name,
                 event_date=first_occurrence_date.strftime("%Y-%m-%d"),
@@ -236,7 +320,9 @@ def create_recurring_event(context=None):
     return hx_render_template(
         'recurring_event_editor.html',
         event=event,
-        day_options=WEEKDAY_LABELS
+        day_options=WEEKDAY_LABELS,
+        accessible_members=accessible_members,
+        role_context=role_context
     )
 
 
@@ -285,7 +371,12 @@ def edit_event(context):
             })
             return response
 
-    return hx_render_template('event_editor.html', event=event, update_url=f"/schedule/edit_event")
+    return hx_render_template(
+        'event_editor.html',
+        event=event,
+        update_url=f"/schedule/edit_event",
+        show_assignment=False
+    )
 
 @bp.route('/event_status/<event_id>/<status>', methods=['POST'])
 @auth.login_required

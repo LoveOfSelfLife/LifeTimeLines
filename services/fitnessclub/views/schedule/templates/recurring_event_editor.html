@@ -36,6 +36,20 @@
         >
       </div>
 
+      {% if role_context.role == 'coach' %}
+      <div class="mb-3">
+        <label for="assigned_member" class="form-label text-white">Assign To:</label>
+        <select name="assigned_member_id" id="assigned_member" class="form-select"
+                style="color: #212529; background-color: #fff;">
+          {% for member in accessible_members %}
+          <option value="{{ member.id }}" {% if member.id == (event.assigned_to_member_id or event.member_id) %}selected{% endif %}>
+            {{ member.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
       <div class="mb-2">
         <label class="form-label text-white">Days of week</label>
       </div>
