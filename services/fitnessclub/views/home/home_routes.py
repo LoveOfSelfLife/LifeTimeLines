@@ -9,7 +9,7 @@ Handles the new three-section home page dashboard:
 All routes use HTMX for dynamic updates and follow the existing authentication patterns.
 """
 
-from flask import Blueprint, abort, make_response, render_template, request, jsonify, session, redirect, url_for
+from flask import Blueprint, abort, make_response, render_template, render_template_string, request, jsonify, session, redirect, url_for
 from auth import auth
 from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import hx_render_template
@@ -21,6 +21,7 @@ from common.fitness.programs import get_last_workout_instance_for_workout, get_m
 from common.entity_store import EntityStore
 from datetime import datetime, timezone, date
 import json
+from common.fitness.analytics.query import AFCAnalyticsRepository
 
 bp = Blueprint('home', __name__, template_folder='../../templates')
 
@@ -135,25 +136,46 @@ def completed_workouts_partial(context=None):
 @auth.login_required
 def analytics_partial(context=None):
     """HTMX partial for analytics section"""
+    member_id = get_member_id_from_user_context(context)
+
     try:
-        member_id = get_member_id_from_user_context(context)
-        
-        # Get analytics data
-        home_service = HomePageDataService()
-        analytics_data = home_service.get_analytics_data(member_id, datetime.now(timezone.utc))
-        
-        return hx_render_template(
-            template_file='home/analytics_partial.html', 
-            data=analytics_data,
-            context=context
-        )
-        
+
+        # ar = AFCAnalyticsRepository(db_path="/share/FitnessClub/Analytics/afc_analytics.sqlite")
+        ar = AFCAnalyticsRepository(db_path="D:/GitHub/DickKemp/LifeTimeLines/test/fitness/fitness_reporting/afc_analytics.sqlite")
+        summary = ar.member_dashboard_summary(member_id)
+        if summary:
+            return render_template_string(f'''
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">workouts per week</h5>
+                            <p class="card-text display-4">{summary.get('workouts_per_week', 0)}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        ''')
     except Exception as e:
-        print(f"Error loading analytics: {e}")
-        return hx_render_template(
-            template_string='<div class="alert alert-danger">Error loading analytics</div>',
-            context=context
-        )
+        try:
+            member_id = get_member_id_from_user_context(context)
+            
+            # Get analytics data
+            home_service = HomePageDataService()
+            analytics_data = home_service.get_analytics_data(member_id, datetime.now(timezone.utc))
+            
+            return hx_render_template(
+                template_file='home/analytics_partial.html', 
+                data=analytics_data,
+                context=context
+            )
+        
+        except Exception as e:
+            print(f"Error loading analytics: {e}")
+            return hx_render_template(
+                template_string='<div class="alert alert-danger">Error loading analytics</div>',
+                context=context
+            )
 
 @bp.route("/start-workout", methods=['POST'])
 @auth.login_required
