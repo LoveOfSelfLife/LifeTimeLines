@@ -140,8 +140,9 @@ def analytics_partial(context=None):
 
     try:
 
-        # ar = AFCAnalyticsRepository(db_path="/share/FitnessClub/Analytics/afc_analytics.sqlite")
-        ar = AFCAnalyticsRepository(db_path="D:/GitHub/DickKemp/LifeTimeLines/test/fitness/fitness_reporting/afc_analytics.sqlite")
+        ar = AFCAnalyticsRepository(db_path="/share/FitnessClub/Analytics/afc_analytics.sqlite")
+        # ar = AFCAnalyticsRepository(db_path="D:/GitHub/DickKemp/LifeTimeLines/test/fitness/fitness_reporting/afc_analytics.sqlite")
+        
         summary = ar.member_dashboard_summary(member_id)
         if summary:
             return render_template_string(f'''
