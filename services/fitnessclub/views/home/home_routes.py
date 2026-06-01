@@ -136,47 +136,49 @@ def completed_workouts_partial(context=None):
 @auth.login_required
 def analytics_partial(context=None):
     """HTMX partial for analytics section"""
-    member_id = get_member_id_from_user_context(context)
+    # member_id = get_member_id_from_user_context(context)
+
+    # try:
+
+    #     ar = AFCAnalyticsRepository(db_path="/share/FitnessClub/Analytics/afc_analytics.sqlite")
+    #     # ar = AFCAnalyticsRepository(db_path="D:/GitHub/DickKemp/LifeTimeLines/test/fitness/fitness_reporting/afc_analytics.sqlite")
+
+    #     summary = ar.member_dashboard_summary(member_id)
+    #     if summary:
+    #         return render_template_string(f'''
+    #         <div class="row">
+    #             <div class="col-md-4">
+    #                 <div class="card mb-3">
+    #                     <div class="card-body">
+    #                         <h5 class="card-title">workouts per week</h5>
+    #                         <p class="card-text display-4">{summary.get('workouts_per_week', 0)}</p>
+    #                     </div>
+    #                 </div>
+    #             </div>
+    #         </div>
+    #     ''')
+    # except Exception as e:
+    #     pass
 
     try:
-
-        ar = AFCAnalyticsRepository(db_path="/share/FitnessClub/Analytics/afc_analytics.sqlite")
-        # ar = AFCAnalyticsRepository(db_path="D:/GitHub/DickKemp/LifeTimeLines/test/fitness/fitness_reporting/afc_analytics.sqlite")
+        member_id = get_member_id_from_user_context(context)
         
-        summary = ar.member_dashboard_summary(member_id)
-        if summary:
-            return render_template_string(f'''
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <h5 class="card-title">workouts per week</h5>
-                            <p class="card-text display-4">{summary.get('workouts_per_week', 0)}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        ''')
+        # Get analytics data
+        home_service = HomePageDataService()
+        analytics_data = home_service.get_analytics_data(member_id, datetime.now(timezone.utc))
+        
+        return hx_render_template(
+            template_file='home/analytics_partial.html', 
+            data=analytics_data,
+            context=context
+        )
+    
     except Exception as e:
-        try:
-            member_id = get_member_id_from_user_context(context)
-            
-            # Get analytics data
-            home_service = HomePageDataService()
-            analytics_data = home_service.get_analytics_data(member_id, datetime.now(timezone.utc))
-            
-            return hx_render_template(
-                template_file='home/analytics_partial.html', 
-                data=analytics_data,
-                context=context
-            )
-        
-        except Exception as e:
-            print(f"Error loading analytics: {e}")
-            return hx_render_template(
-                template_string='<div class="alert alert-danger">Error loading analytics</div>',
-                context=context
-            )
+        print(f"Error loading analytics: {e}")
+        return hx_render_template(
+            template_string='<div class="alert alert-danger">Error loading analytics</div>',
+            context=context
+        )
 
 @bp.route("/start-workout", methods=['POST'])
 @auth.login_required
