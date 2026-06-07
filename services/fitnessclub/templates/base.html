@@ -26,7 +26,8 @@
   <script defer src="{{ url_for('static', filename='dialog.js') }}"></script>
   <script defer src="{{ url_for('static', filename='toast.js') }}"></script>
   <script defer src="https://unpkg.com/alpinejs@3/dist/cdn.min.js"></script>
- 
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  
 </head>
 <body>
   <!-- Navbar -->
@@ -52,7 +53,7 @@
 
           <li class="nav-item">
             <a class="nav-link" hx-get="/schedule" hx-target="#content" hx-swap="innerHTML">
-              <i class="bi bi-list-check"></i> Schedule
+              <i class="bi bi-list-check"></i> Team Schedule
             </a>
           </li>
 
