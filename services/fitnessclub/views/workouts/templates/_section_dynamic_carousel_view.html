@@ -1,0 +1,247 @@
+{% set carousel_id = "carouselExample-" ~ rs(section.name) %}
+
+<div id="{{ carousel_id }}" class="carousel slide pointer-event workout-carousel" data-bs-interval="false" data-bs-wrap="true">
+    {% if section.exercises and section.exercises|length > 0 %}
+    {% set section_length = section.exercises|length %}
+    {% set has_default_index_match = default_exercise_index is not none and default_exercise_index >= 0 and default_exercise_index < section_length %}
+    <div class="carousel-inner">
+        {% for item in section.exercises %}
+        {% set ex = exercises[item.id] %}
+        {% set slide_id = carousel_id ~ '-slide-' ~ loop.index %}
+        {% set is_active_index = has_default_index_match and loop.index0 == default_exercise_index %}
+        <div id="{{ slide_id }}" data-exercise-index="{{ loop.index0 }}" class="carousel-item {% if is_active_index or (loop.first and not has_default_index_match) %}active{% endif %}">
+            <div class="p-3">
+                <div class="card">
+                    <div class="card-body position-relative">
+                        <div class="position-absolute top-0 end-0 mt-3 me-3 small text-muted">
+                            {{ loop.index }} of {{ section.exercises|length }}
+                        </div>
+                        <h5 class="card-title mb-3">{{ ex.name }}</h5>
+
+                        <div class="mb-3 text-center">
+                            {% if ex.videos and ex.videos|length > 0 %}
+                            <video controls playsinline preload="metadata" class="w-100 rounded"
+                                style="max-height: 280px; object-fit: cover;">
+                                <source src="{{ ex.videos[0].url }}" type="video/mp4">
+                                Your browser does not support embedded video.
+                            </video>
+                            {% elif ex.images and ex.images|length > 0 %}
+                            <img src="{{ ex.images[0].url }}" alt="{{ ex.name }}" class="img-fluid rounded"
+                                style="max-height: 280px; width: 100%; object-fit: cover;">
+                            {% else %}
+                            <img src="{{ url_for('static', filename='images/exercise.png') }}" alt="{{ ex.name }}"
+                                class="img-fluid rounded" style="max-height: 280px; width: 100%; object-fit: contain;">
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <p class="mb-2 small text-muted"
+                                style="display:-webkit-box; line-clamp:3; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">
+                                {{ ex.instructions or 'No instructions available.' }}
+                            </p>
+                            <button type="button" class="btn btn-sm btn-outline-secondary"
+                                hx-get="/workouts/viewer/exercise/{{ ex.id }}/details?allow_popups=true&modal_mode=true"
+                                hx-target="#modals-here" hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#modals-here">
+                                See more
+                            </button>
+                        </div>
+
+                        <div id="parameters">
+                            {% set timer = namespace(has_timer=False, timer_value=None, timer_units=None) %}
+                            {% set param_ns = namespace(unit_param_id=None, param_list=[]) %}
+                            {% set param_ns.param_list = exercise_parameters %}
+                            {% include "_dynamic_parameter.html" %}
+
+                            <strong>
+                                {% if active_workout and timer.has_timer and timer.timer_value is not none %}
+                                {% set timer_duration = timer.timer_value %}
+                                <div class="timer-container ms-2 d-inline-block">
+                                    <div class="timer-icon-wrapper" data-exercise-id="{{ ex.id }}" data-duration="{{ timer_duration }}"
+                                        onclick="startExerciseTimer('{{ ex.id }}', Number('{{ timer_duration }}'))"
+                                        title="Start {{ timer_duration }} second timer">
+                                        <i class="bi bi-stopwatch timer-icon"></i>
+                                        <span class="timer-display" id="timer-{{ ex.id }}">{{ timer_duration }}s</span>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </strong>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="p-3">
+        <div class="alert alert-secondary mb-0">No exercises found in this section.</div>
+    </div>
+    {% endif %}
+
+    <button class="carousel-control-prev carousel-control-compact" type="button" data-bs-target="#{{ carousel_id }}" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Previous</span>
+    </button>
+    <button class="carousel-control-next carousel-control-compact" type="button" data-bs-target="#{{ carousel_id }}" data-bs-slide="next">
+        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+        <span class="visually-hidden">Next</span>
+    </button>
+</div>
+
+<style>
+    .workout-carousel {
+        --carousel-control-size-desktop: 3.25rem;
+        --carousel-control-size-mobile: 2.85rem;
+        --carousel-control-bg: rgba(13, 110, 253, 0.92);
+        --carousel-control-bg-hover: rgba(10, 88, 202, 0.98);
+        --carousel-control-ring: rgba(255, 255, 255, 0.9);
+    }
+
+    .workout-carousel .carousel-control-compact {
+        top: 50%;
+        bottom: auto;
+        width: var(--carousel-control-size-desktop);
+        height: var(--carousel-control-size-desktop);
+        transform: translateY(-50%);
+        border-radius: 999px;
+        background: var(--carousel-control-bg);
+        border: 2px solid rgba(255, 255, 255, 0.95);
+        box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.35);
+        opacity: 1;
+        transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    }
+
+    .workout-carousel .carousel-control-prev.carousel-control-compact {
+        left: 0.6rem;
+    }
+
+    .workout-carousel .carousel-control-next.carousel-control-compact {
+        right: 0.6rem;
+    }
+
+    .workout-carousel .carousel-control-compact .carousel-control-prev-icon,
+    .workout-carousel .carousel-control-compact .carousel-control-next-icon {
+        width: 1.2rem;
+        height: 1.2rem;
+        filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45));
+    }
+
+    .workout-carousel .carousel-control-compact:hover,
+    .workout-carousel .carousel-control-compact:focus,
+    .workout-carousel .carousel-control-compact:active {
+        background: var(--carousel-control-bg-hover);
+        transform: translateY(-50%) scale(1.06);
+        box-shadow: 0 0.5rem 1.25rem rgba(0, 0, 0, 0.45);
+    }
+
+    .workout-carousel .carousel-control-compact:focus-visible {
+        outline: 0;
+        box-shadow: 0 0 0 0.25rem var(--carousel-control-ring), 0 0.5rem 1.25rem rgba(0, 0, 0, 0.45);
+    }
+
+    @media (max-width: 768px) {
+        .workout-carousel .carousel-control-compact {
+            width: var(--carousel-control-size-mobile);
+            height: var(--carousel-control-size-mobile);
+            border-width: 1.5px;
+        }
+
+        .workout-carousel .carousel-control-prev.carousel-control-compact {
+            left: 0.4rem;
+        }
+
+        .workout-carousel .carousel-control-next.carousel-control-compact {
+            right: 0.4rem;
+        }
+
+        .workout-carousel .carousel-control-compact .carousel-control-prev-icon,
+        .workout-carousel .carousel-control-compact .carousel-control-next-icon {
+            width: 1.05rem;
+            height: 1.05rem;
+        }
+    }
+</style>
+
+<div class="d-none"
+    hx-post="{{ url_for('workouts.set_last_exercise_index', workout_id=workout.id, section_name=section.name) }}"
+    hx-trigger="slid.bs.carousel from:#{{ carousel_id }}"
+    hx-vals='js:{"exercise_index": event && event.relatedTarget ? event.relatedTarget.dataset.exerciseIndex : 0}'
+    hx-swap="none"></div>
+
+<script>
+    ; (function () {
+        const carouselEl = document.getElementById("{{ carousel_id }}")
+        if (!carouselEl) {
+            return
+        }
+
+        const pauseAllVideos = () => {
+            carouselEl.querySelectorAll(".carousel-item video").forEach((video) => {
+                try {
+                    video.pause()
+                } catch (e) {
+                    // no-op
+                }
+            })
+        }
+
+        const playVideoForSlide = (slideEl) => {
+            if (!slideEl) {
+                return
+            }
+            const video = slideEl.querySelector("video")
+            if (!video) {
+                return
+            }
+            if (video.dataset.manualControl === "true") {
+                return
+            }
+            video.currentTime = 0
+            const playPromise = video.play()
+            if (playPromise && typeof playPromise.catch === "function") {
+                playPromise.catch(() => {
+                    // Browser autoplay policy may block until user interacts.
+                })
+            }
+        }
+
+        const playActiveSlideVideo = () => {
+            pauseAllVideos()
+            const activeSlide = carouselEl.querySelector(".carousel-item.active")
+            playVideoForSlide(activeSlide)
+        }
+
+        carouselEl.querySelectorAll(".carousel-item video").forEach((video) => {
+            video.loop = true
+
+            const disableAutoBehavior = () => {
+                video.dataset.manualControl = "true"
+                video.loop = false
+            }
+
+            // As soon as a member touches controls, preserve manual control for this video.
+            video.addEventListener("pointerdown", disableAutoBehavior)
+            video.addEventListener("touchstart", disableAutoBehavior)
+            video.addEventListener("keydown", disableAutoBehavior)
+
+            video.addEventListener("ended", () => {
+                if (video.dataset.manualControl === "true") {
+                    return
+                }
+                video.currentTime = 0
+                const playPromise = video.play()
+                if (playPromise && typeof playPromise.catch === "function") {
+                    playPromise.catch(() => {
+                        // Browser autoplay policy may block until user interacts.
+                    })
+                }
+            })
+        })
+
+        carouselEl.addEventListener("slid.bs.carousel", playActiveSlideVideo)
+
+        // Start playback for the initially active slide.
+        playActiveSlideVideo()
+    })()
+</script>

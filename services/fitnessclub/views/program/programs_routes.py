@@ -881,7 +881,14 @@ def start_workout(context=None):
         for section in workout_sections:
             if len(section.get('exercises', [])) > 0:
                 last = section.get('name', None)
-                break        
+                break
+
+    last_exercise_indexes_by_section = {
+        section.get('name'): session.get(f"last_exercise_index_{workout_instance.get('id')}_{section.get('name')}")
+        for section in workout_sections
+    }
+
+    workout_view_preference = session.get('workout_view_preference', 'accoridion')
     return render_template(
         "workout_view.html",
         workout=workout_instance,
@@ -889,6 +896,7 @@ def start_workout(context=None):
         exercises=exercises,
         current_parameters=current_parameters,
         default_section=last,
+        last_exercise_indexes_by_section=last_exercise_indexes_by_section,
         program=program_entity,
         program_key=program_composite_key,
         workout_instance_key=workout_instance_key,
@@ -899,6 +907,7 @@ def start_workout(context=None):
         show_finish_button=True,
         time_workout_started=workout_started_ts,
         active_workout=True,
+        workout_view_preference=workout_view_preference,
         rs=rm_spaces
     )
 
