@@ -1,16 +1,16 @@
   <div class="container py-3">
-
+       {# hx-get="/" hx-trigger="toggleChanged from:body" hx-swap="innerHTML"> #}
     <h2 class="mb-4 text-center">{{ workout.name }}</h2>
 
     {% if show_finish_button %}
     {% set allow_popups = 'true' %}
-    {% set enable_carousel = 'true' %}
+    {% set allow_carousel = 'true' %}
     {% else %}
     {% set allow_popups = 'false' %}
-    {% set enable_carousel = 'false' %}
+    {% set allow_carousel = 'false' %}
     {% endif %}
 
-    {% if enable_carousel == 'true' %}
+    {% if allow_carousel == 'true' %}
       {# add a toggle button here, which if is set will set a flag that will be passed back to a workout_routes route to use the carosel, 
       otherwise we will use the accordian viewer as is currently done #}
       <div class="d-flex justify-content-end mb-2">
@@ -55,10 +55,9 @@
                                 workout_id=workout.id,
                                 section_name=section.name) }}" hx-trigger="show.bs.collapse" hx-swap="none">
               <div class="accordion-body p-0">
-                {# <div class="list-group"> #}
                 <div>
                   <div id="dynamic-params-{{ section.name }}"
-                    hx-get="/workouts/dynamic_parameters_for_section_viewer/{{workout.id}}/{{section.name}}?workout_instance_key={{workout_instance_key}}&workout_definition_key={{workout_definition_key}}&active_workout={{active_workout}}&purpose_of_parameter_edit={{purpose_of_parameter_edit}}&workout_view_preference={{workout_view_preference}}&last_exercise_index={{ (last_exercise_indexes_by_section or {}).get(section.name, '') }}"
+                    hx-get="/workouts/dynamic_parameters_for_section_viewer/{{workout.id}}/{{section.name}}?workout_instance_key={{workout_instance_key}}&workout_definition_key={{workout_definition_key}}&active_workout={{active_workout}}&purpose_of_parameter_edit={{purpose_of_parameter_edit}}&workout_view_preference={{workout_view_preference}}&last_exercise_index={{ (last_exercise_indexes_by_section or {}).get(section.name, '') }}&&allow_carousel={{allow_carousel}}"
                     hx-trigger="load" 
                     hx-swap="outerHTML">
                     Loading…
@@ -89,3 +88,41 @@
   </div>
 {% include "_section_dynamic_view.css" %}
 {% include "_section_dynamic_view.js" %}
+
+<script>
+let countdownInterval;
+
+function startTimer(durationInSeconds) {
+    const btn = document.getElementById('timer-btn');
+    const display = document.getElementById('timer-display');
+    const sound = document.getElementById('timer-sound');
+    
+    // Prevent starting multiple intervals if clicked twice
+    clearInterval(countdownInterval);
+
+    let timer = durationInSeconds;
+    
+    // Update the button state
+    btn.disabled = true;
+    btn.innerText = "Running...";
+
+    countdownInterval = setInterval(function () {
+        const minutes = parseInt(timer / 60, 10);
+        let seconds = parseInt(timer % 60, 10);
+
+        seconds = seconds < 10 ? "0" + seconds : seconds;
+
+        display.textContent = minutes + ":" + seconds;
+
+        if (--timer < 0) {
+            clearInterval(countdownInterval);
+            
+            // Play sound and reset button
+            sound.play().catch(e => console.log("Audio play prevented:", e));
+            btn.disabled = false;
+            btn.innerText = "Start Timer";
+            display.textContent = "00:00";
+        }
+    }, 1000);
+}
+</script>

@@ -289,7 +289,13 @@ def toggle_carousel_view(context=None):
     current_view = session.get('workout_view_preference', 'accordion')
     new_view = 'carousel' if current_view == 'accordion' else 'accordion'
     session['workout_view_preference'] = new_view
-    return jsonify({'new_view': new_view})
+
+    response = make_response(jsonify({'new_view': new_view}))
+    response.headers['HX-Trigger'] = json.dumps({
+        "eventListChanged": None,
+        "showMessage": { "value" : f"toggled workout view to show as {new_view}", "target": "body" }
+    })
+    return response
 
 @bp.route('/update_param_in_session', methods=['POST'])
 @auth.login_required
@@ -367,6 +373,7 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
     editing_program_workout = request.args.get('editing_program_workout', 'false').lower() == 'true'
     purpose_of_parameter_edit = request.args.get("purpose_of_parameter_edit", None)
     workout_view_preference = request.args.get('workout_view_preference', 'accordion')
+    allow_carousel = request.args.get('allow_carousel', 'false').lower() == 'true'
     last_exercise_index_raw = request.args.get('last_exercise_index', None)
     if last_exercise_index_raw in [None, '']:
         last_exercise_index_raw = session.get(f"last_exercise_index_{workout_id}_{section_name}")
@@ -449,7 +456,10 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
         workout_definition_key = None
         active_workout = False
         
-    workout_section_view_template = "_section_dynamic_view.html" if workout_view_preference == 'accordion' else "_section_dynamic_carousel_view.html"
+    if allow_carousel:
+        workout_section_view_template = "_section_dynamic_view.html" if workout_view_preference == 'accordion' else "_section_dynamic_carousel_view.html"
+    else:
+        workout_section_view_template = "_section_dynamic_view.html"
 
     return render_template(
         workout_section_view_template,

@@ -1,6 +1,7 @@
 {% set carousel_id = "carouselExample-" ~ rs(section.name) %}
+{% set exercise_count = section.exercises|length if section.exercises else 0 %}
 
-<div id="{{ carousel_id }}" class="carousel slide pointer-event workout-carousel" data-bs-interval="false" data-bs-wrap="true">
+<div id="{{ carousel_id }}" class="carousel slide pointer-event workout-carousel" data-bs-interval="false" data-bs-wrap="true" data-bs-touch="true">
     {% if section.exercises and section.exercises|length > 0 %}
     {% set section_length = section.exercises|length %}
     {% set has_default_index_match = default_exercise_index is not none and default_exercise_index >= 0 and default_exercise_index < section_length %}
@@ -35,10 +36,10 @@
                         </div>
 
                         <div class="mb-3">
-                            <p class="mb-2 small text-muted"
+                            <!-- <p class="mb-2 small text-muted"
                                 style="display:-webkit-box; line-clamp:3; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;">
                                 {{ ex.instructions or 'No instructions available.' }}
-                            </p>
+                            </p> -->
                             <button type="button" class="btn btn-sm btn-outline-secondary"
                                 hx-get="/workouts/viewer/exercise/{{ ex.id }}/details?allow_popups=true&modal_mode=true"
                                 hx-target="#modals-here" hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#modals-here">
@@ -79,6 +80,7 @@
     </div>
     {% endif %}
 
+    {% if exercise_count > 1 %}
     <button class="carousel-control-prev carousel-control-compact" type="button" data-bs-target="#{{ carousel_id }}" data-bs-slide="prev">
         <span class="carousel-control-prev-icon" aria-hidden="true"></span>
         <span class="visually-hidden">Previous</span>
@@ -87,6 +89,7 @@
         <span class="carousel-control-next-icon" aria-hidden="true"></span>
         <span class="visually-hidden">Next</span>
     </button>
+    {% endif %}
 </div>
 
 <style>
@@ -174,6 +177,15 @@
         const carouselEl = document.getElementById("{{ carousel_id }}")
         if (!carouselEl) {
             return
+        }
+
+        // Ensure touch/drag handlers are active immediately, even before a control is clicked.
+        if (window.bootstrap && window.bootstrap.Carousel) {
+            window.bootstrap.Carousel.getOrCreateInstance(carouselEl, {
+                interval: false,
+                wrap: true,
+                touch: true,
+            })
         }
 
         const pauseAllVideos = () => {
