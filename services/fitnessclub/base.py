@@ -7,7 +7,7 @@ from common.fitness.home_page_view import render_finishing_workout_page, render_
 from common.fitness.hx_common import hx_render_template
 from common.fitness.member_entity import MembershipRegistry, get_member_detail_from_user_context, get_member_email_from_user_context, get_member_id_from_user_context, get_member_name_from_user_context, FirstTimeUserException, UnregisteredMemberException
 from common.fitness.programs import get_members_current_active_program, get_program_workouts
-from common.fitness.workout_state import get_active_workout_state
+from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state
 
 bp = Blueprint('/', __name__, template_folder='templates')  
 
@@ -48,7 +48,11 @@ def index(context = None):
         if current_state:
             if current_state.get('state', None) == 'workout_started':
                 # render the workout that is in progress
-                return render_home_page_workout(member_detail, current_state)
+                workout_page =  render_home_page_workout(member_detail, current_state)
+                if workout_page:
+                    return workout_page
+                else:
+                    clear_active_workout_state()  # Clear invalid workout state and show dashboard
             elif current_state.get('state', None) == 'finishing_workout':
                 # render the finishing workout screen
                 return render_finishing_workout_page(member_detail, current_state)
