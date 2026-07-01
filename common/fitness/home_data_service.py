@@ -177,7 +177,8 @@ class HomePageDataService:
                     # need to combine these into a single datetime object for the event
                     # also need to make sure to set the timezone for the event datetime to be the set to the local timezone (e.g. US/Eastern) so that the time until workout calculation is correct
                     event_datetime = datetime.combine(my_event['scheduled_date'], datetime.strptime(my_event['scheduled_time'], "%H:%M").time())
-                    event_datetime = event_datetime.replace(tzinfo=pytz.timezone('US/Eastern'))
+                    local_tz = pytz.timezone('US/Eastern')
+                    event_datetime = local_tz.localize(event_datetime)
 
                     time_until_workout = int((event_datetime - current_datetime).total_seconds())
                     
@@ -213,7 +214,7 @@ class HomePageDataService:
                     })
             
             return {
-                'workouts': final_scheduled_workout_by_date,
+                'workouts': self._limit_scheduled_workouts_display(final_scheduled_workout_by_date, current_datetime),
                 'has_active_program': True,
                 'program_name': current_program.get('name', 'Current Program'),
                 'program_key': str(current_program.get_composite_key())
@@ -375,6 +376,11 @@ class HomePageDataService:
     
     def _can_start_workout(self, workout_datetime: datetime, current_datetime: datetime) -> bool:
         """Check if workout can be started (within 6 hours or same day)"""
+        if current_datetime.tzinfo is None:
+            current_datetime = current_datetime.replace(tzinfo=timezone.utc)
+        if workout_datetime.tzinfo is not None:
+            current_datetime = current_datetime.astimezone(workout_datetime.tzinfo)
+
         time_diff = (workout_datetime - current_datetime).total_seconds()
         same_day = workout_datetime.date() == current_datetime.date()
         
@@ -383,15 +389,28 @@ class HomePageDataService:
     
     def _get_workout_status(self, workout_datetime: datetime, current_datetime: datetime) -> str:
         """Determine workout status: upcoming, available, or missed"""
-        time_diff = abs((workout_datetime - current_datetime).total_seconds())
+        if current_datetime.tzinfo is None:
+            current_datetime = current_datetime.replace(tzinfo=timezone.utc)
+        if workout_datetime.tzinfo is not None:
+            current_datetime = current_datetime.astimezone(workout_datetime.tzinfo)
+
+        time_diff = (workout_datetime - current_datetime).total_seconds()
         same_day = workout_datetime.date() == current_datetime.date()
-        
-        if same_day or time_diff <= 6 * 3600:
-            return 'available'
-        elif workout_datetime.date() < current_datetime.date():
-            return 'missed'
-        else:
+
+        # Same-day workouts are treated as upcoming for dashboard display.
+        if same_day:
             return 'upcoming'
+
+        # Upcoming if it's still in the future and outside the immediate start window.
+        if time_diff > 6 * 3600:
+            return 'upcoming'
+
+        # Available for a short window around scheduled time (6 hours before/after).
+        if -6 * 3600 <= time_diff <= 6 * 3600:
+            return 'available'
+
+        # Otherwise it is in the past and outside the start window.
+        return 'missed'
     
     def _get_team_members_for_time_slot(self, member_id: str, workout_datetime: datetime) -> List[Dict]:
         """
@@ -404,6 +423,53 @@ class HomePageDataService:
             {'name': 'John Smith', 'id': 'member_123'},
             {'name': 'Sarah Johnson', 'id': 'member_456'}
         ]
+
+    def _limit_scheduled_workouts_display(self, workouts: List[Dict], current_datetime: datetime) -> List[Dict]:
+        """
+        Limit scheduled workouts shown on home dashboard.
+
+        Rules:
+        1) Always include the next upcoming workout.
+        2) Include the immediately prior workout only if it was missed.
+        3) After the next upcoming workout, include only the next two scheduled workouts.
+        4) Return at most five workouts.
+        """
+        if not workouts:
+            return []
+
+        sorted_workouts = sorted(workouts, key=lambda w: w.get('scheduled_datetime', datetime.min.replace(tzinfo=timezone.utc)))
+
+        next_upcoming_idx = None
+        current_date = current_datetime.date()
+
+        # Anchor display on first workout scheduled for today or later.
+        for idx, workout in enumerate(sorted_workouts):
+            scheduled_datetime = workout.get('scheduled_datetime')
+            if not scheduled_datetime:
+                continue
+            if scheduled_datetime.tzinfo is not None and current_datetime.tzinfo is not None:
+                current_date = current_datetime.astimezone(scheduled_datetime.tzinfo).date()
+            if scheduled_datetime.date() >= current_date:
+                next_upcoming_idx = idx
+                break
+
+        if next_upcoming_idx is None:
+            return []
+
+        selected_indices = set()
+        selected_indices.add(next_upcoming_idx)
+
+        prior_idx = next_upcoming_idx - 1
+        if prior_idx >= 0 and sorted_workouts[prior_idx].get('status') == 'missed':
+            selected_indices.add(prior_idx)
+
+        for offset in (1, 2):
+            next_idx = next_upcoming_idx + offset
+            if next_idx < len(sorted_workouts):
+                selected_indices.add(next_idx)
+
+        limited_workouts = [sorted_workouts[i] for i in sorted(selected_indices)]
+        return limited_workouts[:5]
     
     def _calculate_weekly_summary(self, workouts: List[Dict]) -> Dict:
         """Calculate weekly summary statistics"""
