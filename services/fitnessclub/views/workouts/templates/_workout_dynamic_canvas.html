@@ -5,29 +5,50 @@
         data-section="{{ sec.name }}">
       {% for item in sec.exercises %}
         {% set ex = exercises[item.id] %}
-        <li class="list-group-item py-2 d-flex flex-column align-items-center"
+        <li class="list-group-item py-2"
             data-exercise-id="{{ item.id }}" data-workout-id="{{ workout.id }}">
 
-          <!-- Drag handle -->
-          <span class="drag-handle me-3" style="cursor:grab;">☰</span>
+          <div class="d-flex align-items-center w-100">
+            <!-- Drag handle -->
+            <span class="drag-handle me-3 flex-shrink-0" style="cursor:grab;">☰</span>
 
-          <div class="flex-fill">
-            <div class="d-flex justify-content-between align-items-center">
-              <strong>{{ ex.name }}</strong>
-              <button
-                class="btn btn-link btn-sm text-danger p-0"
-                hx-post="{{ url_for('workouts.remove_exercise', workout_id=workout.id) }}"
-                hx-vals='{"exercise_id":"{{ item.id }}"}'
-                hx-target="#canvas"
-                hx-swap="innerHTML"
-                title="Remove"
-              >&times;</button>
+            <div class="flex-grow-1 text-start">
+              <div class="d-flex justify-content-between align-items-start">
+                <strong class="text-start">{{ ex.name }}</strong>
+                <div class="d-flex align-items-center gap-2 flex-shrink-0 ms-2">
+                  {% set related_categories = ex.get('movement_categories', []) %}
+                  {% if related_categories %}
+                    <button
+                      type="button"
+                      class="btn btn-link text-info p-0"
+                      onclick="triggerRelatedExerciseFilter(this)"
+                      data-workout-id="{{ workout.id }}"
+                      data-source-exercise-id="{{ item.id }}"
+                      data-source-exercise-name="{{ ex.name|e }}"
+                      data-related-categories='{{ related_categories|tojson|forceescape }}'
+                      title="Show related exercises in the library"
+                    ><i class="bi bi-diagram-3 fs-4"></i></button>
+                  {% endif %}
+                  <button
+                    class="btn btn-link text-danger p-0 lh-1"
+                    hx-post="{{ url_for('workouts.remove_exercise', workout_id=workout.id) }}"
+                    hx-vals='{"exercise_id":"{{ item.id }}"}'
+                    hx-target="#canvas"
+                    hx-swap="innerHTML"
+                    style="font-size: 2rem;"
+                    title="Remove"
+                  >&times;</button>
+                </div>
+              </div>
+
+              <div class="mt-1 text-start">
+                {% set param_ns = namespace(unit_param_id=None, param_list=[]) %}
+                {% set timer = namespace(has_timer=False, timer_value=None, timer_units=None) %}
+                {% set param_ns.param_list = exercise_parameters[sec.name] %}
+                {% include "_dynamic_parameter.html" %}
+              </div>
             </div>
           </div>
-          {% set param_ns = namespace(unit_param_id=None, param_list=[]) %}          
-          {% set timer = namespace(has_timer=False, timer_value=None, timer_units=None) %}
-          {% set param_ns.param_list = exercise_parameters[sec.name] %}
-          {% include "_dynamic_parameter.html" %}
         </li>
       {% endfor %}
     </ul>

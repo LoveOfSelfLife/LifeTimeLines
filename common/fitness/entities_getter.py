@@ -4,17 +4,17 @@ from common.fitness.exercise_entity import generic_entity_filter
 from common.fitness.favorites_entity import get_all_favorite_entity_ids
 entity_store_cache_dict = {}
 
-def get_entities(entity_name, fields_to_display, filter_term=None, partition_key=None, sort_by='name', sort_ascending=True, member_id=None):
+def get_entities(entity_name, fields_to_display=None, filter_term=None, partition_key=None, sort_by='name', sort_ascending=True, member_id=None):
 
     filtered_entities = get_filtered_entities(entity_name, filter_term, partition_key, sort_by, sort_ascending, member_id=member_id)
 
     entities = []
     for e in filtered_entities:
-        field_values = [e.get(f, None) for f in fields_to_display['listing_view']]
+        field_values = [e.get(f, None) for f in fields_to_display['listing_view']] if fields_to_display and fields_to_display['listing_view'] else None
         key = e.get_composite_key()
 
         card_view_field_values = None
-        if fields_to_display['card_view']:
+        if fields_to_display and fields_to_display['card_view']:
             card_view_field_values = {}
             for field,lmbda in fields_to_display['card_view'].items():
                 card_view_field_values[field] = lmbda(e) if lmbda else None

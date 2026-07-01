@@ -10,12 +10,15 @@ from common.fitness.exercise_schema import exercise_review_schema
 
 class ExerciseEntity (EntityObject):
     table_name="ExerciseTable"
-    fields=["id", "type", "name", "force", "level", "mechanic", "equipment", "equipment_detail", 
+    fields=["id", "type", "name", "force", "level", "mechanic", "equipment", "equipment_detail", "equipment_list",
             "origin",  "primaryMuscles", "secondaryMuscles", "instructions", "category", "images", "videos", 
             "setCompletionMeasure", 
             "resistance_doubled", # has a boolean value
             "only_one_set", # has a boolean value
-            "udf1", "udf2", "physical_fitness_components", "hide"]
+            "udf1", "udf2", 
+            "physical_fitness_components", 
+            "movement_categories", 
+            "hide"]
     
     key_field="id"
     partition_value="exercise"
@@ -70,6 +73,14 @@ class ExerciseIndexEntity (EntityObject):
     def __init__(self, d={}):
         super().__init__(d)
 
+class MovementCategoryEntity (EntityObject):
+    table_name="MovementCategoryTable"
+    fields=["id", "name", "description"]
+    key_field="id"
+    partition_value="movement_category"
+
+    def __init__(self, d={}):
+        super().__init__(d)
 
 def gen_exercise_id(exercise):
     """Generate an exercise id from the exercise name."""
@@ -104,6 +115,23 @@ def matches_filter(entity,term):
             if field in entity and isinstance(entity[field], str):
                 if term in entity[field].lower():
                     return True
+    return False
+
+def matches_attribute_filter(entity, attr, value_to_match):
+    if value_to_match is None:
+        return True
+    value_to_match = value_to_match.lower()
+    if attr is None:
+        return True
+    if attr not in entity:
+        return False
+    if isinstance(entity[attr], str):
+        if value_to_match in entity[attr].lower():
+            return True
+    if isinstance(entity[attr], list):
+        for item in entity[attr]:
+            if isinstance(item, str) and value_to_match in item.lower():
+                return True
     return False
 
 def exercise_was_reviewed(exercise):
@@ -235,37 +263,13 @@ def matches_all_terms_in_filter(entity, filter_term, member_id=None, favorite_en
                     return False
             continue
 
-        # term_value = term_value.lower() if term_value is not None else None
-        # if term.get("id", None) == "text":
-        #     if term_value and term_value != "":
-        #         # if there is a non-empty value for the text filter term
-        #         # then we check the entire entity to see if the term is in any of the fields
-        #         # if it does match, then we continue to check the other filter terms
-        #         # if it does not match, no need to check the other filter terms
-        #         # and we return False
-        #         if matches_filter(entity, term_value):
-        #             continue
-        #         else:
-        #             return False
-        # if term.get("id") == "physical_fitness_components":
-        #     if term_value and term_value != "":
-        #         # check the PF component field of the entity
-        #         entity_component = entity.get("physical_fitness_components", [])
-        #         if len(entity_component) == 0:
-        #             return False
-        #         if term_value not in entity_component:
-        #             return False
-        #         continue
-        # if term.get("id") == "muscle":
-        #     if term_value and term_value != "":
-        #         entity_prime_muscles = entity.get("primaryMuscles", [])
-        #         entity_secondary_muscles = entity.get("secondaryMuscles", [])
-        #         muscles = entity_prime_muscles + entity_secondary_muscles
-        #         if len(muscles) == 0:
-        #             return False
-        #         if term_value not in [m.lower() for m in muscles]:
-        #             return False
-        #         continue
+        if term_type == 'attribute' and term_value is not None and term_value != "":
+            attribute_name = term.get("attribute", None)
+            if attribute_name is not None:
+                if matches_attribute_filter(entity, attribute_name, term_value):
+                    continue
+                else:
+                    return False
     return True
 
 

@@ -22,6 +22,11 @@
             </button>
           </div>
       </div>
+      <div class="d-flex justify-content-end mt-2">
+        <button type="button" class="btn btn-sm btn-secondary" id="desktop-clear-related-filter">
+          Clear Related Filter
+        </button>
+      </div>
     
       <div id="lib-list">
         Loading…
@@ -51,6 +56,11 @@
                   >Use Workouts
               </button>
             </div>
+        </div>
+        <div class="d-flex justify-content-end mt-2">
+          <button type="button" class="btn btn-sm btn-secondary" id="mobile-clear-related-filter">
+            Clear Related Filter
+          </button>
         </div>
         
         <!-- Mobile library list -->
@@ -157,6 +167,84 @@ document.addEventListener('htmx:afterRequest', function(e) {
         });
     }
 });
+
+  window.triggerRelatedExerciseFilter = function(buttonEl) {
+    const workoutId = buttonEl.getAttribute('data-workout-id') || '{{ workout.id }}';
+    const sourceExerciseId = buttonEl.getAttribute('data-source-exercise-id') || '';
+    const sourceExerciseName = buttonEl.getAttribute('data-source-exercise-name') || '';
+    const relatedCategoriesRaw = buttonEl.getAttribute('data-related-categories') || '[]';
+    let categories = [];
+
+    try {
+      const parsedCategories = JSON.parse(relatedCategoriesRaw);
+      categories = Array.isArray(parsedCategories) ? parsedCategories : [];
+    } catch (error) {
+      categories = [];
+    }
+
+    htmx.trigger(document.body, 'relatedExerciseFilterRequested', {
+      workout_id: workoutId,
+      source_exercise_id: sourceExerciseId,
+      source_exercise_name: sourceExerciseName,
+      categories: categories
+    });
+  }
+
+  function getActiveLibraryTarget() {
+    const desktopLibrary = document.querySelector('.col-md-6.d-none.d-md-block');
+    const desktopVisible = desktopLibrary && window.getComputedStyle(desktopLibrary).display !== 'none';
+    if (desktopVisible) {
+      return 'lib-list';
+    }
+
+    const drawer = document.getElementById('libDrawer');
+    const drawerOpen = drawer && drawer.classList.contains('show');
+    if (drawerOpen) {
+      return 'lib-list-mobile';
+    }
+
+    return window.matchMedia('(max-width: 767.98px)').matches ? 'lib-list-mobile' : 'lib-list';
+  }
+
+  function refreshRelatedExerciseLibrary(detail) {
+    const targetId = getActiveLibraryTarget();
+    const categories = Array.isArray(detail.categories) ? detail.categories : [];
+
+    const params = new URLSearchParams({
+      workout_id: '{{ workout.id }}',
+      target: targetId,
+      related_categories: JSON.stringify(categories),
+      source_exercise_id: detail.source_exercise_id || '',
+      source_exercise_name: detail.source_exercise_name || ''
+    });
+
+    htmx.ajax('GET', "{{ url_for('workouts.exercise_listing') }}" + '?' + params.toString(), {
+      target: '#' + targetId,
+      swap: 'innerHTML'
+    });
+  }
+
+  document.body.addEventListener('relatedExerciseFilterRequested', function(e) {
+    const detail = e.detail || {};
+    refreshRelatedExerciseLibrary(detail);
+  });
+
+  function clearRelatedFilter() {
+    htmx.trigger(document.body, 'relatedExerciseFilterRequested', {
+      workout_id: '{{ workout.id }}',
+      categories: []
+    });
+  }
+
+  const desktopClearRelatedFilterButton = document.getElementById('desktop-clear-related-filter');
+  if (desktopClearRelatedFilterButton) {
+    desktopClearRelatedFilterButton.addEventListener('click', clearRelatedFilter);
+  }
+
+  const mobileClearRelatedFilterButton = document.getElementById('mobile-clear-related-filter');
+  if (mobileClearRelatedFilterButton) {
+    mobileClearRelatedFilterButton.addEventListener('click', clearRelatedFilter);
+  }
 </script>
 
 <style>

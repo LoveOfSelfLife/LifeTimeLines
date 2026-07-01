@@ -14,6 +14,7 @@ from common.fitness.edit_workout_object import edit_workout_object
 from common.fitness.programs import get_last_workout_instance_for_workout
 from common.fitness.programs import get_last_workout_instance_for_workout
 from common.fitness.workout_state import get_active_workout_state, update_active_workout_state
+from urllib.parse import quote
 
 bp = Blueprint('workouts', __name__, template_folder='templates')
 from auth import auth
@@ -1056,6 +1057,42 @@ def exercise_listing(context=None):
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     filter_terms = _get_filter_terms_from_request()
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
+
+    related_categories_raw = request.args.get('related_categories', '')
+    related_categories = []
+    if related_categories_raw:
+        try:
+            parsed_related_categories = json.loads(related_categories_raw)
+            if isinstance(parsed_related_categories, list):
+                related_categories = [str(category).strip().lower() for category in parsed_related_categories if str(category).strip()]
+        except (TypeError, ValueError, json.JSONDecodeError):
+            related_categories = []
+
+    if related_categories:
+        related_category_set = set(related_categories)
+
+        def has_related_movement_category(exercise):
+            # exercise entries returned by get_entities are wrappers with the actual entity in exercise['entity'].
+            exercise_data = exercise.get('entity', exercise)
+
+            movement_categories = exercise_data.get('movement_categories', None)
+            if movement_categories is None:
+                movement_categories = exercise_data.get('movement_category', [])
+
+            if isinstance(movement_categories, str):
+                movement_categories = [movement_categories]
+            elif not isinstance(movement_categories, list):
+                movement_categories = []
+
+            normalized_movement_categories = set()
+            for category in movement_categories:
+                normalized_category = str(category).strip().lower()
+                if normalized_category:
+                    normalized_movement_categories.add(normalized_category)
+
+            return len(normalized_movement_categories.intersection(related_category_set)) > 0
+
+        entities = [exercise for exercise in entities if has_related_movement_category(exercise)]
     
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
@@ -1070,6 +1107,10 @@ def exercise_listing(context=None):
     else:
         template_file_name = 'entity_list_component.html'
 
+    related_categories_query = ''
+    if related_categories_raw:
+        related_categories_query = f'&related_categories={quote(related_categories_raw, safe="")}'
+
     return hx_render_template(template_file_name,
                               fields_to_display=fields_to_display,
                               title="Exercises Library",                              
@@ -1082,8 +1123,8 @@ def exercise_listing(context=None):
                               page=page,
                               view=view,
                               total_pages=total_pages,
-                              filter_dialog_route=f'/workouts/filter-dialog?entity_table={entity_name}&target={target}&workout_id={workout_id}',
-                              entities_listing_route=f'/workouts/builder/exercises?entity_table={entity_name}&target={target}&workout_id={workout_id}',
+                              filter_dialog_route=f'/workouts/filter-dialog?entity_table={entity_name}&target={target}&workout_id={workout_id}{related_categories_query}',
+                              entities_listing_route=f'/workouts/builder/exercises?entity_table={entity_name}&target={target}&workout_id={workout_id}{related_categories_query}',
                               entity_view_route=f'/exercises/view?entity_table={entity_name}',
                               entity_action_route=f'/workouts/builder/{workout_id}/add?entity_table={entity_name}',
                               entity_action_route_method='post',
