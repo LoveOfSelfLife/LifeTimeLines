@@ -199,3 +199,12 @@ __azurite_db_blob__.json
 __azurite_db_blob_extent__.json
 scripts/fitnessclub/alf-programs/exercises_export.csv
 test/fitness/fitness_reporting/afc_analytics.sqlite
+scripts/fitnessclub/ace/exercise_data/
+scripts/fitnessclub/ace/exercise_data2/
+scripts/fitnessclub/ace/exercise_html/
+scripts/fitnessclub/ace/images/
+scripts/fitnessclub/ace/images.json
+scripts/fitnessclub/ace/
+scripts/fitnessclub/alf-programs/
+scripts/fitnessclub/NROLFL/
+scripts/fitnessclub/Cosgrove/
