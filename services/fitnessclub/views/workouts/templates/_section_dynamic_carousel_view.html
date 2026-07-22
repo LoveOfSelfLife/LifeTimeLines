@@ -21,16 +21,19 @@
                         <div class="mb-3 text-center">
                             {% if ex.videos and ex.videos|length > 0 %}
                             <video controls playsinline preload="metadata" class="w-100 rounded"
-                                style="max-height: 280px; object-fit: cover;">
+                                style="height: 280px; width: 100%; object-fit: contain; background-color: #000;">
                                 <source src="{{ ex.videos[0].url }}" type="video/mp4">
                                 Your browser does not support embedded video.
                             </video>
+                            {% elif ex.gif %}
+                            <img src="{{ ex.gif }}" alt="{{ ex.name }}" class="img-fluid rounded"
+                                style="height: 280px; width: 100%; object-fit: contain;">
                             {% elif ex.images and ex.images|length > 0 %}
                             <img src="{{ ex.images[0].url }}" alt="{{ ex.name }}" class="img-fluid rounded"
-                                style="max-height: 280px; width: 100%; object-fit: cover;">
+                                style="height: 280px; width: 100%; object-fit: contain;">
                             {% else %}
                             <img src="{{ url_for('static', filename='images/exercise.png') }}" alt="{{ ex.name }}"
-                                class="img-fluid rounded" style="max-height: 280px; width: 100%; object-fit: contain;">
+                                class="img-fluid rounded" style="height: 280px; width: 100%; object-fit: contain;">
                             {% endif %}
                         </div>
 
