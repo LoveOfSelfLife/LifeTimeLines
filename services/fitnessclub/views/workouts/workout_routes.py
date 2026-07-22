@@ -1039,7 +1039,7 @@ def exercise_listing(context=None):
     if not entity_name:
         return "No entity name provided", 404
     entity_type = get_entity_obj_from_entity_name(entity_name)
-    if request.headers.get('HX-Target') == 'results-area':
+    if request.headers.get('HX-Target') in ['results-area']:
         template_file_name = 'entity_results_partial.html'
     else:
         template_file_name = 'entity_list_component.html'
@@ -1047,7 +1047,7 @@ def exercise_listing(context=None):
     return hx_render_template(template_file_name,
                               fields_to_display=fields_to_display,
                               title="Exercises Library",                              
-                              main_content_container=div_id,
+                              main_content_container='xyz',
                               entities=current,
                               entity_name=entity_name,
                               entity_display_name=entity_type.get_display_name(),
@@ -1113,7 +1113,7 @@ def builder_workouts_listing(context=None):
     return render_template(template_file_name,
         entity_name=entity_name,
         title="Workouts Library",
-        main_content_container=div_id,
+        main_content_container= 'xyz',
         fields_to_display=fields_to_display,
         entities=current,
         filter_terms=filter_terms,
@@ -1189,7 +1189,7 @@ def exercise_reviewer_listing(context=None):
 
     return hx_render_template(template_file_name,
                               fields_to_display=fields_to_display,
-                              main_content_container=div_id,
+                              main_content_container='xyz',
                               entities=current,
                               entity_name=entity_name,
                               entity_display_name=entity_type.get_display_name(),
