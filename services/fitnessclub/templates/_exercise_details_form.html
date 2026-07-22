@@ -38,17 +38,29 @@
                 {% if exercise.images %}
                 <h6>Images</h6>
                 <div class="row gx-2">
-                    {% for img in exercise.images %}
+                    {% if exercise.gif %}
                     <div class="col-12 mb-2">
                         <img
-                        src="{{ img.url }}"
-                        alt="{{ img.description }}"
-                        data-full-url="{{ img.url }}"
+                        src="{{ exercise.gif }}"
+                        alt="GIF"
+                        data-full-url="{{ exercise.gif }}"
                         class="img-fluid rounded"
                         style="cursor:pointer;"
                         >
                     </div>
-                    {% endfor %}
+                    {% else %}
+                        {% for img in exercise.images %}
+                        <div class="col-12 mb-2">
+                            <img
+                            src="{{ img.url }}"
+                            alt="{{ img.description }}"
+                            data-full-url="{{ img.url }}"
+                            class="img-fluid rounded"
+                            style="cursor:pointer;"
+                            >
+                        </div>
+                        {% endfor %}
+                    {% endif %}
                 </div>
                 {% endif %}
 

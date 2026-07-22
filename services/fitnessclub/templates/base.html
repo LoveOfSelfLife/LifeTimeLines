@@ -151,7 +151,7 @@
   {% endif %}
 
   <!-- Main content area -->
-  <main class="container pt-4" id="content" style="margin-top: {% if impersonated_member %}140px{% else %}80px{% endif %};">{%- if content %}
+  <main class="container-fluid pt-4" id="content" style="margin-top: {% if impersonated_member %}140px{% else %}80px{% endif %};">{%- if content %}
       {{ content|safe }}
       {%- else %}
       <p class="text-center p-3">Active Friends Club</p>

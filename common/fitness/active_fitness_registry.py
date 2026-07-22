@@ -10,6 +10,8 @@ from common.fitness.member_entity import MemberEntity
 
 def extract_image_url(entity):
     # lambda e: e['images'][0]['url'] if 'images' in e and len(e['images']) > 0 else None
+    if 'gif' in entity and entity['gif']:
+        return entity['gif']
     if 'images' in entity and isinstance(entity['images'], list) and len(entity['images']) > 0:
         return entity['images'][0].get('url', None)
     return None

@@ -9,7 +9,7 @@ from common.fitness.exercise_schema import exercise_review_schema
 class ExerciseEntity (EntityObject):
     table_name="ExerciseTable"
     fields=["id", "type", "name", "force", "level", "mechanic", "equipment", "equipment_detail", 
-            "origin",  "primaryMuscles", "secondaryMuscles", "instructions", "category", "images", "videos", 
+            "origin",  "primaryMuscles", "secondaryMuscles", "instructions", "category", "images", "videos", "gif", 
             "setCompletionMeasure", 
             "resistance_doubled", # has a boolean value
             "only_one_set", # has a boolean value

@@ -14,27 +14,45 @@
     <div class="card-body">
       <p class="small">{{ exercise.instructions }}</p>
 
-      {% if exercise.images %}
-      <h6>Images</h6>
-      <div class="row gx-2">
-          {% for img in exercise.images %}
-          <div class="col-6 mb-2">
-              <img
-              src="{{ img.url }}"
-              alt="{{ img.description }}"
+      {% if exercise.gif %}
+        <h6>GIF</h6>
+        <div class="row gx-2">
+          <div class="col-12 mb-2">
+            <img
+              src="{{ exercise.gif }}"
+              alt="GIF"
               {% if allow_popups == 'true'%}
-                data-full-url="{{ img.url }}"
+                data-full-url="{{ exercise.gif }}"
                 data-bs-toggle="modal"
                 data-bs-target="#imageModal"
                 style="cursor:pointer;"
               {% endif %}
               class="img-fluid rounded"
-              >
+            >
           </div>
-          {% endfor %}
-      </div>
+        </div>
+      {% else %}
+        {% if exercise.images %}
+        <h6>Images</h6>
+        <div class="row gx-2">
+            {% for img in exercise.images %}
+            <div class="col-6 mb-2">
+                <img
+                src="{{ img.url }}"
+                alt="{{ img.description }}"
+                {% if allow_popups == 'true'%}
+                  data-full-url="{{ img.url }}"
+                  data-bs-toggle="modal"
+                  data-bs-target="#imageModal"
+                  style="cursor:pointer;"
+                {% endif %}
+                class="img-fluid rounded"
+                >
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
       {% endif %}
-
 
       {% if exercise.videos %}
         <h6>Video</h6>
