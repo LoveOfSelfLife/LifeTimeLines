@@ -1,18 +1,44 @@
                 <div class="card h-100 shadow-sm">
-                    {% if entity.card_view_fields.image_url %}
-                        <div class="img-wrapper" style="height: 80px; overflow: hidden; position: relative;">
-                            <img src="{{ entity.card_view_fields.image_url }}" 
-                                class="img-fluid w-100 h-100"
-                                style="object-fit: contain; object-position: center;"
-                                alt="{{ entity.card_view_fields.title }}">
-                        </div>
+                    {% if entity_view_route %}
+                        <a href="#"
+                            hx-get="{{ entity_view_route }}&key={{ entity.key }}"
+                            hx-target="#modals-here"
+                            hx-swap="innerHTML"
+                            class="text-decoration-none">
+
+                        {% if entity.card_view_fields.image_url %}
+                            <div class="img-wrapper text-center">
+                                <img src="{{ entity.card_view_fields.image_url }}" 
+                                    class="img-fluid"
+                                    style="display: block; max-height: 160px; width: 100%; object-fit: contain;"
+                                    alt="{{ entity.card_view_fields.title }}">
+                            </div>
+                        {% else %}
+                            <div class="img-wrapper text-center">
+                                <img src="{{ url_for('static', filename='images/exercise.png') }}"
+                                    class="img-fluid"
+                                    style="display: block; max-height: 160px; width: 100%; object-fit: contain;"
+                                    alt="Exercise">
+                            </div>                    
+                        {% endif %}
+                    </a>
                     {% else %}
-                        <div class="img-wrapper" style="height: 80px; overflow: hidden; position: relative;">
-                            <img src="{{ url_for('static', filename='images/exercise.png') }}"
-                                class="img-fluid w-100 h-100"
-                                style="object-fit: contain; object-position: center;"                             
-                                alt="Exercise">
-                        </div>                    
+
+                        {% if entity.card_view_fields.image_url %}
+                            <div class="img-wrapper text-center">
+                                <img src="{{ entity.card_view_fields.image_url }}" 
+                                    class="img-fluid"
+                                    style="display: block; max-height: 160px; width: 100%; object-fit: contain;"
+                                    alt="{{ entity.card_view_fields.title }}">
+                            </div>
+                        {% else %}
+                            <div class="img-wrapper text-center">
+                                <img src="{{ url_for('static', filename='images/exercise.png') }}"
+                                    class="img-fluid"
+                                    style="display: block; max-height: 160px; width: 100%; object-fit: contain;"
+                                    alt="Exercise">
+                            </div>                    
+                        {% endif %}
                     {% endif %}
                     <div class="card-body d-flex flex-column p-3">
                         {% if entity_view_route %}
@@ -21,11 +47,15 @@
                                 hx-target="#modals-here"
                                 hx-swap="innerHTML"
                                 class="text-decoration-none">
-                                <p class="card-title mb-2 text-truncate fw-semibold" style="font-size: 0.9rem;">{{ entity.card_view_fields.title }}</p>
+                                {% if entity.card_view_fields.title %}
+                                    <p class="card-title mb-2 text-truncate fw-semibold" style="font-size: 0.9rem;">{{ entity.card_view_fields.title }}</p>
+                                {% endif %}
                             </a>
                         {% else %}
-                            <p class="card-title mb-0 text-truncate fw-semibold" style="font-size: 0.9rem;">{{ entity.card_view_fields.title }}</p>
-                        {% endif %}
+                            {% if entity.card_view_fields.title %}                            
+                                <p class="card-title mb-0 text-truncate fw-semibold" style="font-size: 0.9rem;">{{ entity.card_view_fields.title }}</p>
+                            {% endif %}
+                        {% endif %}                            
                         {% if entity.card_view_fields.subtitle %}
                             <p class="card-text small text-muted mb-1">{{ entity.card_view_fields.subtitle }}</p>
                         {% endif %}

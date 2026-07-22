@@ -33,10 +33,10 @@ editable_entities = {
                     },
     "ExerciseTable" : { 
                         "listing_view_fields": ["name", "category"],
-                        "card_view_fields": { "title" : lambda e: e['name'],
-                                              "subtitle" : lambda e: "Muscles: " + (", ".join(e['primaryMuscles']) if 'primaryMuscles' in e else ""),
+                        "card_view_fields": { "title" : None,
+                                              "subtitle" : None,
                                               "image_url" : lambda e: extract_image_url(e),
-                                              "description" : lambda e: "Components: " + (", ".join(e['physical_fitness_components']) if 'physical_fitness_components' in e else "")
+                                              "description" : lambda e: e['name']
                                              },
                         "filters": exercise_filters,
                         "entity_popup_viewer" : render_exercise_popup_viewer_html
