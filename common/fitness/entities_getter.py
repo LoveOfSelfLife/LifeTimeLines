@@ -1,3 +1,5 @@
+import re
+
 from common.entity_store_cache import EntityStoreCache
 from common.fitness.active_fitness_registry import get_entity_obj_from_entity_name
 from common.fitness.favorites_entity import get_all_favorite_entity_ids
@@ -6,18 +8,29 @@ entity_store_cache_dict = {}
 def get_entities(entity_name, fields_to_display, filter_term=None, partition_key=None, sort_by='name', sort_ascending=True, member_id=None):
 
     filtered_entities = get_filtered_entities(entity_name, filter_term, partition_key, sort_by, sort_ascending, member_id=member_id)
+    favorite_entity_ids = set()
+    if member_id:
+        favorite_entity_ids = get_all_favorite_entity_ids(entity_name, member_id)
 
     entities = []
     for e in filtered_entities:
         field_values = [e.get(f, None) for f in fields_to_display['listing_view']]
         key = e.get_composite_key()
+        entity_id = e.get_key_value()
 
         card_view_field_values = None
         if fields_to_display['card_view']:
             card_view_field_values = {}
             for field,lmbda in fields_to_display['card_view'].items():
                 card_view_field_values[field] = lmbda(e) if lmbda else None
-        entities.append({"key": key, "field_values": field_values, "entity": e, "card_view_fields": card_view_field_values})
+        entities.append({
+            "key": key,
+            "field_values": field_values,
+            "entity": e,
+            "entity_id": entity_id,
+            "is_favorite": entity_id in favorite_entity_ids,
+            "card_view_fields": card_view_field_values
+        })
     return entities
 
 

@@ -116,6 +116,7 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
         entity_action_route=f'/workouts/edit?entity_table={entity_name}',
         entity_action_icon='bi-pencil-square',  
         entity_action_label='Edit Workout',
+        favorite_toggle_route='/admin/toggle-favorite',
         results_target_container=results_target_container,
         # filter_dialog_route=f'/exercises/filter-dialog?entity_table={WORKOUT_ENTITY_NAME}',
         entity_card_view_html='workout_card_view.html',        
@@ -1205,6 +1206,7 @@ def exercise_reviewer_listing(context=None):
                               entity_action_route_method='post',
                               entity_action_route_target="canvas",                              
                               entity_action_icon='bi-arrow-right-square-fill',
+                              favorite_toggle_route='/admin/toggle-favorite',
                               results_target_container=target if target else 'results-area',
                               context=context)      
 

@@ -1,0 +1,21 @@
+{% set favorite_button_id = 'favorite-btn-' ~ favorite_entity_table ~ '-' ~ favorite_entity_id %}
+{% set favorite_title = 'Unfavorite' if favorite_is_active else 'Mark as favorite' %}
+
+<span id="{{ favorite_button_id }}" class="d-inline-flex align-items-center">
+    <button type="button"
+            class="btn btn-link btn-sm p-0 border-0 text-danger"
+            hx-post="{{ favorite_toggle_route or '/admin/toggle-favorite' }}"
+            hx-target="#{{ favorite_button_id }}"
+            hx-swap="outerHTML"
+            hx-include="[name='search'], [name='view'], [name='favorites_only']"
+            hx-vals='{{ {
+                "entity_table": favorite_entity_table,
+                "entity_id": favorite_entity_id,
+                "item_dom_id": favorite_item_dom_id,
+                "favorites_only": favorites_filter_active
+            }|tojson }}'
+            title="{{ favorite_title }}"
+            aria-label="{{ favorite_title }}">
+        <i class="bi {% if favorite_is_active %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
+    </button>
+</span>

@@ -34,12 +34,12 @@ def add_entity_to_favorites(entity, member_id):
     es.upsert_item(favored_entity)
 
 def is_entity_a_favorite(entity, member_id):
-    table_name = FavoritesEntity.table_name
-    partition_value = get_partition_value_for_favorite(table_name, member_id)
-    from common.fitness.entities_getter import get_filtered_entities
-    favs = get_filtered_entities(table_name, filter_term=None, partition_key=partition_value, member_id=member_id)
-    favored_entity = FavoritesEntity({"entity_id": entity.get_key_value(), "entity_type_and_member_id": partition_value})
-    return favored_entity in favs
+    entity_key = entity.get_key_value()
+    if entity_key is None:
+        return False
+
+    favorite_ids = get_all_favorite_entity_ids(entity.table_name, member_id)
+    return entity_key in favorite_ids
 
 def remove_entity_from_favorites(entity, member_id):
     es = EntityStore()
@@ -49,7 +49,21 @@ def remove_entity_from_favorites(entity, member_id):
 
     favored_entity = FavoritesEntity({"entity_id": entity_key, "entity_type_and_member_id": partition_value})
     e = es.get_item(favored_entity)
-    return e is not None
+    if e is None:
+        return False
+
+    es.delete_item(favored_entity)
+    return True
+
+
+def toggle_entity_favorite(entity, member_id):
+    """Toggle favorite state and return True if favorite is active after the toggle."""
+    if is_entity_a_favorite(entity, member_id):
+        remove_entity_from_favorites(entity, member_id)
+        return False
+
+    add_entity_to_favorites(entity, member_id)
+    return True
 
 
 def get_all_favorite_entity_ids(table_name, member_id):

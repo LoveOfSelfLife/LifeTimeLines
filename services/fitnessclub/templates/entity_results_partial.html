@@ -2,10 +2,11 @@
 
               
 <input type="hidden" name="view" value="{{ view }}">
+{% set favorites_active = (filter_terms | selectattr('type', 'equalto', 'favorites') | selectattr('value', 'equalto', 'true') | list | length > 0) %}
 {% if view == 'card' %}
     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-4 row-cols-xxl-4 g-3">
         {% for entity in entities %}
-            <div class="col">
+            <div class="col" id="entity-item-{{ entity.entity_id }}">
                 {% if entity_card_view_html %}
                     {% include entity_card_view_html %}
                 {% else %}
@@ -24,6 +25,9 @@
         <table class="table table-hover entity-table align-middle">
             <thead>
                 <tr>
+                    <th scope="col" class="text-center" style="width: 1%;">
+                        <i class="bi bi-heart"></i>
+                    </th>
                     {% for field in fields_to_display.listing_view %}
                     <th scope="col">{{ field }}</th>
                     {% endfor %}
@@ -34,7 +38,15 @@
             </thead>
             <tbody>
                 {% for entity in entities %}
-                <tr>
+                <tr id="entity-item-{{ entity.entity_id }}">
+                    <td class="text-center align-middle">
+                        {% set favorite_entity_id = entity.entity_id %}
+                        {% set favorite_entity_table = entity_name %}
+                        {% set favorite_item_dom_id = 'entity-item-' ~ entity.entity_id %}
+                        {% set favorite_is_active = entity.is_favorite %}
+                        {% set favorites_filter_active = favorites_active %}
+                        {% include 'favorite_entity_toggle.html' %}
+                    </td>
                     {% for value in entity.field_values %}
                     {% if loop.index == 1 %}
                         {% if entity_view_route %}
@@ -118,7 +130,6 @@
     </ul>
     </nav>
 {% endif %}
-{% set favorites_active = (filter_terms | selectattr('type', 'equalto', 'favorites') | selectattr('value', 'equalto', 'true') | list | length > 0) %}
 
 <button id="favorites-toggle-1" 
         type="button" 

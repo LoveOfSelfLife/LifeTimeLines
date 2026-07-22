@@ -144,6 +144,7 @@ def program_listing_base(context, entity_name, page, page_size, view, fields_to_
         entity_action_route=f'/program/edit?entity_table={entity_name}',
         entity_action_icon='bi-pencil-square',  
         entity_action_label='Edit Program',
+        favorite_toggle_route='/admin/toggle-favorite',
         results_target_container=results_target_container,
         entity_card_view_html='program_card_view.html',
         context=context)
@@ -263,6 +264,7 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
         entity_action_route_target="program-canvas",
         entity_action_icon='bi-plus',  
         entity_action_label='Add Workout',
+        favorite_toggle_route='/admin/toggle-favorite',
         results_target_container=results_target_container,
         entity_card_view_html='workout_card_view.html',
         context=context)

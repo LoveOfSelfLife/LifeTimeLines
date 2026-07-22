@@ -1,7 +1,5 @@
 from hashlib import sha256
 from common.entity_store import EntityObject
-
-from common.fitness.favorites_entity import is_entity_a_favorite
 from common.fitness.hx_common import hx_render_template
 from common.fitness.utils import convert_to_alphanumeric
 import json
