@@ -66,7 +66,7 @@ def render_home_page_workout(member, current_state):
 
     # only use the session value if it exists
     last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
-
+    workout_view_preference = session.get('workout_view_preference', 'accordion')
     # if last section is not set, then we set the last section to be the first section of the workout that has more than one exercise in it
     if not last:
         for section in workout_sections:
@@ -93,6 +93,7 @@ def render_home_page_workout(member, current_state):
         show_finish_button=True,
         active_workout=True,
         time_workout_started=workout_started_ts,
+        workout_view_preference=workout_view_preference,
         rs=rm_spaces
     )
 

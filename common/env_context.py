@@ -24,3 +24,13 @@ class Env :
             m = hashlib.sha256()
             m.update(Env.AZURE_CLIENT_SECRET.encode())
             Env.SECRET_KEY = m.hexdigest()
+
+    @staticmethod
+    def is_running_in_azure() -> bool:
+        """
+        Returns True if the application is running inside Azure Container Apps, 
+        and False if it is running locally on your laptop.
+        """
+        # Azure Container Apps injects these platform metadata variables automatically
+        return os.getenv("CONTAINER_APP_NAME") is not None
+    

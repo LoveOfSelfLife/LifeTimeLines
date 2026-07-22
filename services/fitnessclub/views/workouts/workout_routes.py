@@ -284,6 +284,13 @@ def update_param_in_cache(context=None):
 
     return ('', 204)
 
+@bp.route('/toggle_carousel_view', methods=['POST'])
+@auth.login_required
+def toggle_carousel_view(context=None):
+    current_view = session.get('workout_view_preference', 'accordion')
+    new_view = 'carousel' if current_view == 'accordion' else 'accordion'
+    session['workout_view_preference'] = new_view
+    return jsonify({'new_view': new_view})
 
 @bp.route('/update_param_in_session', methods=['POST'])
 @auth.login_required
@@ -360,6 +367,14 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
 
     editing_program_workout = request.args.get('editing_program_workout', 'false').lower() == 'true'
     purpose_of_parameter_edit = request.args.get("purpose_of_parameter_edit", None)
+    workout_view_preference = request.args.get('workout_view_preference', 'accordion')
+    last_exercise_index_raw = request.args.get('last_exercise_index', None)
+    if last_exercise_index_raw in [None, '']:
+        last_exercise_index_raw = session.get(f"last_exercise_index_{workout_id}_{section_name}")
+    try:
+        last_exercise_index = int(last_exercise_index_raw) if last_exercise_index_raw not in [None, ''] else None
+    except (TypeError, ValueError):
+        last_exercise_index = None
     active_workout = request.args.get('active_workout', 'false').lower() == 'true'
     workout_instance = None
     workout_definition = None
@@ -435,10 +450,10 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
         workout_definition_key = None
         active_workout = False
         
-
+    workout_section_view_template = "_section_dynamic_view.html" if workout_view_preference == 'accordion' else "_section_dynamic_carousel_view.html"
 
     return render_template(
-        "_section_dynamic_view.html",
+        workout_section_view_template,
         workout=workout_instance if workout_instance else workout_definition,
         exercise_parameters=exercise_parameters_map.get(section_name, {}),
         section=section,
@@ -448,6 +463,7 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
         active_workout=active_workout,
         in_program_builder=editing_program_workout,
         purpose_of_parameter_edit=purpose_of_parameter_edit,
+        default_exercise_index=last_exercise_index,
         rs=rm_spaces
     )
 
@@ -1402,6 +1418,11 @@ def view_workout(context=None):
             if len(section.get('exercises', [])) > 0:
                 last = section.get('name', None)
                 break
+
+    last_exercise_indexes_by_section = {
+        section.get('name'): session.get(f"last_exercise_index_{workout.get('id')}_{section.get('name')}")
+        for section in workout_sections
+    }
         
     return render_template(
         "popup_workout_view.html",
@@ -1411,6 +1432,7 @@ def view_workout(context=None):
         current_parameters=current_parameters,
         workout_definition_key=workout_key_str,
         default_section=last,
+        last_exercise_indexes_by_section=last_exercise_indexes_by_section,
         show_finish_button=False,
         rs=rm_spaces,
         is_modal=is_modal
@@ -1451,18 +1473,34 @@ def set_last_section(context=None, workout_id=None, section_name=None):
     session[f"last_section_{workout_id}"] = section_name
     return ("", 204)
 
+@bp.route("/viewer/workout/<workout_id>/set_last_exercise_index/<section_name>", methods=["POST"])
+@bp.route("/viewer/workout/<workout_id>/set_last_exercise_index/<section_name>/<int:exercise_index>", methods=["POST"])
+@auth.login_required
+def set_last_exercise_index(context=None, workout_id=None, section_name=None, exercise_index=None):
+    if exercise_index is None:
+        exercise_index_raw = request.form.get('exercise_index', None)
+        try:
+            exercise_index = int(exercise_index_raw) if exercise_index_raw is not None else 0
+        except (TypeError, ValueError):
+            exercise_index = 0
+    session[f"last_exercise_index_{workout_id}_{section_name}"] = exercise_index
+    return ("", 204)
+
 @bp.route("/viewer/exercise/<exercise_id>/details")
 @auth.login_required
 def exercise_details(context=None, exercise_id=None):
     exercise = get_entity("ExerciseTable", exercise_id)
     allow_popups = request.args.get("allow_popups", default='false')
+    modal_mode = request.args.get("modal_mode", default='false').lower() == 'true'
     # exercise = exercises.get(exercise_id)
     if not exercise:
         abort(404)
     # Render only the drill-in partial
     return render_template("_exercise_details_view.html",
                            exercise=exercise,
-                           allow_popups=allow_popups, context=context)
+                           allow_popups=allow_popups,
+                           modal_mode=modal_mode,
+                           context=context)
 
 @bp.route("/viewer/exercise/<exercise_id>/feedback", methods=["POST"])
 @auth.login_required
