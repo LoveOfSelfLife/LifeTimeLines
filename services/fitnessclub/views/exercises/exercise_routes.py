@@ -3,11 +3,11 @@ import json
 from urllib import response
 from flask import Blueprint, abort, make_response, redirect, render_template, request, session, url_for, jsonify
 from common.entity_store import EntityStore
-from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
-from common.fitness.active_fitness_registry import parse_listing_filter
+from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
+from common.fitness.hx_common import parse_listing_filter
 from common.fitness.entities_getter import get_entities
 from common.fitness.exercise_entity import ExerciseEntity, render_exercise_popup_viewer_html
-from common.fitness.hx_common import hx_render_template
+from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
 from common.fitness.member_entity import get_member_id_from_user_context
 from common.fitness.exercise_schema import exercise_schema
 from common.fitness.member_exercise_history import get_exercise_history_for_member
@@ -22,7 +22,7 @@ def root(context=None):
     if not member_id:
         abort(401)
     page = int(request.args.get('page', 1))
-    filter_terms = _get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request()
 
     return exercises_listing2(context, page=page, filter_terms=filter_terms)
 
@@ -33,7 +33,7 @@ def exercises_listing(context=None):
     if not member_id:
         abort(401)
     page = int(request.args.get('page', 1))
-    filter_terms = _get_filter_terms_from_request()        
+    filter_terms = get_filter_terms_from_request()        
     return exercises_listing2(member_id, page=page, filter_terms=filter_terms)
 
 def exercises_listing2(member_id, page=1, filter_terms=[]):

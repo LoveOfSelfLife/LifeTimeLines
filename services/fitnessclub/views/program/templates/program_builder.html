@@ -63,9 +63,6 @@
           <div class="row">
             <div class="col-12">
               <div class="d-flex gap-2">
-                <button class="btn btn-primary d-md-none" data-bs-toggle="offcanvas" data-bs-target="#libDrawer">
-                  <i class="bi bi-plus-circle"></i> Add Workout
-                </button>
 
                 <button class="btn btn-success" hx-post="{{ url_for('program.save_program', program_id=program.id) }}"
                   hx-include="form" hx-vals='{"program_id":"{{ program.id }}"}' hx-target="#content"

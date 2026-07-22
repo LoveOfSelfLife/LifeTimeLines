@@ -77,4 +77,57 @@ def hx_render_template(template_file=None, template_string=None, **kwargs):
             }
             return render_template('base.html', content=content, show_admin_menu=show_admin_menu, 
                                  role_context=role_context, impersonated_member=impersonated_member, **kwargs)
+
+
+def get_filter_terms_from_request():
+    """Extract search term from either POST form data or GET query parameters."""
+    # Get search term from appropriate source
+    search_term = ""
+    if request.method == 'POST':
+        search_term = request.form.get("search", "").lower()
+    else:
+        # Try filter parameter first, then search parameter
+        filter_param = request.args.get('filter', '')
+        # if filter_param is present and is a string, need to convert it to a python object
+        # using ast.literal_eval
+        if filter_param and isinstance(filter_param, str):
+            import ast
+            filter_param = ast.literal_eval(filter_param)
+
+        if len(filter_param) > 0:
+            return filter_param
+
+        search_term = request.args.get('search', '')
+
+    filter_terms = []
+
+    if search_term:
+        filter_terms.append(
+            {
+                "type": "text",
+                "value": search_term
+            })
+
+    # Get favorites filter
+    favorites_only = request.form.get('favorites_only') == 'true' or request.args.get('favorites_only') == 'true'
+
+    if favorites_only:
+        filter_terms.append({
+            'type': 'favorites',
+            'value': 'true'
+        })
+
+    return filter_terms
+
+
+def parse_listing_filter(filter_param):
+
+        # if filter_param is present and is a string, need to convert it to a python object
+        # using ast.literal_eval
+    if filter_param and isinstance(filter_param, str):
+        import ast
+        current_listing_filter = ast.literal_eval(filter_param)
+    else:
+        current_listing_filter = []
+    return current_listing_filter
         

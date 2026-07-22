@@ -6,12 +6,12 @@ import uuid
 from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, session, url_for
 from common.entity_store import EntityObject, EntityStore
 from common.fitness import workout_entity
-from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_listing_fields_for_entity
+from common.fitness.active_fitness_registry import get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import delete_from_cache, get_cache_value, set_cache_value
 from common.fitness.entities_getter import get_entity, get_entities
 from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
 from common.fitness.get_calendar_service import get_calendar_service
-from common.fitness.hx_common import hx_render_template
+from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
 from common.fitness.hx_common import rm_spaces
 from common.fitness.member_entity import MembershipRegistry, get_member_id_from_user_context, get_user_profile
 from common.fitness.member_exercise_history import extract_and_load_exercise_events_from_workout_instance
@@ -66,7 +66,7 @@ def programs_listing2(context=None):
         session['view_preference'] = view
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
-    filter_terms = _get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request()
 
     member_id = get_member_id_from_user_context(context)
     if not member_id:
@@ -210,7 +210,7 @@ def workouts_listing(context=None):
         session['view_preference'] = view
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
-    filter_terms = _get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request()
 
             
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)

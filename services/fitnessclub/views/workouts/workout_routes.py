@@ -1,12 +1,12 @@
 from datetime import datetime
 from flask import Blueprint, jsonify, make_response, render_template, request, current_app
 from common.entity_store import EntityStore
-from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
+from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import get_cache_value, set_cache_value, delete_from_cache
 from common.fitness.entities_getter import get_entities
 from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.exercise_parameters import get_editor_type_for_unit_parameter, get_editor_type_for_value_parameter
-from common.fitness.hx_common import hx_render_template
+from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
 from common.fitness.hx_common import rm_spaces
 from common.fitness.member_entity import get_member_id_from_user_context, is_member_an_admin
 from common.fitness.member_workout_entity import WorkoutDefinitionEntity, get_exercises_from_workout, map_exercise_to_sections
@@ -51,7 +51,7 @@ def index(context=None):
     if not member_id:
         abort(401)
     page = int(request.args.get('page', 1))
-    filter_terms = _get_filter_terms_from_request()    
+    filter_terms = get_filter_terms_from_request()    
     return workouts_listing2(context, page, filter_terms)
 
 @bp.route('/workouts-listing', methods=['GET', 'POST'])
@@ -61,7 +61,7 @@ def workouts_listing(context=None):
     if not member_id:
         abort(401)
     page = int(request.args.get('page', 1))
-    filter_terms = _get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request()
     return workouts_listing2(context, page, filter_terms)
 
 def workouts_listing2(context=None, page=1, filter_terms=[]):
@@ -1028,7 +1028,7 @@ def exercise_listing(context=None):
     fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
 
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
-    filter_terms = _get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request()
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
     
     total_pages = (len(entities) + page_size - 1) // page_size
@@ -1095,7 +1095,7 @@ def builder_workouts_listing(context=None):
         session['view_preference'] = view
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
-    filter_terms = _get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request()
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
 
     page_size = 100
@@ -1170,7 +1170,7 @@ def exercise_reviewer_listing(context=None):
         session['view_preference'] = view
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
-    filter_terms = _get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request()
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
     
     total_pages = (len(entities) + page_size - 1) // page_size

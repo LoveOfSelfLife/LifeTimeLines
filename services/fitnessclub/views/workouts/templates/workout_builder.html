@@ -38,9 +38,6 @@
 
                 <!-- Action Buttons Row -->
                 <div class="d-flex flex-wrap gap-2 justify-content-end">
-                    <button class="btn btn-primary d-md-none" data-bs-toggle="offcanvas" data-bs-target="#libDrawer">
-                        <i class="bi bi-plus-circle"></i> Add Exercise
-                    </button>
 
                     <button class="btn btn-success" {% if can_save_workout %} {% if not editing_program_workout %}
                         hx-post="{{ url_for('workouts.save_workout', workout_id=workout.id) }}" {% else %}
