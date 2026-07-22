@@ -1,4 +1,5 @@
 from hashlib import sha256
+import re
 from common.entity_store import EntityObject
 
 from common.fitness.favorites_entity import is_entity_a_favorite
@@ -102,9 +103,75 @@ def matches_filter(entity,term):
     for t in terms:
         for field in entity.get_fields():
             if field in entity and isinstance(entity[field], str):
-                if term in entity[field].lower():
+                if t in entity[field].lower():
                     return True
     return False
+
+def matches_text_pattern_filter(entity, pattern_str):
+    """
+    Match entity against a pattern string with the following rules:
+    - '+' or 'and': AND logic - all connected terms must match
+    - 'or' or '|': OR logic - any separated group can match (OR has higher precedence)
+    - 'attr:value' format: search for attr in attribute names and value in attribute values
+    - plain text: search all string-valued attributes
+    
+    Examples:
+    - "ace" matches if any string attribute contains "ace"
+    - "ace+push" or "ace and push": matches if one attribute contains "ace" AND another contains "push"
+    - "ace or push" or "ace | push": matches if any attribute contains "ace" OR "push"
+    - "equip:bar": matches if an attribute name contains "equip" and its value contains "bar"
+    - "ace and equip:bar or test": matches if ace AND (equip:bar OR test)
+    """
+    if not pattern_str:
+        return True
+    
+    pattern_str = pattern_str.lower().strip()
+    
+    # Split by AND ('+' or 'and', case-insensitive)
+    and_groups = re.split(r'\+|\s+and\s+', pattern_str)
+    
+    # AND logic - all groups must match
+    for and_group in and_groups:
+        and_group = and_group.strip()
+        # Within each AND group, check OR logic
+        # Split by 'or' or '|' (case-insensitive for 'or')
+        or_terms = re.split(r'\s+or\s+|\|', and_group)
+        
+        # OR logic - at least one term must match
+        any_match = False
+        for term in or_terms:
+            term = term.strip()
+            if term and _matches_single_pattern_term(entity, term):
+                any_match = True
+                break
+        
+        if not any_match:
+            return False
+    
+    return True
+
+
+def _matches_single_pattern_term(entity, term):
+    """Check if a single pattern term matches the entity."""
+    if ':' in term:
+        # Attribute filter: "equip:bar"
+        attr_part, value_part = term.split(':', 1)
+        attr_part = attr_part.strip()
+        value_part = value_part.strip()
+        # Find attribute where attr_part is a substring of the attribute name
+        for key, value in entity.items():
+            if attr_part in key.lower() and isinstance(value, str):
+                if value_part in value.lower():
+                    return True
+        return False
+    else:
+        # Value filter: search all string attributes
+        for key, value in entity.items():
+            if isinstance(value, str):
+                if term in value.lower():
+                    return True
+        return False
+
 
 def exercise_was_reviewed(exercise):
     """Check if an exercise was reviewed by looking it up in the ExerciseReviewTable."""
@@ -213,21 +280,21 @@ def matches_all_terms_in_filter(entity, filter_term, member_id=None, favorite_en
     if filter_term is None:
         return True
     for term in filter_term:
-        term_value = term.get("value", None)
+        pattern = term.get("value", None)
         term_type = term.get("type", None)
-        if term_type == 'text' and term_value is not None and term_value != "":
-            term_value = term_value.lower()
+        if term_type == 'text' and pattern is not None and pattern != "":
+            pattern = pattern.lower()
             # if there is a non-empty value for the text filter term
             # then we check the entire entity to see if the term is in any of the fields
             # if it does match, then we continue to check the other filter terms
             # if it does not match, no need to check the other filter terms
             # and we return False
-            if matches_filter(entity, term_value):
+            if matches_text_pattern_filter(entity, pattern):
                 continue
             else:
                 return False
 
-        if term_type == 'favorites' and term_value is not None and term_value != "":
+        if term_type == 'favorites' and pattern is not None and pattern != "":
             if favorite_entity_ids is not None:
                 # Fast lookup using pre-loaded set
                 entity_id = entity.get(entity.key_field)
