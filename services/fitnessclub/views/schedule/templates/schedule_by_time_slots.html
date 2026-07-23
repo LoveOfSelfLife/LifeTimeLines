@@ -9,7 +9,7 @@
             hx-get="/schedule/create_recurring_event?modal=1" 
             hx-target="#modals-here"
             hx-swap="innerHTML">
-            <i class="bi bi-arrow-repeat"></i> Schedule Recurring Workout
+            <i class="bi bi-arrow-repeat"></i> Schedule Recurring Workouts
         </button>
         <button class="btn btn-primary"
             hx-get="/schedule/create_event?modal=1" 
@@ -53,8 +53,9 @@
                 <button class="btn btn-sm btn-primary add-workout-btn"
                     hx-get="/schedule/create_event?date={{ date_key }}&modal=1" 
                     hx-target="#modals-here"
-                    hx-swap="innerHTML">
-                    <i class="bi bi-plus-lg"></i> Schedule Workout
+                    hx-swap="innerHTML"
+                    title="Join on this day">
+                    <i class="bi bi-person-plus"></i>
                 </button>
             </div>
             
@@ -92,7 +93,7 @@
                                 hx-get="/schedule/create_event?date={{ date_key }}&time={{ time_slot }}&modal=1" 
                                 hx-target="#modals-here"
                                 hx-swap="innerHTML"
-                                title="Join this time slot">
+                                title="Join this time slot on this day">
                                 <i class="bi bi-person-plus"></i>
                             </button>
                         </div>
@@ -123,7 +124,7 @@
                                                 hx-get="/schedule/recurring_action_choice?action=edit&id={{ member_event.id }}&date={{ member_event.date }}&time={{ member_event.time }}&recurring_event_id={{ member_event.recurring_event_id }}&modal=1" 
                                                 hx-target="#modals-here"
                                                 hx-swap="innerHTML"
-                                                title="Edit workout time/date">
+                                                title="Modify workout time/date">
                                                 <i class="bi bi-pencil-square"></i>
                                             </button>
                                             <button class="btn btn-sm btn-outline-danger remove-btn"
@@ -138,7 +139,7 @@
                                                 hx-get="/schedule/edit_event?id={{ member_event.id }}&date={{ member_event.date }}&time={{ member_event.time }}&modal=1" 
                                                 hx-target="#modals-here"
                                                 hx-swap="innerHTML"
-                                                title="Edit workout time/date">
+                                                title="Modify workout time/date">
                                                 <i class="bi bi-pencil-square"></i>
                                             </button>
                                             <button class="btn btn-sm btn-outline-danger remove-btn"
@@ -172,7 +173,7 @@
                     hx-get="/schedule/create_event?modal=1" 
                     hx-target="#modals-here"
                     hx-swap="innerHTML">
-                    <i class="bi bi-plus-lg"></i> Schedule Workout
+                    <i class="bi bi-plus-lg"></i> Schedule Your Workout
                 </button>
             </div>
         </div>
