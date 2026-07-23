@@ -50,8 +50,8 @@ def _matches_single_pattern_term(entity, term):
     else:
         # Value filter: search all string attributes
         for key, value in entity.items():
-            if isinstance(value, str):
-                if term in value.lower():
+            if isinstance(value, str) or isinstance(value, list):
+                if term in str(value).lower():
                     return True
         return False
 
@@ -73,6 +73,9 @@ def matches_text_pattern_filter(entity, pattern_str):
     """
     if not pattern_str:
         return True
+
+    if entity.get("id", None) == 'ace_62':
+        pass
 
     pattern_str = pattern_str.lower().strip()
 
