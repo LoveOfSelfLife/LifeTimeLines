@@ -52,7 +52,7 @@ def exercises_listing2(member_id, page=1, filter_terms=[]):
     
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
 
-    return exercise_listing_base(entity_name, page, page_size, view, fields_to_display, filter_terms, entities)
+    return exercise_listing_base(entity_name, int(page), page_size, view, fields_to_display, filter_terms, entities)
 
 
 def exercise_listing_base(entity_name, page, page_size, view, fields_to_display, filter_terms, entities):
@@ -109,8 +109,19 @@ def view_exercise_details(context=None):
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
     entity_to_view = es.get_item_by_composite_key(composite_key)
-    
-    return render_exercise_popup_viewer_html(context, entity_to_view)
+    # here we need to determine if the current member can edit the exercise, which is the case if the member is an admin or if the exercise was created by the member
+    member_id = get_member_id_from_user_context(context)
+    can_edit = False
+    if member_id:
+        if entity_to_view.get('created_by_member_id', None) == member_id:
+            can_edit = True
+        else:
+            # check if the member is an admin
+            from common.fitness.member_entity import is_member_an_admin
+            if is_member_an_admin(member_id):
+                can_edit = True
+   
+    return render_exercise_popup_viewer_html(context, entity_to_view, can_edit=can_edit)
 
 @bp.route('/filter-dialog')
 @auth.login_required
@@ -193,6 +204,27 @@ def edit_exercise(context=None):
     if 'Timestamp' in exercise_data:
         del exercise_data['Timestamp']
     
+    # here we need to determine if the current member can edit the exercise, which is the case if the member is an admin 
+    # or if the exercise was created by the member
+    member_id = get_member_id_from_user_context(context)
+    can_edit = False
+    if member_id:
+        if exercise_data.get('created_by_member_id', None) == member_id:
+            can_edit = True
+        else:
+            # check if the member is an admin
+            from common.fitness.member_entity import is_member_an_admin
+            if is_member_an_admin(member_id):
+                can_edit = True
+    if not can_edit:
+        current_listing_page=request.args.get('page', 1)
+        current_listing_filter_terms = get_filter_terms_from_request()
+        response = make_response(exercises_listing2(member_id, page=current_listing_page, filter_terms=current_listing_filter_terms))
+        response.headers['HX-Trigger'] = json.dumps({
+            "showMessage": { "value": f"You do not have permission to edit this exercise.", "target": "body" }
+        })
+
+        return response
     # Parse images and videos fields if they are stored as strings (legacy data)
     for media_field in ['images', 'videos']:
         if media_field in exercise_data:
@@ -323,6 +355,8 @@ def save_exercise(exercise_id=None, context=None):
         if 'udf2' not in exercise_data:
             exercise_data['udf2'] = ''
         
+        exercise_data['created_by_member_id'] = get_member_id_from_user_context(context)
+
         print(f"Saving exercise data: {exercise_data}")
         
         # Create and save exercise entity

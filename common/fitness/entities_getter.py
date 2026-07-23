@@ -43,8 +43,8 @@ def _matches_single_pattern_term(entity, term):
         value_part = value_part.strip()
         # Find attribute where attr_part is a substring of the attribute name
         for key, value in entity.items():
-            if attr_part in key.lower() and isinstance(value, str):
-                if value_part in value.lower():
+            if attr_part in key.lower():
+                if value_part in str(value).lower():
                     return True
         return False
     else:

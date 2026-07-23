@@ -8,12 +8,16 @@ from common.fitness.exercise_schema import exercise_review_schema
 
 class ExerciseEntity (EntityObject):
     table_name="ExerciseTable"
-    fields=["id", "type", "name", "force", "level", "mechanic", "equipment", "equipment_detail", 
-            "origin",  "primaryMuscles", "secondaryMuscles", "instructions", "category", "images", "videos", "gif", 
+    fields=["id", "type", "name", "force", "level", "mechanic", "equipment", "equipment_detail", "equipment_list",
+            "origin",  "primaryMuscles", "secondaryMuscles", "instructions", "category", "images", "videos", "gif",
+            "created_by_member_id", 
             "setCompletionMeasure", 
             "resistance_doubled", # has a boolean value
             "only_one_set", # has a boolean value
-            "udf1", "udf2", "physical_fitness_components", "hide"]
+            "udf1", "udf2", 
+            "physical_fitness_components", 
+            "movement_categories", 
+            "hide"]
     
     key_field="id"
     partition_value="exercise"
@@ -155,8 +159,9 @@ exercise_filters = [
                 ]
 
 
-def render_exercise_popup_viewer_html(context, entity):
+def render_exercise_popup_viewer_html(context, entity, can_edit=False, **kwargs):
     return hx_render_template('_exercise_details_form.html',
                               exercise=entity,
                               errors={},
-                              context=context)
+                              context=context,
+                              can_edit=can_edit)
