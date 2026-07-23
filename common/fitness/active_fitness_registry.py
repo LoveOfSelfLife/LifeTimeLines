@@ -4,7 +4,7 @@ from common.entity_store import EntityObject
 from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
 from common.fitness.member_program_entity import MemberProgramEntity
 from common.fitness.member_entity import MemberEntity, get_member_name_from_member_id
-from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity, render_exercise_popup_viewer_html
+from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity
 from common.fitness.exercise_entity import exercise_filters
 from common.fitness.member_entity import MemberEntity
 
@@ -40,8 +40,7 @@ editable_entities = {
                                               "image_url" : lambda e: extract_image_url(e),
                                               "description" : lambda e: e['name']
                                              },
-                        "filters": exercise_filters,
-                        "entity_popup_viewer" : render_exercise_popup_viewer_html
+                        "filters": exercise_filters
                     },
     PROGRAM_ENTITY_NAME : { 
                         "listing_view_fields": ["name", "start_date", "end_date"],

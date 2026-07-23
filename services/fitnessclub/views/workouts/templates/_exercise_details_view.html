@@ -32,7 +32,6 @@
         aria-label="Close"
         onclick="toggleExerciseDetails('{{ exercise.id }}', '{{allow_popups}}')"
         {% if allow_popups == 'false'%}disabled{% endif %}
-        {# onclick="document.getElementById('details-{{ exercise.id }}').innerHTML=''" #}
       ></button>
       {% endif %}
     </div>

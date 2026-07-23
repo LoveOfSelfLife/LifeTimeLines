@@ -159,7 +159,7 @@ exercise_filters = [
                 ]
 
 
-def render_exercise_popup_viewer_html(context, entity, can_edit=False, **kwargs):
+def render_exercise_popup_viewer_html(context, entity, can_edit=False, filter_terms=[]):
     return hx_render_template('_exercise_details_form.html',
                               exercise=entity,
                               errors={},

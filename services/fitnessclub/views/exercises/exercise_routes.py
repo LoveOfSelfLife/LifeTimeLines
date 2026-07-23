@@ -121,7 +121,7 @@ def view_exercise_details(context=None):
             if is_member_an_admin(member_id):
                 can_edit = True
    
-    return render_exercise_popup_viewer_html(context, entity_to_view, can_edit=can_edit)
+    return render_exercise_popup_viewer_html(context, entity_to_view, can_edit=can_edit, filter_terms=get_filter_terms_fs-lirom_request())
 
 @bp.route('/filter-dialog')
 @auth.login_required
