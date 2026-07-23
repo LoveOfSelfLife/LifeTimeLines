@@ -5,6 +5,13 @@ body {
   color: #fff;
   font-family: 'Helvetica Neue', Arial, sans-serif;
 }
+
+/* Global heart icon color override */
+.bi-heart,
+.bi-heart-fill {
+  color: #8b0000 !important;
+}
+
 .modal-content {
     background: linear-gradient(to right, #2c3e50, #4ca1af);
     color: #fff;
