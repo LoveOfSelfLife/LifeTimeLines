@@ -1,3 +1,20 @@
+<style>
+  .workout-canvas-item {
+    border: 1px solid #cfd4dc;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.06);
+    background-color: #fff;
+    margin: 0.35rem 0.5rem;
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+  }
+
+  .workout-canvas-item:hover {
+    box-shadow: 0 4px 10px rgba(16, 24, 40, 0.12), 0 2px 4px rgba(16, 24, 40, 0.08);
+    transform: translateY(-1px);
+  }
+  
+</style>
+
 {% for sec in workout.workout_sections %}
   <div class="card mb-3">
     <div class="card-header">{{ sec.name.title() }}</div>
@@ -5,15 +22,42 @@
         data-section="{{ sec.name }}">
       {% for item in sec.exercises %}
         {% set ex = exercises[item.id] %}
-        <li class="list-group-item py-2 d-flex flex-column align-items-center"
+        <li class="list-group-item workout-canvas-item py-2"
             data-exercise-id="{{ item.id }}" data-workout-id="{{ workout.id }}">
+          <div class="d-flex align-items-stretch w-100">
+            <!-- Drag handle -->
+            <span class="drag-handle me-3 align-self-center" style="cursor:grab;">☰</span>
 
-          <!-- Drag handle -->
-          <span class="drag-handle me-3" style="cursor:grab;">☰</span>
+            <div class="flex-fill me-3 d-flex flex-column">
+              <strong class="pt-1">{{ ex.name }}</strong>
 
-          <div class="flex-fill">
-            <div class="d-flex justify-content-between align-items-center">
-              <strong>{{ ex.name }}</strong>
+              {% set param_ns = namespace(unit_param_id=None, param_list=[]) %}
+              {% set timer = namespace(has_timer=False, timer_value=None, timer_units=None) %}
+              {% set param_ns.param_list = exercise_parameters[sec.name] %}
+              <div class="mt-auto pt-2">
+                {% include "_dynamic_parameter.html" %}
+              </div>
+            </div>
+
+            {% if ex.gif %}
+            <div class="flex-shrink-0 d-flex align-items-start">
+              <img
+                src="{{ ex.gif }}"
+                alt="{{ ex.name }} demo"
+                class="img-fluid rounded border"
+                style="max-height: 110px; width: 100%; max-width: 170px; object-fit: contain;"
+              >
+              <button
+                class="btn btn-link btn-sm text-danger p-0 ms-2"
+                hx-post="{{ url_for('workouts.remove_exercise', workout_id=workout.id) }}"
+                hx-vals='{"exercise_id":"{{ item.id }}"}'
+                hx-target="#canvas"
+                hx-swap="innerHTML"
+                title="Remove"
+              >&times;</button>
+            </div>
+            {% else %}
+            <div class="flex-shrink-0 d-flex align-items-start">
               <button
                 class="btn btn-link btn-sm text-danger p-0"
                 hx-post="{{ url_for('workouts.remove_exercise', workout_id=workout.id) }}"
@@ -23,11 +67,8 @@
                 title="Remove"
               >&times;</button>
             </div>
+            {% endif %}
           </div>
-          {% set param_ns = namespace(unit_param_id=None, param_list=[]) %}          
-          {% set timer = namespace(has_timer=False, timer_value=None, timer_units=None) %}
-          {% set param_ns.param_list = exercise_parameters[sec.name] %}
-          {% include "_dynamic_parameter.html" %}
         </li>
       {% endfor %}
     </ul>
