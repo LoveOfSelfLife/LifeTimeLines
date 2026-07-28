@@ -36,7 +36,18 @@ def exercises_listing(context=None):
     filter_terms = get_filter_terms_from_request()        
     return exercises_listing2(member_id, page=page, filter_terms=filter_terms)
 
-def exercises_listing2(member_id, page=1, filter_terms=[]):
+
+@bp.route('/listing-modal', methods=['GET'])
+@auth.login_required
+def exercises_listing_modal(context=None):
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+    page = int(request.args.get('page', 1))
+    filter_terms = get_filter_terms_from_request()
+    return exercises_listing2(member_id, page=page, filter_terms=filter_terms, modal_mode=True)
+
+def exercises_listing2(member_id, page=1, filter_terms=[], modal_mode=False):
     entity_name = "ExerciseTable"
 
     page_size = 100
@@ -52,10 +63,19 @@ def exercises_listing2(member_id, page=1, filter_terms=[]):
     
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
 
-    return exercise_listing_base(entity_name, int(page), page_size, view, fields_to_display, filter_terms, entities)
+    return exercise_listing_base(
+        entity_name,
+        int(page),
+        page_size,
+        view,
+        fields_to_display,
+        filter_terms,
+        entities,
+        modal_mode=modal_mode,
+    )
 
 
-def exercise_listing_base(entity_name, page, page_size, view, fields_to_display, filter_terms, entities):
+def exercise_listing_base(entity_name, page, page_size, view, fields_to_display, filter_terms, entities, modal_mode=False):
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
     end = start + page_size
@@ -69,8 +89,7 @@ def exercise_listing_base(entity_name, page, page_size, view, fields_to_display,
     target = request.args.get('target')
     results_target_container = target if target else 'results-area'
     
-    return hx_render_template(
-        template_file_name,
+    template_data = dict(
         title="Exercises Library",
         entity_name=entity_name,
         main_content_container="entities-container",        
@@ -92,6 +111,11 @@ def exercise_listing_base(entity_name, page, page_size, view, fields_to_display,
         results_target_container=results_target_container,
         entity_card_view_html='exercise_card_view.html'        
     )
+
+    if modal_mode:
+        return hx_render_template('exercise_listing_modal.html', **template_data)
+
+    return hx_render_template(template_file_name, **template_data)
 
 
 @bp.route('/modal')

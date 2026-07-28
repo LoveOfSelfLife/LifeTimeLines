@@ -17,7 +17,18 @@
 
 {% for sec in workout.workout_sections %}
   <div class="card mb-3">
-    <div class="card-header">{{ sec.name.title() }}</div>
+    <div class="card-header d-flex align-items-center gap-2">
+      <span>{{ sec.name.title() }}</span>
+      <button
+        type="button"
+        class="btn btn-link btn-sm p-0"
+        title="Open exercises library"
+        hx-get="/exercises/listing-modal?view=list"
+        hx-target="#modals-here"
+        hx-swap="innerHTML">
+        <i class="bi bi-plus-lg"></i>
+      </button>
+    </div>
     <ul class="list-group list-group-flush section-list"
         data-section="{{ sec.name }}">
       {% for item in sec.exercises %}
@@ -29,8 +40,18 @@
             <span class="drag-handle me-3 align-self-center" style="cursor:grab;">☰</span>
 
             <div class="flex-fill me-3 d-flex flex-column">
+              <span>
               <strong class="pt-1">{{ ex.name }}</strong>
-
+              <button
+                type="button"
+                class="btn btn-link btn-sm p-0 ms-2 align-baseline"
+                title="Open exercises library"
+                hx-get="/exercises/listing-modal?view=list"
+                hx-target="#modals-here"
+                hx-swap="innerHTML">
+                <i class="bi bi-journal-text"></i>
+              </button>
+              </span>
               {% set param_ns = namespace(unit_param_id=None, param_list=[]) %}
               {% set timer = namespace(has_timer=False, timer_value=None, timer_units=None) %}
               {% set param_ns.param_list = exercise_parameters[sec.name] %}

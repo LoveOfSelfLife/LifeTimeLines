@@ -131,7 +131,8 @@
     </nav>
 {% endif %}
 
-<button id="favorites-toggle-1" 
+{# this button is returned out-of-band (OOB), which then updates the favorites toggle in the parent template  #}
+<button id="favorites-toggle" 
         type="button" 
         class="btn btn-outline-secondary favorites-toggle" 
         style="height: 38px;" 
@@ -140,9 +141,16 @@
         hx-target="#{{ results_target_container or 'results-area' }}" 
         hx-swap="innerHTML" 
         hx-include="[name='search'], [name='view']" 
-        hx-vals='{"favorites_only": {% if favorites_active %}false{% else %}true{% endif %}}'        
+        hx-vals='{"favorites_only": {% if favorites_active %}false{% else %}true{% endif %}}'
         title="{% if favorites_active %}Show all items{% else %}Show favorites only{% endif %}"
         hx-swap-oob="true">
     <i class="bi {% if favorites_active %}bi-heart-fill{% else %}bi-heart{% endif %}"></i>
 </button>
+
+<input
+    type="hidden"
+    id="favorites-only-state"
+    name="favorites_only"
+    value="{% if favorites_active %}true{% else %}false{% endif %}"
+    hx-swap-oob="true">
 
