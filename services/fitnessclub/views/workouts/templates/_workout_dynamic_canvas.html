@@ -23,7 +23,7 @@
         type="button"
         class="btn btn-link btn-sm p-0"
         title="Open exercises library"
-        hx-get="/exercises/listing-modal?view=list"
+        hx-get="/exercises/listing-modal?view=list&search={{ ('^section:' ~ sec.name)|urlencode }}"
         hx-target="#modals-here"
         hx-swap="innerHTML">
         <i class="bi bi-plus-lg"></i>
@@ -46,8 +46,8 @@
                 type="button"
                 class="btn btn-link btn-sm p-0 ms-2 align-baseline"
                 title="Open exercises library"
-                hx-get="/exercises/listing-modal?view=list"
-                hx-target="#modals-here"
+                hx-get="/exercises/listing-modal?view=list&search={{ ('^related:' ~ ex.id)|urlencode }}"
+                hx-target="#modals-here"    
                 hx-swap="innerHTML">
                 <i class="bi bi-journal-text"></i>
               </button>

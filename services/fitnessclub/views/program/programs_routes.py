@@ -214,8 +214,6 @@ def workouts_listing(context=None):
     filter_terms = get_filter_terms_from_request()
 
             
-    entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
-
     # mobile = request.args.get('mobile', type=bool, default=False)
     # div_id = 'lib-list-mobile' if mobile else 'lib-list'
     div_id = target
