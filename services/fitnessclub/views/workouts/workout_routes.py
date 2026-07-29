@@ -210,7 +210,7 @@ def builder(context=None, workout_id=None):
         if workout.get('created_by'):
             can_save_workout = (workout.get('created_by') == member_id) or is_member_an_admin(member_id)
         
-        return hx_render_template('workout_builder.html', 
+        return hx_render_template('workout_builder2.html', 
                                 workout=workout, 
                                 context=context, 
                                 source='exercises', 

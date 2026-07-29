@@ -1,0 +1,93 @@
+<div class="container-fluid">
+    <div class="row">
+        <div>
+            <div class="mt-3 mb-4">
+                <!-- Workout Name Row -->
+                <div class="mb-3">
+                    <input type="text" name="name" class="form-control" value="{{ workout.name }}"
+                        placeholder="Workout Name" hx-trigger="change delay:500ms, focusout"
+                        hx-post="{{ url_for('workouts.update_workout_name', workout_id=workout.id) }}" hx-swap="none">
+                </div>
+
+                <!-- Action Buttons Row -->
+                <div class="d-flex flex-wrap gap-2 justify-content-end">
+
+                    <button class="btn btn-success" {% if can_save_workout %} {% if not editing_program_workout %}
+                        hx-post="{{ url_for('workouts.save_workout', workout_id=workout.id) }}" {% else %}
+                        hx-post="{{ url_for('workouts.save_program_workout', workout_id=workout.id) }}" {% endif %}
+                        hx-vals='{"workout_id":"{{ workout.id }}"}}' hx-target="#entities-container"
+                        hx-swap="innerHTML show:top" {% else %} disabled
+                        title="Only the workout creator can save changes" {% endif %}>
+                        <i class="bi bi-check-circle"></i> Save
+                    </button>
+
+                    {% if not editing_program_workout %}
+                    <button class="btn btn-success"
+                        hx-post="{{ url_for('workouts.save_workout_copy', workout_id=workout.id) }}"
+                        hx-target="#entities-container" hx-swap="show:top"
+                        hx-confirm="Create a copy of '{{ workout.name }}'?">
+                        <i class="bi bi-copy"></i> Copy
+                    </button>
+                    {% endif %}
+
+                    <button class="btn btn-secondary"
+                        hx-post="{{ url_for('workouts.cancel_editing_workout', workout_id=workout.id) }}"
+                        hx-vals='{"workout_id":"{{ workout.id }}"}' hx-target="#entities-container"
+                        hx-swap="innerHTML show:top">
+                        <i class="bi bi-x-circle"></i> Cancel & Exit
+                    </button>
+                </div>
+            </div>
+            <div id="canvas" hx-get="{{ url_for('workouts.workout_dynamic_canvas', workout_id=workout.id) }}"
+                hx-trigger="load" hx-swap="innerHTML show:top">
+                Loading…
+            </div>
+
+        </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Handle toggle button state for workout builder
+    document.addEventListener('htmx:afterRequest', function (e) {
+        // Handle desktop toggle buttons
+        if (e.target.closest('#desktop-toggle-buttons')) {
+            const clickedButton = e.target;
+            const toggleValue = clickedButton.dataset.toggle;
+
+            document.querySelectorAll('#desktop-toggle-buttons button').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.toggle === toggleValue) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        // Handle mobile toggle buttons
+        if (e.target.closest('#mobile-toggle-buttons')) {
+            const clickedButton = e.target;
+            const toggleValue = clickedButton.dataset.toggle;
+
+            document.querySelectorAll('#mobile-toggle-buttons button').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.toggle === toggleValue) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+    });
+</script>
+
+<style>
+    /* Make text white for inactive toggle buttons while keeping background unchanged */
+    #desktop-toggle-buttons .btn-outline-primary:not(.active),
+    #mobile-toggle-buttons .btn-outline-primary:not(.active) {
+        color: white !important;
+    }
+
+    #desktop-toggle-buttons .btn-outline-primary:not(.active):hover,
+    #mobile-toggle-buttons .btn-outline-primary:not(.active):hover {
+        color: #f8f9fa !important;
+    }
+</style>

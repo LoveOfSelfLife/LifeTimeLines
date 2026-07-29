@@ -88,7 +88,10 @@ def exercise_listing_base(entity_name, page, page_size, view, fields_to_display,
     # Set results_target_container based on request args
     target = request.args.get('target')
     results_target_container = target if target else 'results-area'
-    
+    if modal_mode:
+        entity_add_route = None
+    else:
+        entity_add_route = '/exercises/new?'
     template_data = dict(
         title="Exercises Library",
         entity_name=entity_name,
@@ -100,7 +103,7 @@ def exercise_listing_base(entity_name, page, page_size, view, fields_to_display,
         page=page,
         view=view,
         total_pages=total_pages,
-        entity_add_route='/exercises/new?',
+        entity_add_route=entity_add_route,
         filter_dialog_route=f'/exercises/filter-dialog?entity_table={entity_name}',        
         entities_listing_route=f'/exercises/exercises-listing?entity_table={entity_name}',
         entity_view_route=f'/exercises/view?entity_table={entity_name}',

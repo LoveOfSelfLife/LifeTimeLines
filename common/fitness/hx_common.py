@@ -1,4 +1,7 @@
+from ast import pattern
+
 from flask import render_template, render_template_string, request
+
 from common.fitness.member_entity import MembershipRegistry, get_member_email_from_user_context, get_member_id_from_user_context, get_member_name_from_user_context, is_member_an_admin, FirstTimeUserException, UnregisteredMemberException
 from common.fitness.impersonation import get_impersonated_member_id
 from common.fitness.roles_service import get_member_role_context
@@ -192,7 +195,12 @@ def entity_matches_special_term(entity, term_type, pattern):
     if term_type == "^section":
         pass
     elif term_type == "^related":
+        from common.fitness.entities_getter import get_entity
+        from common.fitness.exercise_entity import is_entity_related_to_general
+        
         # the pattern in this case is expected to be an exercise id, so we should retrive the exercise entity and check if the entity is related to that exercise
-        exercise_entity = get_entity_by_id("exercise", pattern)
+        general_entity = get_entity("ExerciseTable", pattern.strip())
+        return is_entity_related_to_general(entity, general_entity)
+
     return False  # Placeholder return value; replace with actual logic
 

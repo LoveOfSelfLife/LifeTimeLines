@@ -72,6 +72,42 @@ class ExerciseIndexEntity (EntityObject):
     def __init__(self, d={}):
         super().__init__(d)
 
+def is_entity_related_to_general(exercise_entity, general_exercise_entity):
+    """Check if an exercise entity is related to a general exercise entity based on shared attributes."""
+    if not exercise_entity or not general_exercise_entity:
+        return False
+
+    # # Check for shared primary muscles
+    # primary_muscles = set(exercise_entity.get("primaryMuscles", []))
+    # general_primary_muscles = set(general_exercise_entity.get("primaryMuscles", []))
+    # if primary_muscles.intersection(general_primary_muscles):
+    #     return True
+
+    # # Check for shared secondary muscles
+    # secondary_muscles = set(exercise_entity.get("secondaryMuscles", []))
+    # general_secondary_muscles = set(general_exercise_entity.get("secondaryMuscles", []))
+    # if secondary_muscles.intersection(general_secondary_muscles):
+    #     return True
+
+    # # Check for shared equipment
+    # equipment = set(exercise_entity.get("equipment_list", []))
+    # general_equipment = set(general_exercise_entity.get("equipment_list", []))
+    # if equipment.intersection(general_equipment):
+    #     return True
+
+    # # Check for shared physical fitness components
+    # physical_fitness_components = set(exercise_entity.get("physical_fitness_components", []))
+    # general_physical_fitness_components = set(general_exercise_entity.get("physical_fitness_components", []))
+    # if physical_fitness_components.intersection(general_physical_fitness_components):
+    #     return True
+
+    # Check for shared movement categories
+    movement_categories = set(exercise_entity.get("movement_categories", []))
+    general_movement_categories = set(general_exercise_entity.get("movement_categories", []))
+    if movement_categories.intersection(general_movement_categories):
+        return True
+
+    return False
 
 def gen_exercise_id(exercise):
     """Generate an exercise id from the exercise name."""
