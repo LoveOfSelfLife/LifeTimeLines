@@ -394,22 +394,15 @@ def update_peek_button(context=None):
     workout_key = request.args.get('workout_key', '')
     button_id = request.args.get('button_id', 'peek-workout-btn')  # default button ID if not provided
     # Determine button state based on selection
-    use_last_instance = False
     if workout_key and workout_key.strip():
         (wkt_id, mbr_id, entity) = eval(workout_key) if isinstance(workout_key, str) else workout_key
         member_id = get_member_id_from_user_context(context)
         if not member_id:
             abort(401)
-        last_instance = get_last_workout_instance_for_workout(wkt_id, member_id)
-        if last_instance and last_instance.get('next_time_workout_sections', None):
-            workout_key = last_instance.get_composite_key()
-            use_last_instance = True
-        
         # Properly escape the workout_key for JSON and HTML
         hx_vals_json = json.dumps({
             "key": str(workout_key),
-            "is_modal": "true",
-            "use_last_instance": str(use_last_instance).lower()
+            "is_modal": "true"
         })
         # Escape quotes for HTML attribute
         hx_vals_escaped = hx_vals_json.replace('"', '&quot;')

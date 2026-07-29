@@ -98,12 +98,12 @@ def render_home_page_workout(member, current_state):
     )
 
 def render_finishing_workout_page(member, current_state):
-
     workout_instance_key = current_state.get('workout_instance_key', None)
     program_key = current_state.get('program_key', None)
     workout_started_ts = current_state.get('time_workout_started', None)
 
-    program_composite_key = eval(program_key) if program_key else None
+    # only run eval if program_key is not None and is a string, otherwise set it to program_key
+    program_composite_key = eval(program_key) if program_key and isinstance(program_key, str) else program_key
     scheduled_workout_event_id = current_state.get('scheduled_workout_event_id', None)
     es = EntityStore()
     workout_instance = es.get_item_by_composite_key(workout_instance_key)

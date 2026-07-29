@@ -924,44 +924,9 @@ def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, m
 
     workout_def_id = workout_entity.get('id', None) if workout_entity else None
 
-    last_workout_instance = get_last_workout_instance_for_workout(workout_def_id, member_id)
-
-    if last_workout_instance:
-        adjustments_for_next_workout = last_workout_instance.get('adjustments_for_next_workout', {})
-    else:
-        last_workout_instance = MemberWorkoutInstanceEntity(workout_entity.copy())    
-        adjustments_for_next_workout = {}
-    # current_program = es.get_item_by_composite_key(program_composite_key)
-
-    # current_program_key = current_program.get_composite_key()
-    # next_workout = get_next_workout_in_program(current_program, member_id)
-    # next_workout_key = next_workout.get('next_workout_key', None)
 
     workout_instance = MemberWorkoutInstanceEntity(workout_entity.copy())
 
-    if last_workout_instance:
-        # go through each of the exercises in the last workout instance
-        # and copy the parameters to the new workout instance
-        for last_section, new_section in zip(last_workout_instance.get('workout_sections', []), workout_instance.get('workout_sections', [])):
-            for last_exercise, new_exercise in zip(last_section.get('exercises', []), new_section.get('exercises', [])):
-                # copy just the weight, units & time parameters from the last exercise to the new exercise
-                last_params = last_exercise.get('parameters', {})
-                new_params = new_exercise.get('parameters', {})
-                for k,v in last_params.items():
-                    new_params[k] = v
-                new_exercise['parameters'] = new_params
-
-    if adjustments_for_next_workout:
-        for section in workout_instance.get('workout_sections', []):
-            for exercise in section.get('exercises', []):
-                # apply the adjustments to the exercise parameters
-                # check if the exercise has an adjustment in the adjustments_for_next_workout dict
-                exercise_id = exercise.get('id', None)
-                if not exercise_id:
-                    continue
-                if exercise_id in adjustments_for_next_workout:
-                    adjustment = adjustments_for_next_workout[exercise_id]
-                    exercise['parameters'].update(adjustment)
 
     workout_instance.update({
         'id': str(uuid.uuid4()),
@@ -1027,7 +992,7 @@ def really_finish_workout(context=None, workout_instance_key=None):
 
     # here we want to update the parameters of the exercises in the workout instance
     # with the parameters from the current workout state
-    # clear the 'current_workout_instance_state' from the session
+    
     for exercise, params in exercise_parameters.items():
         for section in workout_instance.get('workout_sections', []):
             for ex in section.get('exercises', []):
@@ -1036,27 +1001,33 @@ def really_finish_workout(context=None, workout_instance_key=None):
                     for k, v in params.items():
                         ex['parameters'][k] = v
 
+    # if the strategy is original, then we don't need to update the memberWorkoutDefinition with the adjustments_for_next_workout, as next time we will just use the original parameters
+
     if next_time_strategy == 'original':
-        adjustments_for_next_workout = original_parameters
+        updated_parameters = None
+    # otherwise, if the strategy is performed_today, then we want to use the parameters from the current workout state as the adjustments for next time
+    # we will update the memberWorkoutDefinition with the adjustments_for_next_workout, so that next time we will use these parameters
     elif next_time_strategy == 'performed_today':
-        adjustments_for_next_workout = exercise_parameters
+        updated_parameters = exercise_parameters
     else:
-        adjustments_for_next_workout = adjustments_for_next_workout if adjustments_for_next_workout else exercise_parameters
+        updated_parameters = adjustments_for_next_workout if adjustments_for_next_workout else exercise_parameters
     
-    next_time_workout_sections = copy.deepcopy(workout_instance.get('workout_sections', []))
-    for section in next_time_workout_sections:
-        for exercise in section.get('exercises', []):
-            exercise_id = exercise.get('id', None)
-            if exercise_id and exercise_id in adjustments_for_next_workout:
-                adjustment = adjustments_for_next_workout[exercise_id]
-                exercise['parameters'].update(adjustment)
+    # get the member workout definition for this workout instance, and update the parameters of the exercises with the updated_parameters, but only if the updated_parameters is not None
+    if updated_parameters:
+        member_workout_def_id = workout_instance.get('member_workout_def_id', None)
+        member_id = workout_instance.get('member_id', None)
+        workout_definition = es.get_item(MemberWorkoutDefinitionEntity({'id': member_workout_def_id, 'member_id': member_id}))
+        for section in workout_definition.get('workout_sections', []):
+            for exercise in section.get('exercises', []):
+                exercise_id = exercise.get('id', None)
+                if exercise_id and exercise_id in updated_parameters:
+                    adjustment = updated_parameters[exercise_id]
+                    exercise['parameters'].update(adjustment)
+        es.upsert_item(workout_definition)
 
     workout_instance['started_ts'] = _normalize_form_datetime(started_ts, workout_instance.get('started_ts'))
     workout_instance['finished_ts'] = _normalize_form_datetime(finished_ts, datetime.now().isoformat())
     workout_instance['member_feedback'] = member_feedback.strip()
-    workout_instance['adjustments_for_next_workout'] = adjustments_for_next_workout
-    workout_instance['next_time_workout_sections'] = next_time_workout_sections
-    
     es.upsert_item(workout_instance)
     
     # store the parameters of the current workout exercises away 
@@ -1065,7 +1036,6 @@ def really_finish_workout(context=None, workout_instance_key=None):
     clear_active_workout_state()
     # session.pop('current_workout_instance_state', None)
     session.pop(f"last_section_{workout_instance['id']}", None)
-
 
     cal = get_calendar_service()
     cal.update_status_of_workout_event(scheduled_workout_event_id, 'done')

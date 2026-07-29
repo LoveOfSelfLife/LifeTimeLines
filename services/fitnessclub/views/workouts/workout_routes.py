@@ -1378,15 +1378,10 @@ def view_workout(context=None):
 
     workout = es.get_item_by_composite_key(workout_composite_key)
 
-    # if we are previewing the workout from the home page dashboard, then we want to 
-    # use the last instance of the workout and then apply any adjustments that are to be
-    # applied to the workout for the next time, so that the user sees exactly what
-    # they will be doing in their next workout.
-    use_last_instance = request.args.get('use_last_instance', 'false').lower() == 'true'
+
 
     wrkout_exercises = get_exercises_from_workout(workout)
     exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
-
 
     if not workout:
         abort(404)
@@ -1399,10 +1394,9 @@ def view_workout(context=None):
     
     # new: only use the session value if it exists
     last = session.get(f"last_section_{workout_key_str}")  # no fallback
-    if use_last_instance:
-        workout_sections = workout['next_time_workout_sections'] if workout.get('next_time_workout_sections', None) else workout[WORKOUT_SECTIONS]
-    else:
-        workout_sections = workout[WORKOUT_SECTIONS]        
+
+    workout_sections = workout[WORKOUT_SECTIONS]        
+
     # if last section is not set, then we set the last section to be the first section of the workout that has more than one exercise in it
     if not last:
         for section in workout_sections:
