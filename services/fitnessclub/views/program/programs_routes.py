@@ -903,7 +903,6 @@ def start_workout(context=None):
         scheduled_workout_event_id=scheduled_workout_event_id,
         finish_workout_url=url_for('program.finish_workout', workout_instance_key=workout_instance_key),
         cancel_workout_url=url_for('program.cancel_workout', workout_instance_key=workout_instance_key),
-        adjustments=adjustments,
         show_finish_button=True,
         time_workout_started=workout_started_ts,
         active_workout=True,

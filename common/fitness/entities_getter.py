@@ -7,6 +7,12 @@ entity_store_cache_dict = {}
 
 def get_entities(entity_name, fields_to_display, filter_term=None, partition_key=None, sort_by='name', sort_ascending=True, member_id=None):
 
+
+    if filter_term:
+        if isinstance(filter_term, str):
+            import ast
+            filter_term = ast.literal_eval(filter_term)
+
     filtered_entities = get_filtered_entities(entity_name, filter_term, partition_key, sort_by, sort_ascending, member_id=member_id)
     favorite_entity_ids = set()
     if member_id:
@@ -102,6 +108,14 @@ def matches_text_pattern_filter(entity, pattern_str):
 
     return True
 
+def _matches_special_filter_term(entity, term_type, pattern):
+    """
+    Delegate special term matching (e.g. ^section, ^related) to the
+    externally-implemented special matcher.
+    """
+    from common.fitness.hx_common import entity_matches_special_term
+    
+    return entity_matches_special_term(entity, term_type, pattern)
 
 def matches_all_terms_in_filter(entity, filter_term, member_id=None, favorite_entity_ids=None):
     # check if filter_term is a string, in which case convert it to a python object
@@ -109,30 +123,43 @@ def matches_all_terms_in_filter(entity, filter_term, member_id=None, favorite_en
     if filter_term and isinstance(filter_term, str):
         import ast
         filter_term = ast.literal_eval(filter_term)
+
     if filter_term is None:
         return True
+
     for term in filter_term:
+        # Skip non-filter metadata entries (e.g. {"summary": ...})
+        if not isinstance(term, dict):
+            continue
+
         pattern = term.get("value", None)
         term_type = term.get("type", None)
-        if term_type == 'text' and pattern is not None and pattern != "":
+
+        # Ignore terms with no type/value payload
+        if term_type is None or pattern is None or pattern == "":
+            continue
+
+        if term_type == "text":
             pattern = pattern.lower()
-            # if there is a non-empty value for the text filter term
-            # then we check the entire entity to see if the term is in any of the fields
-            # if it does match, then we continue to check the other filter terms
-            # if it does not match, no need to check the other filter terms
-            # and we return False
             if matches_text_pattern_filter(entity, pattern):
                 continue
-            else:
-                return False
+            return False
 
-        if term_type == 'favorites' and pattern is not None and pattern != "":
+        if term_type == "favorites":
             if favorite_entity_ids is not None:
-                # Fast lookup using pre-loaded set
                 entity_id = entity.get(entity.key_field)
                 if entity_id not in favorite_entity_ids:
                     return False
             continue
+
+        # New behavior: special terms beginning with '^'
+        if isinstance(term_type, str) and term_type.startswith("^"):
+            if _matches_special_filter_term(entity, term_type, pattern):
+                continue
+            return False
+
+        # Unknown term types are ignored for backward compatibility
+
     return True
 
 

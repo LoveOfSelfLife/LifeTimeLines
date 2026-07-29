@@ -44,14 +44,14 @@ def index(context = None):
 
         member_detail = get_member_detail_from_user_context(context)
         
-        current_state = get_active_workout_state()
-        if current_state:
-            if current_state.get('state', None) == 'workout_started':
+        current_workout_session_state = get_active_workout_state()
+        if current_workout_session_state:
+            if current_workout_session_state.get('state', None) == 'workout_started':
                 # render the workout that is in progress
-                return render_home_page_workout(member_detail, current_state)
-            elif current_state.get('state', None) == 'finishing_workout':
+                return render_home_page_workout(member_detail, current_workout_session_state)
+            elif current_workout_session_state.get('state', None) == 'finishing_workout':
                 # render the finishing workout screen
-                return render_finishing_workout_page(member_detail, current_state)
+                return render_finishing_workout_page(member_detail, current_workout_session_state)
         
         current_program = get_members_current_active_program(member_id)
         workouts_in_program = []

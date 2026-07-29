@@ -1384,15 +1384,6 @@ def view_workout(context=None):
     # they will be doing in their next workout.
     use_last_instance = request.args.get('use_last_instance', 'false').lower() == 'true'
 
-    # if use_last_instance:
-    #     member_id = get_member_id_from_user_context(context)
-    #     if not member_id:
-    #         abort(401)
-    #     last_instance = get_last_workout_instance_for_workout(workout['id'], member_id)
-    #     if last_instance and last_instance.get('next_time_workout_sections', None):
-    #         workout = last_instance
-    #         workout[WORKOUT_SECTIONS] = workout['next_time_workout_sections']
-
     wrkout_exercises = get_exercises_from_workout(workout)
     exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
 
@@ -1440,30 +1431,6 @@ def view_workout(context=None):
 
 from common.fitness.entities_getter import get_entity
 
-# @bp.route("/viewer/workout/<workout_id>/section/<section_name>")
-# @auth.login_required
-# def view_section(context=None, workout_id=None, section_name=None):
-#     workout = get_entity(WORKOUT_ENTITY_NAME, workout_id)
-#     exercises = get_exercises_from_workout(workout)
-#     if not workout:
-#         abort(404)
-#     section = next((s for s in workout[WORKOUT_SECTIONS] if s["name"] == section_name), None)
-#     if not section:
-#         abort(404)
-#     print(f"Viewing section {section_name} of workout {workout_id}")    
-#     # Get current workout state to see if there are any parameter overrides
-#     current_workout_state = get_active_workout_state()
-#     current_parameters = {}
-#     if current_workout_state:
-#         current_parameters = current_workout_state.get('exercise_parameters', {})
-    
-#     # Persist the user's current section in session
-#     session[f"last_section_{workout_id}"] = section_name
-#     return render_template("_section_view.html",
-#                            section=section,
-#                            workout=workout,
-#                            exercises=exercises,
-#                            current_parameters=current_parameters)
 
 @bp.route("/viewer/workout/<workout_id>/set_section/<section_name>", methods=["POST"])
 @auth.login_required
@@ -1571,81 +1538,6 @@ def format_exercise_adjustment(exercise_adjustment=None):
 
 bp.add_app_template_filter(format_exercise_adjustment, name='format_adjustment')
 
-
-
-@bp.route("/viewer/exercise/edit_params")
-@auth.login_required
-def edit_exercise_parameters(context=None):
-    """Display the parameter edit dialog for an exercise in the current workout"""
-    current_app.logger.info(f"=== EDIT PARAMS ROUTE CALLED ===")
-    exercise_id = request.args.get("exercise_id", None)
-    workout_id = request.args.get("workout_id", None)
-    workout_instance_key = request.args.get("workout_instance_key", None)
-    current_app.logger.info(f"exercise_id from args: {exercise_id}")
-    current_app.logger.info(f"workout_id from args: {workout_id}")
-    current_app.logger.info(f"workout_instance_key from args: {workout_instance_key}")
-    current_app.logger.info(f"request.args: {request.args}")
-    current_app.logger.info(f"request.url: {request.url}")
-    
-    if not exercise_id:
-        abort(400, "exercise_id is required")
-    if not workout_instance_key:
-        abort(400, "workout_key is required")
-    
-    # Get the exercise details
-    exercise = get_entity("ExerciseTable", exercise_id)
-    current_app.logger.info(f"exercise found: {exercise is not None}")
-    if not exercise:
-        abort(404)
-    es = EntityStore()
-    # Get the workout details to find the exercise parameters
-    workout_instance = es.get_item_by_composite_key(workout_instance_key)
-    workout = get_entity(WORKOUT_ENTITY_NAME, workout_id)
-    if not workout_instance:
-        abort(404)
-    
-    # Find the exercise item in the workout to get original parameters
-    item = None
-    current_app.logger.info(f"Looking for exercise_id '{exercise_id}' in workout sections...")
-    current_app.logger.info(f"Workout sections: {[s.get('name') for s in workout_instance.get(WORKOUT_SECTIONS, [])]}")
-    
-    for section in workout_instance.get(WORKOUT_SECTIONS, []):
-        section_name = section.get("name", "unknown")
-        current_app.logger.info(f"Checking section '{section_name}' with {len(section.get('exercises', []))} exercises")
-        for ex_item in section.get("exercises", []):
-            ex_item_id = ex_item.get("id")
-            current_app.logger.info(f"  Comparing '{ex_item_id}' with '{exercise_id}' - match: {ex_item_id == exercise_id}")
-            if ex_item_id == exercise_id:
-                item = ex_item
-                current_app.logger.info(f"Found exercise in section '{section_name}'!")
-                break
-        if item:
-            break
-    
-    if not item:
-        current_app.logger.error(f"Exercise '{exercise_id}' not found in any workout section!")
-        current_app.logger.error(f"Available exercise IDs in workout: {[ex.get('id') for section in workout.get(WORKOUT_SECTIONS, []) for ex in section.get('exercises', [])]}")
-        abort(404, "Exercise not found in workout")
-    
-    # Get current workout state to see if there are any parameter overrides
-    current_workout_state = get_active_workout_state()
-    current_parameters = get_initial_params_for_exercise()
-    p = item.get('parameters', {})
-    current_parameters.update(p)
-
-    if current_workout_state:
-        exercise_parameters = current_workout_state.get('exercise_parameters', {})
-        p = exercise_parameters.get(exercise_id, {})
-        if p:
-            current_parameters.update(p)
-    
-    return render_template("_exercise_parameters_edit.html",
-                           exercise=exercise,
-                           workout=workout_instance,
-                           workout_id=workout_id,
-                           workout_instance_key=workout_instance_key,
-                           item=item,
-                           current_parameters=current_parameters)
 
 @bp.route("/viewer/exercise/save_params", methods=["POST"])
 @auth.login_required

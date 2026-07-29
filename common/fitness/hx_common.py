@@ -179,3 +179,20 @@ def parse_listing_filter(filter_param):
         current_listing_filter = []
     return current_listing_filter
         
+def entity_matches_special_term(entity, term_type, pattern):
+    """
+    Check if the given entity matches the special term based on its type and pattern.
+    This function is a placeholder and should be implemented with the actual matching logic.
+    """
+    # Implement the actual matching logic here based on your application's requirements
+    # For example, if term_type is "^section", check if entity.section matches pattern
+    # If term_type is "^related", check if entity.related_id matches pattern
+    # Return True if it matches, False otherwise
+    
+    if term_type == "^section":
+        pass
+    elif term_type == "^related":
+        # the pattern in this case is expected to be an exercise id, so we should retrive the exercise entity and check if the entity is related to that exercise
+        exercise_entity = get_entity_by_id("exercise", pattern)
+    return False  # Placeholder return value; replace with actual logic
+
