@@ -160,8 +160,8 @@
                 class="btn btn-link btn-sm text-danger p-0 ms-2"
                 hx-post="{{ url_for('workouts.remove_exercise', workout_id=workout.id) }}"
                 hx-vals='{"exercise_id":"{{ item.id }}"}'
-                hx-target="#canvas"
-                hx-swap="innerHTML"
+                hx-target="closest li"
+                hx-swap="delete"
                 title="Remove"
               >&times;</button>
             </div>
@@ -171,8 +171,8 @@
                 class="btn btn-link btn-sm text-danger p-0"
                 hx-post="{{ url_for('workouts.remove_exercise', workout_id=workout.id) }}"
                 hx-vals='{"exercise_id":"{{ item.id }}"}'
-                hx-target="#canvas"
-                hx-swap="innerHTML"
+                hx-target="closest li"
+                hx-swap="delete"
                 title="Remove"
               >&times;</button>
             </div>

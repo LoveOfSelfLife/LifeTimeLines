@@ -824,6 +824,11 @@ def remove_exercise(context=None, workout_id=None):
         s['exercises'] = [it for it in s['exercises'] if it['id']!=exid]
 
     set_cache_value('current_workout', w)
+
+    # HTMX row-level delete: return 200 so hx-swap="delete" is applied.
+    if request.headers.get('HX-Request'):
+        return ('', 200)
+
     return workout_canvas2(context, workout_id)
 
 @bp.route('/builder/<workout_id>/updatename', methods=['POST'])
