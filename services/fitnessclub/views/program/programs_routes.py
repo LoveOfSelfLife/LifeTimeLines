@@ -888,7 +888,7 @@ def start_workout(context=None):
         for section in workout_sections
     }
 
-    workout_view_preference = session.get('workout_view_preference', 'accoridion')
+    workout_view_preference = session.get('workout_view_preference', 'accordion')
     return render_template(
         "workout_view.html",
         workout=workout_instance,

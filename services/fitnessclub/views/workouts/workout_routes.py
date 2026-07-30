@@ -1,4 +1,5 @@
 from datetime import datetime
+from ast import literal_eval
 from flask import Blueprint, jsonify, make_response, render_template, request, current_app
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
@@ -13,6 +14,7 @@ from common.fitness.member_workout_entity import WorkoutDefinitionEntity, get_ex
 from common.fitness.edit_workout_object import edit_workout_object
 from common.fitness.programs import get_last_workout_instance_for_workout
 from common.fitness.programs import get_last_workout_instance_for_workout
+from common.fitness.home_page_view import render_home_page_workout
 from common.fitness.workout_state import get_active_workout_state, update_active_workout_state
 
 bp = Blueprint('workouts', __name__, template_folder='templates')
@@ -290,7 +292,12 @@ def toggle_carousel_view(context=None):
     current_view = session.get('workout_view_preference', 'accordion')
     new_view = 'carousel' if current_view == 'accordion' else 'accordion'
     session['workout_view_preference'] = new_view
-    return jsonify({'new_view': new_view})
+
+    # Re-render the active workout panel so HTMX can refresh the view immediately.
+    current_workout_state = get_active_workout_state()
+    if not current_workout_state:
+        abort(404)
+    return render_home_page_workout(None, current_workout_state)
 
 @bp.route('/update_param_in_session', methods=['POST'])
 @auth.login_required
@@ -622,6 +629,53 @@ def workout_dynamic_canvas2(context=None, workout_id=None):
     else:
         abort(404)
 
+
+def _add_exercise_to_workout(workout, exercise, preferred_section=None):
+    exid = exercise['id']
+
+    if preferred_section:
+        for section in workout[WORKOUT_SECTIONS]:
+            if section['name'] == preferred_section:
+                section['exercises'].append({
+                    'id': exid,
+                    'parameters': get_initial_params_for_exercise()
+                })
+                return
+
+    secs = map_exercise_to_sections(exercise)
+    if secs:
+        for section in workout[WORKOUT_SECTIONS]:
+            if section['name'] in secs:
+                section['exercises'].append({
+                    'id': exid,
+                    'parameters': get_initial_params_for_exercise()
+                })
+                return
+
+        section = secs[0]
+        workout[WORKOUT_SECTIONS].append({
+            'name': section,
+            'exercises': [{
+                'id': exid,
+                'parameters': get_initial_params_for_exercise()
+            }]
+        })
+        return
+
+    if len(workout[WORKOUT_SECTIONS]) > 0:
+        workout[WORKOUT_SECTIONS][0]['exercises'].append({
+            'id': exid,
+            'parameters': get_initial_params_for_exercise()
+        })
+    else:
+        workout[WORKOUT_SECTIONS].append({
+            'name': 'general',
+            'exercises': [{
+                'id': exid,
+                'parameters': get_initial_params_for_exercise()
+            }]
+        })
+
 # ── Actions ──────────────────────────────────────────────────────
 
 @bp.route('/builder/<workout_id>/add', methods=['POST'])
@@ -650,50 +704,59 @@ def add_exercise(context=None, workout_id=None):
     if not ex:
         abort(404)
     
-    exid = ex['id']
-    # this returns the list of potential sections that the exercise should go into
-    secs = map_exercise_to_sections(ex)
-    
-    if secs:
-        # check all the sections of the workout and add the exercise to first section that matches one of the potential sections for the exercise
-        added = False
-        for s in w[WORKOUT_SECTIONS]:
-            if s['name'] in secs:
-                s['exercises'].append({
-                  'id':exid,
-                  'parameters':get_initial_params_for_exercise()
-                })
-                added = True
-                break
-            
-        if not added:
-            # given that no section was found in the workout that matches one of the potential sections for the exercise,
-            # choose the first potential section and add the exercise to that section (creating the section if it does not exist in the workout)
-            section = secs[0]
-            w[WORKOUT_SECTIONS].append({
-                'name': section,
-                'exercises': [{
-                  'id':exid,
-                  'parameters':get_initial_params_for_exercise()
-                }]
-            })
-    else:
-        # add the exercise to the first section, but first check if there is a section named the same as the exercise category and add it there instead
-        if len(w[WORKOUT_SECTIONS]) > 0:
-            w[WORKOUT_SECTIONS][0]['exercises'].append({
-              'id':exid,
-              'parameters':get_initial_params_for_exercise()
-            })
-        else:
-            w[WORKOUT_SECTIONS].append({
-                'name': 'general',
-                'exercises': [{
-                  'id':exid,
-                  'parameters':get_initial_params_for_exercise()
-                }]
-            })
+    preferred_section = request.args.get('preferred_section', None)
+    _add_exercise_to_workout(w, ex, preferred_section=preferred_section)
     set_cache_value('current_workout', w)
     return workout_canvas2(context, workout_id)
+
+
+@bp.route('/builder/<workout_id>/add-multiple', methods=['POST'])
+@auth.login_required
+def add_multiple_exercises(context=None, workout_id=None):
+    w = get_cache_value('current_workout')
+    if w:
+        if w['id'] != workout_id:
+            abort(404)
+    else:
+        w = new_workout()
+        set_cache_value('current_workout', w)
+
+    selected_keys = request.form.getlist('selected_entity_keys')
+    preferred_section = request.args.get('preferred_section') or request.form.get('preferred_section')
+    selected_keys = list(dict.fromkeys([key for key in selected_keys if key]))
+
+    if not selected_keys:
+        response = make_response('')
+        response.headers['HX-Trigger'] = json.dumps({
+            "refreshWorkoutCanvas": {"target": "body"},
+            "showMessage": {"target": "body", "value": "No exercises selected."}
+        })
+        return response
+
+    es = EntityStore()
+    added_count = 0
+    for composite_key_str in selected_keys:
+        try:
+            composite_key = literal_eval(composite_key_str)
+        except (ValueError, SyntaxError):
+            continue
+
+        ex = es.get_item_by_composite_key(composite_key)
+        if not ex:
+            continue
+
+        _add_exercise_to_workout(w, ex, preferred_section=preferred_section)
+        added_count += 1
+
+    set_cache_value('current_workout', w)
+    session.pop('exercise_modal_selected_keys', None)
+
+    response = make_response('')
+    response.headers['HX-Trigger'] = json.dumps({
+        "refreshWorkoutCanvas": {"target": "body"},
+        "showMessage": {"target": "body", "value": f"Added {added_count} exercise(s)."}
+    })
+    return response
 
 @bp.route('/builder/<workout_id>/add_workout', methods=['POST'])
 @auth.login_required

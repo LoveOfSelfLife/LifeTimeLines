@@ -14,6 +14,42 @@ from common.fitness.member_exercise_history import get_exercise_history_for_memb
 from common.fitness.utils import generate_id
 bp = Blueprint('exercises', __name__, template_folder='templates')
 from auth import auth
+MULTI_SELECT_SESSION_KEY = 'exercise_modal_selected_keys'
+
+
+def _as_bool(value, default=False):
+    if value is None:
+        return default
+    return str(value).strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def _resolve_selected_entity_keys(allow_multi_select=False):
+    if not allow_multi_select:
+        session.pop(MULTI_SELECT_SESSION_KEY, None)
+        return []
+
+    selected_keys = [str(key) for key in session.get(MULTI_SELECT_SESSION_KEY, []) if key]
+    selected_keys = list(dict.fromkeys(selected_keys))
+
+    toggle_key_raw = request.form.get('multi_select_toggle_key')
+    toggle_key = str(toggle_key_raw) if toggle_key_raw else None
+    if toggle_key is not None:
+        posted_checked_values = set(str(value) for value in request.form.getlist('selected_entity_keys') if value)
+        if toggle_key in posted_checked_values:
+            if toggle_key not in selected_keys:
+                selected_keys.append(toggle_key)
+        else:
+            selected_keys = [key for key in selected_keys if key != toggle_key]
+
+        session[MULTI_SELECT_SESSION_KEY] = selected_keys
+        return selected_keys
+
+    posted_selected_keys = [str(key) for key in request.form.getlist('selected_entity_keys') if key]
+    if posted_selected_keys:
+        selected_keys = list(dict.fromkeys(posted_selected_keys))
+
+    session[MULTI_SELECT_SESSION_KEY] = selected_keys
+    return selected_keys
 
 @bp.route('/')
 @auth.login_required
@@ -45,6 +81,8 @@ def exercises_listing_modal(context=None):
         abort(401)
     page = int(request.args.get('page', 1))
     filter_terms = get_filter_terms_from_request()
+    if _as_bool(request.args.get('allow_multi_select', None), False):
+        session[MULTI_SELECT_SESSION_KEY] = []
     return exercises_listing2(member_id, page=page, filter_terms=filter_terms, modal_mode=True)
 
 def exercises_listing2(member_id, page=1, filter_terms=[], modal_mode=False):
@@ -63,6 +101,10 @@ def exercises_listing2(member_id, page=1, filter_terms=[], modal_mode=False):
     
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
 
+    allow_multi_select = _as_bool(request.form.get('allow_multi_select', None),
+                                  _as_bool(request.args.get('allow_multi_select', None), False))
+    selected_entity_keys = _resolve_selected_entity_keys(allow_multi_select=allow_multi_select)
+
     return exercise_listing_base(
         entity_name,
         int(page),
@@ -71,15 +113,18 @@ def exercises_listing2(member_id, page=1, filter_terms=[], modal_mode=False):
         fields_to_display,
         filter_terms,
         entities,
+        allow_multi_select=allow_multi_select,
+        selected_entity_keys=selected_entity_keys,
         modal_mode=modal_mode,
     )
 
 
-def exercise_listing_base(entity_name, page, page_size, view, fields_to_display, filter_terms, entities, modal_mode=False):
+def exercise_listing_base(entity_name, page, page_size, view, fields_to_display, filter_terms, entities, allow_multi_select=False, selected_entity_keys=None, modal_mode=False):
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
     end = start + page_size
     current = entities[start:end]
+    selected_entity_keys = selected_entity_keys or []
     if request.headers.get('HX-Target') == 'results-area':
         template_file_name = 'entity_results_partial.html'
     else:
@@ -92,6 +137,20 @@ def exercise_listing_base(entity_name, page, page_size, view, fields_to_display,
         entity_add_route = None
     else:
         entity_add_route = '/exercises/new?'
+
+    multi_select_post_route = request.form.get('multi_select_post_route') or request.args.get('multi_select_post_route')
+    multi_select_button_label = request.form.get('multi_select_button_label') or request.args.get('multi_select_button_label') or 'Add Selected'
+    multi_select_button_icon = request.form.get('multi_select_button_icon') or request.args.get('multi_select_button_icon') or 'bi-plus-circle'
+    preferred_section = request.form.get('preferred_section') or request.args.get('preferred_section')
+
+    if multi_select_post_route and preferred_section and 'preferred_section=' not in multi_select_post_route:
+        separator = '&' if '?' in multi_select_post_route else '?'
+        multi_select_post_route = f"{multi_select_post_route}{separator}preferred_section={preferred_section}"
+
+    entities_listing_route = f'/exercises/exercises-listing?entity_table={entity_name}'
+    if allow_multi_select:
+        entities_listing_route += '&allow_multi_select=true'
+
     template_data = dict(
         title="Exercises Library",
         entity_name=entity_name,
@@ -103,9 +162,16 @@ def exercise_listing_base(entity_name, page, page_size, view, fields_to_display,
         page=page,
         view=view,
         total_pages=total_pages,
+        allow_multi_select=allow_multi_select,
+        selected_entity_keys=selected_entity_keys,
+        multi_select_checkbox_name='selected_entity_keys',
+        multi_select_post_route=multi_select_post_route,
+        multi_select_button_label=multi_select_button_label,
+        multi_select_button_icon=multi_select_button_icon,
+        preferred_section=preferred_section,
         entity_add_route=entity_add_route,
         filter_dialog_route=f'/exercises/filter-dialog?entity_table={entity_name}',        
-        entities_listing_route=f'/exercises/exercises-listing?entity_table={entity_name}',
+        entities_listing_route=entities_listing_route,
         entity_view_route=f'/exercises/view?entity_table={entity_name}',
         entity_action_route='/exercises/edit?',
         entity_action_icon='bi-pencil-square',

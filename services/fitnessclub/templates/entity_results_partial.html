@@ -2,6 +2,9 @@
 
               
 <input type="hidden" name="view" value="{{ view }}">
+{% set allow_multi_select = allow_multi_select|default(false) %}
+{% set multi_select_checkbox_name = multi_select_checkbox_name|default('selected_entity_keys') %}
+{% set selected_entity_keys = selected_entity_keys|default([]) %}
 {% set favorites_active = (filter_terms | selectattr('type', 'equalto', 'favorites') | selectattr('value', 'equalto', 'true') | list | length > 0) %}
 {% if view == 'card' %}
     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 row-cols-xl-4 row-cols-xxl-4 g-3">
@@ -25,6 +28,11 @@
         <table class="table table-hover entity-table align-middle">
             <thead>
                 <tr>
+                    {% if allow_multi_select %}
+                    <th scope="col" class="text-center" style="width: 1%;">
+                        <i class="bi bi-check2-square"></i>
+                    </th>
+                    {% endif %}
                     <th scope="col" class="text-center" style="width: 1%;">
                         <i class="bi bi-heart"></i>
                     </th>
@@ -38,7 +46,24 @@
             </thead>
             <tbody>
                 {% for entity in entities %}
+                {% set entity_key_value = entity.key|string %}
                 <tr id="entity-item-{{ entity.entity_id }}">
+                    {% if allow_multi_select %}
+                    <td class="text-center align-middle">
+                        <input type="hidden" name="multi_select_toggle_key" value="{{ entity_key_value }}">
+                        <input
+                            class="form-check-input"
+                            type="checkbox"
+                            name="{{ multi_select_checkbox_name }}"
+                            value="{{ entity_key_value }}"
+                            {% if entity_key_value in selected_entity_keys %}checked{% endif %}
+                            hx-post="{{ entities_listing_route }}"
+                            hx-target="#{{ results_target_container or 'results-area' }}"
+                            hx-swap="innerHTML"
+                            hx-include="closest td, [name='search'], [name='view'], [name='favorites_only'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
+                        >
+                    </td>
+                    {% endif %}
                     <td class="text-center align-middle">
                         {% set favorite_entity_id = entity.entity_id %}
                         {% set favorite_entity_table = entity_name %}
@@ -110,7 +135,8 @@
             {% if args %}
             hx-vals='{{ args|tojson }}'
             {% endif %}
-            hx-target="#{{ results_target_container or 'results-area' }}">
+            hx-target="#{{ results_target_container or 'results-area' }}"
+            hx-include="[name='search'], [name='favorites_only'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
         <span aria-hidden="true">&laquo;</span>
         </a>
         </li>
@@ -123,7 +149,8 @@
             {% if args %}
             hx-vals='{{ args|tojson }}'
             {% endif %}
-            hx-target="#{{ results_target_container or 'results-area' }}">
+            hx-target="#{{ results_target_container or 'results-area' }}"
+            hx-include="[name='search'], [name='favorites_only'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
         <span aria-hidden="true">&raquo;</span>
         </a>
         </li>
@@ -140,7 +167,7 @@
         hx-post="{{ entities_listing_route }}" 
         hx-target="#{{ results_target_container or 'results-area' }}" 
         hx-swap="innerHTML" 
-        hx-include="[name='search'], [name='view']" 
+        hx-include="[name='search'], [name='view'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']" 
         hx-vals='{"favorites_only": {% if favorites_active %}false{% else %}true{% endif %}}'
         title="{% if favorites_active %}Show all items{% else %}Show favorites only{% endif %}"
         hx-swap-oob="true">

@@ -1,3 +1,4 @@
+                {% set entity_key_value = entity.key|string %}
                 <div class="card h-100 shadow-sm">
                     {% if entity_view_route %}
                         <a href="#"
@@ -42,6 +43,22 @@
                     {% endif %}
                     <div class="card-body d-flex flex-column p-3">
                         <div class="d-flex align-items-start gap-2 mb-2">
+                            {% if allow_multi_select|default(false) %}
+                            <div class="pt-1">
+                                <input type="hidden" name="multi_select_toggle_key" value="{{ entity_key_value }}">
+                                <input
+                                    class="form-check-input"
+                                    type="checkbox"
+                                    name="{{ multi_select_checkbox_name|default('selected_entity_keys') }}"
+                                    value="{{ entity_key_value }}"
+                                    {% if entity_key_value in (selected_entity_keys|default([])) %}checked{% endif %}
+                                    hx-post="{{ entities_listing_route }}"
+                                    hx-target="#{{ results_target_container or 'results-area' }}"
+                                    hx-swap="innerHTML"
+                                    hx-include="closest .card-body, [name='search'], [name='view'], [name='favorites_only'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
+                                >
+                            </div>
+                            {% endif %}
                             <div class="pt-1">
                                 {% set favorite_entity_id = entity.entity_id %}
                                 {% set favorite_entity_table = entity_name %}
