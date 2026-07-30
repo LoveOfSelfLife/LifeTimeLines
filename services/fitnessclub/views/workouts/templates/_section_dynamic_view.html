@@ -1,4 +1,4 @@
-<div class="list-group">
+<div class="list-group" style="gap: 10px;">
   {% for item in section.exercises %}
   {% set ex = exercises[item.id] %}
   <div class="list-group-item">
@@ -8,14 +8,18 @@
           {{ ex.name }}
         </h6>
         <div class="btn-group btn-group-sm" role="group">
-          {% if ex.images and ex.images|length > 0 %}
+          {% if ex.gif %}
             <div onclick="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')">
-              <img src="{{ ex.images[-1].url }}" class="img-fluid rounded" style="max-height: 50px; max-width: 50px;">
+              <img src="{{ ex.gif }}" class="img-fluid rounded border" style="max-height: 80px;">
+            </div>
+          {% elif ex.images and ex.images|length > 0 %}
+            <div onclick="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')">
+              <img src="{{ ex.images[-1].url }}" class="img-fluid rounded border" style="max-height: 80px;">
             </div>
           {% else %}
             <div onclick="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')">
-              <img src="{{ url_for('static', filename='images/exercise.png') }}" class="img-fluid rounded"
-                style="max-height: 50px; max-width: 50px;">
+              <img src="{{ url_for('static', filename='images/exercise.png') }}" class="img-fluid rounded border"
+                style="max-height: 80px;">
             </div>
           {% endif %}
         </div>        
