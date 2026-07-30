@@ -1,4 +1,5 @@
 import copy
+from ast import literal_eval
 from datetime import datetime
 import json
 
@@ -25,6 +26,8 @@ from common.fitness.coach_team_entity import get_coachs_team_members
 bp = Blueprint('program', __name__, template_folder='templates')
 from auth import auth
 
+PROGRAM_MULTI_SELECT_SESSION_KEY = 'program_builder_selected_workout_keys'
+
 
 def _normalize_form_datetime(value, fallback=None):
     if not value:
@@ -34,6 +37,42 @@ def _normalize_form_datetime(value, fallback=None):
         return datetime.fromisoformat(value).isoformat()
     except ValueError:
         return fallback
+
+
+def _as_bool(value, default=False):
+    if value is None:
+        return default
+    return str(value).strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def _resolve_selected_workout_keys(allow_multi_select=False):
+    if not allow_multi_select:
+        session.pop(PROGRAM_MULTI_SELECT_SESSION_KEY, None)
+        return []
+
+    selected_keys = [str(key) for key in session.get(PROGRAM_MULTI_SELECT_SESSION_KEY, []) if key]
+    selected_keys = list(dict.fromkeys(selected_keys))
+
+    toggle_key_raw = request.form.get('multi_select_toggle_key')
+    toggle_key = str(toggle_key_raw) if toggle_key_raw else None
+
+    if toggle_key is not None:
+        posted_checked_values = set(str(value) for value in request.form.getlist('selected_entity_keys') if value)
+        if toggle_key in posted_checked_values:
+            if toggle_key not in selected_keys:
+                selected_keys.append(toggle_key)
+        else:
+            selected_keys = [key for key in selected_keys if key != toggle_key]
+
+        session[PROGRAM_MULTI_SELECT_SESSION_KEY] = selected_keys
+        return selected_keys
+
+    posted_selected_keys = [str(key) for key in request.form.getlist('selected_entity_keys') if key]
+    if posted_selected_keys:
+        selected_keys = list(dict.fromkeys(posted_selected_keys))
+
+    session[PROGRAM_MULTI_SELECT_SESSION_KEY] = selected_keys
+    return selected_keys
 
 @bp.route('/')
 @auth.login_required
@@ -225,14 +264,76 @@ def workouts_listing(context=None):
     else:
             abort(404)     
 
-    entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
-    return workouts_listing_base(context, entity_name, program_id, page, target, view, page_size, fields_to_display, div_id, filter_terms, entities)
+    allow_multi_select = _as_bool(request.form.get('allow_multi_select', None),
+                                  _as_bool(request.args.get('allow_multi_select', None), False))
+    selected_entity_keys = _resolve_selected_workout_keys(allow_multi_select=allow_multi_select)
 
-def workouts_listing_base(context, entity_name, program_id, page, target, view, page_size, fields_to_display, div_id, filter_terms, entities):
+    entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
+    return workouts_listing_base(
+        context,
+        entity_name,
+        program_id,
+        page,
+        target,
+        view,
+        page_size,
+        fields_to_display,
+        div_id,
+        filter_terms,
+        entities,
+        allow_multi_select=allow_multi_select,
+        selected_entity_keys=selected_entity_keys,
+    )
+
+
+@bp.route('/workouts-listing-modal', methods=['GET'])
+@auth.login_required
+def workouts_listing_modal(context=None):
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+
+    program_id = request.args.get('program_id')
+    if not program_id:
+        abort(400)
+
+    current_program = get_cache_value('current_program')
+    if not current_program or current_program.get('id') != program_id:
+        abort(404)
+
+    session[PROGRAM_MULTI_SELECT_SESSION_KEY] = []
+
+    page = int(request.args.get('page', 1))
+    page_size = 100
+    target = request.args.get('target')
+    view = request.args.get('view', None) or session.get('view_preference', 'list')
+    fields_to_display = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
+    filter_terms = get_filter_terms_from_request()
+    entities = get_entities(WORKOUT_ENTITY_NAME, fields_to_display, filter_terms, member_id=member_id)
+
+    return workouts_listing_base(
+        context,
+        WORKOUT_ENTITY_NAME,
+        program_id,
+        page,
+        target,
+        view,
+        page_size,
+        fields_to_display,
+        target,
+        filter_terms,
+        entities,
+        allow_multi_select=True,
+        selected_entity_keys=[],
+        modal_mode=True,
+    )
+
+def workouts_listing_base(context, entity_name, program_id, page, target, view, page_size, fields_to_display, div_id, filter_terms, entities, allow_multi_select=False, selected_entity_keys=None, modal_mode=False):
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
     end = start + page_size
     current = entities[start:end]
+    selected_entity_keys = selected_entity_keys or []
 
     if request.headers.get('HX-Target') == 'results-area':
         template_file_name = 'entity_results_partial.html'
@@ -241,13 +342,23 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
 
     # Set results_target_container based on target parameter
     results_target_container = target if target else 'results-area'
+    entities_listing_route = f'/program/workouts-listing?entity_table={entity_name}&target={target}&program_id={program_id}'
+    if allow_multi_select:
+        entities_listing_route += '&allow_multi_select=true'
 
-    # displays workouts at the top level
-    return hx_render_template(
-        template_file_name,
+    if allow_multi_select:
+        entity_action_route = None
+        entity_action_route_method = None
+        entity_action_route_target = None
+    else:
+        entity_action_route = f'/program/builder/{program_id}/add?entity_table={entity_name}'
+        entity_action_route_method = 'post'
+        entity_action_route_target = 'program-canvas'
+
+    template_data = dict(
         title="Workouts Library",
         fields_to_display=fields_to_display,
-        main_content_container='xyz',        
+        main_content_container='xyz',
         entities=current,
         entity_name=entity_name,
         filter_terms=filter_terms,
@@ -255,17 +366,47 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
         page=page,
         view=view,
         total_pages=total_pages,
-        entities_listing_route=f'/program/workouts-listing?entity_table={entity_name}&target={target}&program_id={program_id}',
+        entities_listing_route=entities_listing_route,
         entity_view_route=f'/workouts/viewer/workout?entity_table={entity_name}',
-        entity_action_route=f'/program/builder/{program_id}/add?entity_table={entity_name}',
-        entity_action_route_method='post',
-        entity_action_route_target="program-canvas",
-        entity_action_icon='bi-plus',  
+        entity_action_route=entity_action_route,
+        entity_action_route_method=entity_action_route_method,
+        entity_action_route_target=entity_action_route_target,
+        entity_action_icon='bi-plus',
         entity_action_label='Add Workout',
         favorite_toggle_route='/admin/toggle-favorite',
         results_target_container=results_target_container,
         entity_card_view_html='workout_card_view.html',
-        context=context)
+        allow_multi_select=allow_multi_select,
+        selected_entity_keys=selected_entity_keys,
+        multi_select_checkbox_name='selected_entity_keys',
+        multi_select_post_route=url_for('program.add_multiple_workouts', program_id=program_id) if allow_multi_select else None,
+        multi_select_button_label='Add Selected Workouts',
+        multi_select_button_icon='bi-plus-circle',
+        context=context,
+    )
+
+    # displays workouts at the top level
+    if modal_mode:
+        return hx_render_template('workouts_listing_modal.html', **template_data)
+
+    return hx_render_template(template_file_name, **template_data)
+
+
+def _build_program_workout_copy(source_workout, current_program, order_index):
+    base_workout_def_id = source_workout['id']
+    copied_workout = source_workout.copy()
+    copied_workout['id'] = str(uuid.uuid4())
+    copied_workout['program_id'] = current_program['id']
+    copied_workout['base_workout_def_id'] = base_workout_def_id
+    copied_workout['member_id'] = current_program['member_id']
+    copied_workout['created_by'] = current_program['member_id']
+    copied_workout['member_program_id'] = current_program['id']
+    copied_workout['order_index'] = order_index
+
+    workout_copy = MemberWorkoutDefinitionEntity(copied_workout)
+    workout_copy['key'] = workout_copy.get_composite_key()
+    workout_copy['key_str'] = '|'.join(workout_copy.get_composite_key())
+    return workout_copy
 
 def new_program(name='new-workout-program', member_id=None):
     program_id = str(uuid.uuid4())
@@ -798,18 +939,7 @@ def add_workout(context=None, program_id=None):
     if not added_workout:
         abort(404)
 
-    added_workout_id = added_workout['id']
-    added_workout['id'] = str(uuid.uuid4())  # generate a new id for the program workout
-    added_workout['program_id'] = current_program['id']  # set the program id for the workout
-    added_workout['base_workout_def_id'] = added_workout_id  # keep the original workout id for reference
-    added_workout['member_id'] = current_program['member_id']  # set the member id for the workout
-    added_workout['created_by'] = current_program['member_id']  # set the created by for the workout
-    added_workout['member_program_id'] = current_program['id']  # set the member program id for the workout
-    added_workout['order_index'] = num_workouts  # set the order index for the workout
-    workout_copy = MemberWorkoutDefinitionEntity(added_workout)
-
-    workout_copy['key'] = workout_copy.get_composite_key()
-    workout_copy['key_str'] = '|'.join(workout_copy.get_composite_key())    
+    workout_copy = _build_program_workout_copy(added_workout, current_program, num_workouts)
 
     # current_program['workouts'].append({'key': workout_copy.get_composite_key(), 'id':workout_copy['id'], "name": workout_copy['name']})
     # current_program_workouts[workout_copy['id']] = workout_copy
@@ -821,6 +951,52 @@ def add_workout(context=None, program_id=None):
     set_cache_value('current_program_workouts', current_program_workouts)
 
     return program_workouts_canvas(context, program_id)
+
+
+@bp.route('/builder/<program_id>/add-multiple', methods=['POST'])
+@auth.login_required
+def add_multiple_workouts(context=None, program_id=None):
+    current_program = get_cache_value('current_program')
+    if not current_program or current_program.get('id') != program_id:
+        abort(404)
+
+    current_program_workouts = get_cache_value('current_program_workouts') or []
+    selected_keys = list(dict.fromkeys([key for key in request.form.getlist('selected_entity_keys') if key]))
+
+    if not selected_keys:
+        response = make_response('')
+        response.headers['HX-Trigger'] = json.dumps({
+            "refreshProgramCanvas": {"target": "body"},
+            "showMessage": {"target": "body", "value": "No workouts selected."}
+        })
+        return response
+
+    added_count = 0
+    es = EntityStore()
+
+    for composite_key_str in selected_keys:
+        try:
+            composite_key = literal_eval(composite_key_str)
+        except (ValueError, SyntaxError):
+            continue
+
+        source_workout = es.get_item_by_composite_key(composite_key)
+        if not source_workout:
+            continue
+
+        workout_copy = _build_program_workout_copy(source_workout, current_program, len(current_program_workouts))
+        current_program_workouts.append(workout_copy)
+        added_count += 1
+
+    set_cache_value('current_program_workouts', current_program_workouts)
+    session.pop(PROGRAM_MULTI_SELECT_SESSION_KEY, None)
+
+    response = make_response('')
+    response.headers['HX-Trigger'] = json.dumps({
+        "refreshProgramCanvas": {"target": "body"},
+        "showMessage": {"target": "body", "value": f"Added {added_count} workout(s)."}
+    })
+    return response
 
 
 @bp.route('/start_workout', methods=['POST'])
