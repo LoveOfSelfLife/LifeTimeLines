@@ -1,9 +1,21 @@
 <style>
+  .workout-section-card {
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(245, 248, 252, 0.18);
+    backdrop-filter: blur(2px);
+  }
+
+  .workout-section-card .card-header {
+    background: rgba(230, 237, 247, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e9eef5;
+  }
+
   .workout-canvas-item {
     border: 1px solid #cfd4dc;
     border-radius: 0.5rem;
     box-shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.06);
-    background-color: #fff;
+    background-color: rgba(246, 249, 252, 0.92);
     margin: 0.35rem 0.5rem;
     transition: box-shadow 0.15s ease, transform 0.15s ease;
   }
@@ -12,11 +24,88 @@
     box-shadow: 0 4px 10px rgba(16, 24, 40, 0.12), 0 2px 4px rgba(16, 24, 40, 0.08);
     transform: translateY(-1px);
   }
+
+  .workout-canvas-row {
+    gap: 0.5rem;
+  }
+
+  .workout-canvas-content {
+    min-width: 0;
+  }
+
+  .workout-canvas-content strong {
+    color: #1e2a36;
+  }
+
+  .workout-canvas-content .font-weight-bold.d-flex {
+    flex-wrap: wrap;
+    row-gap: 0.15rem;
+  }
+
+  .workout-canvas-media img {
+    max-height: 110px;
+    width: 100%;
+    max-width: 170px;
+    object-fit: contain;
+  }
+
+  @media (max-width: 767.98px) {
+    .workout-section-card .card-header {
+      padding: 0.5rem 0.75rem;
+    }
+
+    .workout-canvas-item {
+      margin: 0.35rem 0;
+      padding: 0.65rem !important;
+    }
+
+    .workout-canvas-row {
+      flex-wrap: wrap;
+    }
+
+    .workout-canvas-content {
+      flex: 1 1 100%;
+      margin-right: 0 !important;
+      order: 1;
+    }
+
+    .workout-canvas-content strong {
+      line-height: 1.25;
+    }
+
+    .workout-canvas-content .font-weight-bold.d-flex {
+      font-size: 0.95rem;
+    }
+
+    .drag-handle {
+      margin-right: 0 !important;
+      order: 2;
+      align-self: flex-start !important;
+    }
+
+    .workout-canvas-media {
+      order: 3;
+      width: 100%;
+      justify-content: space-between;
+      margin-top: 0.15rem;
+      padding-left: 0;
+    }
+
+    .workout-canvas-media img {
+      max-width: 130px;
+      max-height: 88px;
+    }
+
+    .workout-canvas-media .btn {
+      margin-left: 0.5rem !important;
+      align-self: flex-start;
+    }
+  }
   
 </style>
 
 {% for sec in workout.workout_sections %}
-  <div class="card mb-3">
+  <div class="card mb-3 workout-section-card">
     <div class="card-header d-flex align-items-center gap-2">
       <span>{{ sec.name.title() }}</span>
       <button
@@ -35,11 +124,11 @@
         {% set ex = exercises[item.id] %}
         <li class="list-group-item workout-canvas-item py-2"
             data-exercise-id="{{ item.id }}" data-workout-id="{{ workout.id }}">
-          <div class="d-flex align-items-stretch w-100">
+          <div class="d-flex align-items-stretch w-100 workout-canvas-row">
             <!-- Drag handle -->
             <span class="drag-handle me-3 align-self-center" style="cursor:grab;">☰</span>
 
-            <div class="flex-fill me-3 d-flex flex-column">
+            <div class="flex-fill me-3 d-flex flex-column workout-canvas-content">
               <span>
               <strong class="pt-1">{{ ex.name }}</strong>
               <button
@@ -61,12 +150,11 @@
             </div>
 
             {% if ex.gif %}
-            <div class="flex-shrink-0 d-flex align-items-start">
+            <div class="flex-shrink-0 d-flex align-items-start workout-canvas-media">
               <img
                 src="{{ ex.gif }}"
                 alt="{{ ex.name }} demo"
                 class="img-fluid rounded border"
-                style="max-height: 110px; width: 100%; max-width: 170px; object-fit: contain;"
               >
               <button
                 class="btn btn-link btn-sm text-danger p-0 ms-2"
@@ -78,7 +166,7 @@
               >&times;</button>
             </div>
             {% else %}
-            <div class="flex-shrink-0 d-flex align-items-start">
+            <div class="flex-shrink-0 d-flex align-items-start workout-canvas-media">
               <button
                 class="btn btn-link btn-sm text-danger p-0"
                 hx-post="{{ url_for('workouts.remove_exercise', workout_id=workout.id) }}"

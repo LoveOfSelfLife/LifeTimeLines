@@ -62,7 +62,6 @@ class ExerciseReviewEntity (EntityObject):
     def __init__(self, d={}):
         super().__init__(d)
 
-
 class ExerciseIndexEntity (EntityObject):
     table_name="ExerciseIndexTable"
     fields=["exercise_value", "exercise_attribute", "exercises_list" ]
@@ -71,6 +70,26 @@ class ExerciseIndexEntity (EntityObject):
 
     def __init__(self, d={}):
         super().__init__(d)
+
+def  does_entity_belong_in_section(entity, section_name):
+    """Check if an entity belongs in a given section based on its attributes."""
+    if not entity or not section_name:
+        return False
+    sections_to_check = ["category", "physical_fitness_components", "movement_categories", "section"]
+    # Check for shared section attribute
+    for section in sections_to_check:
+        entity_section_value = entity.get(section, None)
+        if entity_section_value:
+            if isinstance(entity_section_value, list):
+                # If the attribute is a list, check if the section_name is in the list
+                if section_name.lower() in [s.lower() for s in entity_section_value]:
+                    return True
+            else:
+                # If the attribute is a string, check for a direct match
+                if section_name.lower() == str(entity_section_value).lower():
+                    return True
+
+    return False
 
 def is_entity_related_to_general(exercise_entity, general_exercise_entity):
     """Check if an exercise entity is related to a general exercise entity based on shared attributes."""
