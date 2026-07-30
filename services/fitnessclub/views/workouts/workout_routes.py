@@ -122,6 +122,7 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
         results_target_container=results_target_container,
         # filter_dialog_route=f'/exercises/filter-dialog?entity_table={WORKOUT_ENTITY_NAME}',
         entity_card_view_html='workout_card_view.html',        
+        modal_mode=False,
         context=context)
 
 @bp.route('/filter-dialog')
@@ -1215,6 +1216,7 @@ def builder_workouts_listing(context=None):
         entity_action_label='Add Workout',
         results_target_container=target if target else 'results-area',
         entity_card_view_html='workout_card_view.html',
+        modal_mode=False,
         context=context)
 
 # ── Main exercise reviewer View ─────────────────────────────────────────────

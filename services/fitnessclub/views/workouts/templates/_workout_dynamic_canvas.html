@@ -12,6 +12,7 @@
   }
 
   .workout-canvas-item {
+    position: relative;
     border: 1px solid #cfd4dc;
     border-radius: 0.5rem;
     box-shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.06);
@@ -26,11 +27,57 @@
   }
 
   .workout-canvas-row {
+    align-items: flex-start;
     gap: 0.5rem;
   }
 
   .workout-canvas-content {
     min-width: 0;
+    padding-right: 0;
+  }
+
+  .workout-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .workout-item-utility-row {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 0.2rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .workout-item-title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-right: 1.25rem;
+  }
+
+  .workout-item-title {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .drag-handle {
+    position: absolute;
+    top: 0.55rem;
+    right: 0.65rem;
+    cursor: grab;
+    line-height: 1;
+    z-index: 3;
+  }
+
+  .drag-handle:active {
+    cursor: grabbing;
+  }
+
+  .find-related-label {
+    font-size: 0.82rem;
+    line-height: 1;
   }
 
   .workout-canvas-content strong {
@@ -49,6 +96,10 @@
     object-fit: contain;
   }
 
+  .workout-canvas-media {
+    padding-top: 1.15rem;
+  }
+
   @media (max-width: 767.98px) {
     .workout-section-card .card-header {
       padding: 0.5rem 0.75rem;
@@ -60,12 +111,13 @@
     }
 
     .workout-canvas-row {
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
     }
 
     .workout-canvas-content {
-      flex: 1 1 100%;
+      flex: 1 1 auto;
       margin-right: 0 !important;
+      padding-right: 0;
       order: 1;
     }
 
@@ -77,18 +129,13 @@
       font-size: 0.95rem;
     }
 
-    .drag-handle {
-      margin-right: 0 !important;
-      order: 2;
-      align-self: flex-start !important;
-    }
-
     .workout-canvas-media {
-      order: 3;
-      width: 100%;
-      justify-content: space-between;
-      margin-top: 0.15rem;
-      padding-left: 0;
+      order: 2;
+      width: auto;
+      justify-content: flex-end;
+      margin-top: 0;
+      padding-left: 0.25rem;
+      padding-top: 1rem;
     }
 
     .workout-canvas-media img {
@@ -96,9 +143,18 @@
       max-height: 88px;
     }
 
-    .workout-canvas-media .btn {
-      margin-left: 0.5rem !important;
-      align-self: flex-start;
+    .workout-item-actions {
+      gap: 0.35rem;
+    }
+
+    .workout-item-title-row {
+      gap: 0.5rem;
+      padding-right: 1.1rem;
+    }
+
+    .drag-handle {
+      top: 0.45rem;
+      right: 0.5rem;
     }
   }
   
@@ -124,23 +180,35 @@
         {% set ex = exercises[item.id] %}
         <li class="list-group-item workout-canvas-item py-2"
             data-exercise-id="{{ item.id }}" data-workout-id="{{ workout.id }}">
-          <div class="d-flex align-items-stretch w-100 workout-canvas-row">
-            <!-- Drag handle -->
-            <span class="drag-handle me-3 align-self-center" style="cursor:grab;">☰</span>
+          <span class="drag-handle" title="Drag to reorder">☰</span>
 
+          <div class="d-flex align-items-stretch w-100 workout-canvas-row">
             <div class="flex-fill me-3 d-flex flex-column workout-canvas-content">
-              <span>
-              <strong class="pt-1">{{ ex.name }}</strong>
-              <button
-                type="button"
-                class="btn btn-link btn-sm p-0 ms-2 align-baseline"
-                title="Open exercises library"
-                hx-get="/exercises/listing-modal?search={{ ('^related:' ~ ex.id)|urlencode }}&allow_multi_select=true&multi_select_post_route={{ url_for('workouts.add_multiple_exercises', workout_id=workout.id) }}&preferred_section={{ sec.name|urlencode }}"
-                hx-target="#modals-here"    
-                hx-swap="innerHTML">
-                <i class="bi bi-journal-text"></i>
-              </button>
-              </span>
+              <div class="workout-item-title-row">
+                <strong class="pt-1 workout-item-title text-truncate">{{ ex.name }}</strong>
+              </div>
+              <div class="workout-item-utility-row">
+                <div class="workout-item-actions">
+                  <button
+                    type="button"
+                    class="btn btn-link btn-sm p-0 d-inline-flex align-items-center gap-1"
+                    title="Find related exercises"
+                    hx-get="/exercises/listing-modal?search={{ ('^related:' ~ ex.id)|urlencode }}&allow_multi_select=true&multi_select_post_route={{ url_for('workouts.add_multiple_exercises', workout_id=workout.id) }}&preferred_section={{ sec.name|urlencode }}"
+                    hx-target="#modals-here"
+                    hx-swap="innerHTML">
+                    <i class="bi bi-journal-text"></i>
+                    <span class="find-related-label">Find Related</span>
+                  </button>
+                  <button
+                    class="btn btn-link btn-sm text-danger p-0"
+                    hx-post="{{ url_for('workouts.remove_exercise', workout_id=workout.id) }}"
+                    hx-vals='{"exercise_id":"{{ item.id }}"}'
+                    hx-target="closest li"
+                    hx-swap="delete"
+                    title="Remove"
+                  ><i class="bi bi-trash"></i></button>
+                </div>
+              </div>
               {% set param_ns = namespace(unit_param_id=None, param_list=[]) %}
               {% set timer = namespace(has_timer=False, timer_value=None, timer_units=None) %}
               {% set param_ns.param_list = exercise_parameters[sec.name] %}
@@ -156,25 +224,6 @@
                 alt="{{ ex.name }} demo"
                 class="img-fluid rounded border"
               >
-              <button
-                class="btn btn-link btn-sm text-danger p-0 ms-2"
-                hx-post="{{ url_for('workouts.remove_exercise', workout_id=workout.id) }}"
-                hx-vals='{"exercise_id":"{{ item.id }}"}'
-                hx-target="closest li"
-                hx-swap="delete"
-                title="Remove"
-              >&times;</button>
-            </div>
-            {% else %}
-            <div class="flex-shrink-0 d-flex align-items-start workout-canvas-media">
-              <button
-                class="btn btn-link btn-sm text-danger p-0"
-                hx-post="{{ url_for('workouts.remove_exercise', workout_id=workout.id) }}"
-                hx-vals='{"exercise_id":"{{ item.id }}"}'
-                hx-target="closest li"
-                hx-swap="delete"
-                title="Remove"
-              >&times;</button>
             </div>
             {% endif %}
           </div>

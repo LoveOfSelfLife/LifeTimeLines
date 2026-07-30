@@ -382,6 +382,7 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
         multi_select_post_route=url_for('program.add_multiple_workouts', program_id=program_id) if allow_multi_select else None,
         multi_select_button_label='Add Selected Workouts',
         multi_select_button_icon='bi-plus-circle',
+        modal_mode=modal_mode,
         context=context,
     )
 

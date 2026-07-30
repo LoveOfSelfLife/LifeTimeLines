@@ -1,4 +1,4 @@
-<div class="container-fluid">
+<div class="container-fluid program-builder-shell">
   <div class="row">
     <div class="col-12 vh-100 overflow-auto">
       <form>
@@ -49,7 +49,7 @@
           <!-- Row 3: Action Buttons -->
           <div class="row">
             <div class="col-12">
-              <div class="d-flex gap-2">
+              <div class="d-flex gap-2 program-builder-actions">
 
                 <button class="btn btn-success" hx-post="{{ url_for('program.save_program', program_id=program.id) }}"
                   hx-include="form" hx-vals='{"program_id":"{{ program.id }}"}' hx-target="#content"
@@ -72,7 +72,7 @@
             </div>
           </div>
         </div>
-        <div class="row" id="program-canvas" hx-get="{{ url_for('program.program_canvas', program_id=program.id) }}"
+        <div class="row program-builder-canvas" id="program-canvas" hx-get="{{ url_for('program.program_canvas', program_id=program.id) }}"
           hx-trigger="load, refreshProgramCanvas from:body" hx-swap="innerHTML">
           Loading…
         </div>
@@ -80,3 +80,27 @@
     </form>
   </div>
 </div>
+
+<style>
+  .program-builder-canvas {
+    overflow-x: hidden;
+  }
+
+  @media (max-width: 767.98px) {
+    .program-builder-shell {
+      padding-left: 0;
+      padding-right: 0;
+    }
+
+    .program-builder-actions {
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      gap: 0.5rem !important;
+    }
+
+    .program-builder-actions .btn {
+      flex: 0 0 auto;
+      width: auto;
+    }
+  }
+</style>
