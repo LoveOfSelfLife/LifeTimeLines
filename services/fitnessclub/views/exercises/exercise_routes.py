@@ -60,7 +60,7 @@ def root(context=None):
     page = int(request.args.get('page', 1))
     filter_terms = get_filter_terms_from_request()
 
-    return exercises_listing2(context, page=page, filter_terms=filter_terms)
+    return exercises_listing2(member_id, page=page, filter_terms=filter_terms)
 
 @bp.route('/exercises-listing', methods=['GET', 'POST'])
 @auth.login_required
@@ -104,6 +104,23 @@ def exercises_listing2(member_id, page=1, filter_terms=[], modal_mode=False):
     allow_multi_select = _as_bool(request.form.get('allow_multi_select', None),
                                   _as_bool(request.args.get('allow_multi_select', None), False))
     selected_entity_keys = _resolve_selected_entity_keys(allow_multi_select=allow_multi_select)
+
+    # For checkbox toggles, avoid re-rendering listing content. Return only OOB state updates.
+    if request.method == 'POST' and request.form.get('multi_select_toggle_key') is not None and allow_multi_select:
+        multi_select_post_route = request.form.get('multi_select_post_route') or request.args.get('multi_select_post_route')
+        preferred_section = request.form.get('preferred_section') or request.args.get('preferred_section')
+        if multi_select_post_route and preferred_section and 'preferred_section=' not in multi_select_post_route:
+            separator = '&' if '?' in multi_select_post_route else '?'
+            multi_select_post_route = f"{multi_select_post_route}{separator}preferred_section={preferred_section}"
+
+        return hx_render_template(
+            'entity_multi_select_state_oob.html',
+            allow_multi_select=allow_multi_select,
+            selected_entity_keys=selected_entity_keys,
+            multi_select_checkbox_name='selected_entity_keys',
+            multi_select_post_route=multi_select_post_route,
+            preferred_section=preferred_section,
+        )
 
     return exercise_listing_base(
         entity_name,

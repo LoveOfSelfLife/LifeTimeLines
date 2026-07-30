@@ -1,6 +1,6 @@
 from ast import pattern
 
-from flask import render_template, render_template_string, request
+from flask import render_template, render_template_string, request, session
 
 
 from common.fitness.member_entity import MembershipRegistry, get_member_email_from_user_context, get_member_id_from_user_context, get_member_name_from_user_context, is_member_an_admin, FirstTimeUserException, UnregisteredMemberException
@@ -87,6 +87,7 @@ def get_filter_terms_from_request():
     """Extract search term from either POST form data or GET query parameters."""
     # Get search term from appropriate source
     search_term = ""
+    filter_terms = []
     if request.method == 'POST':
         search_term = request.form.get("search", "").lower()
     else:
@@ -99,26 +100,64 @@ def get_filter_terms_from_request():
             filter_param = ast.literal_eval(filter_param)
 
         if len(filter_param) > 0:
-            return filter_param
+            filter_terms = filter_param
 
         search_term = request.args.get('search', '')
-
-    filter_terms = []
 
     if search_term:
         # preprocess the search term to handle special cases like "section:" or "related:"
         filter_terms = filter_terms + preprocess_search_term(search_term)
         filter_terms = filter_terms + add_filter_terms_summary(filter_terms)
-    # Get favorites filter
-    favorites_only = request.form.get('favorites_only') == 'true' or request.args.get('favorites_only') == 'true'
+
+    requested_favorites_only = get_requested_favorites_only_from_request()
+    session_favorites_only = session.get('favorites_preference', False)
+    filter_terms, favorites_only = resolve_favorites_filter_terms(
+        filter_terms,
+        requested_favorites_only=requested_favorites_only,
+        session_favorites_only=session_favorites_only,
+    )
+    session['favorites_preference'] = favorites_only
+
+    return filter_terms
+
+
+def get_requested_favorites_only_from_request():
+    if request.method == 'POST':
+        favorites_only = request.form.get('favorites_only')
+    else:
+        favorites_only = request.args.get('favorites_only')
+
+    if favorites_only is None:
+        return None
+
+    return str(favorites_only).lower() == 'true'
+
+
+def resolve_favorites_filter_terms(filter_terms, requested_favorites_only=None, session_favorites_only=False):
+    existing_favorites_only = None
+    normalized_filter_terms = []
+
+    for term in filter_terms:
+        if isinstance(term, dict) and term.get('type') == 'favorites':
+            existing_favorites_only = str(term.get('value', '')).lower() == 'true'
+            continue
+
+        normalized_filter_terms.append(term)
+
+    if requested_favorites_only is not None:
+        favorites_only = requested_favorites_only
+    elif existing_favorites_only is not None:
+        favorites_only = existing_favorites_only
+    else:
+        favorites_only = session_favorites_only
 
     if favorites_only:
-        filter_terms.append({
+        normalized_filter_terms.append({
             'type': 'favorites',
             'value': 'true'
         })
 
-    return filter_terms
+    return normalized_filter_terms, favorites_only
 
 def add_filter_terms_summary(filter_terms):
     """
@@ -127,8 +166,17 @@ def add_filter_terms_summary(filter_terms):
     """
     summary_terms = []
     for term in filter_terms:
-            if term['type'] != 'favorites':  # Exclude favorites from summary
-                summary_terms.append(f"{term['type']}:{term['value']} ")
+            if not isinstance(term, dict):
+                continue
+
+            term_type = term.get('type')
+            term_value = term.get('value')
+
+            # Skip non-filter terms like {'summary': '...'} and favorites helper terms.
+            if not term_type or term_type == 'favorites' or term_value is None:
+                continue
+
+            summary_terms.append(f"{term_type}:{term_value} ")
 
     return [{ "summary":" ".join(summary_terms).strip() }] if summary_terms else []
 

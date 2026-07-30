@@ -19,8 +19,9 @@
                                     value="{{ entity_key_value }}"
                                     {% if entity_key_value in (selected_entity_keys|default([])) %}checked{% endif %}
                                     hx-post="{{ entities_listing_route }}"
+                                    hx-trigger="change"
                                     hx-target="#{{ results_target_container or 'results-area' }}"
-                                    hx-swap="innerHTML"
+                                    hx-swap="none"
                                     hx-include="closest .card-body, [name='search'], [name='view'], [name='favorites_only'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
                                 >
                             </div>
