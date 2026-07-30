@@ -189,6 +189,14 @@
             return
         }
 
+        if (window.bootstrap && window.bootstrap.Carousel) {
+            window.bootstrap.Carousel.getOrCreateInstance(carouselEl, {
+                interval: false,
+                wrap: true,
+                touch: true
+            })
+        }
+
         const pauseAllVideos = () => {
             carouselEl.querySelectorAll(".carousel-item video").forEach((video) => {
                 try {
