@@ -31,6 +31,14 @@
     gap: 0.5rem;
   }
 
+  .workout-drag-column {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.35rem 0 0.1rem;
+  }
+
   .workout-canvas-content {
     min-width: 0;
     padding-right: 0;
@@ -63,12 +71,11 @@
   }
 
   .drag-handle {
-    position: absolute;
-    top: 0.55rem;
-    right: 0.65rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     cursor: grab;
     line-height: 1;
-    z-index: 3;
   }
 
   .drag-handle:active {
@@ -149,12 +156,11 @@
 
     .workout-item-title-row {
       gap: 0.5rem;
-      padding-right: 1.1rem;
+      padding-right: 0;
     }
 
-    .drag-handle {
-      top: 0.45rem;
-      right: 0.5rem;
+    .workout-drag-column {
+      padding: 0 0.3rem 0 0.05rem;
     }
   }
   
@@ -180,9 +186,11 @@
         {% set ex = exercises[item.id] %}
         <li class="list-group-item workout-canvas-item py-2"
             data-exercise-id="{{ item.id }}" data-workout-id="{{ workout.id }}">
-          <span class="drag-handle" title="Drag to reorder">☰</span>
-
           <div class="d-flex align-items-stretch w-100 workout-canvas-row">
+            <div class="workout-drag-column">
+              <span class="drag-handle" title="Drag to reorder">☰</span>
+            </div>
+
             <div class="flex-fill me-3 d-flex flex-column workout-canvas-content">
               <div class="workout-item-title-row">
                 <strong class="pt-1 workout-item-title text-truncate">{{ ex.name }}</strong>

@@ -9,7 +9,7 @@ from common.entity_store import EntityObject, EntityStore
 from common.fitness import workout_entity
 from common.fitness.active_fitness_registry import get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import delete_from_cache, get_cache_value, set_cache_value
-from common.fitness.entities_getter import get_entity, get_entities
+from common.fitness.entities_getter import delete_entity, get_entity, get_entities
 from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
 from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
@@ -798,6 +798,51 @@ def cancel_editing_program(context=None, program_id=None):
             "showMessage": { 
             "target": "body",
             "value": "program editing canceled." }
+        })
+    return response
+
+@bp.route('/builder/<program_id>/delete', methods=['POST'])
+@auth.login_required
+def delete_program(context=None, program_id=None):
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+
+    current_program = get_cache_value('current_program')
+    if current_program:
+        if current_program['id'] != program_id:
+            abort(404)
+
+    es = EntityStore()
+    workouts_in_program = []
+    current_program_workouts = get_cache_value('current_program_workouts')
+
+    for w in current_program_workouts:
+        w['member_program_id'] = None   # unlink the workouts from the program
+        workouts_in_program.append(MemberWorkoutDefinitionEntity(w))
+    es.upsert_items(workouts_in_program)
+
+    # handle workouts that were removed from the program
+    workouts_to_remove = get_cache_value('workouts_to_remove') or []
+
+    for wtr in workouts_to_remove:
+        es.upsert_item(MemberWorkoutDefinitionEntity(wtr))
+
+    es.delete_item(MemberProgramEntity(current_program))
+
+    delete_from_cache('current_program')
+    delete_from_cache('current_program_workouts')
+    delete_from_cache('workouts_to_remove')
+
+    # delete from the in-memory entity cache
+    delete_entity(MemberProgramEntity(current_program), current_program.get('member_id'))
+
+    response = make_response(programs_listing2(context))
+    response.headers['HX-Trigger'] = json.dumps({
+        "eventListChanged": { "target": "body" },
+            "showMessage": { 
+            "target": "body",
+            "value": "program deleted." }
         })
     return response
 

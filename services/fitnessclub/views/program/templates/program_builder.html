@@ -68,6 +68,12 @@
                   hx-vals='{"program_id":"{{ program.id }}"}' hx-target="#content" hx-swap="innerHTML show:top">
                   <i class="bi bi-x-circle"></i> Cancel & Exit
                 </button>
+
+                <button class="btn btn-secondary"
+                  hx-post="{{ url_for('program.delete_program', program_id=program.id) }}"
+                  hx-vals='{"program_id":"{{ program.id }}"}' hx-target="#content" hx-swap="innerHTML show:top">
+                  <i class="bi bi-trash"></i> Delete Program
+                </button>                
               </div>
             </div>
           </div>

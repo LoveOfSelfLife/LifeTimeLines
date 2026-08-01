@@ -4,7 +4,7 @@ from flask import Blueprint, jsonify, make_response, render_template, request, c
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import get_cache_value, set_cache_value, delete_from_cache
-from common.fitness.entities_getter import get_entities
+from common.fitness.entities_getter import delete_entity, get_entities
 from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.exercise_parameters import get_editor_type_for_unit_parameter, get_editor_type_for_value_parameter
 from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
@@ -1010,6 +1010,42 @@ def save_workout(context=None, workout_id=None):
             "showMessage": { 
             "target": "body",
             "value": "workout saved." }
+        })     
+    return response
+@bp.route('/builder/<workout_id>/delete', methods=['POST'])
+@auth.login_required
+def delete_workout(context=None, workout_id=None):
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+    
+    WORKOUT_ENTITY_NAME = WorkoutDefinitionEntity.table_name
+
+    workout = get_cache_value('current_workout')
+    if not workout or workout['id'] != workout_id:
+        abort(404)
+
+    workout_instance : WorkoutDefinitionEntity = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
+    workout_instance.initialize(workout)
+
+    # this is where we delete the workout
+    print('Deleting workout')
+    es = EntityStore()
+    es.delete_item(workout_instance)
+
+    delete_from_cache('current_workout')
+
+    delete_entity(workout_instance, workout_instance.get_partition_value())
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+
+    response = make_response(workouts_listing2(context))
+    response.headers['HX-Trigger'] = json.dumps({
+        "eventListChanged": { "target": "body" },
+            "showMessage": { 
+            "target": "body",
+            "value": "workout deleted." }
         })     
     return response
 
