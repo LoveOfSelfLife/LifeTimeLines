@@ -10,7 +10,7 @@ from common.fitness.exercise_parameters import get_editor_type_for_unit_paramete
 from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
 from common.fitness.hx_common import rm_spaces
 from common.fitness.member_entity import get_member_id_from_user_context, is_member_an_admin
-from common.fitness.member_workout_entity import WorkoutDefinitionEntity, get_exercises_from_workout, map_exercise_to_sections
+from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, get_exercises_from_workout, map_exercise_to_sections
 from common.fitness.edit_workout_object import edit_workout_object
 from common.fitness.programs import get_last_workout_instance_for_workout
 from common.fitness.programs import get_last_workout_instance_for_workout
@@ -179,7 +179,7 @@ def copy_workout(context=None):
     copied_workout['created_ts'] = datetime.now().isoformat()
     
     # Save the copy
-    workout_entity = WorkoutDefinitionEntity(copied_workout)
+    workout_entity = MemberWorkoutDefinitionEntity(copied_workout)
     es.upsert_item(workout_entity)
     
     return edit_workout_object(workout_entity)
@@ -1092,7 +1092,7 @@ def save_workout_copy(context=None, workout_id=None):
     if not workout or workout['id'] != workout_id:
         abort(404)
 
-    workout_definition : WorkoutDefinitionEntity = get_entity_obj_from_entity_name(WorkoutDefinitionEntity.table_name)
+    workout_definition = MemberWorkoutDefinitionEntity()
 
     # this is where we save the newly created workout
     print('Saving workout copy')

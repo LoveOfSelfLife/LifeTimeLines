@@ -1,11 +1,20 @@
 
 from common.entity_store import EntityObject
 
-class MemberProgramEntity (EntityObject):
-    table_name="MemberProgramTable"
-    fields=["id", "member_id", "name", "created_ts", "description", "start_date", "end_date", "assigned_to_member_id"]
+# class MemberProgramEntity (EntityObject):
+#     table_name="MemberProgramTable"
+#     fields=["id", "member_id", "name", "created_ts", "description", "start_date", "end_date", "assigned_to_member_id"]
+#     key_field="id"
+#     partition_field="member_id"
+
+#     def __init__(self, d={}):
+#         super().__init__(d)
+
+class MemberProgramsEntity (EntityObject):
+    table_name="MemberProgramsTable"
+    fields=["id", "name", "created_by", "created_ts", "description", "start_date", "end_date", "assigned_to_member_id"]
     key_field="id"
-    partition_field="member_id"
+    partition_value="programs"
 
     def __init__(self, d={}):
         super().__init__(d)

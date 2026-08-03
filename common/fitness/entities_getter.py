@@ -20,18 +20,26 @@ def get_entities(entity_name, fields_to_display, filter_term=None, partition_key
 
     entities = []
     for e in filtered_entities:
-        field_values = [e.get(f, None) for f in fields_to_display['listing_view']]
+        listing_field_values = []
+        if fields_to_display['listing_view']:
+            field_mapping = fields_to_display.get('field_mapping', {})
+            for field in fields_to_display['listing_view']:
+                lmbda = field_mapping.get(field, None)
+                listing_field_values.append(lmbda(e) if lmbda else e.get(field, None))
+
         key = e.get_composite_key()
         entity_id = e.get_key_value()
 
         card_view_field_values = None
         if fields_to_display['card_view']:
+            field_mapping = fields_to_display.get('field_mapping', {})
             card_view_field_values = {}
-            for field,lmbda in fields_to_display['card_view'].items():
-                card_view_field_values[field] = lmbda(e) if lmbda else None
+            for field in fields_to_display['card_view']:
+                lmbda = field_mapping.get(field, None)
+                card_view_field_values[field] = lmbda(e) if lmbda else e.get(field, None)
         entities.append({
             "key": key,
-            "field_values": field_values,
+            "field_values": listing_field_values,
             "entity": e,
             "entity_id": entity_id,
             "is_favorite": entity_id in favorite_entity_ids,

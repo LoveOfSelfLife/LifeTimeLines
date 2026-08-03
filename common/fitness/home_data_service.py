@@ -262,7 +262,7 @@ class HomePageDataService:
                     break
                 # Get workout definition name
                 workout_def_id = instance.get('member_workout_def_id')
-                workout_def = self.entity_store.get_item(MemberWorkoutDefinitionEntity({'id': workout_def_id, 'member_id': member_id}))
+                workout_def = self.entity_store.get_item(MemberWorkoutDefinitionEntity({'id': workout_def_id}))
                 if not workout_def:
                     continue
                 workout_name = workout_def.get('name', 'Unnamed Workout')

@@ -1,6 +1,6 @@
 import sys
 from common.fitness.entities_getter import get_filtered_entities
-from common.fitness.member_program_entity import MemberProgramEntity
+from common.fitness.member_program_entity import MemberProgramsEntity
 from datetime import datetime as dt
 from common.fitness.roles_service import get_member_role, get_team_coaches_with_details, get_team_for_client
 
@@ -19,7 +19,7 @@ def _parse_program_boundary(boundary_value):
 
 def _get_candidate_programs_for_member(member_id):
     programs = [
-        p for p in get_filtered_entities(MemberProgramEntity.table_name, partition_key=member_id)
+        p for p in get_filtered_entities(MemberProgramsEntity.table_name)
         if p.get('assigned_to_member_id') == member_id
     ]
 
@@ -34,7 +34,7 @@ def _get_candidate_programs_for_member(member_id):
         coach_id = coach.get('id')
         if not coach_id:
             continue
-        coach_programs = get_filtered_entities(MemberProgramEntity.table_name, partition_key=coach_id)
+        coach_programs = get_filtered_entities(MemberProgramsEntity.table_name)
         assigned_programs = [
             p for p in coach_programs
             if p.get('assigned_to_member_id') == member_id
@@ -88,11 +88,11 @@ def get_members_current_active_program(member_id, current_date_dt=None):
 
 
 def get_program_workouts_for_program(program, workout_type=None):
-    owner_member_id = program.get('member_id')
+    owner_member_id = program.get('assigned_to_member_id', program.get('created_by', None))
     if not owner_member_id:
         return []
 
-    member_workouts = get_filtered_entities(MemberWorkoutDefinitionEntity.table_name, partition_key=owner_member_id)
+    member_workouts = get_filtered_entities(MemberWorkoutDefinitionEntity.table_name)
     workouts_in_program = [w for w in member_workouts if w.get('member_program_id', None) == program.get('id', None)]
     if workout_type:
         workouts_in_program = [w for w in workouts_in_program if w.get('workout_type') == workout_type]
@@ -100,7 +100,7 @@ def get_program_workouts_for_program(program, workout_type=None):
     return workouts_in_program
 
 
-def get_program_workouts(program, member_id=None, workout_type=None):
+def get_program_workouts(program, workout_type=None):
     return get_program_workouts_for_program(program, workout_type=workout_type)
 
 
@@ -183,6 +183,6 @@ def get_workouts_from_program(program):
     # in the 1.0 data model, the workouts are stored as embedded objects in the program
     # in the 2.0 data model, the workouts are stored as separate entities in the MemberWorkoutDefinitionTable, where 
     # those entities have a member_program_id field that references the program they belong to
-    workouts = get_program_workouts(program, program['member_id'])
+    workouts = get_program_workouts(program)
     workouts = sorted(workouts, key=lambda x: x.get('order_index', 0))
     return workouts
