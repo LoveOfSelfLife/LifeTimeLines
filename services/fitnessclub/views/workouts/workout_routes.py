@@ -120,7 +120,6 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
         entity_action_label='Edit Workout',
         favorite_toggle_route='/admin/toggle-favorite',
         results_target_container=results_target_container,
-        # filter_dialog_route=f'/exercises/filter-dialog?entity_table={WORKOUT_ENTITY_NAME}',
         entity_card_view_html='workout_card_view.html',        
         modal_mode=False,
         context=context)
@@ -982,13 +981,12 @@ def save_workout(context=None, workout_id=None):
     if not member_id:
         abort(401)
     
-    WORKOUT_ENTITY_NAME = WorkoutDefinitionEntity.table_name
-
+    
     workout = get_cache_value('current_workout')
     if not workout or workout['id'] != workout_id:
         abort(404)
 
-    workout_instance : WorkoutDefinitionEntity = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
+    workout_instance = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
 
     # this is where we save the newly created workout
     print('Saving workout')
@@ -1019,13 +1017,11 @@ def delete_workout(context=None, workout_id=None):
     if not member_id:
         abort(401)
     
-    WORKOUT_ENTITY_NAME = WorkoutDefinitionEntity.table_name
-
     workout = get_cache_value('current_workout')
     if not workout or workout['id'] != workout_id:
         abort(404)
 
-    workout_instance : WorkoutDefinitionEntity = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
+    workout_instance = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
     workout_instance.initialize(workout)
 
     # this is where we delete the workout
