@@ -32,35 +32,6 @@ body {
   position: relative;
 }
 
-/* Keep list search/filter controls visible while scrolling results. */
-#content .search-filter-area,
-.modal-body .search-filter-area {
-  position: sticky;
-  z-index: 30;
-  padding-bottom: 0.5rem;
-  background: linear-gradient(to right, #2c3e50, #4ca1af);
-}
-
-/* Keep sticky controls below the fixed top navbar in page views. */
-#content .search-filter-area {
-  top: 72px;
-}
-
-/* Modal bodies are their own scroll containers; no navbar offset needed. */
-.modal-body .search-filter-area {
-  top: 0;
-}
-
-/* Listing modals should start content flush at modal-body top. */
-.entity-listing-modal-body {
-  padding-top: 0;
-}
-
-#content .search-filter-area .filter-bar,
-.modal-body .search-filter-area .filter-bar {
-  background-color: rgba(44, 62, 80, 0.9);
-}
-
 @media (min-width: 576px) {
   #content {
     /* only enforce full-height on larger screens */
