@@ -263,7 +263,7 @@ def workouts_listing(context=None):
     allow_multi_select = _as_bool(request.form.get('allow_multi_select', None),
                                   _as_bool(request.args.get('allow_multi_select', None), False))
     selected_entity_keys = _resolve_selected_workout_keys(allow_multi_select=allow_multi_select)
-
+    # modal_mode = _as_bool(request.args.get('modal_mode', None), False) if request.method == 'GET' else _as_bool(request.form.get('modal_mode', None), False)   
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
     return workouts_listing_base(
         context,
@@ -279,6 +279,7 @@ def workouts_listing(context=None):
         entities,
         allow_multi_select=allow_multi_select,
         selected_entity_keys=selected_entity_keys,
+        modal_mode=False,
     )
 
 

@@ -32,6 +32,8 @@ body {
   position: relative;
 }
 
+
+
 @media (min-width: 576px) {
   #content {
     /* only enforce full-height on larger screens */
@@ -346,18 +348,59 @@ td.date-row {
 .table-custom {
   background-color: rgba(189, 96, 96, 0.1);
 }
-.pagination-wrapper {
+
+.search-filter-area {
+ /* 1. Semi-transparent background (White with 80% opacity) */
+  /* background-color: rgba(255, 255, 255, 0.8) !important; */
+  background: linear-gradient(to right, #2c3e50, #4ca1af) !important; 
+  /* 2. Frosted glass effect (Blurs the content scrolling underneath) */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); /* For Safari support */
+  
+  /* 3. Ensure it stays sticky */
+  position: sticky !important;
+  top: 0px !important; /* This is the height of your fixed navbar */
+  z-index: 1010;
+  /* background-color: white; */ /* Prevents overlap transparency */
+  padding-bottom: 10px;
+  border-bottom: 1px solid #15bc58;
+}
+
+
+
+body, html {
+    overflow-x: visible;
+}
+#results-area {
+    overflow-x: hidden;
+}
+
+.modal .pagination-wrapper {
   position: sticky;
   bottom: 0;
-  /* background-color: rgba(0, 0, 0, 0.7); */
   padding: 0.5rem 1rem;
   backdrop-filter: blur(10px);
-  z-index: 10;
+  z-index: 1030;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-}
+  overflow-x: visible;
+} 
+
+
+.pagination-wrapper {
+  position: fixed;
+  bottom: 0;
+  padding: 0.5rem 1rem;
+  backdrop-filter: blur(10px);
+  z-index: 1030;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+} 
+
 
 .pagination-wrapper .pagination {
   background-color: #4ca2af2c;

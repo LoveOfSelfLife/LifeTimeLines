@@ -69,8 +69,9 @@ def exercises_listing(context=None):
     if not member_id:
         abort(401)
     page = int(request.args.get('page', 1))
-    filter_terms = get_filter_terms_from_request()        
-    return exercises_listing2(member_id, page=page, filter_terms=filter_terms)
+    filter_terms = get_filter_terms_from_request()   
+    # modal_mode = _as_bool(request.args.get('modal_mode', None), False) if request.method == 'GET' else _as_bool(request.form.get('modal_mode', None), False)     
+    return exercises_listing2(member_id, page=page, filter_terms=filter_terms, modal_mode=False)
 
 
 @bp.route('/listing-modal', methods=['GET'])
