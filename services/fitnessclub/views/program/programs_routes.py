@@ -1139,12 +1139,11 @@ def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, m
 
     workout_def_id = workout_entity.get('id', None) if workout_entity else None
 
-
     workout_instance = MemberWorkoutInstanceEntity(workout_entity.copy())
-
 
     workout_instance.update({
         'id': str(uuid.uuid4()),
+        'member_id': member_id,
         'started_ts': datetime.now().isoformat(),
         'finished_ts': "",
         'scheduled_workout_event_id': scheduled_workout_event_id,

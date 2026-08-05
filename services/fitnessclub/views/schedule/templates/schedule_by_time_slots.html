@@ -50,12 +50,12 @@
         <div class="day-container">
             <div class="day-header">
                 <h5 class="day-title">{{ date_display.dayOfWeek }} {{ date_display.display_date }}</h5>
-                <button class="btn btn-sm btn-primary add-workout-btn"
+                <button class="btn btn-sm btn-outline-light add-workout-btn"
                     hx-get="/schedule/create_event?date={{ date_key }}&modal=1" 
                     hx-target="#modals-here"
                     hx-swap="innerHTML"
                     title="Join on this day">
-                    <i class="bi bi-person-plus"></i>
+                    <i class="bi bi-person-plus">Schedule for {{ date_display.dayOfWeek }}</i>
                 </button>
             </div>
             
@@ -94,7 +94,7 @@
                                 hx-target="#modals-here"
                                 hx-swap="innerHTML"
                                 title="Join this time slot on this day">
-                                <i class="bi bi-person-plus"></i>
+                                <i class="bi bi-person-plus">Schedule for {{ display_time }}</i>
                             </button>
                         </div>
                         <div class="members-container">

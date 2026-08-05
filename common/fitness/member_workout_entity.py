@@ -6,18 +6,6 @@ from common.fitness.entities_getter import get_entity
 from common.fitness.hx_common import hx_render_template
 
 
-# class WorkoutDefinitionEntity (EntityObject):
-#     table_name="WorkoutDefinitionBackupTable"   # TODO: change back to "WorkoutDefinitionTable" after migration is complete
-#     # type is used to differentiate between full workouts vs partial workouts that are specific to one section, e.g. warmups or core workouts
-#     # type is set to "full" for full workouts, and "section" for section-specific workouts
-#     # default is "full"
-#     fields=["id", "name", "workout_sections", "created_ts", "created_by", "type"]
-#     key_field="id"
-#     partition_value="workout"
-
-#     def __init__(self, d={}):
-#         super().__init__(d)
-
 class MemberWorkoutDefinitionEntity (EntityObject):
     table_name="MemberWorkoutDefinitionTable"
     fields=["id", 
