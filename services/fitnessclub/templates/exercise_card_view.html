@@ -76,12 +76,12 @@
                                 hx-swap="innerHTML"
                                 class="text-decoration-none">
                                 {% if entity.card_view_fields.title %}
-                                    <p class="card-title mb-0 text-truncate fw-semibold" style="font-size: 0.9rem;">{{ entity.card_view_fields.title }}</p>
+                                    <p class="card-title mb-0 text-wrap fw-semibold" style="font-size: 0.9rem;">{{ entity.card_view_fields.title }}</p>
                                 {% endif %}
                             </a>
                         {% else %}
                             {% if entity.card_view_fields.title %}                            
-                                <p class="card-title mb-0 text-truncate fw-semibold" style="font-size: 0.9rem;">{{ entity.card_view_fields.title }}</p>
+                                <p class="card-title mb-0 text-wrap fw-semibold" style="font-size: 0.9rem;">{{ entity.card_view_fields.title }}</p>
                             {% endif %}
                         {% endif %}
                             </div>
