@@ -79,7 +79,7 @@ class HomePageDataService:
         
         Returns data structure:
         {
-            'workouts': [
+            'workouts_on_calendar': [
                 {
                     'workout_name': str,
                     'workout_definition': dict,
@@ -100,7 +100,7 @@ class HomePageDataService:
             current_program = get_members_current_active_program(member_id, current_date_dt=current_datetime)
             if not current_program:
                 return {
-                    'workouts': [],
+                    'workouts_on_calendar': [],
                     'has_active_program': False,
                     'program_name': None
                 }
@@ -214,7 +214,7 @@ class HomePageDataService:
                     })
             
             return {
-                'workouts': self._limit_scheduled_workouts_display(final_scheduled_workout_by_date, current_datetime),
+                'workouts_on_calendar': self._limit_scheduled_workouts_display(final_scheduled_workout_by_date, current_datetime),
                 'has_active_program': True,
                 'program_name': current_program.get('name', 'Current Program'),
                 'program_key': str(current_program.get_composite_key())
@@ -223,7 +223,7 @@ class HomePageDataService:
         except Exception as e:
             print(f"Error getting scheduled workouts data: {e}")
             return {
-                'workouts': [],
+                'workouts_on_calendar': [],
                 'has_active_program': False,
                 'program_name': None
             }

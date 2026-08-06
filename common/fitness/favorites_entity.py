@@ -75,9 +75,9 @@ def get_all_favorite_entity_ids(table_name, member_id):
     
     # Query all favorites for this member and entity type
     # favorites_entities = es.get_items_by_partition_key(FavoritesEntity.table_name, partition_value)
-    favorites_entities = es.list_items(FavoritesEntity({"entity_type_and_member_id": partition_value}))
-    
+    favorites_entities = list(es.list_items(FavoritesEntity({"entity_type_and_member_id": partition_value})))
+    sorted_favorites = sorted(favorites_entities, key=lambda x: x.get('Timestamp', 0), reverse=True)  # Sort by Timestamp descending
     # Extract just the entity IDs
-    favorite_ids = {fav.get('entity_id') for fav in favorites_entities if fav}
+    favorite_ids = [fav.get('entity_id') for fav in sorted_favorites if fav]
     return favorite_ids
 
