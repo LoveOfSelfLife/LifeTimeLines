@@ -75,149 +75,252 @@ class HomePageDataService:
     
     def get_scheduled_workouts_data(self, member_id: str, current_datetime: datetime) -> Dict:
         """
-        Get scheduled workouts for the next week
-        
-        Returns data structure:
-        {
-            'workouts_on_calendar': [
-                {
-                    'workout_name': str,
-                    'workout_definition': dict,
-                    'scheduled_datetime': datetime,
-                    'can_start': bool,
-                    'time_until_workout': int (seconds),
-                    'team_members': [{'name': str, 'id': str}],
-                    'event_id': str,
-                    'status': 'upcoming|available|missed|completed'
-                }
-            ],
-            'has_active_program': bool,
-            'program_name': str
-        }
+        Build simplified scheduled-workout dashboard data.
+
+        Presentation model:
+        1) Most recent completed workout before today (if any).
+        2) All events scheduled for today (completed or not completed).
+        3) If none for today, first upcoming event after today.
         """
         try:
-            # Get member's current program
             current_program = get_members_current_active_program(member_id, current_date_dt=current_datetime)
             if not current_program:
                 return {
                     'workouts_on_calendar': [],
                     'has_active_program': False,
-                    'program_name': None
+                    'program_name': None,
+                    'program_key': None,
+                    'previous_completed': None,
+                    'todays_events': [],
+                    'next_upcoming_after_today': None,
+                    'show_next_upcoming': False,
+                    'has_today_events': False,
+                    'has_any_scheduled': False
                 }
-            # get the member's team members.  We will use this to only find workouts that are scheduled for the member and the member's team members.
+
             current_team = get_current_team_context(member_id)        
             team_members = get_team_members(current_team['id'])
             team_coaches = get_team_coaches(current_team['id'])
-            all_members_of_team = [tm.get('member_id') for tm in team_members] + [tc.get('coach_id') for tc in team_coaches]         
-            team_member_filter_func = lambda m_id: any(tm_id == m_id for tm_id in all_members_of_team)
-            # Get scheduled events from calendar for next 7 days
+            all_members_of_team = [str(tm.get('member_id')) for tm in team_members] + [str(tc.get('coach_id')) for tc in team_coaches]
+            current_member_id_str = str(member_id)
+            team_member_filter_func = lambda m_id: str(m_id) in all_members_of_team
+
             cal = get_calendar_service()
-            start_date = (current_datetime - timedelta(days=2)).strftime("%Y-%m-%d")
-            end_date = (current_datetime + timedelta(days=7)).strftime("%Y-%m-%d")
-            scheduled_calendar_events, sorted_events = cal.get_dates_and_events_stream(date_min=start_date, date_max=end_date, filter_by_member_id_func=team_member_filter_func)
-            
-            scheduled_workouts_by_date_list = []
+            # Only query around the active dashboard horizon: today + near future.
+            # This avoids scanning months of calendar history on each dashboard load.
+            start_date = (current_datetime - timedelta(days=1)).strftime("%Y-%m-%d")
+            end_date = (current_datetime + timedelta(days=10)).strftime("%Y-%m-%d")
+            scheduled_calendar_events, _ = cal.get_dates_and_events_stream(
+                date_min=start_date,
+                date_max=end_date,
+                filter_by_member_id_func=team_member_filter_func,
+            )
 
-            scheduled_workouts_by_date = {
-                'members_scheduled' : []
-            }
+            local_tz = pytz.timezone('US/Eastern')
+            if current_datetime.tzinfo is None:
+                current_datetime_local = local_tz.localize(current_datetime)
+            else:
+                current_datetime_local = current_datetime.astimezone(local_tz)
+            today_date = current_datetime_local.date()
+
+            def _is_completed_status(status: str) -> bool:
+                normalized = (status or '').strip().lower()
+                return normalized in ('done', 'completed')
+
+            def _event_datetime(event_record: Dict) -> datetime:
+                event_date = event_record.get('date')
+                if isinstance(event_date, str):
+                    event_date = datetime.fromisoformat(event_date).date()
+                event_time_str = event_record.get('time', '00:00')
+                try:
+                    event_time = datetime.strptime(event_time_str, "%H:%M").time()
+                except ValueError:
+                    event_time = datetime.strptime(event_time_str, "%I:%M %p").time()
+                return local_tz.localize(datetime.combine(event_date, event_time))
+
+            events_by_date = {}
+            member_events = []
             for rec in scheduled_calendar_events:
-                if rec.get('type') == 'date':
-                    # if this date has no members, then reuse it
-                    if len(scheduled_workouts_by_date.get('members_scheduled')) == 0:
-                        scheduled_workouts_by_date['date'] = rec.get('display_date')
-                    else:
-                        # otherwise, we need to start a new scheduled workout
-                        scheduled_workouts_by_date_list.append(scheduled_workouts_by_date)
-                        scheduled_workouts_by_date = {
-                            'date': rec.get('display_date'),
-                            'members_scheduled' : []
-                        }
-                elif rec.get('type') == 'event':
-                    # this is an event on the calendar that indicates a member is scheduled for a workout on this date, 
-                    # we will add the member to the current scheduled workout's members_scheduled list
-                    scheduled_member_id = rec.get('member_id')
-                    scheduled_display_time = rec.get('display_time')
-                    scheduled_time = rec.get('time')
-                    scheduled_date = rec.get('date')
-                    scheduled_event_id = rec.get('id')
-                    scheduled_event_status = rec.get('status')
-                    recurring_event_id = rec.get('recurring_event_id', None)
-                    if scheduled_event_status == 'done':
-                        continue
-                    scheduled_member = { 'member_id': scheduled_member_id, 
-                                        'scheduled_display_time': scheduled_display_time, 
-                                        'scheduled_time': scheduled_time, 
-                                        'scheduled_date': scheduled_date, 
-                                        'event_id': scheduled_event_id, 
-                                        'status': scheduled_event_status,
-                                        'recurring_event_id': recurring_event_id }
-                    scheduled_workouts_by_date['members_scheduled'] = scheduled_workouts_by_date['members_scheduled'] + [scheduled_member]
-            
-            # this is for the last scheduled workout that we were building in the loop, we need to add it to the list if it has any members scheduled for it
-            if len(scheduled_workouts_by_date.get('members_scheduled')) > 0:
-                scheduled_workouts_by_date_list.append(scheduled_workouts_by_date)
+                if rec.get('type') != 'event':
+                    continue
 
-            final_scheduled_workout_by_date = []
-            is_my_first_incomplete_workout_event = True
+                scheduled_member_id = rec.get('member_id')
+                if not scheduled_member_id:
+                    continue
+                scheduled_member_id_str = str(scheduled_member_id)
 
-            for workouts_on_date in scheduled_workouts_by_date_list:
-                # if the current member is scheduled to workout on this date, then we will include it in the output stream
-                if member_id in [m['member_id'] for m in workouts_on_date.get('members_scheduled', [])]:
-                    # this event is for the current member
-                    member_workouts_scheduled_for_date = workouts_on_date.get('members_scheduled', [])
+                event_dt = _event_datetime(rec)
+                event_row = {
+                    'member_id': scheduled_member_id_str,
+                    'event_datetime': event_dt,
+                    'event_date': event_dt.date(),
+                    'display_time': rec.get('display_time', event_dt.strftime('%I:%M %p')),
+                    'event_id': rec.get('id'),
+                    'status': rec.get('status', ''),
+                    'is_completed': _is_completed_status(rec.get('status', '')),
+                    'recurring_event_id': rec.get('recurring_event_id', None),
+                }
+                events_by_date.setdefault(event_row['event_date'], []).append(event_row)
+                if scheduled_member_id_str == current_member_id_str:
+                    member_events.append(event_row)
 
-                    my_event = list(filter(lambda m: m['member_id'] == member_id, member_workouts_scheduled_for_date))
-                    if not my_event:
-                        continue
-                    my_event = my_event[0]
-                    
-                    # Parse event datetime
-                    # my_event['scheduled_date'] is a datetime.date object, and my_event['scheduled_time'] is a string in the format "HH:MM"
-                    # need to combine these into a single datetime object for the event
-                    # also need to make sure to set the timezone for the event datetime to be the set to the local timezone (e.g. US/Eastern) so that the time until workout calculation is correct
-                    event_datetime = datetime.combine(my_event['scheduled_date'], datetime.strptime(my_event['scheduled_time'], "%H:%M").time())
-                    local_tz = pytz.timezone('US/Eastern')
-                    event_datetime = local_tz.localize(event_datetime)
+            for event_date in events_by_date:
+                events_by_date[event_date] = sorted(events_by_date[event_date], key=lambda e: e['event_datetime'])
 
-                    time_until_workout = int((event_datetime - current_datetime).total_seconds())
-                    
-                    # Determine if workout can be started (within 6 hours or same day)
-                    can_start = self._can_start_workout(event_datetime, current_datetime)
-                    
-                    # Determine workout status
-                    status = self._get_workout_status(event_datetime, current_datetime)
-                    
-                    if is_my_first_incomplete_workout_event and can_start and status != 'missed':
-                        next_workout = get_next_workout_in_program(current_program, member_id)
-                        workout_key = next_workout.get('next_workout_key')
-                        workout_definition = self.entity_store.get_item_by_composite_key(workout_key)
-                        is_my_first_incomplete_workout_event = False
-                    else:
-                        workout_definition = None
+            member_events = sorted(member_events, key=lambda e: e['event_datetime'])
 
-                    # # Get team members scheduled around same time (placeholder for API call)
-                    team_members = [m for m in member_workouts_scheduled_for_date if m['member_id'] != member_id]
-                    # we want to display the member's name and the time they are scheduled for in the team members list, so we will create a new list of strings that combines the member's name and the time they are scheduled for
-                    team_members2 = [ { 'name': get_member_name_from_member_id(m['member_id']), 'time':f"{m['scheduled_display_time']}" } for m in team_members ]
+            next_workout_name = 'Selected Workout'
+            next_workout_key = None
+            next_workout_definition = None
+            next_workout = get_next_workout_in_program(current_program, member_id)
+            if next_workout:
+                candidate_key = next_workout.get('next_workout_key')
+                if candidate_key:
+                    next_workout_definition = self.entity_store.get_item_by_composite_key(candidate_key)
+                    if next_workout_definition:
+                        next_workout_name = next_workout_definition.get('name', 'Selected Workout')
+                        next_workout_key = str(next_workout_definition.get_composite_key())
 
-                    final_scheduled_workout_by_date.append({
-                        'workout_name': workout_definition.get('name', 'Unnamed Workout') if workout_definition else None,
-                        'workout_definition': workout_definition,
-                        'scheduled_datetime': event_datetime,
-                        'can_start': can_start,
-                        'time_until_workout': time_until_workout,
-                        'team_members': team_members2,
-                        'event_id': my_event.get('event_id'),
-                        'recurring_event_id': my_event.get('recurring_event_id', None),
-                        'status': status
-                    })
-            
+            def _coerce_local_datetime(value):
+                if not value:
+                    return None
+                try:
+                    dt_value = datetime.fromisoformat(value) if isinstance(value, str) else value
+                except (TypeError, ValueError):
+                    return None
+                if dt_value.tzinfo is None:
+                    return local_tz.localize(dt_value)
+                return dt_value.astimezone(local_tz)
+
+            # Pull member instances once, then enrich only the small subset needed for dashboard text.
+            completed_instances = [
+                i for i in self.entity_store.list_items(MemberWorkoutInstanceEntity({'member_id': member_id}))
+                if i.get('finished_ts')
+            ]
+            completed_instances = sorted(completed_instances, key=lambda x: x.get('finished_ts', ''), reverse=True)
+
+            today_completed_event_count = len([
+                e for e in member_events
+                if e['event_date'] == today_date and e['is_completed']
+            ])
+
+            completed_by_date = {today_date: []}
+            previous_completed_detail = None
+            workout_def_cache = {}
+
+            for instance in completed_instances:
+                completed_dt = _coerce_local_datetime(instance.get('finished_ts'))
+                if not completed_dt:
+                    continue
+
+                include_for_today = (
+                    completed_dt.date() == today_date
+                    and len(completed_by_date[today_date]) < today_completed_event_count
+                )
+                include_for_previous = completed_dt.date() < today_date and previous_completed_detail is None
+
+                if not include_for_today and not include_for_previous:
+                    if previous_completed_detail is not None and len(completed_by_date[today_date]) >= today_completed_event_count:
+                        break
+                    continue
+
+                workout_name = instance.get('name', 'Completed Workout')
+                workout_key = None
+                workout_def_id = instance.get('member_workout_def_id')
+                if workout_def_id:
+                    if workout_def_id not in workout_def_cache:
+                        workout_def_cache[workout_def_id] = self.entity_store.get_item(MemberWorkoutDefinitionEntity({'id': workout_def_id}))
+                    workout_def = workout_def_cache.get(workout_def_id)
+                    if workout_def:
+                        workout_name = workout_def.get('name', workout_name)
+                        workout_key = str(workout_def.get_composite_key())
+
+                detail = {
+                    'completed_datetime': completed_dt,
+                    'workout_name': workout_name,
+                    'workout_key': workout_key,
+                }
+
+                if include_for_today:
+                    completed_by_date[today_date].append(detail)
+                if include_for_previous and previous_completed_detail is None:
+                    previous_completed_detail = detail
+
+            def _team_members_for_event(event_row: Dict) -> List[Dict]:
+                others = [
+                    e for e in events_by_date.get(event_row['event_date'], [])
+                    if e['member_id'] != current_member_id_str
+                ]
+                return [
+                    {
+                        'name': get_member_name_from_member_id(e['member_id']),
+                        'time': e['display_time'],
+                    }
+                    for e in others
+                ]
+
+            previous_completed = None
+            if previous_completed_detail:
+                previous_completed = {
+                    'scheduled_datetime': previous_completed_detail['completed_datetime'],
+                    'event_id': None,
+                    'workout_name': previous_completed_detail.get('workout_name', 'Completed Workout'),
+                    'workout_key': previous_completed_detail.get('workout_key'),
+                }
+
+            todays_events = []
+            today_member_events = [e for e in member_events if e['event_date'] == today_date]
+            today_completed_details = sorted(list(completed_by_date.get(today_date, [])), key=lambda c: c['completed_datetime'])
+            for event_row in today_member_events:
+                completed_detail = None
+                if event_row['is_completed'] and today_completed_details:
+                    completed_detail = today_completed_details.pop(0)
+
+                todays_events.append({
+                    'event_id': event_row['event_id'],
+                    'scheduled_datetime': event_row['event_datetime'],
+                    'display_time': event_row['display_time'],
+                    'status': 'completed' if event_row['is_completed'] else 'upcoming',
+                    'is_completed': event_row['is_completed'],
+                    'can_start': not event_row['is_completed'],
+                    'team_members': _team_members_for_event(event_row),
+                    'workout_name': completed_detail.get('workout_name') if completed_detail else next_workout_name,
+                    'workout_key': completed_detail.get('workout_key') if completed_detail else next_workout_key,
+                    'selected_workout_key': next_workout_key,
+                })
+
+            future_events = [
+                e for e in member_events
+                if e['event_date'] > today_date and not e['is_completed']
+            ]
+            next_upcoming_after_today = None
+            if future_events:
+                first_upcoming = future_events[0]
+                next_upcoming_after_today = {
+                    'event_id': first_upcoming['event_id'],
+                    'scheduled_datetime': first_upcoming['event_datetime'],
+                    'display_time': first_upcoming['display_time'],
+                    'team_members': _team_members_for_event(first_upcoming),
+                    'workout_name': next_workout_name,
+                    'workout_key': next_workout_key,
+                }
+
+            all_todays_events_completed = bool(todays_events) and all(e.get('is_completed') for e in todays_events)
+            show_next_upcoming = bool(next_upcoming_after_today) and (not todays_events or all_todays_events_completed)
+
+            legacy_list = todays_events if todays_events else ([next_upcoming_after_today] if next_upcoming_after_today else [])
+
             return {
-                'workouts_on_calendar': self._limit_scheduled_workouts_display(final_scheduled_workout_by_date, current_datetime),
+                'workouts_on_calendar': legacy_list,
                 'has_active_program': True,
                 'program_name': current_program.get('name', 'Current Program'),
-                'program_key': str(current_program.get_composite_key())
+                'program_key': str(current_program.get_composite_key()),
+                'previous_completed': previous_completed,
+                'todays_events': todays_events,
+                'next_upcoming_after_today': next_upcoming_after_today,
+                'show_next_upcoming': show_next_upcoming,
+                'has_today_events': len(todays_events) > 0,
+                'has_any_scheduled': bool(previous_completed or todays_events or next_upcoming_after_today),
             }
             
         except Exception as e:
@@ -225,7 +328,14 @@ class HomePageDataService:
             return {
                 'workouts_on_calendar': [],
                 'has_active_program': False,
-                'program_name': None
+                'program_name': None,
+                'program_key': None,
+                'previous_completed': None,
+                'todays_events': [],
+                'next_upcoming_after_today': None,
+                'show_next_upcoming': False,
+                'has_today_events': False,
+                'has_any_scheduled': False,
             }
     
     def get_completed_workouts_data(self, member_id: str, current_datetime: datetime) -> Dict:

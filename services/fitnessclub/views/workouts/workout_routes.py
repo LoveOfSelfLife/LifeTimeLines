@@ -471,7 +471,9 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
         workout_definition = workout
         workout_definition_key = None
         active_workout = False
-        
+
+    if workout_view_preference not in ['accordion', 'carousel']:
+        workout_view_preference = 'accordion'        
     workout_section_view_template = "_section_dynamic_view.html" if workout_view_preference == 'accordion' else "_section_dynamic_carousel_view.html"
 
     return render_template(
