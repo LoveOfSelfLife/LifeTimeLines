@@ -2,7 +2,10 @@ import re
 
 from common.entity_store_cache import EntityStoreCache
 from common.fitness.active_fitness_registry import get_entity_obj_from_entity_name
+from common.fitness.coach_team_entity import get_coachs_team_members
 from common.fitness.favorites_entity import get_all_favorite_entity_ids
+from common.fitness.member_entity import is_member_an_admin
+from common.fitness.roles_service import is_member_client, is_member_coach
 entity_store_cache_dict = {}
 
 def get_entities(entity_name, fields_to_display, filter_term=None, partition_key=None, sort_by='name', sort_ascending=True, member_id=None):
@@ -20,18 +23,26 @@ def get_entities(entity_name, fields_to_display, filter_term=None, partition_key
 
     entities = []
     for e in filtered_entities:
-        field_values = [e.get(f, None) for f in fields_to_display['listing_view']]
+        listing_field_values = []
+        if fields_to_display['listing_view']:
+            field_mapping = fields_to_display.get('field_mapping', {})
+            for field in fields_to_display['listing_view']:
+                lmbda = field_mapping.get(field, None)
+                listing_field_values.append(lmbda(e) if lmbda else e.get(field, None))
+
         key = e.get_composite_key()
         entity_id = e.get_key_value()
 
         card_view_field_values = None
         if fields_to_display['card_view']:
+            field_mapping = fields_to_display.get('field_mapping', {})
             card_view_field_values = {}
-            for field,lmbda in fields_to_display['card_view'].items():
-                card_view_field_values[field] = lmbda(e) if lmbda else None
+            for field in fields_to_display['card_view']:
+                lmbda = field_mapping.get(field, None)
+                card_view_field_values[field] = lmbda(e) if lmbda else e.get(field, None)
         entities.append({
             "key": key,
-            "field_values": field_values,
+            "field_values": listing_field_values,
             "entity": e,
             "entity_id": entity_id,
             "is_favorite": entity_id in favorite_entity_ids,
@@ -266,3 +277,34 @@ def matches_filter(entity,term):
                 if t in entity[field].lower():
                     return True
     return False
+
+
+def filter_entities_by_member_role(member_id, entities):
+    # if I'm a client, then I should only see entities that are assigned to me, or entities that I created. 
+    # If I'm a coach, then I should see entities that are assigned to me, or entities that I created, or entities that are assigned to my team members. 
+    # If I'm an admin, then I should see all entities.
+    if is_member_client(member_id):
+        relevant_entities = [e for e in entities if e.get('entity', {}).get('assigned_to_member_id') == member_id or e.get('entity', {}).get('created_by') == member_id]
+        entities = relevant_entities
+    elif is_member_coach(member_id):
+        relevant_entities = [e for e in entities if e.get('entity', {}).get('assigned_to_member_id') == member_id or e.get('entity', {}).get('created_by') == member_id]
+
+        team_members = get_coachs_team_members(member_id)
+        team_member_ids =  { tm.get('member_id') for tm in team_members if tm.get('member_id') }
+
+        # relevant entity is any entity that was created by the team member, or was assigned to the team member
+        teams_entities = [e for e in entities if e.get('entity', {}).get('assigned_to_member_id') in team_member_ids or e.get('entity', {}).get('created_by') in team_member_ids]
+
+        entities = relevant_entities + teams_entities
+    elif is_member_an_admin(member_id):
+        # admins can see all entities, so no filtering needed
+        pass
+    else:
+        # if the member is not a client, coach, or admin, then they should not see any entities.
+        entities = []
+
+    deduped_entities = {}
+    for entity in entities:
+        deduped_entities[entity.get('key')] = entity
+    entities = list(deduped_entities.values())
+    return entities

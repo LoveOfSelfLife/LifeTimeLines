@@ -40,10 +40,10 @@
                                 hx-target="#modals-here"
                                 hx-swap="innerHTML"
                                 class="text-decoration-none">
-                                <p class="card-title mb-0 text-truncate fw-semibold" style="font-size: 0.9rem;">{{ entity.card_view_fields.title }}</p>
+                                <p class="card-title mb-0 text-wrap fw-semibold" style="font-size: 0.9rem;">{{ entity.card_view_fields.title }}</p>
                             </a>
                         {% else %}
-                            <p class="card-title mb-0 text-truncate fw-semibold" style="font-size: 0.9rem;">{{ entity.card_view_fields.title }}</p>
+                            <p class="card-title mb-0 text-wrap fw-semibold" style="font-size: 0.9rem;">{{ entity.card_view_fields.title }}</p>
                         {% endif %}
                             </div>
 
@@ -68,10 +68,10 @@
                             {% endif %}
                         </div>
                         {% if entity.card_view_fields.subtitle %}
-                            <p class="card-text small text-muted mb-1">{{ entity.card_view_fields.subtitle }}</p>
+                            <p class="card-text small mb-1">{{ entity.card_view_fields.subtitle }}</p>
                         {% endif %}
                         {% if entity.card_view_fields.description %}
-                            <p class="card-text small mb-1" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{{ entity.card_view_fields.description }}</p>
+                            <p class="card-text small mb-1" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-clamp: 2;">{{ entity.card_view_fields.description }}</p>
                         {% endif %}
                     </div>
                 </div>

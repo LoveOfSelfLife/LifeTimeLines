@@ -58,7 +58,7 @@ def index(context = None):
         
         if current_program:
             # Get all workouts from the program
-            program_workouts = get_program_workouts(current_program, member_id)
+            program_workouts = get_program_workouts(current_program)
 
             # Create alternative workout options
             for workout_def in program_workouts:

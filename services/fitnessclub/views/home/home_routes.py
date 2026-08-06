@@ -11,11 +11,13 @@ All routes use HTMX for dynamic updates and follow the existing authentication p
 
 from flask import Blueprint, abort, make_response, render_template, request, jsonify, session, redirect, url_for
 from auth import auth
+from common.fitness.entities_getter import get_entity, get_entity2
+from common.fitness.favorites_entity import get_all_favorite_entity_ids
 from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import hx_render_template
 from common.fitness.member_entity import get_member_id_from_user_context, get_member_detail_from_user_context, get_user_profile
 from common.fitness.home_data_service import HomePageDataService, format_seconds
-from common.fitness.member_workout_entity import WorkoutDefinitionEntity
+from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity
 from common.fitness.programs import get_last_workout_instance_for_workout, get_members_current_active_program, get_program_workouts
 # from common.fitness.workout_state import set_active_workout_state
 from common.entity_store import EntityStore
@@ -45,7 +47,7 @@ def scheduled_workouts_partial2(context=None):
         
         if current_program:
             # Create alternative workout options
-            for workout_def in get_program_workouts(current_program, member_id):
+            for workout_def in get_program_workouts(current_program):
                 workout_info = {
                     'key': str(workout_def.get_composite_key()),
                     'name': workout_def.get('name', 'Unnamed Workout'),
@@ -79,10 +81,22 @@ def adhoc_workouts_partial2(context=None):
         
         current_program = get_members_current_active_program(member_id)
         prog_workouts = []
-        
+        all_workouts = []
+
+        favorite_workouts_ids = get_all_favorite_entity_ids(MemberWorkoutDefinitionEntity.table_name, member_id)
+        favorite_workouts = [get_entity(MemberWorkoutDefinitionEntity.table_name, fid) for fid in favorite_workouts_ids]
+
+        for workout in favorite_workouts:
+            workout_info = {
+                'key': str(workout.get_composite_key()),
+                'name': workout.get('name', 'Unnamed Workout'),
+                'description': workout.get('description', '')
+            }
+            all_workouts.append(workout_info)
+
         if current_program:
             # Get all workouts from the program
-            all_program_workouts = get_program_workouts(current_program, member_id)
+            all_program_workouts = get_program_workouts(current_program)
             
             # Create alternative workout options
             for workout_def in all_program_workouts:
@@ -91,8 +105,11 @@ def adhoc_workouts_partial2(context=None):
                     'name': workout_def.get('name', 'Unnamed Workout'),
                     'description': workout_def.get('description', '')
                     }
-                prog_workouts.append(workout_info)
-        
+                all_workouts.append(workout_info)
+        # Remove duplicates based on workout key
+        unique_workouts = {str(workout['key']): workout for workout in all_workouts}.values()
+        prog_workouts = list(unique_workouts)
+
         return hx_render_template(
             template_file='home/adhoc_workouts_partial.html',
             program_workouts=prog_workouts,
@@ -359,7 +376,7 @@ def confirm_start_workout(context=None):
             member_id = get_member_id_from_user_context(context)
             current_program = get_members_current_active_program(member_id)
             if current_program:
-                program_workouts = get_program_workouts(current_program, member_id)
+                program_workouts = get_program_workouts(current_program)
                 workout_name = 'Selected Workout'  # Default
                 for workout_def in program_workouts:
                     if str(workout_def.get_composite_key()) == workout_key:

@@ -177,7 +177,7 @@
         hx-get="/exercises/listing-modal?search={{ ('^section:' ~ sec.name)|urlencode }}&allow_multi_select=true&multi_select_post_route={{ url_for('workouts.add_multiple_exercises', workout_id=workout.id) }}&preferred_section={{ sec.name|urlencode }}"
         hx-target="#modals-here"
         hx-swap="innerHTML">
-        <i class="bi bi-plus-lg"></i>
+        <i class="bi bi-plus-lg">add {{ sec.name }}-related exercise</i>
       </button>
     </div>
     <ul class="list-group list-group-flush section-list"
@@ -193,7 +193,7 @@
 
             <div class="flex-fill me-3 d-flex flex-column workout-canvas-content">
               <div class="workout-item-title-row">
-                <strong class="pt-1 workout-item-title text-truncate">{{ ex.name }}</strong>
+                <strong class="pt-1 workout-item-title text-wrap">{{ ex.name }}</strong>
               </div>
               <div class="workout-item-utility-row">
                 <div class="workout-item-actions">

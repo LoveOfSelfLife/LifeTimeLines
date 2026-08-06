@@ -76,12 +76,12 @@
                                 hx-swap="innerHTML"
                                 class="text-decoration-none">
                                 {% if entity.card_view_fields.title %}
-                                    <p class="card-title mb-0 text-truncate fw-semibold" style="font-size: 0.9rem;">{{ entity.card_view_fields.title }}</p>
+                                    <p class="card-title mb-0 text-wrap fw-semibold" style="font-size: 0.9rem;">{{ entity.card_view_fields.title }}</p>
                                 {% endif %}
                             </a>
                         {% else %}
                             {% if entity.card_view_fields.title %}                            
-                                <p class="card-title mb-0 text-truncate fw-semibold" style="font-size: 0.9rem;">{{ entity.card_view_fields.title }}</p>
+                                <p class="card-title mb-0 text-wrap fw-semibold" style="font-size: 0.9rem;">{{ entity.card_view_fields.title }}</p>
                             {% endif %}
                         {% endif %}
                             </div>
@@ -90,7 +90,7 @@
                             <p class="card-text small text-muted mb-1">{{ entity.card_view_fields.subtitle }}</p>
                         {% endif %}
                         {% if entity.card_view_fields.description %}
-                            <p class="card-text small mb-2 flex-grow-1" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">{{ entity.card_view_fields.description }}</p>
+                            <p class="card-text small mb-2 flex-grow-1" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-clamp: 2;">{{ entity.card_view_fields.description }}</p>
                         {% endif %}
 
                         <div class="mt-auto d-flex justify-content-between align-items-center">

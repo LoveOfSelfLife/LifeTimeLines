@@ -14,15 +14,16 @@ from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_
 from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
 from common.fitness.hx_common import rm_spaces
-from common.fitness.member_entity import MembershipRegistry, get_member_id_from_user_context, get_user_profile
+from common.fitness.member_entity import MembershipRegistry, get_member_id_from_user_context, get_user_profile, is_member_an_admin
 from common.fitness.member_exercise_history import extract_and_load_exercise_events_from_workout_instance
-from common.fitness.member_program_entity import MemberProgramEntity
+from common.fitness.member_program_entity import MemberProgramsEntity
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout
 from common.fitness.programs import get_last_workout_instance_for_workout, get_next_workout_in_program, get_workouts_from_program
 from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state, update_active_workout_state
 from common.fitness.edit_workout_object import edit_workout_object
 from common.fitness.roles_service import get_accessible_members_for_context, get_team_coaches_with_details, get_team_for_client, is_member_client, is_member_coach
 from common.fitness.coach_team_entity import get_coachs_team_members
+from common.fitness.entities_getter import filter_entities_by_member_role
 bp = Blueprint('program', __name__, template_folder='templates')
 from auth import auth
 
@@ -111,37 +112,7 @@ def programs_listing2(context=None):
     if not member_id:
         abort(401)
     entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member_id, member_id=member_id)
-
-    if is_member_client(member_id):
-        team = get_team_for_client(member_id)
-        if team:
-            team_coaches = get_team_coaches_with_details(team.get('id'))
-            for coach in team_coaches:
-                coach_id = coach.get('id')
-                if not coach_id:
-                    continue
-                coach_entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=coach_id, member_id=member_id)
-                assigned_to_client = [
-                    e for e in coach_entities
-                    if e.get('entity', {}).get('assigned_to_member_id') == member_id
-                ]
-                entities.extend(assigned_to_client)
-    elif is_member_coach(member_id):
-        team_members = get_coachs_team_members(member_id)
-        visible_assignee_ids = {member_id}
-        visible_assignee_ids.update(tm.get('member_id') for tm in team_members if tm.get('member_id'))
-
-        entities = [
-            e for e in entities
-            if e.get('entity', {}).get('member_id') == member_id
-            or not e.get('entity', {}).get('assigned_to_member_id')
-            or e.get('entity', {}).get('assigned_to_member_id') in visible_assignee_ids
-        ]
-
-    deduped_entities = {}
-    for entity in entities:
-        deduped_entities[entity.get('key')] = entity
-    entities = list(deduped_entities.values())
+    entities = filter_entities_by_member_role(member_id, entities)
 
     sort_by='end_date'
     sort_ascending=False
@@ -267,8 +238,10 @@ def workouts_listing(context=None):
     allow_multi_select = _as_bool(request.form.get('allow_multi_select', None),
                                   _as_bool(request.args.get('allow_multi_select', None), False))
     selected_entity_keys = _resolve_selected_workout_keys(allow_multi_select=allow_multi_select)
-
+    # modal_mode = _as_bool(request.args.get('modal_mode', None), False) if request.method == 'GET' else _as_bool(request.form.get('modal_mode', None), False)   
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
+    entities = filter_entities_by_member_role(member_id, entities)
+
     return workouts_listing_base(
         context,
         entity_name,
@@ -283,6 +256,7 @@ def workouts_listing(context=None):
         entities,
         allow_multi_select=allow_multi_select,
         selected_entity_keys=selected_entity_keys,
+        modal_mode=False,
     )
 
 
@@ -310,6 +284,7 @@ def workouts_listing_modal(context=None):
     fields_to_display = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
     filter_terms = get_filter_terms_from_request()
     entities = get_entities(WORKOUT_ENTITY_NAME, fields_to_display, filter_terms, member_id=member_id)
+    entities = filter_entities_by_member_role(member_id, entities)
 
     return workouts_listing_base(
         context,
@@ -394,13 +369,9 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
 
 
 def _build_program_workout_copy(source_workout, current_program, order_index):
-    base_workout_def_id = source_workout['id']
     copied_workout = source_workout.copy()
     copied_workout['id'] = str(uuid.uuid4())
     copied_workout['program_id'] = current_program['id']
-    copied_workout['base_workout_def_id'] = base_workout_def_id
-    copied_workout['member_id'] = current_program['member_id']
-    copied_workout['created_by'] = current_program['member_id']
     copied_workout['member_program_id'] = current_program['id']
     copied_workout['order_index'] = order_index
 
@@ -413,7 +384,7 @@ def new_program(name='new-workout-program', member_id=None):
     program_id = str(uuid.uuid4())
     return {
         'id': program_id,
-        'member_id': member_id,
+        'created_by': member_id,
         'assigned_to_member_id': member_id,
         'name': name,
         'start_date': None,
@@ -754,7 +725,7 @@ def save_program(context=None, program_id=None):
         es.upsert_item(MemberWorkoutDefinitionEntity(wtr))
     
     es.upsert_items(workouts_in_program)
-    es.upsert_item(MemberProgramEntity(current_program))
+    es.upsert_item(MemberProgramsEntity(current_program))
 
     delete_from_cache('current_program')
     delete_from_cache('current_program_workouts')
@@ -828,14 +799,14 @@ def delete_program(context=None, program_id=None):
     for wtr in workouts_to_remove:
         es.upsert_item(MemberWorkoutDefinitionEntity(wtr))
 
-    es.delete_item(MemberProgramEntity(current_program))
+    es.delete_item(MemberProgramsEntity(current_program))
 
     delete_from_cache('current_program')
     delete_from_cache('current_program_workouts')
     delete_from_cache('workouts_to_remove')
 
     # delete from the in-memory entity cache
-    delete_entity(MemberProgramEntity(current_program), current_program.get('member_id'))
+    delete_entity(MemberProgramsEntity(current_program))
 
     response = make_response(programs_listing2(context))
     response.headers['HX-Trigger'] = json.dumps({
@@ -896,7 +867,7 @@ def save_copy_of_program(context=None, program_id=None):
         es.delete_item(MemberWorkoutDefinitionEntity(wtr))
 
     es.upsert_items(workouts_in_program)
-    es.upsert_item(MemberProgramEntity(current_program))
+    es.upsert_item(MemberProgramsEntity(current_program))
 
     delete_from_cache('current_program')
     delete_from_cache('current_program_workouts')
@@ -1146,12 +1117,11 @@ def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, m
 
     workout_def_id = workout_entity.get('id', None) if workout_entity else None
 
-
     workout_instance = MemberWorkoutInstanceEntity(workout_entity.copy())
-
 
     workout_instance.update({
         'id': str(uuid.uuid4()),
+        'member_id': member_id,
         'started_ts': datetime.now().isoformat(),
         'finished_ts': "",
         'scheduled_workout_event_id': scheduled_workout_event_id,
@@ -1238,7 +1208,7 @@ def really_finish_workout(context=None, workout_instance_key=None):
     if updated_parameters:
         member_workout_def_id = workout_instance.get('member_workout_def_id', None)
         member_id = workout_instance.get('member_id', None)
-        workout_definition = es.get_item(MemberWorkoutDefinitionEntity({'id': member_workout_def_id, 'member_id': member_id}))
+        workout_definition = es.get_item(MemberWorkoutDefinitionEntity({'id': member_workout_def_id}))
         for section in workout_definition.get('workout_sections', []):
             for exercise in section.get('exercises', []):
                 exercise_id = exercise.get('id', None)

@@ -1,4 +1,3 @@
-
 <div class="container py-3">
 
   <h2 class="mb-4 text-center">Finishing Workout: {{ workout.name }}</h2>
@@ -8,11 +7,10 @@
       <div class="card shadow-sm border-0 h-100">
         <div class="card-body">
           <h3 class="h5 mb-3">Workout Summary</h3>
-          <p class="text-muted mb-4">Review the times for this workout and add any notes you want saved with the completed session.</p>
+          <p class="text-muted mb-4">Review the times for this workout and add any notes you want saved with the
+            completed session.</p>
 
-          <form hx-post="{{ really_finish_workout_url }}"
-                hx-target="#content"
-                hx-swap="innerHTML">
+          <form hx-post="{{ really_finish_workout_url }}" hx-target="#content" hx-swap="innerHTML">
 
             <input type="hidden" name="workout_id" value="{{ workout.id }}">
             <input type="hidden" name="program_id" value="{{ program.id if program else '' }}">
@@ -22,88 +20,75 @@
 
             <div class="mb-3">
               <label for="started-ts" class="form-label">Workout Start</label>
-              <input id="started-ts"
-                     name="started_ts"
-                     type="datetime-local"
-                     class="form-control"
-                     value="{{ workout_started_ts_local }}">
+              <input id="started-ts" name="started_ts" type="datetime-local" class="form-control"
+                value="{{ workout_started_ts_local }}">
             </div>
 
             <div class="mb-3">
               <label for="finished-ts" class="form-label">Workout End</label>
-              <input id="finished-ts"
-                     name="finished_ts"
-                     type="datetime-local"
-                     class="form-control"
-                     value="{{ workout_finished_ts_local }}">
+              <input id="finished-ts" name="finished_ts" type="datetime-local" class="form-control"
+                value="{{ workout_finished_ts_local }}">
             </div>
 
             <div class="mb-3">
               <label for="member-feedback" class="form-label">Feedback</label>
-              <textarea id="member-feedback"
-                        name="member_feedback"
-                        class="form-control"
-                        rows="6"
-                        placeholder="How did the workout feel? Any notes for your records?">{{ workout_feedback }}</textarea>
+              <textarea id="member-feedback" name="member_feedback" class="form-control" rows="6"
+                placeholder="How did the workout feel? Any notes for your records?">{{ workout_feedback }}</textarea>
             </div>
 
             <div class="mb-3">
-              <label class="form-label d-block mb-2">Next Time Workout Setup</label>
-
-              <div class="form-check mb-2">
-                <input class="form-check-input"
-                       type="radio"
-                       name="next_time_strategy"
-                       id="next-time-original"
-                       value="original"
-                       data-next-time-strategy="original"
-                       checked>
-                <label class="form-check-label" for="next-time-original">
-                  {% if parameters_changed %}
-                    Next time, will do the original workout without any of the adjustments I made today
-                  {% else %}
-                    Next time, will do this same workout again.
-                  {% endif %}
-                </label>
-              </div>
+              <label class="form-label d-block mb-2">Next time I do this workout:</label>
 
               {% if parameters_changed %}
               <div class="form-check mb-2">
-                <input class="form-check-input"
-                       type="radio"
-                       name="next_time_strategy"
-                       id="next-time-performed"
-                       value="performed_today"
-                       data-next-time-strategy="performed_today">
-                <label class="form-check-label" for="next-time-performed">
-                  Next time, will do the workout I did today including the adjustments I made today
-                </label>
+                <span>
+                  <input class="form-check-input" type="radio" name="next_time_strategy" id="next-time-performed"
+                    value="performed_today" data-next-time-strategy="performed_today" checked>
+                  <label class="form-check-label" for="next-time-performed">
+                    I want the workout to include the adjustments I made today
+                  </label>
+                </span>
               </div>
               {% endif %}
 
+
+              <div class="form-check mb-2">
+                <span>
+                  <input class="form-check-input" type="radio" name="next_time_strategy" id="next-time-original"
+                    value="original" data-next-time-strategy="original" {% if not parameters_changed %} checked {% endif
+                    %}>
+                  <label class="form-check-label" for="next-time-original">
+                    {% if parameters_changed %}
+                    I want the workout to NOT include the adjustments I made today
+                    {% else %}
+                    I want to do this same workout again.
+                    {% endif %}
+                  </label>
+                </span>
+              </div>
+
+
               <div class="form-check">
-                <input class="form-check-input"
-                       type="radio"
-                       name="next_time_strategy"
-                       id="next-time-custom"
-                       value="custom"
-                       data-next-time-strategy="custom"
-                       >
-                <label class="form-check-label" for="next-time-custom">
-                  Let me adjust parameters for next time.
-                </label>
+                <span>
+                  <input class="form-check-input" type="radio" name="next_time_strategy" id="next-time-custom"
+                    value="custom" data-next-time-strategy="custom">
+                  <label class="form-check-label" for="next-time-custom">
+                    {% if parameters_changed %}
+                    I want to make some additional adjustments for next time
+                    {% else %}
+                    I want to make some adjustments for next time
+                    {% endif %}
+                    (click, then see below)
+                  </label>
+                </span>
               </div>
             </div>
 
-
             <div class="d-flex flex-wrap gap-2 pt-2">
-              <button type="submit" class="btn btn-success">Finish Workout</button>
+              <button type="submit" class="btn btn-success">Confirm you are finished</button>
 
-              <button type="button"
-                      class="btn btn-danger"
-                      hx-post="{{ continue_workout_url }}"
-                      hx-target="#content"
-                      hx-swap="innerHTML">Go back to continue your Workout</button>
+              <button type="button" class="btn btn-danger" hx-post="{{ continue_workout_url }}" hx-target="#content"
+                hx-swap="innerHTML">Go back to continue your Workout</button>
             </div>
           </form>
         </div>
@@ -114,13 +99,13 @@
       <div class="card shadow-sm border-0 h-100">
         <div class="card-body">
           <h3 class="h5 mb-3">Adjust Parameters For Next Time</h3>
-          <p class="text-muted mb-3">These edits will be saved as next-time adjustments and will not change the workout you just completed.</p>
+          <p class="mb-3">Any adjustments you make here will be applied the next time you do this workout.</p>
           {% include "workout_view.html" %}
         </div>
       </div>
-    </div> 
+    </div>
 
-    
+
   </div>
 
 </div>

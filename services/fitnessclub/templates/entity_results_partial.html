@@ -128,36 +128,44 @@
 {% endif %}
 
 {% if total_pages > 1 %}
-    <nav aria-label="Page navigation" class="pagination-wrapper">
-    <ul class="pagination mb-0">
-        <li class="page-item {% if page <= 1 %}disabled{% endif %}">
-        <a class="page-link" href="#"
-            hx-get="{{ entities_listing_route }}&page={{ page - 1 }}&filter={{ filter_terms }}&view={{ view }}"
-            {% if args %}
-            hx-vals='{{ args|tojson }}'
-            {% endif %}
-            hx-target="#{{ results_target_container or 'results-area' }}"
-            hx-include="[name='search'], [name='favorites_only'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
-        <span aria-hidden="true">&laquo;</span>
-        </a>
-        </li>
-        <li class="d-flex align-items-center px-3">
-            Page {{ page }} of {{ total_pages }}
-        </li>
-        <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
-        <a class="page-link" href="#"
-            hx-get="{{ entities_listing_route }}&page={{ page + 1 }}&filter={{ filter_terms }}&view={{ view }}"
-            {% if args %}
-            hx-vals='{{ args|tojson }}'
-            {% endif %}
-            hx-target="#{{ results_target_container or 'results-area' }}"
-            hx-include="[name='search'], [name='favorites_only'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
-        <span aria-hidden="true">&raquo;</span>
-        </a>
-        </li>
-    </ul>
+    <nav id="pagination-wrapper" aria-label="Page navigation" class="pagination-wrapper" hx-swap-oob="true">
+        <ul class="pagination mb-0">
+            <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+            <a class="page-link" href="#"
+                hx-get="{{ entities_listing_route }}&page={{ page - 1 }}&filter={{ filter_terms }}&view={{ view }}"
+                {% if args %}
+                hx-vals='{{ args|tojson }}'
+                {% endif %}
+                hx-target="#{{ results_target_container or 'results-area' }}"
+                hx-include="[name='search'], [name='favorites_only'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
+            <span aria-hidden="true">&laquo;</span>
+            </a>
+            </li>
+            <li class="d-flex align-items-center px-3">
+                Page {{ page }} of {{ total_pages }}
+            </li>
+            <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+            <a class="page-link" href="#"
+                hx-get="{{ entities_listing_route }}&page={{ page + 1 }}&filter={{ filter_terms }}&view={{ view }}"
+                {% if args %}
+                hx-vals='{{ args|tojson }}'
+                {% endif %}
+                hx-target="#{{ results_target_container or 'results-area' }}"
+                hx-include="[name='search'], [name='favorites_only'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
+            <span aria-hidden="true">&raquo;</span>
+            </a>
+            </li>
+        </ul>
     </nav>
-{% endif %}
+    {% else %}
+    <nav id="pagination-wrapper" aria-label="Page navigation" class="pagination-wrapper" hx-swap-oob="true">
+        <ul class="pagination mb-0">
+            <li class="d-flex align-items-center px-3">
+                Page {{ page }} of {{ total_pages }}
+            </li>
+        </ul>
+    </nav>
+{% endif %} 
 
 {# this button is returned out-of-band (OOB), which then updates the favorites toggle in the parent template  #}
 <button id="favorites-toggle" 
