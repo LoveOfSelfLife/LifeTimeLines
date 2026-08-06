@@ -23,6 +23,7 @@ from common.fitness.workout_state import clear_active_workout_state, get_active_
 from common.fitness.edit_workout_object import edit_workout_object
 from common.fitness.roles_service import get_accessible_members_for_context, get_team_coaches_with_details, get_team_for_client, is_member_client, is_member_coach
 from common.fitness.coach_team_entity import get_coachs_team_members
+from common.fitness.entities_getter import filter_entities_by_member_role
 bp = Blueprint('program', __name__, template_folder='templates')
 from auth import auth
 
@@ -111,33 +112,7 @@ def programs_listing2(context=None):
     if not member_id:
         abort(401)
     entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member_id, member_id=member_id)
-    # if I'm a client, then I should only see programs that are assigned to me, or programs that I created. 
-    # If I'm a coach, then I should see programs that are assigned to me, or programs that I created, or programs that are assigned to my team members. 
-    # If I'm an admin, then I should see all programs.
-    if is_member_client(member_id):
-        relevant_programs = [e for e in entities if e.get('entity', {}).get('assigned_to_member_id') == member_id or e.get('entity', {}).get('created_by') == member_id]
-        entities = relevant_programs
-    elif is_member_coach(member_id):
-        coaches_programs = [e for e in entities if e.get('entity', {}).get('assigned_to_member_id') == member_id or e.get('entity', {}).get('created_by') == member_id]
-         
-        team_members = get_coachs_team_members(member_id)
-        team_member_ids =  { tm.get('member_id') for tm in team_members if tm.get('member_id') }
-
-        # relevant programs is any program that was created by the team member, or was assigned to the taem member
-        teams_programs = [e for e in entities if e.get('entity', {}).get('assigned_to_member_id') in team_member_ids or e.get('entity', {}).get('created_by') in team_member_ids]
-
-        entities = coaches_programs + teams_programs
-    elif is_member_an_admin(member_id):
-        # admins can see all programs, so no filtering needed
-        pass
-    else:
-        # if the member is not a client, coach, or admin, then they should not see any programs. 
-        entities = []
-
-    deduped_entities = {}
-    for entity in entities:
-        deduped_entities[entity.get('key')] = entity
-    entities = list(deduped_entities.values())
+    entities = filter_entities_by_member_role(member_id, entities)
 
     sort_by='end_date'
     sort_ascending=False
@@ -265,6 +240,8 @@ def workouts_listing(context=None):
     selected_entity_keys = _resolve_selected_workout_keys(allow_multi_select=allow_multi_select)
     # modal_mode = _as_bool(request.args.get('modal_mode', None), False) if request.method == 'GET' else _as_bool(request.form.get('modal_mode', None), False)   
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
+    entities = filter_entities_by_member_role(member_id, entities)
+
     return workouts_listing_base(
         context,
         entity_name,
@@ -307,6 +284,7 @@ def workouts_listing_modal(context=None):
     fields_to_display = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
     filter_terms = get_filter_terms_from_request()
     entities = get_entities(WORKOUT_ENTITY_NAME, fields_to_display, filter_terms, member_id=member_id)
+    entities = filter_entities_by_member_role(member_id, entities)
 
     return workouts_listing_base(
         context,

@@ -5,11 +5,13 @@ from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import get_cache_value, set_cache_value, delete_from_cache
 from common.fitness.entities_getter import delete_entity, get_entities
+from common.fitness.entities_getter import filter_entities_by_member_role
 from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.exercise_parameters import get_editor_type_for_unit_parameter, get_editor_type_for_value_parameter
 from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
 from common.fitness.hx_common import rm_spaces
 from common.fitness.member_entity import get_member_id_from_user_context, is_member_an_admin
+from common.fitness.roles_service import get_accessible_members_for_context, get_member_role_context
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, get_exercises_from_workout, map_exercise_to_sections
 from common.fitness.edit_workout_object import edit_workout_object
 from common.fitness.programs import get_last_workout_instance_for_workout
@@ -66,11 +68,14 @@ def workouts_listing(context=None):
     filter_terms = get_filter_terms_from_request()
     return workouts_listing2(context, page, filter_terms)
 
-def workouts_listing2(context=None, page=1, filter_terms=[]):
+def workouts_listing2(context=None, page=1, filter_terms=None):
     entity_name = WORKOUT_ENTITY_NAME
     member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
+
+    if filter_terms is None:
+        filter_terms = get_filter_terms_from_request()
 
     target = request.args.get('target', None)
     # Handle view preference
@@ -82,6 +87,9 @@ def workouts_listing2(context=None, page=1, filter_terms=[]):
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
+
+    entities = filter_entities_by_member_role(member_id, entities)
+
     return workouts_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities)
 
 def workouts_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities):
@@ -210,14 +218,21 @@ def builder(context=None, workout_id=None):
         # Check if current user can save this workout
         can_save_workout = True
         if workout.get('created_by'):
-            can_save_workout = (workout.get('created_by') == member_id) or is_member_an_admin(member_id)
+            can_save_workout = (workout.get('created_by') == member_id) \
+                or (workout.get('assigned_to_member_id') == member_id) \
+                or is_member_an_admin(member_id)
+
+        accessible_members = get_accessible_members_for_context(member_id)
+        role_context = get_member_role_context(member_id)
         
         return hx_render_template('workout_builder2.html', 
                                 workout=workout, 
                                 context=context, 
                                 source='exercises', 
                                 editing_program_workout=editing_program_workout,
-                                can_save_workout=can_save_workout)
+                                can_save_workout=can_save_workout,
+                                accessible_members=accessible_members,
+                                role_context=role_context)
 
 
 # ── Fragments ────────────────────────────────────────────────────
@@ -839,6 +854,25 @@ def update_workout_name(context=None, workout_id=None):
     w['name'] = request.form['name']
     set_cache_value('current_workout', w)
     return workout_canvas2(context, workout_id)
+
+@bp.route('/builder/<workout_id>/update_assigned_member', methods=['POST'])
+@auth.login_required
+def update_assigned_member(context=None, workout_id=None):
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+
+    w = get_cache_value('current_workout')
+    if not w or w.get('id') != workout_id:
+        abort(404)
+
+    assigned_member_id = request.form['assigned_member_id']
+    w['assigned_to_member_id'] = assigned_member_id
+
+    set_cache_value('current_workout', w)
+
+    response = make_response('', 200)
+    return response
 
 @bp.route('/builder/<workout_id>/move', methods=['POST'])
 @auth.login_required

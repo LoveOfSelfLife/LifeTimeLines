@@ -89,7 +89,8 @@ editable_entities = {
                                           "end" : lambda e: e['end_date'] if 'end_date' in e else "",
                                           "client" : lambda e: get_member_name_from_member_id(e.get('assigned_to_member_id')) if e.get('assigned_to_member_id') else "",
                                               "subtitle" : lambda e: (("" + (e['start_date'] if 'start_date' in e and e['start_date'] else "?")) + \
-                                                                      (" to " + (e['end_date'] if 'end_date' in e and e['end_date'] else "?"))),
+                                                                      (" to " + (e['end_date'] if 'end_date' in e and e['end_date'] else "?")) + \
+                                                                        " - " + (get_member_name_from_member_id(e.get('assigned_to_member_id') or e.get('member_id')) if (e.get('assigned_to_member_id') or e.get('member_id')) else "")),
                                               "image_url" : None,
                                               "member" : lambda e: get_member_name_from_member_id(e.get('assigned_to_member_id') or e.get('member_id')) if (e.get('assigned_to_member_id') or e.get('member_id')) else "",
                                              }                        
@@ -104,7 +105,7 @@ editable_entities = {
                                             ],
                         "field_mapping": { "title" : lambda e: e['name'] if 'name' in e else "",
                                           "client" : lambda e: get_member_name_from_member_id(e.get('assigned_to_member_id')) if e.get('assigned_to_member_id') else "",
-                                              "subtitle" : lambda e: "",
+                                              "subtitle" : lambda e: "" + get_member_name_from_member_id(e.get('assigned_to_member_id') or e.get('member_id')) if (e.get('assigned_to_member_id') or e.get('member_id')) else "",
                                               "image_url" : lambda e: url_for('static', filename='images/workout_image.png'),
                                               "description" : lambda e: ""
                                              }

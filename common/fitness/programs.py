@@ -1,5 +1,6 @@
 import sys
 from common.fitness.entities_getter import get_filtered_entities
+from common.fitness.favorites_entity import FavoritesEntity, get_all_favorite_entity_ids
 from common.fitness.member_program_entity import MemberProgramsEntity
 from datetime import datetime as dt
 from common.fitness.roles_service import get_member_role, get_team_coaches_with_details, get_team_for_client
@@ -99,6 +100,10 @@ def get_program_workouts_for_program(program, workout_type=None):
     workouts_in_program.sort(key=lambda w: w.get('order_index', 0))
     return workouts_in_program
 
+def get_members_favorite_workouts(member_id):
+    favorites = get_all_favorite_entity_ids(MemberWorkoutDefinitionEntity.table_name, member_id)
+
+    return favorites
 
 def get_program_workouts(program, workout_type=None):
     return get_program_workouts_for_program(program, workout_type=workout_type)
