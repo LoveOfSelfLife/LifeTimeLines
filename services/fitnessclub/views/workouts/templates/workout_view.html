@@ -1,82 +1,92 @@
+  <div class="container py-3">
 
-<div class="container py-3">
+    <h2 class="mb-4 text-center">{{ workout.name }}</h2>
 
-<h2 class="mb-4 text-center">{{ workout.name }}</h2>
+    {% if show_finish_button %}
+    {% set allow_popups = 'true' %}
+    {% set enable_carousel = 'true' %}
+    {% else %}
+    {% set allow_popups = 'false' %}
+    {% set enable_carousel = 'false' %}
+    {% endif %}
 
-{% if show_finish_button %}
-  {% set allow_popups = 'true' %}
-{% else %}
-  {% set allow_popups = 'false' %}
-{% endif %}
+    {% if enable_carousel == 'true' %}
+      {# add a toggle button here, which if is set will set a flag that will be passed back to a workout_routes route to use the carosel, 
+      otherwise we will use the accordian viewer as is currently done #}
+      <div class="d-flex justify-content-end mb-2">
+        <button id="toggleViewBtn" class="btn btn-sm btn-primary" 
+              hx-post="{{ url_for('workouts.toggle_carousel_view') }}"
+              hx-target="#content"
+              hx-swap="innerHTML"
+              >
+          <i class="bi bi-toggle-on me-1"></i> Toggle Carousel View
+        </button>
+      </div>
+    {% endif %}
+    <div class="accordion" id="sectionsAccordion">
+      {% for section in workout_sections %}
+        {% set section_length = section.exercises|length %}
+        {% if section_length > 0 %}
+          {% if loop.first and not default_section %}
+            {% set default_section = workout.workout_sections[0].name %}
+          {% endif %}
+          {# Render each section with its exercises #}
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="hdr-{{ rs(section.name) }}">
 
-<div class="accordion" id="sectionsAccordion">
-  {% for section in workout.sections %}
-    {% set section_length = section.exercises|length %}
-      {% if section_length > 0 %}
-        {% set default_section = workout.sections[0].name if loop.first else default_section %}
-        {# Render each section with its exercises #}
-        <div class="accordion-item">
-          <h2 class="accordion-header" id="hdr-{{ rs(section.name) }}">
+              <button class="accordion-button {% if rs(section.name)!=rs(default_section) %}collapsed{% endif %}"
+                type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ rs(section.name) }}"
+                aria-expanded="{{ 'true' if rs(section.name)==rs(default_section) else 'false' }}"
+                aria-controls="collapse-{{ rs(section.name) }}">
+                <span class="accordion-header-icon">
+                  <!-- simple chevron icon: you can also use FontAwesome or similar -->
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                    viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 
+                        .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z" />
+                  </svg>
+                </span>
+                {{ section.name.title() }} ({{ section.exercises|length }})
+              </button>
 
-          <button
-            class="accordion-button {% if rs(section.name)!=rs(default_section) %}collapsed{% endif %}"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#collapse-{{ rs(section.name) }}"
-            aria-expanded="{{ 'true' if rs(section.name)==rs(default_section) else 'false' }}"
-            aria-controls="collapse-{{ rs(section.name) }}"
-          >
-            <span class="accordion-header-icon">
-              <!-- simple chevron icon: you can also use FontAwesome or similar -->
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path fill-rule="evenodd"
-                      d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 
-                        .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
-              </svg>
-            </span>
-            {{ section.name.title() }} ({{ section.exercises|length }})
-          </button>
-
-          </h2>
-          <div
-            id="collapse-{{ rs(section.name) }}"
-            class="accordion-collapse collapse{% if rs(section.name)==rs(default_section) %} show{% endif %}"
-            data-bs-parent="#sectionsAccordion"
-
-
-            hx-post="{{ url_for('workouts.set_last_section',
+            </h2>
+            <div id="collapse-{{ rs(section.name) }}"
+              class="accordion-collapse collapse{% if rs(section.name)==rs(default_section) %} show{% endif %}"
+              data-bs-parent="#sectionsAccordion" hx-post="{{ url_for('workouts.set_last_section',
                                 workout_id=workout.id,
-                                section_name=section.name) }}"
-            hx-trigger="show.bs.collapse"
-            hx-swap="none"
-          >
-            <div class="accordion-body p-0">
-              {% include "_section_view.html" %}
+                                section_name=section.name) }}" hx-trigger="show.bs.collapse" hx-swap="none">
+              <div class="accordion-body p-0">
+                {# <div class="list-group"> #}
+                <div>
+                  <div id="dynamic-params-{{ section.name }}"
+                    hx-get="/workouts/dynamic_parameters_for_section_viewer/{{workout.id}}/{{section.name}}?workout_instance_key={{workout_instance_key}}&workout_definition_key={{workout_definition_key}}&active_workout={{active_workout}}&purpose_of_parameter_edit={{purpose_of_parameter_edit}}&workout_view_preference={{workout_view_preference}}&last_exercise_index={{ (last_exercise_indexes_by_section or {}).get(section.name, '') }}"
+                    hx-trigger="load" 
+                    hx-swap="outerHTML">
+                    Loading…
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      {% endif %}
-    {% endfor %}
+          {% endif %}
+      {% endfor %}
+    </div>
+      {% if show_finish_button %}
+        <!-- Optional “Finish Workout” button -->
+        <form hx-post="{{ finish_workout_url }}" hx-target="#content" hx-swap="innerHTML">
 
-{% if show_finish_button %}
-  <!-- Optional “Finish Workout” button -->
-  <form hx-post="{{ finish_workout_url }}"
-          hx-target="#content"
-        hx-swap="innerHTML">
+          <input type="hidden" name="workout_id" value="{{ workout.id }}">
+          <input type="hidden" name="program_id" value="{{ program.id }}">
+          <input type="hidden" name="scheduled_workout_event_id" value="{{ scheduled_workout_event_id }}">
+          <input type="hidden" name="workout_instance_key" value="{{ workout_instance_key }}">
+          <input type="hidden" name="program_key" value="{{ program_key }}">
+          <button type="submit" class="btn btn-success mt-3">Finish Workout</button>
 
-    <input type="hidden" name="workout_id" value="{{ workout.id }}">
-    <input type="hidden" name="program_id" value="{{ program.id }}">
-    <input type="hidden" name="scheduled_workout_event_id" value="{{ scheduled_workout_event_id }}">
-    <input type="hidden" name="workout_instance_key" value="{{ workout_instance_key }}">
-    <input type="hidden" name="program_key" value="{{ program_key }}">
-    <button type="submit" class="btn btn-success mt-3">Finish Workout</button>
-    {# add a cancel workout button #}
-    <button type="button" class="btn btn-danger mt-3"
-            hx-post="{{ cancel_workout_url }}"
-            hx-target="#content"
-            hx-confirm="Are you sure you want to cancel this workout? Only cancel if you started the workout by mistake.  You will then be able to start it again later."
+          <button type="button" class="btn btn-danger mt-3" hx-post="{{ cancel_workout_url }}" hx-target="#content"
             hx-swap="innerHTML">Cancel Workout</button>
-  </form>
-{% endif %}
-</div>
-
+        </form>
+      {% endif %}
+    
+  </div>
+{% include "_section_dynamic_view.css" %}
+{% include "_section_dynamic_view.js" %}

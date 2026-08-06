@@ -1,0 +1,366 @@
+<style>
+  .program-section-card {
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(245, 248, 252, 0.18);
+    backdrop-filter: blur(2px);
+  }
+
+  .program-section-card .card-header {
+    background: rgba(230, 237, 247, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    color: #e9eef5;
+  }
+
+  .program-canvas-item {
+    border: 1px solid #cfd4dc;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.06);
+    background-color: rgba(246, 249, 252, 0.92);
+    margin: 0.35rem 0.5rem;
+    position: relative;
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+  }
+
+  .program-canvas-item:hover {
+    box-shadow: 0 4px 10px rgba(16, 24, 40, 0.12), 0 2px 4px rgba(16, 24, 40, 0.08);
+    transform: translateY(-1px);
+  }
+
+  .program-canvas-row {
+    gap: 0.5rem;
+  }
+
+  .program-canvas-content {
+    min-width: 0;
+    padding-right: 1.7rem;
+  }
+
+  .program-workout-top-row {
+    gap: 0.5rem;
+  }
+
+  .program-workout-control-cluster {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 0.45rem !important;
+  }
+
+  .program-workout-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.35rem !important;
+  }
+
+  .program-workout-type-badge {
+    font-size: 0.72rem;
+    letter-spacing: 0.01em;
+    border: 0;
+    border-radius: 999px;
+    padding: 0.35rem 0.6rem;
+    line-height: 1;
+  }
+
+  .program-workout-type-badge.standard {
+    background-color: #6c757d;
+    color: #fff;
+  }
+
+  .program-workout-type-badge.alternative {
+    background-color: #ffc107;
+    color: #212529;
+  }
+
+  .program-workout-type-menu .dropdown-item {
+    font-size: 0.85rem;
+  }
+
+  .program-workout-action-btn {
+    font-size: 0.78rem;
+    line-height: 1.1;
+    padding: 0.3rem 0.5rem;
+    white-space: nowrap;
+  }
+
+  .program-workout-action-btn i {
+    font-size: 0.82rem;
+  }
+
+  .program-workout-action-btn.btn-icon {
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .program-workout-delete-btn {
+    border: 0 !important;
+    box-shadow: none !important;
+    text-decoration: none;
+  }
+
+  .program-canvas-row .drag-handle {
+    position: absolute;
+    top: 0.55rem;
+    right: 0.65rem;
+    margin: 0 !important;
+    z-index: 2;
+    line-height: 1;
+  }
+
+  @media (max-width: 767.98px) {
+    .program-section-card .card-header {
+      padding: 0.5rem 0.75rem;
+    }
+
+    .program-canvas-item {
+      margin: 0.35rem 0;
+      padding: 0.65rem !important;
+    }
+
+    .program-canvas-row {
+      flex-wrap: wrap;
+      align-items: flex-start !important;
+    }
+
+    .program-canvas-content {
+      flex: 1 1 100%;
+      order: 1;
+      margin-right: 0 !important;
+    }
+
+    .program-workout-top-row {
+      flex-wrap: wrap;
+      align-items: stretch !important;
+    }
+
+    .program-workout-control-cluster {
+      justify-content: flex-start;
+      width: 100%;
+    }
+
+    .program-workout-actions {
+      width: auto;
+      justify-content: flex-start;
+      gap: 0.5rem !important;
+    }
+
+    .program-workout-actions .btn {
+      flex: 0 0 auto;
+      width: auto;
+      min-height: 0;
+    }
+
+    .program-workout-type-badge {
+      font-size: 0.7rem;
+      padding: 0.3rem 0.5rem;
+    }
+  }
+</style>
+
+<div class="card mb-3 program-section-card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span>Workouts in this program:</span>
+    <button
+      type="button"
+      class="btn btn-link btn-sm p-0"
+      title="Add workouts"
+      hx-get="{{ url_for('program.workouts_listing_modal', program_id=program.id, target='results-area') }}"
+      hx-target="#modals-here"
+      hx-swap="innerHTML">
+      <i class="bi bi-plus-lg">Add workout</i>
+    </button>
+  </div>
+    <ul class="list-group list-group-flush workout-list"
+        data-section="workouts">
+
+      {% for workout in workouts %}
+        {% set workout_type = workout.workout_type or 'standard' %}
+        {% set is_alternative = workout_type == 'alternative' %}
+        
+        <li class="list-group-item program-canvas-item py-3 mb-2 {{ 'border-start border-warning border-3' if is_alternative else '' }}"
+            data-workout-id="{{ workout.id }}" data-program-id="{{ program.id }}">
+
+          <!-- Main workout row -->
+          <div class="d-flex align-items-start gap-3 program-canvas-row">
+            
+            <!-- Drag handle -->
+            <span class="drag-handle mt-2" style="cursor:grab;" title="Drag to reorder">☰</span>
+
+            <!-- Main content area -->
+            <div class="flex-fill program-canvas-content">
+              
+              <!-- Top row: workout type toggle and action buttons -->
+              <div class="d-flex align-items-center mb-2 program-workout-top-row">
+                <div class="d-flex align-items-center gap-2 program-workout-control-cluster">
+                  <form hx-post="{{ url_for('program.update_workout_name', workout_id=workout.id) }}"
+                        id="workout-type-form-{{ workout.id }}"
+                        hx-trigger="change delay:500ms"
+                        hx-swap="none"
+                        hx-include="[name='workout_name'][data-workout-id='{{ workout.id }}'], [name='purpose'][data-workout-id='{{ workout.id }}']">
+                    <input type="hidden"
+                           name="workout_type"
+                           id="workout-type-{{ workout.id }}"
+                           value="{{ workout_type }}">
+                  </form>
+
+                  <div class="dropdown">
+                    <button
+                      type="button"
+                      id="workout-type-badge-{{ workout.id }}"
+                      class="program-workout-type-badge dropdown-toggle {{ 'alternative' if is_alternative else 'standard' }}"
+                      data-bs-toggle="dropdown"
+                      aria-expanded="false"
+                      title="Choose workout type">
+                      {{ 'Alternative' if is_alternative else 'Standard' }}
+                    </button>
+                    <ul class="dropdown-menu program-workout-type-menu">
+                      <li>
+                        <button type="button" class="dropdown-item" onclick="setWorkoutType('{{ workout.id }}', 'standard')">
+                          Standard
+                        </button>
+                      </li>
+                      <li>
+                        <button type="button" class="dropdown-item" onclick="setWorkoutType('{{ workout.id }}', 'alternative')">
+                          Alternative
+                        </button>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <!-- Action buttons -->
+                  <div class="d-flex align-items-center gap-2 program-workout-actions">
+                  <button type="button"
+                          class="btn btn-outline-secondary btn-sm program-workout-action-btn"
+                          onclick="toggleWorkoutDetails('{{ workout.id }}', '{{ workout.key_str }}', '{{ program.id }}')"
+                          title="Edit Workout Details">
+                    <i class="bi bi-sliders2 me-1"></i> Params
+                  </button>
+                  
+                  <button class="btn btn-outline-primary btn-sm program-workout-action-btn"
+                          hx-post="{{ url_for('program.edit_workout', program_id=program.id) }}"
+                          hx-vals='{"workout_id":"{{ workout.id }}"}'
+                          hx-target="#entities-container"
+                          hx-swap="innerHTML"
+                          title="Edit Workout">
+                    <i class="bi bi-pencil-square me-1"></i> Workout
+                  </button>
+                  
+                    <button class="btn btn-link text-danger btn-sm program-workout-action-btn btn-icon program-workout-delete-btn"
+                          hx-post="{{ url_for('program.remove_workout', program_id=program.id) }}"
+                          hx-vals='{"workout_id":"{{ workout.id }}"}'
+                          hx-target="#program-canvas"
+                          hx-swap="innerHTML"
+                          title="Remove Workout"
+                          onclick="return confirm('Remove this workout from the program?')">
+                    <i class="bi bi-trash"></i>
+                    <span class="visually-hidden">Remove Workout</span>
+                  </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Workout name input -->
+              <div class="mb-2">
+                <label for="workout-name-{{ workout.id }}" class="form-label small text-muted mb-1">
+                  Workout Name
+                </label>
+                <form hx-post="{{ url_for('program.update_workout_name', workout_id=workout.id) }}"
+                      hx-trigger="change delay:500ms, focusout"
+                      hx-swap="none"
+                      hx-include="[name='workout_type'][data-workout-id='{{ workout.id }}'], [name='purpose'][data-workout-id='{{ workout.id }}']">
+                  <input type="text" 
+                         name="workout_name"
+                         id="workout-name-{{ workout.id }}"
+                         data-workout-id="{{ workout.id }}"
+                         class="form-control"
+                         placeholder="Enter workout name"
+                         value="{{ workout.name or '' }}">
+                </form>
+              </div>
+
+              <!-- Purpose input (conditional for alternative workouts) -->
+              <div id="purpose-container-{{ workout.id }}" class="{{ 'd-none' if not is_alternative else '' }}">
+                <label for="workout-purpose-{{ workout.id }}" class="form-label small text-muted mb-1">
+                  Purpose <span class="text-warning">*</span>
+                </label>
+                <form hx-post="{{ url_for('program.update_workout_name', workout_id=workout.id) }}"
+                      hx-trigger="change delay:500ms, focusout"
+                      hx-swap="none"
+                      hx-include="[name='workout_name'][data-workout-id='{{ workout.id }}'], [name='workout_type'][data-workout-id='{{ workout.id }}']">
+                  <input type="text" 
+                         name="purpose"
+                         id="workout-purpose-{{ workout.id }}"
+                         data-workout-id="{{ workout.id }}"
+                         class="form-control"
+                         placeholder="e.g., take-it-easy, at-home, quick-session"
+                         value="{{ workout.purpose or '' }}">
+                </form>
+                <small class="text-muted">Describe when to use this alternative workout</small>
+              </div>
+
+              <!-- Purpose display for alternative workouts -->
+              {% if is_alternative and workout.purpose %}
+              <div class="mt-1">
+                <small class="text-muted">
+                  <i class="bi bi-info-circle me-1"></i>
+                  <strong>Purpose:</strong> {{ workout.purpose }}
+                </small>
+              </div>
+              {% endif %}
+
+            </div>
+          </div>
+        </li>
+        
+        <!-- Placeholder for workout details -->
+        <div id="workout-details-{{ workout.id }}" class="workout-details"></div>
+        
+      {% endfor %}
+    </ul>
+  </div>
+
+<script>
+function togglePurposeField(workoutId, workoutType) {
+  const purposeContainer = document.getElementById(`purpose-container-${workoutId}`);
+  const listItem = purposeContainer.closest('.list-group-item');
+  const workoutTypeBadge = document.getElementById(`workout-type-badge-${workoutId}`);
+  const workoutTypeInput = document.getElementById(`workout-type-${workoutId}`);
+
+  if (workoutTypeInput) {
+    workoutTypeInput.value = workoutType;
+  }
+  
+  if (workoutType === 'alternative') {
+    purposeContainer.classList.remove('d-none');
+    if (workoutTypeBadge) {
+      workoutTypeBadge.textContent = 'Alternative';
+      workoutTypeBadge.classList.remove('standard');
+      workoutTypeBadge.classList.add('alternative');
+    }
+    // Add border highlight
+    listItem.classList.add('border-start', 'border-warning', 'border-3');
+  } else {
+    purposeContainer.classList.add('d-none');
+    if (workoutTypeBadge) {
+      workoutTypeBadge.textContent = 'Standard';
+      workoutTypeBadge.classList.remove('alternative');
+      workoutTypeBadge.classList.add('standard');
+    }
+    // Remove border highlight
+    listItem.classList.remove('border-start', 'border-warning', 'border-3');
+  }
+}
+
+function setWorkoutType(workoutId, workoutType) {
+  const workoutTypeInput = document.getElementById(`workout-type-${workoutId}`);
+  if (!workoutTypeInput) {
+    return;
+  }
+
+  togglePurposeField(workoutId, workoutType);
+  workoutTypeInput.dispatchEvent(new Event('change', { bubbles: true }));
+}
+</script>

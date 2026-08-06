@@ -4,7 +4,7 @@
     <h3 class="mb-2">{{ program_name }}</h3>
     <p>Your next scheduled workout is on:</p>
     <p id="workout-datetime">{{ next_workout_datetime.strftime('%A, %B %d @ %I:%M %p') }}</p>
-    <p class="text-muted mb-4">which is {{ time_until }} from now</p>
+    <p class="text-light-muted mb-4">which is {{ time_until }}</p>
     <button
         class="btn hero-btn"
         hx-post="{{ url_for('program.start_workout', workout_key=workout_key) }}"
@@ -18,7 +18,7 @@
 
   <div class="completed-workouts">
     <div class="card">
-      <h3 class="mb-3">Workouts already completed in this program</h3>
+      <h3 class="mb-3">Workouts completed</h3>
 
       {% if completed_workouts %}
         <table class="table table-hover mb-0">
@@ -26,6 +26,7 @@
             <tr>
               <th scope="col">Date</th>
               <th scope="col">Workout</th>
+              <th scope="col">Program</th>
             </tr>
           </thead>
           <tbody class="completed-workouts-table-body">
@@ -42,7 +43,8 @@
             {% if completed_workouts|length >= 1 %}
               <tr>
                 <td colspan="2" class="text-center">
-                  <a href="{{ url_for('program.completed_workouts', program_key=program_key) }}">View all completed workouts</a>
+                  {# TODO: Add route for viewing all completed workouts #}
+                  <span class="text-muted">View all completed workouts (coming soon)</span>
                 </td>
               </tr>
             {% endif %} #}
@@ -52,11 +54,10 @@
                 class="clickable-row"
                 hx-target="#modals-here"
                 hx-swap="innerHTML"
-                data-bs-toggle="modal"
-                data-bs-target="#modals-here"                        
               >
                 <td>{{ w.date }}</td>
                 <td>{{ w.name }}</td>
+                <td>{{ w.program_name }}</td>
               </tr>
             {% endfor %}
           </tbody>

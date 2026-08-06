@@ -1,0 +1,30 @@
+{# Simple Start Workout Confirmation Dialog #}
+<div class="modal-dialog modal-sm modal-dialog-centered">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h6 class="modal-title" id="confirm-start-modal-label">
+        <i class="bi bi-play-fill me-2"></i>Start Workout
+      </h6>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body text-center">
+      <p class="mb-3">Starting <strong>{{ workout_name }}</strong></p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      <form class="d-inline" method="POST" 
+            hx-post="{{ url_for('program.start_workout') }}"
+            hx-target="#content" 
+            hx-swap="innerHTML">
+        <input type="hidden" name="workout_key" value="{{ workout_key }}">          
+        <input type="hidden" name="program_key" value="{{ program_key }}">
+        {% if event_id %}
+          <input type="hidden" name="scheduled_workout_event_id" value="{{ event_id }}">
+        {% endif %}
+        <button type="submit" class="btn btn-success" data-bs-dismiss="modal">
+          <i class="bi bi-check-lg me-1"></i>OK
+        </button>
+      </form>
+    </div>
+  </div>
+</div>

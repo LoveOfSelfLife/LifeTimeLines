@@ -1,0 +1,54 @@
+<div class="list-group" style="gap: 10px;">
+  {% for item in section.exercises %}
+  {% set ex = exercises[item.id] %}
+  <div class="list-group-item">
+    <div>
+      <div id = "name-image" class="d-flex align-items-center justify-content-between">
+        <h6 class="mb-1 font-weight-bold">
+          {{ ex.name }}
+        </h6>
+        <div class="btn-group btn-group-sm" role="group">
+          {% if ex.gif %}
+            <div onclick="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')">
+              <img src="{{ ex.gif }}" class="img-fluid rounded border" style="max-height: 80px;">
+            </div>
+          {% elif ex.images and ex.images|length > 0 %}
+            <div onclick="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')">
+              <img src="{{ ex.images[-1].url }}" class="img-fluid rounded border" style="max-height: 80px;">
+            </div>
+          {% else %}
+            <div onclick="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')">
+              <img src="{{ url_for('static', filename='images/exercise.png') }}" class="img-fluid rounded border"
+                style="max-height: 80px;">
+            </div>
+          {% endif %}
+        </div>        
+      </div>
+      <div id="parameters">
+        {% set timer = namespace(has_timer=False, timer_value=None, timer_units=None) %}      
+        {% set param_ns = namespace(unit_param_id=None, param_list=[]) %}          
+
+        {% set param_ns.param_list = exercise_parameters %}
+        {% include "_dynamic_parameter.html" %}
+        <strong>          
+          <!-- Timer for time-based exercises -->
+          {% if active_workout and timer.has_timer and timer.timer_value is not none %}
+          {% set timer_duration = timer.timer_value %}
+          <div class="timer-container ms-2 d-inline-block">
+            <div class="timer-icon-wrapper" data-exercise-id="{{ ex.id }}" data-duration="{{ timer_duration }}"
+              onclick="startExerciseTimer('{{ ex.id }}', {{ timer_duration }})"
+              title="Start {{ timer_duration }} second timer">
+              <i class="bi bi-stopwatch timer-icon"></i>
+              <span class="timer-display" id="timer-{{ ex.id }}">{{ timer_duration }}s</span>
+            </div>
+          </div>
+          {% endif %}
+        </strong>
+      </div>
+    </div>
+    <!-- Placeholder for details -->
+    <div id="details-{{ ex.id }}" class="mt-2 exercise-details"></div>
+  </div>
+  {% endfor %}
+</div>
+

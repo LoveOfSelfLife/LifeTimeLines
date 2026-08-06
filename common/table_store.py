@@ -49,7 +49,7 @@ class TableStore():
         else:
             filter_str = ts_filter
 
-        print(f"table={self.table_name}, query_filter='{filter_str}', params={params}")
+        #print(f"xyztable={self.table_name}, query_filter='{filter_str}', params={params}")
         # result = self.table_client.query_entities(query_filter=filter, parameters=params, select=select)
         result = self.table_client.query_entities(query_filter=filter_str, select=select, parameters=params)
 

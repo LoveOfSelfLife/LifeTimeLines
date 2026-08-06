@@ -1,0 +1,162 @@
+<div class="container-fluid workout-builder-shell">
+    <div class="row">
+        <div>
+            <div class="mt-3 mb-4">
+                <!-- Workout Name and Assignment Row -->
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <input type="text" name="name" class="form-control workout-name-input" value="{{ workout.name }}"
+                            placeholder="Workout Name" hx-trigger="change delay:500ms, focusout"
+                            hx-post="{{ url_for('workouts.update_workout_name', workout_id=workout.id) }}" hx-swap="none">
+                    </div>
+                    {% if role_context.role == 'coach' %}
+                    <div class="col-md-6 mt-3 mt-md-0">
+                        <label for="assigned_member" class="form-label">Assign To:</label>
+                        <select name="assigned_member_id" id="assigned_member" class="form-select"
+                            style="color: #212529; background-color: #fff;" hx-trigger="change"
+                            hx-post="{{ url_for('workouts.update_assigned_member', workout_id=workout.id) }}" hx-swap="none">
+                            {% for member in accessible_members %}
+                            <option value="{{ member.id }}" {% if member.id==(workout.assigned_to_member_id or workout.member_id)
+                                %}selected{% endif %}>
+                                {{ member.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Action Buttons Row -->
+                <div class="d-flex flex-wrap gap-2 justify-content-end workout-builder-actions">
+
+                    <button class="btn btn-success" {% if can_save_workout %} {% if not editing_program_workout %}
+                        hx-post="{{ url_for('workouts.save_workout', workout_id=workout.id) }}" {% else %}
+                        hx-post="{{ url_for('workouts.save_program_workout', workout_id=workout.id) }}" {% endif %}
+                        hx-vals='{"workout_id":"{{ workout.id }}"}' hx-target="#entities-container"
+                        hx-swap="innerHTML show:top" {% else %} disabled
+                        title="Only the workout creator can save changes" {% endif %}>
+                        <i class="bi bi-check-circle"></i> Save
+                    </button>
+                    {% if not editing_program_workout %}
+                    <button class="btn btn-success" 
+                        {% if can_save_workout and not editing_program_workout %}
+                            hx-post="{{ url_for('workouts.delete_workout', workout_id=workout.id) }}" 
+                            hx-vals='{"workout_id":"{{ workout.id }}"}' hx-target="#entities-container"
+                            hx-swap="innerHTML show:top" 
+                        {% else %} 
+                            disabled
+                            title="Only the workout creator can delete a workout" 
+                        {% endif %}>
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                    {% endif %}
+
+                    {% if not editing_program_workout %}
+                    <button class="btn btn-success"
+                        hx-post="{{ url_for('workouts.save_workout_copy', workout_id=workout.id) }}"
+                        hx-target="#entities-container" hx-swap="show:top"
+                        hx-confirm="Create a copy of '{{ workout.name }}'?">
+                        <i class="bi bi-copy"></i> Copy
+                    </button>
+                    {% endif %}
+
+                    <button class="btn btn-secondary"
+                        hx-post="{{ url_for('workouts.cancel_editing_workout', workout_id=workout.id) }}"
+                        hx-vals='{"workout_id":"{{ workout.id }}"}' hx-target="#entities-container"
+                        hx-swap="innerHTML show:top">
+                        <i class="bi bi-x-circle"></i> Cancel & Exit
+                    </button>
+                </div>
+            </div>
+            <div id="canvas" class="workout-builder-canvas" hx-get="{{ url_for('workouts.workout_dynamic_canvas', workout_id=workout.id) }}"
+                hx-trigger="load, refreshWorkoutCanvas from:body" hx-swap="innerHTML">
+                Loading…
+            </div>
+
+        </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Handle toggle button state for workout builder
+    document.addEventListener('htmx:afterRequest', function (e) {
+        // Handle desktop toggle buttons
+        if (e.target.closest('#desktop-toggle-buttons')) {
+            const clickedButton = e.target;
+            const toggleValue = clickedButton.dataset.toggle;
+
+            document.querySelectorAll('#desktop-toggle-buttons button').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.toggle === toggleValue) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        // Handle mobile toggle buttons
+        if (e.target.closest('#mobile-toggle-buttons')) {
+            const clickedButton = e.target;
+            const toggleValue = clickedButton.dataset.toggle;
+
+            document.querySelectorAll('#mobile-toggle-buttons button').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.dataset.toggle === toggleValue) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+    });
+</script>
+
+<style>
+    .workout-builder-shell {
+        max-width: 100%;
+    }
+
+    .workout-name-input {
+        border-color: rgba(255, 255, 255, 0.35);
+        background: rgba(247, 250, 253, 0.94);
+        color: #1f2a35;
+    }
+
+    .workout-name-input::placeholder {
+        color: #607085;
+    }
+
+    .workout-builder-actions .btn {
+        min-width: 110px;
+    }
+
+    .workout-builder-canvas {
+        overflow-x: hidden;
+    }
+
+    /* Make text white for inactive toggle buttons while keeping background unchanged */
+    #desktop-toggle-buttons .btn-outline-primary:not(.active),
+    #mobile-toggle-buttons .btn-outline-primary:not(.active) {
+        color: white !important;
+    }
+
+    #desktop-toggle-buttons .btn-outline-primary:not(.active):hover,
+    #mobile-toggle-buttons .btn-outline-primary:not(.active):hover {
+        color: #f8f9fa !important;
+    }
+
+    @media (max-width: 767.98px) {
+        .workout-builder-shell {
+            padding-left: 0;
+            padding-right: 0;
+        }
+
+        .workout-builder-actions {
+            justify-content: stretch !important;
+        }
+
+        .workout-builder-actions .btn {
+            flex: 1 1 100%;
+            width: 100%;
+            margin: 0;
+        }
+    }
+</style>

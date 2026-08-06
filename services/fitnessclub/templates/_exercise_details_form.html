@@ -6,7 +6,18 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h6 class="mb-0">{{ exercise.name }}</h6>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="d-flex gap-2">
+                    {% if can_edit %}
+                    <button type="button" class="btn btn-outline-primary btn-sm"
+                            hx-get="/exercises/edit?key={{ (exercise.id, 'exercise', 'ExerciseTable') }}"
+                            hx-target="#entities-container"
+                            hx-swap="innerHTML show:top"
+                            data-bs-dismiss="modal">
+                        <i class="bi bi-pencil-square me-1"></i>Edit
+                    </button>
+                    {% endif %}
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
             </div>
             <div class="card-body">
                 {# exercise.primaryMuscles is a possibly empty list of musclse that this exercise affects.
@@ -29,17 +40,29 @@
                 {% if exercise.images %}
                 <h6>Images</h6>
                 <div class="row gx-2">
-                    {% for img in exercise.images %}
+                    {% if exercise.gif %}
                     <div class="col-12 mb-2">
                         <img
-                        src="{{ img.url }}"
-                        alt="{{ img.description }}"
-                        data-full-url="{{ img.url }}"
+                        src="{{ exercise.gif }}"
+                        alt="GIF"
+                        data-full-url="{{ exercise.gif }}"
                         class="img-fluid rounded"
                         style="cursor:pointer;"
                         >
                     </div>
-                    {% endfor %}
+                    {% else %}
+                        {% for img in exercise.images %}
+                        <div class="col-12 mb-2">
+                            <img
+                            src="{{ img.url }}"
+                            alt="{{ img.description }}"
+                            data-full-url="{{ img.url }}"
+                            class="img-fluid rounded"
+                            style="cursor:pointer;"
+                            >
+                        </div>
+                        {% endfor %}
+                    {% endif %}
                 </div>
                 {% endif %}
 

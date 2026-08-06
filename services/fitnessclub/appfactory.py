@@ -9,6 +9,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 from common.discovery import get_service_port
 from base import bp as base_bp
+from views.home.home_routes import bp as home_bp
 from views.schedule.schedule_routes import bp as schedule_bp
 from views.program.programs_routes import bp as program_bp
 from views.exercises.exercise_routes import bp as exercises_bp
@@ -20,13 +21,14 @@ from common.env_init import initialize_environment
 from common.env_context import Env
 from auth import auth
 from datetime import timedelta
+from version import get_version_info
 
 def create_app():
     load_dotenv()
     initialize_environment()
     
     app : Flask = Flask(__name__)
-    app.config['EXPLAIN_TEMPLATE_LOADING'] = True
+    # app.config['EXPLAIN_TEMPLATE_LOADING'] = True
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.secret_key = Env.SECRET_KEY
 
@@ -43,7 +45,13 @@ def create_app():
 
     auth.init_app(app)
 
+    # Make version information available to all templates
+    @app.context_processor
+    def inject_version_info():
+        return {'version_info': get_version_info()}
+
     for bp in [base_bp, 
+               home_bp,
                admin_bp, 
                schedule_bp, 
                program_bp,

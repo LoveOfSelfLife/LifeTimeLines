@@ -1,0 +1,129 @@
+
+<!-- Exercise Timer Styles and JavaScript -->
+<style>
+  .timer-icon-wrapper {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 6px;
+    border-radius: 50px;
+    background-color: #f8f9fa;
+    border: 2px solid #28a745;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    min-width: 70px;
+    justify-content: center;
+  }
+
+  .timer-icon-wrapper:hover {
+    background-color: #e9ecef;
+    transform: scale(1.05);
+    border-color: #20c997;
+  }
+
+  .timer-icon {
+    font-size: 14px;
+    color: #28a745;
+    margin-right: 4px;
+    transition: color 0.3s ease;
+  }
+
+  .timer-icon-wrapper.running {
+    background-color: #dc3545;
+    border-color: #dc3545;
+    animation: heartbeat 1s infinite;
+  }
+
+  .timer-icon-wrapper.running .timer-icon {
+    color: white;
+  }
+
+  .timer-icon-wrapper.running .timer-display {
+    color: white;
+    font-weight: bold;
+  }
+
+  .timer-icon-wrapper.completed {
+    background-color: #28a745;
+    border-color: #28a745;
+  }
+
+  .timer-icon-wrapper.completed .timer-icon {
+    color: white;
+  }
+
+  .timer-icon-wrapper.completed .timer-display {
+    color: white;
+    font-weight: bold;
+  }
+
+  .timer-display {
+    font-weight: 500;
+    font-size: 11px;
+    min-width: 30px;
+    display: inline-block;
+    text-align: center;
+    color: #28a745;
+    transition: color 0.3s ease;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1.1);
+    }
+
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  @keyframes heartbeat {
+    0% {
+      transform: scale(1);
+    }
+
+    25% {
+      transform: scale(1.02);
+    }
+
+    50% {
+      transform: scale(1.05);
+    }
+
+    75% {
+      transform: scale(1.02);
+    }
+
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  /* Circular progress effect when running */
+  .timer-icon-wrapper.running::before {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border-radius: 50px;
+    background: conic-gradient(#ffc107 0deg, transparent 360deg);
+    animation: rotate 2s linear infinite;
+    z-index: -1;
+  }
+
+  @keyframes rotate {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
+  }
+</style>

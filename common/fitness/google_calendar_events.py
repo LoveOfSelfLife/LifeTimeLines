@@ -4,6 +4,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
+from common.fitness.abstract_calendar_service import AbstractCalendarService
 from common.fitness.member_entity import get_user_profile
 from common.vault import Vault
 from datetime import datetime, timedelta
@@ -13,19 +14,19 @@ FITNESS_SECRETS_VAULT = "lifetimelines-secrets-1"
 FITNESS_SECRETS_VAULT_TOKEN="activefitnessapp-token"
 FITNESS_SECRETS_VALUT_CLIENT_CONFIG="activefitnessapp-client-config"
 
-class GoogleCalendarService:
+class GoogleCalendarService (AbstractCalendarService):
 
     def __init__(self):
         self.service = build_calendar_service()
         self.calendar_id = 'primary'
 
-    def reset_calendar_service(self):
+    def _reset_calendar_service(self):
         """
         Resets the Google Calendar API service by reinitializing it.
         """
         self.service = build_calendar_service()
 
-    def get_events(self, date_min:str=None, date_max:str=None):
+    def _get_events(self, date_min:str=None, date_max:str=None):
         """
         Fetches events from the Google Calendar.
 
@@ -49,15 +50,19 @@ class GoogleCalendarService:
             time_max = None
 
         try:
-            events_result = self.service.events().list(calendarId=self.calendar_id,  
+            events_result = self.service.events().list(calendarId=self.calendar_id, 
+                                                       singleEvents=True,
+                                                       orderBy='startTime', 
                                                        timeMin=time_min, timeMax=time_max).execute()
             return events_result.get('items', [])
         except Exception as error:
             print(f"An error occurred: {error}")
             print(f"resetting calendar service and retrying")
-            self.reset_calendar_service()
+            self._reset_calendar_service()
             try:
                 events_result = self.service.events().list(calendarId=self.calendar_id,  
+                                                           singleEvents=True,
+                                                           orderBy='startTime', 
                                                            timeMin=time_min, timeMax=time_max).execute()
                 return events_result.get('items', [])
             except Exception as error:
@@ -80,75 +85,128 @@ class GoogleCalendarService:
         except Exception as error:
             print(f"An error occurred: {error}")
             return None
-        
-    def get_scheduled_events(self, date_min:str=None, date_max:str=None):
-        """
-        result should have at least this structure:
-                [
-                    {"id": str(uuid.uuid4()), "user": "Alice", "datetime": datetime(2025, 6, 11, 6, 0)},
-                    {"id": str(uuid.uuid4()), "user": "Bob",   "datetime": datetime(2025, 6, 11, 7, 30)},
-                    {"id": str(uuid.uuid4()), "user": "Carol", "datetime": datetime(2025, 6, 12, 18, 0)},
-                ]
- 
-        """        
-        events = self.get_events(date_min=date_min, date_max=date_max)
-        sorted_events = sorted(events, key=lambda x: x['start'].get('dateTime', x['start'].get('date')))
-        events_list = []
-        date_cursor = event_date_dt = datetime.fromisoformat(date_min).date()
-        end_date = datetime.fromisoformat(date_max).date()
 
-        for event in sorted_events:
-            event_date_dt = get_date_of_event(event)
-            event_date = event['start'].get('dateTime', event['start'].get('date'))
-            event_date_dt = datetime.fromisoformat(event_date).date()
-            event_time = event['start'].get('dateTime', event['start'].get('date'))
-            event_time = datetime.fromisoformat(event_time).time()
-            event_display_time = event_time.strftime("%I:%M %p")
-            event_time = event_time.strftime("%H:%M")
-            event_day_of_week = event_date_dt.strftime("%a")
-            event_month = event_date_dt.strftime("%B")
-            event_month_day = event_date_dt.strftime("%d")
-            event_month_day = int(event_month_day)
-            event_date = event_date_dt.strftime("%Y-%m-%d")
-            # display date as month name and day of month
-            event_display_date = event_date_dt.strftime("%B %d")
-            event_summary = event.get('summary', '')
-            event_id = event.get('id', '')
-            event_type = 'event'
-            event_metadata = event.get('description', '')
-            # if the event has a description, we can extract the member id and created by id from it
-            metadata = extract_id_and_status(event_metadata)
-            event['member_id'] = metadata.get('id', '')
-            event['event_status'] = metadata.get('status', '')
-            event['member_name'] = metadata.get('name', '')
-            event_datetime_dt = datetime.fromisoformat(event['start'].get('dateTime'))
-            # if the event status is done, then we know the workout is completed
-            # reflect that in the summmary
-            if event['event_status'] == 'done':
-                event_summary = f"{event_summary} (Done)"
-                
-            event_dict = {
-                'id': event_id,
-                "datetime": event_datetime_dt,
-                "user": event_summary,                
-                'type': event_type,
-                'date': event_date_dt,
-                'display_date': event_display_date,
-                'dayOfWeek': event_day_of_week,
-                'month': event_month,
-                'monthDay': event_month_day,
-                'time': event_time,
-                'display_time': event_display_time,
-                'member_id': metadata.get('id', ''),
-                'status': metadata.get('status', ''),
-                'name': metadata.get('name', ''),
-                'summary': event_summary
+    def get_recurring_workout_event_details(self, recurring_event_id: str):
+        event = self.get_event(recurring_event_id)
+        if not event:
+            return None
+
+        start_value = event.get('start', {}).get('dateTime', event.get('start', {}).get('date'))
+        start_dt = datetime.fromisoformat(start_value)
+        recurrence = event.get('recurrence', []) or []
+        byday = []
+        frequency = 'WEEKLY'
+        for rule in recurrence:
+            if not rule.startswith('RRULE:'):
+                continue
+            rule_parts = rule.replace('RRULE:', '').split(';')
+            for part in rule_parts:
+                if part.startswith('FREQ='):
+                    frequency = part.split('=', 1)[1]
+                if part.startswith('BYDAY='):
+                    byday = [day for day in part.split('=', 1)[1].split(',') if day]
+
+        metadata = extract_id_and_status(event.get('description', '') or '')
+        return {
+            'start_date': start_dt.date().strftime('%Y-%m-%d'),
+            'time': start_dt.time().strftime('%H:%M'),
+            'days': byday,
+            'frequency': frequency,
+            'assigned_to_member_id': metadata.get('id', ''),
+            'member_id': metadata.get('id', '')
+        }
+
+    def _build_workout_event_body(self, member_short_name, event_date, event_time, location, metadata, duration_hours=1, recurrence=None):
+        event_date = datetime.strptime(event_date, "%Y-%m-%d").date()
+        event_time = datetime.strptime(event_time, "%H:%M").time()
+        event_datetime = datetime.combine(event_date, event_time)
+        event_datetime_end = event_datetime + timedelta(hours=duration_hours)
+
+        event = {
+            'summary': f'{member_short_name}',
+            'location': location,
+            'description': metadata,
+            'start': {
+                'dateTime': f'{event_datetime.isoformat()}',
+                'timeZone': 'America/New_York'
+            },
+            'end': {
+                'dateTime': f'{event_datetime_end.isoformat()}',
+                'timeZone': 'America/New_York',
             }
-            events_list.append(event_dict)
-        return events_list
+        }
+        if recurrence:
+            event['recurrence'] = recurrence
+        return event
+        
+    # def get_scheduled_events(self, date_min:str=None, date_max:str=None):
+    #     """
+    #     result should have at least this structure:
+    #             [
+    #                 {"id": str(uuid.uuid4()), "user": "Alice", "datetime": datetime(2025, 6, 11, 6, 0)},
+    #                 {"id": str(uuid.uuid4()), "user": "Bob",   "datetime": datetime(2025, 6, 11, 7, 30)},
+    #                 {"id": str(uuid.uuid4()), "user": "Carol", "datetime": datetime(2025, 6, 12, 18, 0)},
+    #             ]
+ 
+    #     """        
+    #     events = self._get_events(date_min=date_min, date_max=date_max)
+    #     sorted_events = sorted(events, key=lambda x: x['start'].get('dateTime', x['start'].get('date')))
+    #     events_list = []
+    #     date_cursor = event_date_dt = datetime.fromisoformat(date_min).date()
+    #     end_date = datetime.fromisoformat(date_max).date()
+
+    #     for event in sorted_events:
+    #         event_date_dt = get_date_of_event(event)
+    #         event_date = event['start'].get('dateTime', event['start'].get('date'))
+    #         event_date_dt = datetime.fromisoformat(event_date).date()
+    #         event_time = event['start'].get('dateTime', event['start'].get('date'))
+    #         event_time = datetime.fromisoformat(event_time).time()
+    #         event_display_time = event_time.strftime("%I:%M %p")
+    #         event_time = event_time.strftime("%H:%M")
+    #         event_day_of_week = event_date_dt.strftime("%a")
+    #         event_month = event_date_dt.strftime("%B")
+    #         event_month_day = event_date_dt.strftime("%d")
+    #         event_month_day = int(event_month_day)
+    #         event_date = event_date_dt.strftime("%Y-%m-%d")
+    #         # display date as month name and day of month
+    #         event_display_date = event_date_dt.strftime("%B %d")
+    #         event_summary = event.get('summary', '')
+    #         event_id = event.get('id', '')
+    #         event_type = 'event'
+    #         event_metadata = event.get('description', '')
+    #         # if the event has a description, we can extract the member id and created by id from it
+    #         metadata = extract_id_and_status(event_metadata)
+    #         event['member_id'] = metadata.get('id', '')
+    #         event['event_status'] = metadata.get('status', '')
+    #         event['member_name'] = metadata.get('name', '')
+    #         event_datetime_dt = datetime.fromisoformat(event['start'].get('dateTime'))
+    #         # if the event status is done, then we know the workout is completed
+    #         # reflect that in the summmary
+    #         if event['event_status'] == 'done':
+    #             event_summary = f"{event_summary} (Done)"
+                
+    #         event_dict = {
+    #             'id': event_id,
+    #             "datetime": event_datetime_dt,
+    #             "user": event_summary,                
+    #             'type': event_type,
+    #             'date': event_date_dt,
+    #             'display_date': event_display_date,
+    #             'dayOfWeek': event_day_of_week,
+    #             'month': event_month,
+    #             'monthDay': event_month_day,
+    #             'time': event_time,
+    #             'display_time': event_display_time,
+    #             'member_id': metadata.get('id', ''),
+    #             'status': metadata.get('status', ''),
+    #             'name': metadata.get('name', ''),
+    #             'summary': event_summary
+    #         }
+    #         events_list.append(event_dict)
+    #     return events_list
 
 
-    def get_dates_and_events_stream(self, date_min:str=None, date_max:str=None):
+    def get_dates_and_events_stream(self, date_min:str=None, date_max:str=None, filter_by_member_id_func=None):
         """
         will return a list of json ojbects of two types, date and event
         date objects will starte at date_min and end at date_max
@@ -290,7 +348,7 @@ class GoogleCalendarService:
             }        
         ]
         """        
-        events = self.get_events(date_min=date_min, date_max=date_max)
+        events = self._get_events(date_min=date_min, date_max=date_max)
         sorted_events = sorted(events, key=lambda x: x['start'].get('dateTime', x['start'].get('date')))
         events_list = []
         date_cursor = event_date_dt = datetime.fromisoformat(date_min).date()
@@ -328,6 +386,7 @@ class GoogleCalendarService:
             event_id = event.get('id', '')
             event_type = 'event'
             event_metadata = event.get('description', '')
+            recurring_event_id = event.get('recurringEventId', None)
             # if the event has a description, we can extract the member id and created by id from it
             metadata = extract_id_and_status(event_metadata)
             event['member_id'] = metadata.get('id', '')
@@ -338,7 +397,12 @@ class GoogleCalendarService:
             # reflect that in the summmary
             if event['event_status'] == 'done':
                 event_summary = f"{event_summary} (Completed)"
-                
+
+            # if filter_by_member_id_func is provided, we will use it to filter the events by member id.  
+            # if the function returns false for the member id of the event, then we will skip that event and not include it in the output stream
+            if filter_by_member_id_func and not filter_by_member_id_func(event['member_id']):
+                continue                
+
             event_dict = {
                 'id': event_id,
                 'type': event_type,
@@ -352,6 +416,7 @@ class GoogleCalendarService:
                 'member_id': metadata.get('id', ''),
                 'status': metadata.get('status', ''),
                 'name': metadata.get('name', ''),
+                'recurring_event_id': recurring_event_id,
                 'summary': event_summary
             }
             events_list.append(event_dict)
@@ -372,7 +437,7 @@ class GoogleCalendarService:
         return events_list, sorted_events
 
 
-    def add_workout_event(self, member_short_name, event_date, event_time, location, metadata):
+    def add_workout_event(self, member_short_name, event_date, event_time, location, metadata, duration_hours=1):
         """
         Adds an event to the Google Calendar.
 
@@ -385,25 +450,7 @@ class GoogleCalendarService:
         # location is formatted as "YMCA, Cranford, NJ" 
         # convert date & time to ISO 8601 format
 
-        event_date = datetime.strptime(event_date, "%Y-%m-%d").date()
-        event_time = datetime.strptime(event_time, "%H:%M").time()
-        event_datetime = datetime.combine(event_date, event_time)
-        #end time is 1 hour later
-        event_datetime_end = event_datetime + timedelta(hours=1)
-
-        event = {
-            'summary': f'{member_short_name}',
-            'location': location,
-            'description': metadata,
-            'start': {
-                'dateTime': f'{event_datetime.isoformat()}',
-                'timeZone': 'America/New_York'
-            },
-            'end': {
-                'dateTime': f'{event_datetime_end.isoformat()}',
-                'timeZone': 'America/New_York', 
-            }
-        }
+        event = self._build_workout_event_body(member_short_name, event_date, event_time, location, metadata, duration_hours=duration_hours)
 
         try:
             event = self.service.events().insert(calendarId=self.calendar_id, body=event).execute()
@@ -412,8 +459,40 @@ class GoogleCalendarService:
         except Exception as error:
             print(f"An error occurred: {error}")
             return None  # Return None if the event creation fails
+
+    def add_recurring_workout_event(self, member_short_name, event_date, event_time, frequency, byday, location, metadata, duration_hours=1):
+        """
+        Adds a recurring event to the Google Calendar.
+
+        Args:
+            frequency (str): The frequency of the recurring event (e.g., "WEEKLY").
+            byday (str): The days of the week on which the event occurs (e.g., "MO,WE,FR").
+        """
         
-    def update_workout_event(self, event_id, member_short_name, event_date, event_time, location, metadata):
+        # date is formatted as MM/DD/YYYY
+        # time is formatted as HH:MM in military time
+        # location is formatted as "YMCA, Cranford, NJ" 
+        # convert date & time to ISO 8601 format
+
+        event = self._build_workout_event_body(
+            member_short_name,
+            event_date,
+            event_time,
+            location,
+            metadata,
+            duration_hours=duration_hours,
+            recurrence=[f'RRULE:FREQ={frequency};BYDAY={byday}']
+        )
+
+        try:
+            event = self.service.events().insert(calendarId=self.calendar_id, body=event).execute()
+            print("Event created: %s" % (event.get("htmlLink")))
+            return event.get('id', None)  # Return the event ID for further processing
+        except Exception as error:
+            print(f"An error occurred: {error}")
+            return None  # Return None if the event creation fails
+             
+    def update_workout_event(self, event_id, member_short_name, event_date, event_time, location, metadata, duration_hours=1):
         """
         Adds an event to the Google Calendar.
 
@@ -424,25 +503,7 @@ class GoogleCalendarService:
         # date is formatted as MM/DD/YYYY
         # time is formatted as HH:MM in military time
 
-        event_date = datetime.strptime(event_date, "%Y-%m-%d").date()
-        event_time = datetime.strptime(event_time, "%H:%M").time()
-        event_datetime = datetime.combine(event_date, event_time)
-        #end time is 1 hour later
-        event_datetime_end = event_datetime + timedelta(hours=1)
-    
-        event = {
-            'summary': f'{member_short_name}',
-            'location': location,
-            'description': metadata,
-            'start': {
-                'dateTime': f'{event_datetime.isoformat()}',
-                'timeZone': 'America/New_York'
-            },
-            'end': {
-                'dateTime': f'{event_datetime_end.isoformat()}',
-                'timeZone': 'America/New_York', 
-            }
-        }
+        event = self._build_workout_event_body(member_short_name, event_date, event_time, location, metadata, duration_hours=duration_hours)
 
         try:
             event = self.service.events().update(calendarId=self.calendar_id, eventId=event_id, body=event).execute()
@@ -450,10 +511,34 @@ class GoogleCalendarService:
         except Exception as error:
             print(f"An error occurred: {error}")
 
+    def update_recurring_workout_event(self, recurring_event_id, member_short_name, event_date, event_time, frequency, byday, location, metadata, duration_hours=1):
+        event = self._build_workout_event_body(
+            member_short_name,
+            event_date,
+            event_time,
+            location,
+            metadata,
+            duration_hours=duration_hours,
+            recurrence=[f'RRULE:FREQ={frequency};BYDAY={byday}']
+        )
+
+        try:
+            event = self.service.events().update(calendarId=self.calendar_id, eventId=recurring_event_id, body=event).execute()
+            print("Recurring event updated: %s" % (event.get("htmlLink")))
+        except Exception as error:
+            print(f"An error occurred: {error}")
+
     def delete_workout_event(self, event_id):
         try:
             event = self.service.events().delete(calendarId=self.calendar_id, eventId=event_id).execute()
             print("Event deleted: %s" % (event.get("htmlLink"))) 
+        except Exception as error:
+            print(f"An error occurred: {error}")
+
+    def delete_recurring_workout_event(self, recurring_event_id):
+        try:
+            event = self.service.events().delete(calendarId=self.calendar_id, eventId=recurring_event_id).execute()
+            print("Recurring event deleted: %s" % (event.get("htmlLink")))
         except Exception as error:
             print(f"An error occurred: {error}")
 
@@ -495,8 +580,9 @@ class GoogleCalendarService:
         except Exception as error:
             print(f"An error occurred attempting to update the event: {error}")
 
-import re
+
 def extract_id_and_status(s):
+    import re
     # Use regex to find id and status, allowing for newlines
     id_match = re.search(r'#id=([^\n#]+)', s)
     status_match = re.search(r'#status=([^\n#]+)', s)

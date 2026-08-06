@@ -1,0 +1,217 @@
+<!-- Exercise History Dialog Template -->
+<div class="modal-dialog modal-lg" role="document">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title">
+        <i class="bi bi-clock-history me-2"></i>
+        Exercise History
+        {% if exercise_history and exercise_history|length > 0 %}
+          - {{ exercise_history[0].exercise_id }}
+        {% endif %}
+      </h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    
+    <div class="modal-body">
+      <!-- History Data -->
+      {% if exercise_history and exercise_history|length > 0 %}
+      <div class="table-responsive">
+        <table class="table table-sm table-striped">
+          <thead class="table-dark">
+            <tr>
+              <th scope="col">Date</th>
+              {% set sample_event = exercise_history[0] %}
+              {% if sample_event.sets %}
+                <th scope="col">Sets</th>
+              {% endif %}
+              {% if sample_event.reps %}
+                <th scope="col">Reps</th>
+              {% endif %}
+              {% if sample_event.weight %}
+                <th scope="col">Weight</th>
+              {% endif %}
+              {% if sample_event.time %}
+                <th scope="col">Time</th>
+              {% endif %}
+              {% if sample_event.tempo %}
+                <th scope="col">Tempo</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for event in exercise_history %}
+            <tr>
+              <td>
+                <small class="text-nowrap">
+                  {% if event.date_time %}
+                    {{ event.date_time[:10] }}
+                    <br><span class="text-muted">{{ event.date_time[11:19] if event.date_time|length > 19 else event.date_time }}</span>
+                  {% else %}
+                    --
+                  {% endif %}
+                </small>
+              </td>
+              
+              {% if sample_event.sets %}
+              <td class="text-center">
+                {% if event.sets %}
+                  <strong>{{ event.sets }}</strong>
+                {% else %}
+                  <span class="text-muted">--</span>
+                {% endif %}
+              </td>
+              {% endif %}
+              
+              {% if sample_event.reps %}
+              <td class="text-center">
+                {% if event.reps %}
+                  <strong>{{ event.reps }}</strong>
+                {% else %}
+                  <span class="text-muted">--</span>
+                {% endif %}
+              </td>
+              {% endif %}
+              
+              {% if sample_event.weight %}
+              <td class="text-center">
+                {% if event.weight %}
+                  <strong>{{ event.weight }}</strong>
+                  <small class="text-muted">{{ event.weight_unit or 'kg' }}</small>
+                {% else %}
+                  <span class="text-muted">--</span>
+                {% endif %}
+              </td>
+              {% endif %}
+              
+              {% if sample_event.time %}
+              <td class="text-center">
+                {% if event.time %}
+                  <strong>{{ event.time }}</strong><small class="text-muted">s</small>
+                {% else %}
+                  <span class="text-muted">--</span>
+                {% endif %}
+              </td>
+              {% endif %}
+              
+              {% if sample_event.tempo %}
+              <td class="text-center">
+                {% if event.tempo %}
+                  <code>{{ event.tempo }}</code>
+                {% else %}
+                  <span class="text-muted">--</span>
+                {% endif %}
+              </td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Summary Stats -->
+      {% if exercise_history|length > 1 %}
+      <div class="mt-4">
+        <h6 class="text-muted">Performance Summary</h6>
+        <div class="row text-center">
+          <div class="col">
+            <div class="border rounded p-2">
+              <div class="h5 mb-1 text-primary">{{ exercise_history|length }}</div>
+              <small class="text-muted">Total Sessions</small>
+            </div>
+          </div>
+          
+          {% set weight_events = exercise_history | selectattr('weight') | list %}
+          {% if weight_events|length > 0 %}
+          <div class="col">
+            <div class="border rounded p-2">
+              <div class="h5 mb-1 text-success">
+                {{ weight_events | map(attribute='weight') | max | round(1) }}
+                <small>{{ weight_events[0].weight_unit or 'kg' }}</small>
+              </div>
+              <small class="text-muted">Max Weight</small>
+            </div>
+          </div>
+          {% endif %}
+          
+          {% set reps_events = exercise_history | selectattr('reps') | list %}
+          {% if reps_events|length > 0 %}
+          <div class="col">
+            <div class="border rounded p-2">
+              <div class="h5 mb-1 text-warning">
+                {{ reps_events | map(attribute='reps') | max }}
+              </div>
+              <small class="text-muted">Max Reps</small>
+            </div>
+          </div>
+          {% endif %}
+          
+          {% set time_events = exercise_history | selectattr('time') | list %}
+          {% if time_events|length > 0 %}
+          <div class="col">
+            <div class="border rounded p-2">
+              <div class="h5 mb-1 text-info">
+                {{ time_events | map(attribute='time') | max }}s
+              </div>
+              <small class="text-muted">Max Time</small>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% else %}
+      <!-- No History Message -->
+      <div class="text-center py-5">
+        <i class="bi bi-clock-history display-4 text-muted mb-3"></i>
+        <h5 class="text-muted">No Exercise History</h5>
+        <p class="text-muted mb-0">This exercise hasn't been performed yet.</p>
+      </div>
+      {% endif %}
+    </div>
+    
+    <div class="modal-footer">
+      {% if exercise_history and exercise_history|length > 0 %}
+      <small class="text-muted me-auto">
+        Last performed: {{ exercise_history[0].date_time[:10] if exercise_history[0].date_time else 'Unknown' }}
+      </small>
+      {% endif %}
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.modal-body .table th {
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-top: none;
+}
+
+.modal-body .table td {
+  font-size: 0.875rem;
+  vertical-align: middle;
+}
+
+.modal-body .border.rounded {
+  background-color: #f8f9fa;
+}
+
+.text-nowrap {
+  white-space: nowrap;
+}
+
+/* Responsive adjustments for small screens */
+@media (max-width: 576px) {
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+  
+  .modal-body .table-responsive {
+    font-size: 0.8rem;
+  }
+  
+  .modal-body .row.text-center > .col {
+    margin-bottom: 0.5rem;
+  }
+}</style>

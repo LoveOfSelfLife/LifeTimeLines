@@ -1,0 +1,10 @@
+{% if allow_multi_select %}
+<div id="multi-select-state" hx-swap-oob="true">
+    <input type="hidden" name="allow_multi_select" value="true">
+    <input type="hidden" name="multi_select_post_route" value="{{ multi_select_post_route }}">
+    <input type="hidden" name="preferred_section" value="{{ preferred_section or '' }}">
+    {% for selected_key in selected_entity_keys %}
+    <input type="hidden" name="{{ multi_select_checkbox_name }}" value="{{ selected_key }}">
+    {% endfor %}
+</div>
+{% endif %}

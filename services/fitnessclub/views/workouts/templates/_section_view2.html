@@ -10,6 +10,13 @@
             <div class="d-flex justify-content-between align-items-center">
               <strong>{{ ex.name }}</strong>
             </div>
+            <button class="btn btn-sm btn-outline-secondary ms-2" 
+                    hx-get="/exercises/exercise-history-dialog?exercise_id={{ ex.id }}"
+                    hx-target="#modals-here"
+                    hx-swap="innerHTML"
+                    title="Show Previous Parameters for this exercise">
+              <i class="bi bi-clock-history"></i>
+            </button>
 
             <!-- Reps, Sets, Weight all in one row -->
             <div class="d-flex flex-wrap gap-2 mt-2">

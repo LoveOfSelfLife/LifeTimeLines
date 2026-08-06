@@ -1,0 +1,53 @@
+<div class="modal-dialog modal-dialog-centered">
+  <div class="modal-content">
+    <div class="modal-header text-black">
+      <h5 class="modal-title">
+        {% if action == 'edit' %}
+        Edit recurring workout
+        {% else %}
+        Delete recurring workout
+        {% endif %}
+      </h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body text-white">
+      {% if action == 'edit' %}
+      <p class="mb-0">Choose whether to edit only this workout occurrence or the entire recurring series.</p>
+      {% else %}
+      <p class="mb-0">Choose whether to delete only this workout occurrence or the entire recurring series.</p>
+      {% endif %}
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      {% if action == 'edit' %}
+      <button type="button" class="btn btn-primary"
+              hx-get="/schedule/edit_event?id={{ event.id }}&date={{ event.date }}&time={{ event.time }}&recurring_event_id={{ event.recurring_event_id }}&modal=1"
+              hx-target="#modals-here"
+              hx-swap="innerHTML">
+        Edit this event
+      </button>
+      <button type="button" class="btn btn-primary"
+              hx-get="/schedule/edit_recurring_event?id={{ event.id }}&recurring_event_id={{ event.recurring_event_id }}&modal=1"
+              hx-target="#modals-here"
+              hx-swap="innerHTML">
+        Edit series
+      </button>
+      {% else %}
+      <button type="button" class="btn btn-danger"
+              hx-post="/schedule/delete_event/{{ event.id }}?scope=single&recurring_event_id={{ event.recurring_event_id }}"
+              hx-swap="none"
+              data-bs-dismiss="modal">
+        Delete this event
+      </button>
+      <button type="button" class="btn btn-danger"
+              hx-post="/schedule/delete_event/{{ event.id }}?scope=series&recurring_event_id={{ event.recurring_event_id }}"
+              hx-swap="none"
+              data-bs-dismiss="modal">
+        Delete series
+      </button>
+      {% endif %}
+    </div>
+  </div>
+</div>
