@@ -176,8 +176,13 @@ def matches_all_terms_in_filter(entity, filter_term, member_id=None, favorite_en
 
 def is_entity_hidden(entity):
     """Filter out entities that are marked as "hide" 
+    also filter out all exercises that were created by ALF exercises
     """
     hide = entity.get("hide", None)
+    exercise_origin = entity.get("origin", None)
+    if exercise_origin and 'alf' in exercise_origin.lower():
+        return True
+
     return hide
 
 
@@ -228,6 +233,9 @@ def get_filtered_entities(entity_name, filter_term=None, partition_key=None, sor
             entities = generic_entity_filter(entities, filter_term, member_id=member_id, favorite_entity_ids=favorite_entity_ids)
         else:
             entities = generic_entity_filter(entities, filter_term, member_id=member_id)
+    else:
+        # If no filter term is provided, still filter out hidden entities
+        entities = [e for e in entities if not is_entity_hidden(e)]
 
     if sort_by and sort_by in entity_type.get_fields():
         entities = sorted(entities, key=lambda x: x.get(sort_by).lower() if x.get(sort_by) else x.get(sort_by, ''), reverse=not sort_ascending)
