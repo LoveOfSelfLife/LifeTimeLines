@@ -1,5 +1,6 @@
                 {% set entity_key_value = entity.key|string %}
                 <div class="card h-100 shadow-sm">
+                    <!-- exercise_card_view.html -->
                     {% if entity_view_route %}
                         <a href="#"
                             hx-get="{{ entity_view_route }}&key={{ entity.key }}"

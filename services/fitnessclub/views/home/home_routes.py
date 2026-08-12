@@ -83,8 +83,9 @@ def adhoc_workouts_partial2(context=None):
         prog_workouts = []
         all_workouts = []
 
-        favorite_workouts_ids = get_all_favorite_entity_ids(MemberWorkoutDefinitionEntity.table_name, member_id)
-        favorite_workouts = [get_entity(MemberWorkoutDefinitionEntity.table_name, fid) for fid in favorite_workouts_ids]
+        workouts_ids = get_all_favorite_entity_ids(MemberWorkoutDefinitionEntity.table_name, member_id)
+        favorite_workouts = [get_entity(MemberWorkoutDefinitionEntity.table_name, fid) for fid in workouts_ids]
+        favorite_workouts = [w for w in favorite_workouts if w is not None]
 
         for workout in favorite_workouts:
             workout_info = {
