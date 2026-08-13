@@ -235,8 +235,8 @@
                   <button type="button"
                           class="btn btn-outline-secondary btn-sm program-workout-action-btn"
                           onclick="toggleWorkoutDetails('{{ workout.id }}', '{{ workout.key_str }}', '{{ program.id }}')"
-                          title="Edit Workout Details">
-                    <i class="bi bi-sliders2 me-1"></i> Params
+                          title="Edit Workout Parameters">
+                    <i class="bi bi-sliders2 me-1"></i>Preview
                   </button>
                   
                   <button class="btn btn-outline-primary btn-sm program-workout-action-btn"
@@ -245,18 +245,17 @@
                           hx-target="#entities-container"
                           hx-swap="innerHTML"
                           title="Edit Workout">
-                    <i class="bi bi-pencil-square me-1"></i> Workout
+                    <i class="bi bi-pencil-square me-1"></i>Edit
                   </button>
                   
-                    <button class="btn btn-link text-danger btn-sm program-workout-action-btn btn-icon program-workout-delete-btn"
+                    <button class="btn btn-outline-primary text-danger btn-sm program-workout-action-btn program-workout-delete-btn"
                           hx-post="{{ url_for('program.remove_workout', program_id=program.id) }}"
                           hx-vals='{"workout_id":"{{ workout.id }}"}'
                           hx-target="#program-canvas"
                           hx-swap="innerHTML"
                           title="Remove Workout"
-                          onclick="return confirm('Remove this workout from the program?')">
-                    <i class="bi bi-trash"></i>
-                    <span class="visually-hidden">Remove Workout</span>
+                          >
+                    <i class="bi bi-trash"></i>Remove
                   </button>
                   </div>
                 </div>

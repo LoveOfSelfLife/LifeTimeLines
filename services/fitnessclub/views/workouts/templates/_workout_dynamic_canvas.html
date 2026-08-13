@@ -174,10 +174,10 @@
         type="button"
         class="btn btn-link btn-sm p-0"
         title="Open exercises library"
-        hx-get="/exercises/listing-modal?search={{ ('^section:' ~ sec.name)|urlencode }}&allow_multi_select=true&multi_select_post_route={{ url_for('workouts.add_multiple_exercises', workout_id=workout.id) }}&preferred_section={{ sec.name|urlencode }}"
+        hx-get="/exercises/listing-modal?search={{ ('^section:' ~ sec.section_type)|urlencode }}&allow_multi_select=true&multi_select_post_route={{ url_for('workouts.add_multiple_exercises', workout_id=workout.id) }}&preferred_section={{ sec.name|urlencode }}"
         hx-target="#modals-here"
         hx-swap="innerHTML">
-        <i class="bi bi-plus-lg">add {{ sec.name }}-related exercise</i>
+        <i class="bi bi-plus-lg">add {{ sec.section_type }}-related exercise</i>
       </button>
     </div>
     <ul class="list-group list-group-flush section-list"
@@ -214,7 +214,7 @@
                     hx-target="closest li"
                     hx-swap="delete"
                     title="Remove"
-                  ><i class="bi bi-trash"></i></button>
+                  ><i class="bi bi-trash"></i>Remove</button>
                 </div>
               </div>
               {% set param_ns = namespace(unit_param_id=None, param_list=[]) %}

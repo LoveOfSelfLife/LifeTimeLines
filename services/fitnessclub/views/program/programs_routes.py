@@ -20,7 +20,7 @@ from common.fitness.member_program_entity import MemberProgramsEntity
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout
 from common.fitness.programs import get_last_workout_instance_for_workout, get_next_workout_in_program, get_workouts_from_program
 from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state, update_active_workout_state
-from common.fitness.edit_workout_object import edit_workout_object
+from common.fitness.edit_workout_object import bring_up_workouts_builder
 from common.fitness.roles_service import get_accessible_members_for_context, get_team_coaches_with_details, get_team_for_client, is_member_client, is_member_coach
 from common.fitness.coach_team_entity import get_coachs_team_members
 from common.fitness.entities_getter import filter_entities_by_member_role
@@ -500,35 +500,19 @@ def view_workout2(context=None, workout_id=None):
     workout = es.get_item_by_composite_key(workout_composite_key)
     workout_definition_key = workout.get_composite_key() if workout else None
 
-    
-    current_program = get_cache_value('current_program')
-    
     current_program_workouts = get_cache_value('current_program_workouts')
-    
-    # workout = current_program_workouts.get(workout_id, None)
-    # find the workout in the current_program_workouts list that has an id matching workout_id
     workout = next((wk for wk in current_program_workouts if wk.get('id', None) == workout_id), None)
     
     if not workout:
         abort(404)
-
-    # workout_key_pipe_delimited_str = request.args.get('keyStrPipeDelimited', None)
-    # # Convert pipe-delimited string to a list
-    # workout_composite_key = workout_key_pipe_delimited_str.split('|')
-    # workout = EntityStore().get_item_by_composite_key2(workout_composite_key)
-    # if not workout:
-    #     abort(404)
     
     program_id = request.args.get('program_id', None)
 
     wrkout_exercises = get_exercises_from_workout(workout)
     exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
 
-    if 'workout_sections' in workout:
-        workout_sections = workout['workout_sections']
-    else:
-        workout_sections = workout['sections']
-
+    workout_sections = workout['workout_sections']
+    
     return render_template(
         "workout_view2.html",
         program=None,  # No program context in this view
@@ -902,7 +886,7 @@ def edit_workout(context=None, program_id=None):
     workout_to_edit = next((wk for wk in current_program_workouts if wk.get('id', None) == wk_id), None)
     set_cache_value('workout_editor_context', { 'editing_program_workout': workout_to_edit,
                                                 'program_id': program_id } )
-    return edit_workout_object(workout_to_edit)
+    return bring_up_workouts_builder(workout_to_edit)
 
 
 @bp.route('/builder/<program_id>/remove', methods=['POST'])
@@ -1064,10 +1048,7 @@ def start_workout(context=None):
     current_parameters = {}
     if current_workout_state:
         current_parameters = current_workout_state.get('exercise_parameters', {})
-    if 'workout_sections' in workout_instance:
-        workout_sections = workout_instance['workout_sections']
-    else:
-        workout_sections = workout_instance['sections']       
+    workout_sections = workout_instance['workout_sections']
     
     workout_sections = [s for s in workout_sections if len(s.get('exercises', [])) > 0]
     if not last:

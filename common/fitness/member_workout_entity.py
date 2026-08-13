@@ -52,16 +52,8 @@ class MemberWorkoutInstanceEntity (EntityObject):
 
 def get_exercises_from_workout(workout):
     exercises = []
-    # check if workout has either 'sections' or 'workout_sections' field
-    # then iterate through the correct field
     if workout:
-        if 'sections' in workout:
-            SECTION_FIELD = 'sections'
-        elif 'workout_sections' in workout:
-            SECTION_FIELD = 'workout_sections'
-        else:
-            return exercises
-        for s in workout[SECTION_FIELD]:
+        for s in workout['workout_sections']:
             for it in s['exercises']:
                 ex = get_entity("ExerciseTable", it['id'])
                 if ex:
