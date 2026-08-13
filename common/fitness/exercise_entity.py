@@ -71,61 +71,194 @@ class ExerciseIndexEntity (EntityObject):
     def __init__(self, d={}):
         super().__init__(d)
 
-def  does_entity_belong_in_section(entity, section_name):
-    """Check if an entity belongs in a given section based on its attributes."""
-    if not entity or not section_name:
-        return False
-    sections_to_check = ["category", "physical_fitness_components", "movement_categories", "section"]
-    # Check for shared section attribute
-    for section in sections_to_check:
-        entity_section_value = entity.get(section, None)
-        if entity_section_value:
-            if isinstance(entity_section_value, list):
-                # If the attribute is a list, check if the section_name is in the list
-                if section_name.lower() in [s.lower() for s in entity_section_value]:
-                    return True
-            else:
-                # If the attribute is a string, check for a direct match
-                if section_name.lower() == str(entity_section_value).lower():
-                    return True
+movement_category_to_section_map = {
+    "CORE": "core",
+    "CORE-AE": "core",
+    "CORE-AF": "core",
+    "CORE-AR": "core",
+    "CORE-HF": "core",
+    "CORE-ROT": "core",
+    "HINGE-BRIDGE": "strength",
+    "HINGE-SL": "strength",
+    "HINGE-SYM": "strength",
+    "PULL": "strength",
+    "PULL-HORZ": "strength",
+    "PULL-VERT": "strength",
+    "PUSH": "strength",
+    "PUSH-HORZ": "strength",
+    "PUSH-VERT": "strength",
+    "RAMP": "warmup",
+    "SQUAT": "strength",
+    "SQUAT-ASYM": "strength",
+    "SQUAT-SL": "strength",
+    "SQUAT-SYM": "strength",
+}
 
+def get_section_type_from_movement_category(movement_category):
+    return movement_category_to_section_map.get(movement_category, None)
+
+# the possible values for the physical_fitness_components property of an exercise are:
+physical_fitness_components_to_section_map = {
+    'balance': ['balance'],
+    'aerobic': ['cardio'],
+    'mobility': ['warmup'],
+    'power': ['strength', 'power'],
+    'strength': ['strength'],
+    'Core': ['core'],
+    'core': ['core'],
+    'cardio': ['cardio', 'warmup'],
+    'endurance': ['cardio'],
+    'myofascia': ['warmup'],
+    'flexibility': ['warmup'],
+}
+def get_section_types_from_physical_fitness_components(physical_fitness_components):
+    section_types = set()
+    for pfc in physical_fitness_components:
+        section_types.update(physical_fitness_components_to_section_map.get(pfc, []))
+    return list(section_types)
+
+
+# the following are the possible values for the category property of an exercise, and the corresponding section_type they belong to:
+category_to_section_map = {
+    "cardio": ["cardio", "warmup"],
+    "core": ["core"],
+    "mobility": ["warmup"],
+    "olympic weightlifting": ["strength"],
+    "plyometrics": ["strength"],
+    "powerlifting": ["strength", "power"],
+    "strength": ["strength"],
+    "stretching": ["warmup"],
+    "strongman": ["strength", "power"],
+    "warmup": ["warmup"],
+}
+def get_section_types_from_category(category):
+    return category_to_section_map.get(category, [])
+
+def does_exercise_belong_in_section(exercise, section_type):
+    """Check if an exercise belongs in a given section.
+
+    Args:
+        exercise (dict): The exercise entity.
+        section_type (str): The section type to check against.
+
+    Returns:
+        bool: True if the exercise belongs in the section, False otherwise.
+
+    These are the section types currently supported:
+        warmup
+        core
+        power
+        combination
+        strength
+        balance
+        cardio
+    """
+    if not exercise or not section_type:
+        return False
+    # lets check if the exercise has a section attribute, if yes, then we can use that to determine if it belongs in the section
+    if "section" in exercise and exercise["section"] is not None:
+        if isinstance(exercise["section"], list):
+            # If the section attribute is a list, check if the section_type is in the list
+            if section_type in [s for s in exercise["section"]]:
+                return True
+        else:
+            # If the section attribute is a string, check for a direct match
+            if section_type == str(exercise["section"]):
+                return True
+
+    # next we check movement_categories
+    # if the exercise has a movement_category attribute, we can check section_type against the movement_category
+    # we use the movement_category_to_section_map to map the movement_category to a section_type
+    if 'movement_categories' in exercise and exercise['movement_categories'] is not None:
+        if isinstance(exercise['movement_categories'], list):
+            # If the movement_categories attribute is a list, check if the section_type is in the list
+            # Map each movement category to its section and check against section_type
+            mapped_sections = [get_section_type_from_movement_category(s) for s in exercise['movement_categories']]
+            if section_type in mapped_sections:
+                return True
+        else:
+            # If the movement_categories attribute is a string, map it to its section and check for a match
+            mapped_section = get_section_type_from_movement_category(str(exercise['movement_categories']))
+            if section_type == mapped_section:
+                return True
+            
+    # next we will check the category property
+    # if the exercise has a category attribute, we can map the category to a section_type using the category_to_section_map
+    # then check if the section_type is in the mapped section_types
+    # the category value will be a string
+
+    if 'category' in exercise and exercise['category'] is not None:
+        mapped_sections = get_section_types_from_category(str(exercise['category']))
+        if section_type in mapped_sections:
+            return True
+
+    # next we will check the physical_fitness_components property
+    # if the exercise has a physical_fitness_components attribute, we can map the physical_fitness_components to section_types using the physical_fitness_components_to_section_map
+    # then check if the section_type is in the mapped section_types
+
+    if 'physical_fitness_components' in exercise and len(exercise['physical_fitness_components']) > 0:
+        mapped_sections = []
+        for pfc in exercise['physical_fitness_components']:
+            mapped_sections.extend(get_section_types_from_physical_fitness_components([pfc]))
+        if section_type in mapped_sections:
+            return True
     return False
 
-def is_entity_related_to_general(exercise_entity, general_exercise_entity):
+def are_these_exercises_related(exercise_entity, general_exercise_entity):
     """Check if an exercise entity is related to a general exercise entity based on shared attributes."""
     if not exercise_entity or not general_exercise_entity:
         return False
 
-    # # Check for shared primary muscles
-    # primary_muscles = set(exercise_entity.get("primaryMuscles", []))
-    # general_primary_muscles = set(general_exercise_entity.get("primaryMuscles", []))
-    # if primary_muscles.intersection(general_primary_muscles):
-    #     return True
-
-    # # Check for shared secondary muscles
-    # secondary_muscles = set(exercise_entity.get("secondaryMuscles", []))
-    # general_secondary_muscles = set(general_exercise_entity.get("secondaryMuscles", []))
-    # if secondary_muscles.intersection(general_secondary_muscles):
-    #     return True
-
-    # # Check for shared equipment
-    # equipment = set(exercise_entity.get("equipment_list", []))
-    # general_equipment = set(general_exercise_entity.get("equipment_list", []))
-    # if equipment.intersection(general_equipment):
-    #     return True
-
-    # # Check for shared physical fitness components
-    # physical_fitness_components = set(exercise_entity.get("physical_fitness_components", []))
-    # general_physical_fitness_components = set(general_exercise_entity.get("physical_fitness_components", []))
-    # if physical_fitness_components.intersection(general_physical_fitness_components):
-    #     return True
+    # here we want to check if the exercise_entity and general_exercise_entity share any of the following attributes:
+    # 1. movement_categories, 2. physical_fitness_components, 3. primaryMuscles
 
     # Check for shared movement categories
     movement_categories = set(exercise_entity.get("movement_categories", []))
     general_movement_categories = set(general_exercise_entity.get("movement_categories", []))
-    if movement_categories.intersection(general_movement_categories):
+    shared_movement_categories = movement_categories.intersection(general_movement_categories)
+
+    if shared_movement_categories:
         return True
 
+    # if the exercise does not have movement_categories, we will use a combination of physical_fitness_components and primary muscles 
+    # to determine relatedness
+
+    """
+    these are the possible pfc values:  
+    'balance'
+    'aerobic'
+    'mobility'
+    'power'
+    'strength'
+    'Core'
+    'core'
+    'cardio'
+    'endurance'
+    'myofascia'
+    'flexibility
+
+    first we check which PFC values are shared
+    if any of these are shared: balance, aerobic, mobiility, power, core or Core, cardio, endurance, myofascia or flexibility then we consider the exercises related
+    however, if the only shared PFC values are strength, then we will check if they share any primary muscles, if yes, then we consider them related, otherwise not related
+    """
+
+    pfc_values = exercise_entity.get("physical_fitness_components", [])
+    general_pfc_values = general_exercise_entity.get("physical_fitness_components", [])
+
+    shared_pfc  = set(pfc_values).intersection(set(general_pfc_values))
+    if shared_pfc:
+        if 'strength' in shared_pfc and len(shared_pfc) == 1:
+            # if the only shared section type is strength, then we will check if they share any primary muscles
+            primary_muscles = set(exercise_entity.get("primaryMuscles", []))
+            general_primary_muscles = set(general_exercise_entity.get("primaryMuscles", []))
+            shared_primary_muscles = primary_muscles.intersection(general_primary_muscles)
+            if shared_primary_muscles:
+                return True
+            else:
+                return False
+        else:
+            return True
+    
     return False
 
 def gen_exercise_id(exercise):

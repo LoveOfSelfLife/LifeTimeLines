@@ -13,7 +13,7 @@ from common.fitness.hx_common import rm_spaces
 from common.fitness.member_entity import get_member_id_from_user_context, is_member_an_admin
 from common.fitness.roles_service import get_accessible_members_for_context, get_member_role_context
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, get_exercises_from_workout, map_exercise_to_sections
-from common.fitness.edit_workout_object import edit_workout_object
+from common.fitness.edit_workout_object import bring_up_workouts_builder
 from common.fitness.programs import get_last_workout_instance_for_workout
 from common.fitness.programs import get_last_workout_instance_for_workout
 from common.fitness.home_page_view import render_home_page_workout
@@ -35,15 +35,14 @@ def new_workout(name='New Workout'):
         'id': wid,
         'name': name,
         WORKOUT_SECTIONS: [
-            {'name':'warmup','exercises':[]},
-            {'name':'ramp','exercises':[]},
-            {'name':'core','exercises':[]},
-            {'name':'power','exercises':[]},            
-            {'name':'core-power','exercises':[]},
-            {'name':'combination','exercises':[]},
-            {'name':'strength','exercises':[]},
-            {'name':'resistance','exercises':[]},
-            {'name':'cardio','exercises':[]}
+            {'name':'Warmup', 'section_type':'warmup', 'exercises':[]},
+            {'name':'Core', 'section_type':'core', 'exercises':[]},
+            {'name':'Power', 'section_type':'power', 'exercises':[]},            
+            {'name':'Combination', 'section_type':'combination', 'exercises':[]},
+            {'name':'Strength A', 'section_type':'strength', 'exercises':[]},
+            {'name':'Strength B', 'section_type':'strength', 'exercises':[]},
+            {'name':'Balance', 'section_type':'balance', 'exercises':[]},
+            {'name':'Cardio', 'section_type':'cardio', 'exercises':[]}
         ]
     }
 
@@ -161,7 +160,7 @@ def edit_workout_details(context=None):
     workout_to_edit = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
     workout_to_edit.initialize(w)
     # print(f"editing workoug: {json.dumps(workout_to_edit, indent=4)}")
-    return edit_workout_object(workout_to_edit)
+    return bring_up_workouts_builder(workout_to_edit)
     
 @bp.route('/copy', methods=['POST'])
 @auth.login_required
@@ -190,13 +189,13 @@ def copy_workout(context=None):
     workout_entity = MemberWorkoutDefinitionEntity(copied_workout)
     es.upsert_item(workout_entity)
     
-    return edit_workout_object(workout_entity)
+    return bring_up_workouts_builder(workout_entity)
 
 @bp.route('/builder/new')
 @auth.login_required
 def builder_new(context=None):
     w = new_workout()
-    return edit_workout_object(w)
+    return bring_up_workouts_builder(w)
 
 # ── Main Builder View ─────────────────────────────────────────────
 @bp.route('/builder/<workout_id>')
@@ -265,7 +264,7 @@ def exercise_has_param(exercise, param):
     return False
 
 def get_initial_params_for_exercise():
-    return { 'S':'', 'R':'', 'T':'secs', 'Tu':'', 'D':'', 'Du':'ft', 'F':'', 'Fu':'lbs', 'P':'', 'Pu':'' }
+    return { 'S':'', 'R':'', 'T':'', 'Tu':'secs', 'D':'', 'Du':'ft', 'F':'', 'Fu':'lbs', 'P':'', 'Pu':'' }
 
 def get_parameter_map():
     return {
@@ -349,7 +348,7 @@ def get_cached_param_value(exercise_id, param):
 
 def get_workout_sections(workout):
     if workout:
-        return workout.get('sections', []) if 'sections' in workout else workout.get('workout_sections', [])
+        return workout.get('workout_sections', [])
     return []
 
 def get_workout_section(workout, section_name):
@@ -623,6 +622,14 @@ def get_param_objects_for_exercise(exercise, current_parameters, workout_instanc
     return param_objects
 
 
+def map_section_name_to_type(section_name):
+    if 'ramp' in section_name.lower():
+        return 'warmup'
+    if 'core-power' in section_name.lower():
+        return 'core'
+    if 'resistance' in section_name.lower():
+        return 'strength'
+    return section_name.split(' ')[0].lower()
 
 @bp.route('/builder/<workout_id>/dynamic_canvas')
 @auth.login_required
@@ -631,6 +638,11 @@ def workout_dynamic_canvas(context=None, workout_id=None):
 
 def workout_dynamic_canvas2(context=None, workout_id=None):
     w =  get_cache_value('current_workout')
+    # add a section type for each section of the workout if it doesn't already exist
+    # section type is just the section name after removing everything after the first space, and converting to lowercase, so "Strength A" becomes "strength"
+    for sec in w[WORKOUT_SECTIONS]:
+        if 'section_type' not in sec:
+            sec['section_type'] = map_section_name_to_type(sec['name'])
     if w:
         wrkout_exercises = get_exercises_from_workout(w)
         exercises = { ex.get('id', None): ex for ex in wrkout_exercises }

@@ -241,17 +241,17 @@ def entity_matches_special_term(entity, term_type, pattern):
     # Return True if it matches, False otherwise
 
     from common.fitness.entities_getter import get_entity   
-    from common.fitness.exercise_entity import does_entity_belong_in_section     
+    from common.fitness.exercise_entity import does_exercise_belong_in_section     
     if term_type == "^section":
-        section_name = pattern.strip()        
-        return does_entity_belong_in_section(entity, section_name)
+        section_type = pattern.strip()        
+        return does_exercise_belong_in_section(entity, section_type)
     elif term_type == "^related":
-        from common.fitness.exercise_entity import is_entity_related_to_general
+        from common.fitness.exercise_entity import are_these_exercises_related
 
-        # the pattern in this case is expected to be an exercise id, so we should retrive the exercise entity and check if the entity is related to that exercise
+        # the pattern in this case is expected to be an exercise id, so we should retrive the exercise and check if the entity is related to that exercise
         exercise_id = pattern.strip()
-        general_entity = get_entity("ExerciseTable", exercise_id)
-        return is_entity_related_to_general(entity, general_entity)
+        exercise = get_entity("ExerciseTable", exercise_id)
+        return are_these_exercises_related(entity, exercise)
 
-    return False  # Placeholder return value; replace with actual logic
+    return False
 

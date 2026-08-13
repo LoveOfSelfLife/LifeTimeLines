@@ -59,10 +59,7 @@ def render_home_page_workout(member, current_state):
     # The member has a workout in progress
     wrkout_exercises = get_exercises_from_workout(workout_instance)
     exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
-    if 'workout_sections' in workout_instance:
-        workout_sections = workout_instance.get('workout_sections', [])
-    else:
-        workout_sections = workout_instance.get('sections', [])             
+    workout_sections = workout_instance.get('workout_sections', [])
 
     # only use the session value if it exists
     last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
@@ -115,10 +112,7 @@ def render_finishing_workout_page(member, current_state):
     # The member has a workout in progress
     wrkout_exercises = get_exercises_from_workout(workout_instance)
     exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
-    if 'workout_sections' in workout_instance:
-        workout_sections = workout_instance.get('workout_sections', [])
-    else:
-        workout_sections = workout_instance.get('sections', [])             
+    workout_sections = workout_instance.get('workout_sections', [])
 
     # only use the session value if it exists
     last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
