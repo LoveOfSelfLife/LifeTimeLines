@@ -294,6 +294,9 @@ def filter_entities_by_member_role(member_id, entities):
     if is_member_client(member_id):
         relevant_entities = [e for e in entities if e.get('entity', {}).get('assigned_to_member_id') == member_id or e.get('entity', {}).get('created_by') == member_id]
         entities = relevant_entities
+    elif is_member_an_admin(member_id):
+        # admins can see all entities, so no filtering needed
+        pass
     elif is_member_coach(member_id):
         relevant_entities = [e for e in entities if e.get('entity', {}).get('assigned_to_member_id') == member_id or e.get('entity', {}).get('created_by') == member_id]
 
@@ -304,9 +307,6 @@ def filter_entities_by_member_role(member_id, entities):
         teams_entities = [e for e in entities if e.get('entity', {}).get('assigned_to_member_id') in team_member_ids or e.get('entity', {}).get('created_by') in team_member_ids]
 
         entities = relevant_entities + teams_entities
-    elif is_member_an_admin(member_id):
-        # admins can see all entities, so no filtering needed
-        pass
     else:
         # if the member is not a client, coach, or admin, then they should not see any entities.
         entities = []

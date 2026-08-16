@@ -1,11 +1,13 @@
 from ast import literal_eval
 from flask import url_for
-from common.entity_store import EntityObject
+from common.entity_store import EntityObject, EntityStore
+
 from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
 from common.fitness.member_entity import MemberEntity, get_member_name_from_member_id
 from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity
 from common.fitness.exercise_entity import exercise_filters
 from common.fitness.member_entity import MemberEntity
+from common.fitness.member_program_entity import MemberProgramsEntity
 
 def extract_image_url(entity):
     # lambda e: e['images'][0]['url'] if 'images' in e and len(e['images']) > 0 else None
@@ -97,7 +99,7 @@ editable_entities = {
 
                     },
     WORKOUT_ENTITY_NAME : { 
-                        "listing_view_fields": ["name", "client"],
+                        "listing_view_fields": ["name", "client", "program"],
                         "card_view_fields": [ "title",
                                               "subtitle",
                                               "image_url",
@@ -107,7 +109,8 @@ editable_entities = {
                                           "client" : lambda e: get_member_name_from_member_id(e.get('assigned_to_member_id')) if e.get('assigned_to_member_id') else "",
                                               "subtitle" : lambda e: "" + get_member_name_from_member_id(e.get('assigned_to_member_id') or e.get('member_id')) if (e.get('assigned_to_member_id') or e.get('member_id')) else "",
                                               "image_url" : lambda e: url_for('static', filename='images/workout_image.png'),
-                                              "description" : lambda e: ""
+                                              "description" : lambda e: "",
+                                              "program" : lambda e: get_program_name_from_program_id(e.get('member_program_id')) if e.get('member_program_id') else ""
                                              }
 
                     },
@@ -130,6 +133,14 @@ editable_entities = {
                     }
     }
 
+def get_program_name_from_program_id(program_id):
+    if not program_id:
+        return None
+    from common.fitness.entities_getter import get_entity
+    program_entity = get_entity(MemberProgramsEntity.table_name, program_id)
+    if program_entity:
+        return program_entity.get('name', None)
+    return None
 def get_fitnessclub_entity_names():
     return list(editable_entities.keys())
 

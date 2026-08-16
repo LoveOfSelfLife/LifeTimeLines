@@ -16,7 +16,7 @@
             <input type="hidden" name="program_id" value="{{ program.id if program else '' }}">
             <input type="hidden" name="scheduled_workout_event_id" value="{{ scheduled_workout_event_id }}">
             <input type="hidden" name="workout_instance_key" value="{{ workout_instance_key }}">
-            <input type="hidden" name="program_key" value="{{ program_key }}">
+            <input type="hidden" name="program_key" value="{{ program_key if program_key else '' }}">
 
             <div class="mb-3">
               <label for="started-ts" class="form-label">Workout Start</label>

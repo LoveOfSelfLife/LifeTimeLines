@@ -368,17 +368,16 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
     return hx_render_template(template_file_name, **template_data)
 
 
-def _build_program_workout_copy(source_workout, current_program, order_index):
-    copied_workout = source_workout.copy()
-    copied_workout['id'] = str(uuid.uuid4())
-    copied_workout['program_id'] = current_program['id']
-    copied_workout['member_program_id'] = current_program['id']
-    copied_workout['order_index'] = order_index
+# def _build_program_workout_copy(source_workout, current_program, order_index):
+#     copied_workout = source_workout.copy()
+#     copied_workout['id'] = str(uuid.uuid4())
+#     copied_workout['member_program_id'] = current_program['id']
+#     copied_workout['order_index'] = order_index
 
-    workout_copy = MemberWorkoutDefinitionEntity(copied_workout)
-    workout_copy['key'] = workout_copy.get_composite_key()
-    workout_copy['key_str'] = '|'.join(workout_copy.get_composite_key())
-    return workout_copy
+#     workout_copy = MemberWorkoutDefinitionEntity(copied_workout)
+#     workout_copy['key'] = workout_copy.get_composite_key()
+#     workout_copy['key_str'] = '|'.join(workout_copy.get_composite_key())
+#     return workout_copy
 
 def new_program(name='new-workout-program', member_id=None):
     program_id = str(uuid.uuid4())
@@ -706,6 +705,8 @@ def save_program(context=None, program_id=None):
 
     for wtr in workouts_to_remove:
         # es.delete_item(MemberWorkoutDefinitionEntity(wtr))
+        if wtr.get('member_program_id') == current_program['id']:
+            wtr['member_program_id'] = None  # unlink the workouts from the program
         es.upsert_item(MemberWorkoutDefinitionEntity(wtr))
     
     es.upsert_items(workouts_in_program)
@@ -924,15 +925,6 @@ def add_workout(context=None, program_id=None):
         if current_program['id'] != program_id:
             abort(404)
 
-    # here we get the key of the workout from the query parameters
-    # and we look it up in the workouts table
-    # if it is not found we abort with a 404
-    # if it is found we:
-    # create a copy of the workout from the WorkoutTable and give it a new id
-    # laster when we save the program, we will save the workout copy to the ProgramWorkoutTable
-    # the workouts in the program.workouts list are from teh WorkoutTable
-    # we will copy thos workout objects into the ProgramWorkoutTable, then use the id & Program_id of that copy to populate the program.workouts list
-
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
 
@@ -940,12 +932,19 @@ def add_workout(context=None, program_id=None):
     if not added_workout:
         abort(404)
 
-    workout_copy = _build_program_workout_copy(added_workout, current_program, num_workouts)
-
-    # current_program['workouts'].append({'key': workout_copy.get_composite_key(), 'id':workout_copy['id'], "name": workout_copy['name']})
-    # current_program_workouts[workout_copy['id']] = workout_copy
-    # append to the current_program_workouts list
-    current_program_workouts.append(workout_copy)
+    # workout_copy = _build_program_workout_copy(added_workout, current_program, num_workouts)
+    # only allow a workout to be added if it not already a part of another program
+    # check if the added_workout has a member_program_id that is not None
+    if added_workout.get('member_program_id', None) is not None:
+        response = make_response('')
+        response.headers['HX-Trigger'] = json.dumps({
+            "refreshProgramCanvas": {"target": "body"},
+            "showMessage": {"target": "body", "value": "Workout is already part of another program and cannot be added."}
+        })
+        return response
+    else:
+        added_workout['member_program_id'] = current_program['id']
+        current_program_workouts.append(added_workout)
 
     # update the cache
     set_cache_value('current_program', current_program)
@@ -974,7 +973,7 @@ def add_multiple_workouts(context=None, program_id=None):
 
     added_count = 0
     es = EntityStore()
-
+    errmsg = ""
     for composite_key_str in selected_keys:
         try:
             composite_key = literal_eval(composite_key_str)
@@ -984,9 +983,22 @@ def add_multiple_workouts(context=None, program_id=None):
         source_workout = es.get_item_by_composite_key(composite_key)
         if not source_workout:
             continue
+        # only allow a workout to be added if it not already a part of another program
+        # check if the added_workout has a member_program_id that is not None
+        if source_workout.get('member_program_id', None) is not None:
+            response = make_response('')
+            response.headers['HX-Trigger'] = json.dumps({
+                "refreshProgramCanvas": {"target": "body"},
+                "showMessage": {"target": "body", "value": "Workout is already part of another program and cannot be added."}
+            })
+            errmsg += f"could not add workout \"{source_workout.get('name', 'unknown')}\" because it is already part of another program."
+            continue
+        else:
+            source_workout['member_program_id'] = current_program['id']
+            current_program_workouts.append(source_workout)
 
-        workout_copy = _build_program_workout_copy(source_workout, current_program, len(current_program_workouts))
-        current_program_workouts.append(workout_copy)
+        # workout_copy = _build_program_workout_copy(source_workout, current_program, len(current_program_workouts))
+        # current_program_workouts.append(workout_copy)
         added_count += 1
 
     set_cache_value('current_program_workouts', current_program_workouts)
@@ -995,7 +1007,7 @@ def add_multiple_workouts(context=None, program_id=None):
     response = make_response('')
     response.headers['HX-Trigger'] = json.dumps({
         "refreshProgramCanvas": {"target": "body"},
-        "showMessage": {"target": "body", "value": f"Added {added_count} workout(s)."}
+        "showMessage": {"target": "body", "value": f"Added {added_count} workout(s). {errmsg}"}
     })
     return response
 
@@ -1093,12 +1105,12 @@ def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, m
     workout_composite_key = eval(workout_key) if workout_key else None
     program_composite_key = eval(program_key) if program_key else None
 
-    workout_entity = es.get_item_by_composite_key(workout_composite_key)
-    program_entity = es.get_item_by_composite_key(program_composite_key)
+    workout_entity = es.get_item_by_composite_key(workout_composite_key) if workout_composite_key else None
+    program_entity = es.get_item_by_composite_key(program_composite_key) if program_composite_key else None
 
     workout_def_id = workout_entity.get('id', None) if workout_entity else None
 
-    workout_instance = MemberWorkoutInstanceEntity(workout_entity.copy())
+    workout_instance = MemberWorkoutInstanceEntity(workout_entity.copy()) if workout_entity else MemberWorkoutInstanceEntity({})
 
     workout_instance.update({
         'id': str(uuid.uuid4()),
@@ -1106,10 +1118,10 @@ def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, m
         'started_ts': datetime.now().isoformat(),
         'finished_ts': "",
         'scheduled_workout_event_id': scheduled_workout_event_id,
-        'member_workout_def_id': workout_entity['id'],
-        'member_program_id': program_entity['id'],
-        'member_program_name': program_entity.get('name', ''),
-        'name': workout_entity.get('name', 'Unnamed Workout')
+        'member_workout_def_id': workout_entity['id'] if workout_entity else None,
+        'member_program_id': program_entity['id'] if program_entity else None,
+        'member_program_name': program_entity.get('name', '') if program_entity else '',
+        'name': workout_entity.get('name', 'Unnamed Workout') if workout_entity else 'Unnamed Workout'
     })
     es.upsert_item(workout_instance)
     workout_instance_key = workout_instance.get_composite_key()
@@ -1141,9 +1153,9 @@ def really_finish_workout(context=None, workout_instance_key=None):
     workout_composite_key = eval(workout_instance_key) if workout_instance_key else None
     workout_instance = es.get_item_by_composite_key(workout_composite_key)
 
-    program_composite_key_str = request.form.get('program_key', None)
-    program_composite_key = eval(program_composite_key_str) if program_composite_key_str else None
-    program_entity = es.get_item_by_composite_key(program_composite_key)
+    # program_composite_key_str = request.form.get('program_key', None)
+    # program_composite_key = eval(program_composite_key_str) if program_composite_key_str else None
+    # program_entity = es.get_item_by_composite_key(program_composite_key)
     
     # post to the google calendar service that the workout is finished
     scheduled_workout_event_id = request.form.get('scheduled_workout_event_id', None)
