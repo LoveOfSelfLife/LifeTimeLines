@@ -100,14 +100,14 @@ def render_finishing_workout_page(member, current_state):
     workout_started_ts = current_state.get('time_workout_started', None)
 
     # only run eval if program_key is not None and is a string, otherwise set it to program_key
-    program_composite_key = eval(program_key) if program_key and isinstance(program_key, str) else program_key
+    program_composite_key = eval(program_key) if program_key and isinstance(program_key, str) else None
     scheduled_workout_event_id = current_state.get('scheduled_workout_event_id', None)
     es = EntityStore()
     workout_instance = es.get_item_by_composite_key(workout_instance_key)
     if not workout_instance:
         # The workout instance is not found, so we display an error message
         return render_template_string('<h1>Workout in progress not found</h1>')
-    program_entity = es.get_item_by_composite_key(program_composite_key)
+    program_entity = es.get_item_by_composite_key(program_composite_key) if program_composite_key else None
 
     # The member has a workout in progress
     wrkout_exercises = get_exercises_from_workout(workout_instance)
