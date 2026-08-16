@@ -58,12 +58,19 @@
                             <strong>
                                 {% if active_workout and timer.has_timer and timer.timer_value is not none %}
                                 {% set timer_duration = timer.timer_value %}
+                                {% set timer_unit = timer.timer_units or 'sec' %}
                                 <div class="timer-container ms-2 d-inline-block">
-                                    <div class="timer-icon-wrapper" data-exercise-id="{{ ex.id }}" data-duration="{{ timer_duration }}"
-                                        onclick="startExerciseTimer('{{ ex.id }}', Number('{{ timer_duration }}'))"
-                                        title="Start {{ timer_duration }} second timer">
-                                        <i class="bi bi-stopwatch timer-icon"></i>
-                                        <span class="timer-display" id="timer-{{ ex.id }}">{{ timer_duration }}s</span>
+                                    <div class="timer-ring-wrapper" data-exercise-id="{{ ex.id }}" data-duration="{{ timer_duration }}" data-unit="{{ timer_unit }}"
+                                        onclick="startExerciseTimer('{{ ex.id }}', Number('{{ timer_duration }}'), '{{ timer_unit }}')"
+                                        title="Start {{ timer_duration }} {{ timer_unit }} timer">
+                                        <svg class="timer-ring-svg" viewBox="0 0 44 44">
+                                            <circle class="timer-ring-bg" cx="22" cy="22" r="19"></circle>
+                                            <circle class="timer-ring-progress" cx="22" cy="22" r="19"></circle>
+                                        </svg>
+                                        <div class="timer-ring-content">
+                                            <i class="bi bi-stopwatch timer-ring-icon"></i>
+                                            <span class="timer-display" id="timer-{{ ex.id }}">{{ timer_duration }}{{ timer_unit[0] }}</span>
+                                        </div>
                                     </div>
                                 </div>
                                 {% endif %}

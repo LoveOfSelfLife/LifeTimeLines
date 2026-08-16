@@ -3,10 +3,35 @@
   // Use global namespace to avoid conflicts with HTMX reloads
   window.ExerciseTimer = window.ExerciseTimer || {
     activeTimers: {},
+    completionResetTimers: {},
+    RING_RADIUS: 19,
 
-    start: function (exerciseId, duration) {
+    // Converts a duration value expressed in the exercise's configured time unit (Tu) into seconds.
+    toSeconds: function (value, unit) {
+      const numericValue = Number(value) || 0;
+      const normalizedUnit = (unit || 'sec').toString().trim().toLowerCase();
+      if (normalizedUnit.startsWith('hour')) {
+        return numericValue * 3600;
+      }
+      if (normalizedUnit.startsWith('min')) {
+        return numericValue * 60;
+      }
+      return numericValue;
+    },
+
+    // Renders the initial/idle label for a timer, e.g. "3m" or "60s", matching the configured unit.
+    formatDuration: function (value, unit) {
+      const normalizedUnit = (unit || 'sec').toString().trim().toLowerCase();
+      const suffix = normalizedUnit.charAt(0) || 's';
+      return `${value}${suffix}`;
+    },
+
+    start: function (exerciseId, duration, unit) {
       const timerWrapper = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
       const timerDisplay = document.getElementById(`timer-${exerciseId}`);
+      if (!timerWrapper || !timerDisplay) {
+        return;
+      }
 
       // If timer is already running, stop it
       if (this.activeTimers[exerciseId]) {
@@ -14,8 +39,23 @@
         return;
       }
 
+      if (this.completionResetTimers[exerciseId]) {
+        clearTimeout(this.completionResetTimers[exerciseId]);
+        delete this.completionResetTimers[exerciseId];
+      }
+
+      const timeUnit = unit || timerWrapper.getAttribute('data-unit') || 'sec';
+      const totalSeconds = this.toSeconds(duration, timeUnit);
+      const progressCircle = timerWrapper.querySelector('.timer-ring-progress');
+      const circumference = 2 * Math.PI * this.RING_RADIUS;
+
+      if (progressCircle) {
+        progressCircle.style.strokeDasharray = `${circumference}`;
+        progressCircle.style.strokeDashoffset = '0';
+      }
+
       // Start new timer
-      let remainingTime = duration;
+      let remainingTime = totalSeconds;
       timerWrapper.classList.add('running');
       timerWrapper.classList.remove('completed');
       timerWrapper.setAttribute('title', 'Click to stop timer');
@@ -27,6 +67,11 @@
         remainingTime--;
         timerDisplay.textContent = this.formatTime(remainingTime);
 
+        if (progressCircle && totalSeconds > 0) {
+          const elapsedFraction = Math.min(1, 1 - (remainingTime / totalSeconds));
+          progressCircle.style.strokeDashoffset = `${circumference * elapsedFraction}`;
+        }
+
         if (remainingTime <= 0) {
           // Timer completed
           clearInterval(this.activeTimers[exerciseId]);
@@ -36,16 +81,18 @@
           timerWrapper.classList.add('completed');
           timerWrapper.setAttribute('title', 'Timer completed! Click to restart');
 
-          // Flash effect and sound
-          timerWrapper.style.animation = 'pulse 1s infinite';
-
           // Play completion sound with multiple fallbacks
           this.playCompletionSound();
 
-          // Remove animation after 3 seconds and reset display
-          setTimeout(() => {
-            timerWrapper.style.animation = '';
-            timerDisplay.textContent = `${duration}s`;
+          // Reset the ring and label back to idle after a brief celebration
+          this.completionResetTimers[exerciseId] = setTimeout(() => {
+            delete this.completionResetTimers[exerciseId];
+            timerWrapper.classList.remove('completed');
+            if (progressCircle) {
+              progressCircle.style.strokeDashoffset = '0';
+            }
+            timerDisplay.textContent = this.formatDuration(duration, timeUnit);
+            timerWrapper.setAttribute('title', `Start ${duration} ${timeUnit} timer`);
           }, 3000);
 
           return;
@@ -58,15 +105,26 @@
         clearInterval(this.activeTimers[exerciseId]);
         delete this.activeTimers[exerciseId];
       }
+      if (this.completionResetTimers[exerciseId]) {
+        clearTimeout(this.completionResetTimers[exerciseId]);
+        delete this.completionResetTimers[exerciseId];
+      }
 
       const timerWrapper = document.querySelector(`[data-exercise-id="${exerciseId}"]`);
       const timerDisplay = document.getElementById(`timer-${exerciseId}`);
-      const duration = parseInt(timerWrapper.getAttribute('data-duration'));
+      if (!timerWrapper || !timerDisplay) {
+        return;
+      }
+      const duration = timerWrapper.getAttribute('data-duration');
+      const timeUnit = timerWrapper.getAttribute('data-unit') || 'sec';
+      const progressCircle = timerWrapper.querySelector('.timer-ring-progress');
 
       timerWrapper.classList.remove('running', 'completed');
-      timerWrapper.setAttribute('title', `Start ${duration} second timer`);
-      timerWrapper.style.animation = '';
-      timerDisplay.textContent = `${duration}s`;
+      timerWrapper.setAttribute('title', `Start ${duration} ${timeUnit} timer`);
+      if (progressCircle) {
+        progressCircle.style.strokeDashoffset = '0';
+      }
+      timerDisplay.textContent = this.formatDuration(duration, timeUnit);
     },
 
     formatTime: function (seconds) {
@@ -74,15 +132,23 @@
 
       if (seconds < 60) {
         return `${seconds}s`;
-      } else {
+      } else if (seconds < 3600) {
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
         return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+      } else {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        return `${hours}:${minutes.toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
       }
     },
 
     cleanup: function () {
       Object.keys(this.activeTimers).forEach(exerciseId => this.stop(exerciseId));
+      Object.keys(this.completionResetTimers).forEach(exerciseId => {
+        clearTimeout(this.completionResetTimers[exerciseId]);
+        delete this.completionResetTimers[exerciseId];
+      });
     },
 
     playCompletionSound: function () {
@@ -209,8 +275,8 @@
   };
 
   // Global timer functions for backward compatibility
-  function startExerciseTimer(exerciseId, duration) {
-    window.ExerciseTimer.start(exerciseId, duration);
+  function startExerciseTimer(exerciseId, duration, unit) {
+    window.ExerciseTimer.start(exerciseId, duration, unit);
   }
 
   function stopExerciseTimer(exerciseId) {
