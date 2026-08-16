@@ -17,7 +17,8 @@ def initialize_active_workout_state(workout_instance_key, program_key, scheduled
         'workout_adjustments': {},
         'is_adhoc_workout': is_adhoc_workout,
         'exercise_parameters': {},
-        'time_workout_started': datetime.now().isoformat()
+        'time_workout_started': datetime.now().isoformat(),
+        'keep_screen_awake': False
     }
     session['current_workout_instance_state'] = json.dumps(current_state)
 

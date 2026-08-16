@@ -313,6 +313,18 @@ def toggle_carousel_view(context=None):
         abort(404)
     return render_home_page_workout(None, current_workout_state)
 
+@bp.route('/toggle_keep_awake', methods=['POST'])
+@auth.login_required
+def toggle_keep_awake(context=None):
+    current_workout_state = get_active_workout_state()
+    if not current_workout_state:
+        abort(404)
+    current_workout_state['keep_screen_awake'] = not current_workout_state.get('keep_screen_awake', False)
+    update_active_workout_state(current_workout_state)
+
+    # Re-render the active workout panel so the wake-lock script picks up the new preference.
+    return render_home_page_workout(None, current_workout_state)
+
 @bp.route('/update_param_in_session', methods=['POST'])
 @auth.login_required
 def update_param_in_session(context=None):
