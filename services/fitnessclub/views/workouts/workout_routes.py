@@ -381,7 +381,10 @@ def get_param_from_session_or_workout(current_parameters, exercise_id, param, wo
     for sec in get_workout_sections(workout_obj):
         for it in sec['exercises']:
             if it['id']==exercise_id:
-                return it['parameters'].get(param, default_value)
+                param_value = it['parameters'].get(param, default_value)
+                if param_value is None or (isinstance(param_value, str) and param_value.strip() == 'None'):
+                    return default_value
+                return param_value
     return default_value   
 
 @bp.route('/dynamic_parameters_for_section_viewer/<workout_id>/<section_name>')

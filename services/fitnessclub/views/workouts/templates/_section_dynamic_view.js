@@ -1,9 +1,10 @@
 
 <script>
-  // Use global namespace to avoid conflicts with HTMX reloads
-  window.ExerciseTimer = window.ExerciseTimer || {
-    activeTimers: {},
-    completionResetTimers: {},
+  // Rebuild the timer object on every render so template/JS fixes always take effect,
+  // even in a long-lived tab, while preserving any timers still counting down across HTMX swaps.
+  window.ExerciseTimer = {
+    activeTimers: (window.ExerciseTimer && window.ExerciseTimer.activeTimers) || {},
+    completionResetTimers: (window.ExerciseTimer && window.ExerciseTimer.completionResetTimers) || {},
     RING_RADIUS: 19,
 
     // Converts a duration value expressed in the exercise's configured time unit (Tu) into seconds.
