@@ -11,16 +11,30 @@
     {% endif %}
 
     {% if enable_carousel == 'true' %}
-      {# add a toggle button here, which if is set will set a flag that will be passed back to a workout_routes route to use the carosel, 
-      otherwise we will use the accordian viewer as is currently done #}
-      <div class="d-flex justify-content-end mb-2">
-        <button id="toggleViewBtn" class="btn btn-sm btn-primary" 
-              hx-post="{{ url_for('workouts.toggle_carousel_view') }}"
-              hx-target="#content"
-              hx-swap="innerHTML"
-              >
-          <i class="bi bi-toggle-on me-1"></i> Toggle Carousel View
-        </button>
+      {# Lets the member switch between the accordion and carousel exercise views #}
+      <div class="d-flex justify-content-end align-items-center gap-2 mb-2">
+        <label class="mb-0" for="carouselViewSwitch">Carousel View</label>
+        <div class="form-check form-switch mb-0">
+          <input class="form-check-input" type="checkbox" role="switch" id="carouselViewSwitch"
+            hx-post="{{ url_for('workouts.toggle_carousel_view') }}"
+            hx-target="#content"
+            hx-swap="innerHTML"
+            {% if workout_view_preference == 'carousel' %}checked{% endif %}>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if show_finish_button %}
+      {# Lets the member keep the screen from sleeping while working out at the gym #}
+      <div class="d-flex justify-content-end align-items-center gap-2 mb-2">
+        <label class="mb-0" for="keepAwakeSwitch">Keep Screen On</label>
+        <div class="form-check form-switch mb-0">
+          <input class="form-check-input" type="checkbox" role="switch" id="keepAwakeSwitch"
+            hx-post="{{ url_for('workouts.toggle_keep_awake') }}"
+            hx-target="#content"
+            hx-swap="innerHTML"
+            {% if keep_screen_awake %}checked{% endif %}>
+        </div>
       </div>
     {% endif %}
     <div class="accordion" id="sectionsAccordion">
@@ -90,3 +104,63 @@
   </div>
 {% include "_section_dynamic_view.css" %}
 {% include "_section_dynamic_view.js" %}
+
+{% if show_finish_button %}
+<script>
+  // Uses the Screen Wake Lock API to keep the device's screen on while working out.
+  window.WakeLockManager = window.WakeLockManager || {
+    lock: null,
+
+    request: async function () {
+      if (!('wakeLock' in navigator)) {
+        console.log('Wake Lock API not supported on this browser.');
+        return;
+      }
+      if (this.lock) {
+        return;
+      }
+      try {
+        this.lock = await navigator.wakeLock.request('screen');
+        this.lock.addEventListener('release', () => {
+          this.lock = null;
+        });
+        console.log('Screen wake lock acquired');
+      } catch (err) {
+        console.log('Could not acquire wake lock:', err.message);
+      }
+    },
+
+    release: async function () {
+      if (this.lock) {
+        try {
+          await this.lock.release();
+        } catch (err) {
+          // ignore
+        }
+        this.lock = null;
+      }
+    },
+
+    reacquireIfNeeded: function () {
+      if (window.keepScreenAwake && document.visibilityState === 'visible') {
+        this.request();
+      }
+    }
+  };
+
+  window.keepScreenAwake = {{ 'true' if keep_screen_awake else 'false' }};
+
+  if (window.keepScreenAwake) {
+    window.WakeLockManager.request();
+  } else {
+    window.WakeLockManager.release();
+  }
+
+  // The wake lock is automatically released when the tab is hidden, so re-acquire it when it becomes visible again.
+  if (window._wakeLockVisibilityHandler) {
+    document.removeEventListener('visibilitychange', window._wakeLockVisibilityHandler);
+  }
+  window._wakeLockVisibilityHandler = () => window.WakeLockManager.reacquireIfNeeded();
+  document.addEventListener('visibilitychange', window._wakeLockVisibilityHandler);
+</script>
+{% endif %}

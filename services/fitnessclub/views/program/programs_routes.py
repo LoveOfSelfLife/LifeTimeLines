@@ -1075,6 +1075,7 @@ def start_workout(context=None):
     }
 
     workout_view_preference = session.get('workout_view_preference', 'accordion')
+    keep_screen_awake = current_workout_state.get('keep_screen_awake', False) if current_workout_state else False
     return render_template(
         "workout_view.html",
         workout=workout_instance,
@@ -1093,6 +1094,7 @@ def start_workout(context=None):
         time_workout_started=workout_started_ts,
         active_workout=True,
         workout_view_preference=workout_view_preference,
+        keep_screen_awake=keep_screen_awake,
         rs=rm_spaces
     )
 
