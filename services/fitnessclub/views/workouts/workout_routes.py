@@ -370,6 +370,17 @@ def get_workout_section(workout, section_name):
             return sec
     return None
 
+def find_exercise_item_or_alternative(workout, exercise_id):
+    """Find the exercise item (or one of its alternatives) with the given id anywhere in the workout."""
+    for sec in get_workout_sections(workout):
+        for item in sec.get('exercises', []):
+            if item.get('id') == exercise_id:
+                return item
+            for alt in item.get('alternatives', []):
+                if alt.get('id') == exercise_id:
+                    return alt
+    return None
+
 def get_param_from_session_or_workout(current_parameters, exercise_id, param, workout_obj, default_value=''):
     # First check session parameters
     if current_parameters and exercise_id in current_parameters and param in current_parameters[exercise_id]:
@@ -378,14 +389,13 @@ def get_param_from_session_or_workout(current_parameters, exercise_id, param, wo
             return default_value
         else:
             return param_value
-    # Then check workout object parameters
-    for sec in get_workout_sections(workout_obj):
-        for it in sec['exercises']:
-            if it['id']==exercise_id:
-                param_value = it['parameters'].get(param, default_value)
-                if param_value is None or (isinstance(param_value, str) and param_value.strip() == 'None'):
-                    return default_value
-                return param_value
+    # Then check workout object parameters, including any exercise's alternatives
+    item = find_exercise_item_or_alternative(workout_obj, exercise_id)
+    if item:
+        param_value = item['parameters'].get(param, default_value)
+        if param_value is None or (isinstance(param_value, str) and param_value.strip() == 'None'):
+            return default_value
+        return param_value
     return default_value   
 
 @bp.route('/dynamic_parameters_for_section_viewer/<workout_id>/<section_name>')
@@ -534,6 +544,14 @@ def extract_workout_parameters_for_workout(workout_id, workout_obj, exercises, c
                                                                                                             workout_obj, 
                                                                                                             workout_id, 
                                                                                                             update_url) }
+            for alt in item.get('alternatives', []):
+                alt_ex = exercises.get(alt['id'])
+                if alt_ex:
+                    exercise_parameters_map[sec['name']][alt['id']] = { 'param_list': get_param_objects_for_exercise(alt_ex,
+                                                                                                                     current_parameters,
+                                                                                                                     workout_obj,
+                                                                                                                     workout_id,
+                                                                                                                     update_url) }
     return exercise_parameters_map
 
 def get_param_objects_for_exercise(exercise, current_parameters, workout_instance, workout_id, update_url):
@@ -664,6 +682,15 @@ def workout_dynamic_canvas2(context=None, workout_id=None):
     if w:
         wrkout_exercises = get_exercises_from_workout(w)
         exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
+        # also look up each exercise's alternatives so the canvas can display their name/media/parameters
+        for sec in w[WORKOUT_SECTIONS]:
+            for item in sec.get('exercises', []):
+                for alt in item.get('alternatives', []):
+                    alt_id = alt.get('id')
+                    if alt_id and alt_id not in exercises:
+                        alt_ex = get_entity("ExerciseTable", alt_id)
+                        if alt_ex:
+                            exercises[alt_id] = alt_ex
         exercise_parameters_map = extract_workout_parameters_for_workout(workout_id, w, exercises, {}, url_for('workouts.update_param_in_cache'))
         return hx_render_template('_workout_dynamic_canvas.html',
                                     workout=w,
@@ -805,7 +832,81 @@ def add_multiple_exercises(context=None, workout_id=None):
     })
     return response
 
-@bp.route('/builder/<workout_id>/add_workout', methods=['POST'])
+@bp.route('/builder/<workout_id>/add-alternatives', methods=['POST'])
+@auth.login_required
+def add_multiple_alternatives(context=None, workout_id=None):
+    w = get_cache_value('current_workout')
+    if not w or w['id'] != workout_id:
+        abort(404)
+
+    target_exercise_id = request.args.get('target_exercise_id') or request.form.get('target_exercise_id')
+    if not target_exercise_id:
+        abort(400, "target_exercise_id is required")
+
+    target_item = find_exercise_item_or_alternative(w, target_exercise_id)
+    if not target_item:
+        abort(404, "Target exercise not found in workout")
+
+    selected_keys = request.form.getlist('selected_entity_keys')
+    selected_keys = list(dict.fromkeys([key for key in selected_keys if key]))
+
+    if not selected_keys:
+        response = make_response('')
+        response.headers['HX-Trigger'] = json.dumps({
+            "refreshWorkoutCanvas": {"target": "body"},
+            "showMessage": {"target": "body", "value": "No alternative exercises selected."}
+        })
+        return response
+
+    es = EntityStore()
+    added_count = 0
+    alternatives = target_item.setdefault('alternatives', [])
+    for composite_key_str in selected_keys:
+        try:
+            composite_key = literal_eval(composite_key_str)
+        except (ValueError, SyntaxError):
+            continue
+
+        ex = es.get_item_by_composite_key(composite_key)
+        if not ex:
+            continue
+
+        alternatives.append({'id': ex['id'], 'parameters': get_initial_params_for_exercise()})
+        added_count += 1
+
+    set_cache_value('current_workout', w)
+    session.pop('exercise_modal_selected_keys', None)
+
+    response = make_response('')
+    response.headers['HX-Trigger'] = json.dumps({
+        "refreshWorkoutCanvas": {"target": "body"},
+        "showMessage": {"target": "body", "value": f"Added {added_count} alternative(s)."}
+    })
+    return response
+
+@bp.route('/builder/<workout_id>/remove_alternative', methods=['POST'])
+@auth.login_required
+def remove_alternative(context=None, workout_id=None):
+    w = get_cache_value('current_workout')
+    if not w or w['id'] != workout_id:
+        abort(404)
+
+    target_exercise_id = request.form['exercise_id']
+    alternative_id = request.form['alternative_id']
+
+    item = find_exercise_item_or_alternative(w, target_exercise_id)
+    if item:
+        item['alternatives'] = [a for a in item.get('alternatives', []) if a.get('id') != alternative_id]
+
+    set_cache_value('current_workout', w)
+
+    # HTMX row-level delete: return 200 so hx-swap="delete" is applied.
+    if request.headers.get('HX-Request'):
+        return ('', 200)
+
+    return workout_canvas2(context, workout_id)
+
+
 @auth.login_required
 def add_workout(context=None, workout_id=None):
 
@@ -1029,11 +1130,10 @@ def save_data(workout_id, exercise_id, param, context=None):
             
         else:
             w = get_cache_value('current_workout')
-            if w:   
-                for s in w[WORKOUT_SECTIONS]:
-                    for it in s['exercises']:
-                        if it['id']==exercise_id:
-                            it['parameters'][param] = new_value
+            if w:
+                item = find_exercise_item_or_alternative(w, exercise_id)
+                if item:
+                    item['parameters'][param] = new_value
 
                 set_cache_value('current_workout', w)
 
