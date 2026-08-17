@@ -1,0 +1,52 @@
+<div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title">
+        <i class="bi bi-arrow-left-right me-2"></i>Swap Exercise{% if current_exercise %}: {{ current_exercise.name }}{% endif %}
+      </h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+      {% if current_exercise %}
+        <div class="d-flex align-items-center gap-3 p-2 mb-3 rounded bg-light">
+          {% if current_exercise.gif %}
+            <img src="{{ current_exercise.gif }}" class="rounded" style="height: 56px; width: 56px; object-fit: cover;">
+          {% elif current_exercise.images and current_exercise.images|length > 0 %}
+            <img src="{{ current_exercise.images[-1].url }}" class="rounded" style="height: 56px; width: 56px; object-fit: cover;">
+          {% endif %}
+          <div>
+            <div class="text-muted small">Currently doing</div>
+            <div class="fw-semibold">{{ current_exercise.name }}</div>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if alternative_exercises %}
+        <label class="form-label fw-semibold">Select from these alternative exercises</label>
+        <div class="list-group">
+          {% for alt in alternative_exercises %}
+            <div class="list-group-item d-flex align-items-center gap-3">
+              {% if alt.gif %}
+                <img src="{{ alt.gif }}" class="rounded" style="height: 56px; width: 56px; object-fit: cover;">
+              {% elif alt.images and alt.images|length > 0 %}
+                <img src="{{ alt.images[-1].url }}" class="rounded" style="height: 56px; width: 56px; object-fit: cover;">
+              {% else %}
+                <img src="{{ url_for('static', filename='images/exercise.png') }}" class="rounded" style="height: 56px; width: 56px; object-fit: cover;">
+              {% endif %}
+              <div class="flex-grow-1 fw-semibold">{{ alt.name }}</div>
+              <button type="button" class="btn btn-primary btn-sm"
+                hx-post="{{ url_for('workouts.swap_exercise_alternative', section_name=section_name, slot_index=slot_index) }}"
+                hx-vals='{"workout_instance_key": "{{ workout_instance_key }}", "alternative_exercise_id": "{{ alt.id }}"}'
+                hx-target="#modals-here"
+                hx-swap="innerHTML">
+                <i class="bi bi-check2-circle me-1"></i>Use this
+              </button>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-muted text-center mb-0">No alternative exercises available.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>

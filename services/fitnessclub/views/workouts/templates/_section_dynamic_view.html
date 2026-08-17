@@ -24,6 +24,14 @@
           {% endif %}
         </div>        
       </div>
+      {% if active_workout and workout_instance_key and item.alternatives and item.alternatives|length > 0 %}
+        <button type="button" class="btn btn-sm btn-outline-secondary mt-1"
+          hx-get="{{ url_for('workouts.show_exercise_alternatives', section_name=section.name, slot_index=loop.index0) }}?workout_instance_key={{ workout_instance_key }}"
+          hx-target="#modals-here" hx-swap="innerHTML"
+          data-bs-toggle="modal" data-bs-target="#modals-here">
+          <i class="bi bi-arrow-left-right me-1"></i>Swap Exercise
+        </button>
+      {% endif %}
       <div id="parameters">
         {% set timer = namespace(has_timer=False, timer_value=None, timer_units=None) %}      
         {% set param_ns = namespace(unit_param_id=None, param_list=[]) %}          

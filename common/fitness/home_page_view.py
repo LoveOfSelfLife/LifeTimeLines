@@ -130,7 +130,8 @@ def render_finishing_workout_page(member, current_state):
     fininshed_ts_local = to_datetime_local_value(workout_instance.get('finished_ts') or local_time_now)
 
     exercise_parameters = current_state.get('exercise_parameters', {})
-    parameters_changed = len(exercise_parameters) > 0
+    exercise_swaps = current_state.get('exercise_swaps', {})
+    parameters_changed = len(exercise_parameters) > 0 or len(exercise_swaps) > 0
     return hx_render_template(
         "home/finishing_workout.html",
         workout=workout_instance,

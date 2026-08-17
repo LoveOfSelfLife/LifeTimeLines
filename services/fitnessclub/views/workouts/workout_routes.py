@@ -18,6 +18,7 @@ from common.fitness.programs import get_last_workout_instance_for_workout
 from common.fitness.programs import get_last_workout_instance_for_workout
 from common.fitness.home_page_view import render_home_page_workout
 from common.fitness.workout_state import get_active_workout_state, update_active_workout_state
+from common.fitness.exercise_alternatives import find_slot, perform_exercise_swap, record_exercise_swap
 
 bp = Blueprint('workouts', __name__, template_folder='templates')
 from auth import auth
@@ -484,6 +485,7 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
         can_edit_parameters = True
         workout_definition = workout
         workout_definition_key = None
+        workout_instance_key = None
         active_workout = False
 
     if workout_view_preference not in ['accordion', 'carousel']:
@@ -497,6 +499,7 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
         section=section,
         exercises=exercises,
         workout_definition_key=workout_definition_key,
+        workout_instance_key=workout_instance_key,
         can_edit_parameters=can_edit_parameters, 
         active_workout=active_workout,
         in_program_builder=editing_program_workout,
@@ -1840,112 +1843,72 @@ def save_future_exercise_parameters(context=None):
                            current_parameters=new_parameters)
 
 
-@bp.route("/viewer/exercise/search", methods=["POST"])
+@bp.route("/viewer/exercise/alternatives/<section_name>/<int:slot_index>")
 @auth.login_required
-def search_exercises(context=None):
-    """Search for exercises to replace current exercise"""
-    search_term = request.form.get("exercise-search", "").strip()
-    category = request.form.get("search-category", "")
-    
-    # Get current context parameters from URL args or form
-    exercise_id = request.args.get("exercise_id") or request.form.get("exercise_id")
-    workout_id = request.args.get("workout_id") or request.form.get("workout_id") 
-    workout_instance_key = request.args.get("workout_instance_key") or request.form.get("workout_instance_key")
-    
-    # Use the member ID from context for filtering
-    member_id = get_member_id_from_user_context(context)
-    if not member_id:
-        abort(401)
-    
-    # Get all exercises first
-    fields_to_display = get_fitnessclub_listing_fields_for_entity("ExerciseTable")
-    all_exercises = get_entities("ExerciseTable", fields_to_display)
-    
-    # Filter exercises in-memory
-    filtered_exercises = []
-    for exercise in all_exercises:
-        # Search filter
-        if search_term and search_term.lower() not in exercise.name.lower():
-            continue
-        
-        # Category filter
-        if category and exercise.category != category:
-            continue
-            
-        filtered_exercises.append(exercise)
-    
-    # Limit results
-    filtered_exercises = filtered_exercises[:20]
-    
-    if not filtered_exercises:
-        return '<p class="text-muted text-center">No exercises found.</p>'
-    
-    return render_template("_exercise_search_results.html", 
-                         exercises=filtered_exercises,
-                         exercise_id=exercise_id,
-                         workout_id=workout_id,
-                         workout_instance_key=workout_instance_key)
-
-
-@bp.route("/viewer/exercise/replace", methods=["POST"])
-@auth.login_required
-def replace_exercise(context=None):
-    """Replace current exercise in workout"""
-    current_exercise_id = request.args.get("current_exercise_id", None)
-    new_exercise_id = request.args.get("new_exercise_id", None)
+def show_exercise_alternatives(context=None, section_name=None, slot_index=None):
+    """Show a modal listing the alternative exercises available for a workout slot."""
     workout_instance_key = request.args.get("workout_instance_key", None)
-    workout_id = request.args.get("workout_id", None)
-    
-    if not all([current_exercise_id, new_exercise_id, workout_instance_key]):
-        abort(400, "Missing required parameters")
-    
-    # Get the new exercise details
-    new_exercise = get_entity("ExerciseTable", new_exercise_id)
-    if not new_exercise:
-        abort(404, "New exercise not found")
-    
-    es = EntityStore() 
-    
-    # Get the workout instance
-    workout_instance = es.get_item_by_composite_key(workout_instance_key)
+    if not workout_instance_key:
+        abort(400, "workout_instance_key is required")
+
+    es = EntityStore()
+    workout_instance = es.get_item_by_composite_key(literal_eval(workout_instance_key))
     if not workout_instance:
         abort(404, "Workout instance not found")
-    
-    # Find and replace the exercise in the workout
-    updated = False
-    for section in workout_instance.get(WORKOUT_SECTIONS, []):
-        for i, ex_item in enumerate(section.get("exercises", [])):
-            if ex_item.get("id") == current_exercise_id:
-                # Keep the same parameters but change the exercise
-                section["exercises"][i]["id"] = new_exercise_id
-                section["exercises"][i]["name"] = new_exercise.name
-                updated = True
-                break
-        if updated:
-            break
-    
-    if updated:
-        es.store_entity(workout_instance)
-        
-        # Update workout state to track the replacement
-        current_workout_state = get_active_workout_state()
-        if not current_workout_state:
-            current_workout_state = {}
-        
-        exercise_replacements = current_workout_state.get('exercise_replacements', {})
-        exercise_replacements[current_exercise_id] = {
-            'original_exercise_id': current_exercise_id,
-            'new_exercise_id': new_exercise_id,
-            'new_exercise_name': new_exercise.name,
-            'replaced_at': datetime.utcnow().isoformat()
-        }
-        current_workout_state['exercise_replacements'] = exercise_replacements
-        update_active_workout_state(current_workout_state)
-        
-        return f'<div class="alert alert-success">Exercise replaced successfully! Now using: {new_exercise.name}</div>'
-    else:
-        return '<div class="alert alert-danger">Failed to replace exercise.</div>'
-    
+
+    item = find_slot(workout_instance, section_name, slot_index)
+    if not item:
+        abort(404, "Exercise slot not found")
+
+    current_exercise = get_entity("ExerciseTable", item.get("id"))
+    alternative_exercises = []
+    for alt in item.get("alternatives", []):
+        alt_exercise = get_entity("ExerciseTable", alt.get("id"))
+        if alt_exercise:
+            alternative_exercises.append(alt_exercise)
+
+    return render_template("_exercise_alternatives_modal.html",
+                           current_exercise=current_exercise,
+                           alternative_exercises=alternative_exercises,
+                           workout_instance_key=workout_instance_key,
+                           section_name=section_name,
+                           slot_index=slot_index)
+
+
+@bp.route("/viewer/exercise/alternatives/<section_name>/<int:slot_index>/swap", methods=["POST"])
+@auth.login_required
+def swap_exercise_alternative(context=None, section_name=None, slot_index=None):
+    """Swap the chosen alternative into the given workout slot for the active instance."""
+    workout_instance_key = request.form.get("workout_instance_key", None)
+    alternative_exercise_id = request.form.get("alternative_exercise_id", None)
+    if not workout_instance_key or not alternative_exercise_id:
+        abort(400, "workout_instance_key and alternative_exercise_id are required")
+
+    es = EntityStore()
+    workout_instance = es.get_item_by_composite_key(literal_eval(workout_instance_key))
+    if not workout_instance:
+        abort(404, "Workout instance not found")
+
+    item = find_slot(workout_instance, section_name, slot_index)
+    if not item:
+        abort(404, "Exercise slot not found")
+
+    swap_info = perform_exercise_swap(item, alternative_exercise_id)
+    if not swap_info:
+        abort(404, "Alternative exercise not found in this slot")
+
+    es.upsert_item(workout_instance)
+
+    current_workout_state = get_active_workout_state() or {}
+    record_exercise_swap(current_workout_state, section_name, slot_index, swap_info)
+    update_active_workout_state(current_workout_state)
+
+    response = make_response('')
+    response.headers['HX-Trigger'] = json.dumps({
+        "exerciseSwapped": {"target": "body"},
+        "closeModal": {"target": "body"}
+    })
+    return response
 
 
 @bp.route("/get-editor-for-parameter/<workout_id>/<exercise_id>/<param>")

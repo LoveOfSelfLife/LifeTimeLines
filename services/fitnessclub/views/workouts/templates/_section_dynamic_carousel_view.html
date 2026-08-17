@@ -47,6 +47,13 @@
                                 hx-target="#modals-here" hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#modals-here">
                                 See more
                             </button>
+                            {% if active_workout and workout_instance_key and item.alternatives and item.alternatives|length > 0 %}
+                                <button type="button" class="btn btn-sm btn-outline-secondary ms-2"
+                                    hx-get="{{ url_for('workouts.show_exercise_alternatives', section_name=section.name, slot_index=loop.index0) }}?workout_instance_key={{ workout_instance_key }}"
+                                    hx-target="#modals-here" hx-swap="innerHTML" data-bs-toggle="modal" data-bs-target="#modals-here">
+                                    <i class="bi bi-arrow-left-right me-1"></i>Swap Exercise
+                                </button>
+                            {% endif %}
                         </div>
 
                         <div id="parameters">

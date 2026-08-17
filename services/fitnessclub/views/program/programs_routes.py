@@ -20,6 +20,7 @@ from common.fitness.member_program_entity import MemberProgramsEntity
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout
 from common.fitness.programs import get_last_workout_instance_for_workout, get_next_workout_in_program, get_workouts_from_program
 from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state, update_active_workout_state
+from common.fitness.exercise_alternatives import apply_recorded_swaps_to_definition
 from common.fitness.edit_workout_object import bring_up_workouts_builder
 from common.fitness.roles_service import get_accessible_members_for_context, get_team_coaches_with_details, get_team_for_client, is_member_client, is_member_coach
 from common.fitness.coach_team_entity import get_coachs_team_members
@@ -1112,7 +1113,8 @@ def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, m
 
     workout_def_id = workout_entity.get('id', None) if workout_entity else None
 
-    workout_instance = MemberWorkoutInstanceEntity(workout_entity.copy()) if workout_entity else MemberWorkoutInstanceEntity({})
+    # deep-copy so swapping alternatives during the workout never mutates the original definition
+    workout_instance = MemberWorkoutInstanceEntity(copy.deepcopy(dict(workout_entity))) if workout_entity else MemberWorkoutInstanceEntity({})
 
     workout_instance.update({
         'id': str(uuid.uuid4()),
@@ -1199,17 +1201,23 @@ def really_finish_workout(context=None, workout_instance_key=None):
     else:
         updated_parameters = adjustments_for_next_workout if adjustments_for_next_workout else exercise_parameters
     
-    # get the member workout definition for this workout instance, and update the parameters of the exercises with the updated_parameters, but only if the updated_parameters is not None
-    if updated_parameters:
+    # if the swap was discarded (strategy 'original'), never persist it to the definition
+    exercise_swaps = current_workout_state.get('exercise_swaps', {}) if next_time_strategy != 'original' else {}
+
+    # get the member workout definition for this workout instance, and update it with the parameter adjustments
+    # and/or exercise swaps performed during this workout, but only if there is something to persist
+    if updated_parameters or exercise_swaps:
         member_workout_def_id = workout_instance.get('member_workout_def_id', None)
-        member_id = workout_instance.get('member_id', None)
         workout_definition = es.get_item(MemberWorkoutDefinitionEntity({'id': member_workout_def_id}))
-        for section in workout_definition.get('workout_sections', []):
-            for exercise in section.get('exercises', []):
-                exercise_id = exercise.get('id', None)
-                if exercise_id and exercise_id in updated_parameters:
-                    adjustment = updated_parameters[exercise_id]
-                    exercise['parameters'].update(adjustment)
+        if updated_parameters:
+            for section in workout_definition.get('workout_sections', []):
+                for exercise in section.get('exercises', []):
+                    exercise_id = exercise.get('id', None)
+                    if exercise_id and exercise_id in updated_parameters:
+                        adjustment = updated_parameters[exercise_id]
+                        exercise['parameters'].update(adjustment)
+        if exercise_swaps:
+            apply_recorded_swaps_to_definition(workout_definition, exercise_swaps)
         es.upsert_item(workout_definition)
 
     workout_instance['started_ts'] = _normalize_form_datetime(started_ts, workout_instance.get('started_ts'))
