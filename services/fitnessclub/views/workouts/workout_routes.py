@@ -107,7 +107,7 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
 
     # Set results_target_container based on target parameter
     results_target_container = target if target else 'results-area'
-    entities_listing_route = f'/workout/workouts-listing?entity_table={entity_name}&target={target}'
+    entities_listing_route = f'/workouts/workouts-listing?entity_table={entity_name}&target={target}'
     if allow_multi_select:
         entities_listing_route += '&allow_multi_select=true'
 
@@ -122,12 +122,12 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
         entity_action_icon='bi-pencil-square'
         entity_action_route_method = None
         entity_action_route_target = None
-        entity_action_label='Edit Workout',
+        entity_action_label='Edit Workout'
 
     template_data = dict(
         title="Workouts Library",
         fields_to_display=fields_to_display,
-        main_content_container='xyz',
+        main_content_container="entities-container",
         entities=current,
         entity_name=entity_name,
         filter_terms=filter_terms,
@@ -1596,212 +1596,212 @@ def builder_workouts_listing(context=None):
 # the action button on the exercise reviewer list will create a form with the exercise details, and the results
 # will targeted for the exercise reviewer details panel
 
-@bp.route('/exercise_reviewer')
-@auth.login_required
-def exercise_reviewer(context=None):
+# @bp.route('/exercise_reviewer')
+# @auth.login_required
+# def exercise_reviewer(context=None):
 
-    return hx_render_template('exercise_reviewer.html',
-                              context=context)
+#     return hx_render_template('exercise_reviewer.html',
+#                               context=context)
 
-@bp.route('/exercise_reviewer_listing', methods=['GET', 'POST'])
-@auth.login_required
-def exercise_reviewer_listing(context=None):
-    exercise_id = request.args.get('exercise_id', None)
-    target = request.args.get('target', None)
+# @bp.route('/exercise_reviewer_listing', methods=['GET', 'POST'])
+# @auth.login_required
+# def exercise_reviewer_listing(context=None):
+#     exercise_id = request.args.get('exercise_id', None)
+#     target = request.args.get('target', None)
 
-    mobile = request.args.get('mobile', type=bool, default=False)
-    div_id = 'reviewer-list-mobile' if mobile else 'reviewer-list'
-    target = div_id
-    member_id = get_member_id_from_user_context(context)
-    if not member_id:
-        abort(401)    
-    entity_name = "ExerciseTable"
-    page = int(request.args.get('page', 1))
-    page_size = 100
+#     mobile = request.args.get('mobile', type=bool, default=False)
+#     div_id = 'reviewer-list-mobile' if mobile else 'reviewer-list'
+#     target = div_id
+#     member_id = get_member_id_from_user_context(context)
+#     if not member_id:
+#         abort(401)    
+#     entity_name = "ExerciseTable"
+#     page = int(request.args.get('page', 1))
+#     page_size = 100
 
-    # Handle view preference
-    view = (request.form.get('view') if request.method == 'POST' 
-            else request.args.get('view')) or session.get('view_preference', 'list')
+#     # Handle view preference
+#     view = (request.form.get('view') if request.method == 'POST' 
+#             else request.args.get('view')) or session.get('view_preference', 'list')
     
-    if view != session.get('view_preference'):
-        session['view_preference'] = view
+#     if view != session.get('view_preference'):
+#         session['view_preference'] = view
     
-    fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
-    filter_terms = get_filter_terms_from_request()
-    entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
+#     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
+#     filter_terms = get_filter_terms_from_request()
+#     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
     
-    total_pages = (len(entities) + page_size - 1) // page_size
-    start = (page - 1) * page_size
-    end = start + page_size
-    current = entities[start:end]
+#     total_pages = (len(entities) + page_size - 1) // page_size
+#     start = (page - 1) * page_size
+#     end = start + page_size
+#     current = entities[start:end]
 
-    if not entity_name:
-        return "No entity name provided", 404
-    entity_type = get_entity_obj_from_entity_name(entity_name)
+#     if not entity_name:
+#         return "No entity name provided", 404
+#     entity_type = get_entity_obj_from_entity_name(entity_name)
 
-    if request.headers.get('HX-Target') == 'results-area':
-        template_file_name = 'entity_results_partial.html'
-    else:
-        template_file_name = 'entity_list_component.html'
+#     if request.headers.get('HX-Target') == 'results-area':
+#         template_file_name = 'entity_results_partial.html'
+#     else:
+#         template_file_name = 'entity_list_component.html'
 
-    return hx_render_template(template_file_name,
-                              fields_to_display=fields_to_display,
-                              main_content_container='xyz',
-                              entities=current,
-                              entity_name=entity_name,
-                              entity_display_name=entity_type.get_display_name(),
-                              filter_terms=filter_terms,
-                              args=request.args,
-                              page=page,
-                              view=view,
-                              total_pages=total_pages,
-                              filter_dialog_route=f'/workouts/exercise_reviewer/filter-dialog?entity_table={entity_name}&target={target}',
-                              entities_listing_route=f'/workouts/exercise_reviewer_listing?target={target}',
-                              entity_view_route=f'/exercises/view?entity_table={entity_name}',
-                              entity_action_route=f'/workouts/exercise_reviewer/review?target={target}',
-                              entity_action_route_method='post',
-                              entity_action_route_target="canvas",                              
-                              entity_action_icon='bi-arrow-right-square-fill',
-                              favorite_toggle_route='/admin/toggle-favorite',
-                              results_target_container=target if target else 'results-area',
-                              context=context)      
+#     return hx_render_template(template_file_name,
+#                               fields_to_display=fields_to_display,
+#                               main_content_container='xyz',
+#                               entities=current,
+#                               entity_name=entity_name,
+#                               entity_display_name=entity_type.get_display_name(),
+#                               filter_terms=filter_terms,
+#                               args=request.args,
+#                               page=page,
+#                               view=view,
+#                               total_pages=total_pages,
+#                               filter_dialog_route=f'/workouts/exercise_reviewer/filter-dialog?entity_table={entity_name}&target={target}',
+#                               entities_listing_route=f'/workouts/exercise_reviewer_listing?target={target}',
+#                               entity_view_route=f'/exercises/view?entity_table={entity_name}',
+#                               entity_action_route=f'/workouts/exercise_reviewer/review?target={target}',
+#                               entity_action_route_method='post',
+#                               entity_action_route_target="canvas",                              
+#                               entity_action_icon='bi-arrow-right-square-fill',
+#                               favorite_toggle_route='/admin/toggle-favorite',
+#                               results_target_container=target if target else 'results-area',
+#                               context=context)      
 
-@bp.route('/exercise_reviewer/filter-dialog')
-@auth.login_required
-def exercise_reviewer_filter_dialog(context=None):
-    target = request.args.get('target', None)
-    entity_name = "ExerciseTable"
-    entity_type = get_entity_obj_from_entity_name(entity_name)
-    filters = get_fitnessclub_entity_filters_for_entity(entity_name)
+# @bp.route('/exercise_reviewer/filter-dialog')
+# @auth.login_required
+# def exercise_reviewer_filter_dialog(context=None):
+#     target = request.args.get('target', None)
+#     entity_name = "ExerciseTable"
+#     entity_type = get_entity_obj_from_entity_name(entity_name)
+#     filters = get_fitnessclub_entity_filters_for_entity(entity_name)
 
-    return hx_render_template('filter_dialog.html', 
-                              entities_listing_route=f'/workouts/exercise_reviewer_listing?target={target}',
-                              filter_results_target=target,
-                              entity_display_name=entity_type.get_display_name(),                              
-                              entity_name=entity_name,
-                              filters=filters,
-                              args=request.args,
-                              context=context)
+#     return hx_render_template('filter_dialog.html', 
+#                               entities_listing_route=f'/workouts/exercise_reviewer_listing?target={target}',
+#                               filter_results_target=target,
+#                               entity_display_name=entity_type.get_display_name(),                              
+#                               entity_name=entity_name,
+#                               filters=filters,
+#                               args=request.args,
+#                               context=context)
 
-@bp.route('/exercise_reviewer/review', methods=['POST'])
-@auth.login_required
-def exercise_reviewer_review(context=None):
+# @bp.route('/exercise_reviewer/review', methods=['POST'])
+# @auth.login_required
+# def exercise_reviewer_review(context=None):
 
-    composite_key_str = request.args.get('key', None)
-    composite_key = eval(composite_key_str) if composite_key_str else None
-    es = EntityStore()
+#     composite_key_str = request.args.get('key', None)
+#     composite_key = eval(composite_key_str) if composite_key_str else None
+#     es = EntityStore()
 
-    ex = es.get_item_by_composite_key(composite_key)
-    if not ex:
-        abort(404)
+#     ex = es.get_item_by_composite_key(composite_key)
+#     if not ex:
+#         abort(404)
     
-    exercise_id = ex['id']
+#     exercise_id = ex['id']
 
-    set_cache_value('current_exercise_being_reviewed', ex)
+#     set_cache_value('current_exercise_being_reviewed', ex)
 
-    return exercise_reviewer_editor_canvas2(context, exercise_id)
+#     return exercise_reviewer_editor_canvas2(context, exercise_id)
 
 
-@bp.route('/exercise_reviewer/<exercise_id>/canvas')
-@auth.login_required
-def exercise_reviewer_editor_canvas(context=None, exercise_id=None):
-    return exercise_reviewer_editor_canvas2(context, exercise_id)
+# @bp.route('/exercise_reviewer/<exercise_id>/canvas')
+# @auth.login_required
+# def exercise_reviewer_editor_canvas(context=None, exercise_id=None):
+#     return exercise_reviewer_editor_canvas2(context, exercise_id)
 
-def exercise_reviewer_editor_canvas2(context=None, exercise_id=None):
-    es = EntityStore()
+# def exercise_reviewer_editor_canvas2(context=None, exercise_id=None):
+#     es = EntityStore()
 
-    exercise =  get_cache_value('current_exercise_being_reviewed')
-    if not exercise:
-        abort(404)
+#     exercise =  get_cache_value('current_exercise_being_reviewed')
+#     if not exercise:
+#         abort(404)
 
-    exercise_id = exercise['id']
+#     exercise_id = exercise['id']
     
-    er = ExerciseReviewEntity({ "id": exercise_id })
-    exercise_review = es.get_item(er)
-    if not exercise_review:
-        exercise_review = ExerciseReviewEntity({ "id": exercise_id })
-        es.upsert_item(exercise_review)
+#     er = ExerciseReviewEntity({ "id": exercise_id })
+#     exercise_review = es.get_item(er)
+#     if not exercise_review:
+#         exercise_review = ExerciseReviewEntity({ "id": exercise_id })
+#         es.upsert_item(exercise_review)
 
-    return hx_render_template('exercise_reviewer_editor_canvas.html',
-                            exercise=exercise,
-                            exercise_review=exercise_review,
-                            exercise_review_schema=exercise_review.get_schema(),
-                            update_entity_url=url_for('workouts.update_exercise_review')
-                            )
+#     return hx_render_template('exercise_reviewer_editor_canvas.html',
+#                             exercise=exercise,
+#                             exercise_review=exercise_review,
+#                             exercise_review_schema=exercise_review.get_schema(),
+#                             update_entity_url=url_for('workouts.update_exercise_review')
+#                             )
 
 
-@bp.route('/exercise_reviewer/updatereview', methods=['POST'])
-@auth.login_required
-def update_exercise_review(context=None):
-    table_id = "ExerciseReviewTable"
-    data = request.get_json(silent=True)
-    if data is None:
-        return jsonify({"error": "Invalid or missing JSON"}), 400
+# @bp.route('/exercise_reviewer/updatereview', methods=['POST'])
+# @auth.login_required
+# def update_exercise_review(context=None):
+#     table_id = "ExerciseReviewTable"
+#     data = request.get_json(silent=True)
+#     if data is None:
+#         return jsonify({"error": "Invalid or missing JSON"}), 400
 
-    print(f"Received JSON payload for table {table_id}: {data}")
-    entity = get_entity_obj_from_entity_name(table_id)        
+#     print(f"Received JSON payload for table {table_id}: {data}")
+#     entity = get_entity_obj_from_entity_name(table_id)        
 
-    es = EntityStore()
+#     es = EntityStore()
     
-    # this assumes that the entity uses 'id' as the key field
-    # it also assumes that the entity has a fixed partition value
-    # probably need to make this more generic in the future
-    # TODO: fix this to be more generic
+#     # this assumes that the entity uses 'id' as the key field
+#     # it also assumes that the entity has a fixed partition value
+#     # probably need to make this more generic in the future
+#     # TODO: fix this to be more generic
 
-    entity.initialize(data)
-    es.upsert_item(entity)
+#     entity.initialize(data)
+#     es.upsert_item(entity)
 
-    response = make_response('')
-    response.headers['HX-Trigger'] = json.dumps({
-        "entityListChanged": True,
-        "showMessage": { "value": f"item was saved.", "target": "body" }
-    })
+#     response = make_response('')
+#     response.headers['HX-Trigger'] = json.dumps({
+#         "entityListChanged": True,
+#         "showMessage": { "value": f"item was saved.", "target": "body" }
+#     })
 
-    return response
-
-
-@bp.route('/exercise_reviewer/<exercise_id>/updatename', methods=['POST'])
-@auth.login_required
-def update_exercise_name(context=None, exercise_id=None):
-
-    ex = get_cache_value('current_exercise_being_reviewed')
-    if not ex:
-        abort(404)    
-    ex['name'] = request.form['name']
-
-    set_cache_value('current_exercise_being_reviewed', ex)
-
-    return exercise_reviewer_editor_canvas2(context, exercise_id)
+#     return response
 
 
-@bp.route('/exercise_reviewer/save', methods=['POST'])
-@auth.login_required
-def reviewer_save_exercise(context=None):
-    EXERCISE_ENTITY_NAME= "ExerciseTable"
-    member_id = get_member_id_from_user_context(context)
-    if not member_id:
-        abort(401)
-    exercise_id = request.form['exercise_id']
+# @bp.route('/exercise_reviewer/<exercise_id>/updatename', methods=['POST'])
+# @auth.login_required
+# def update_exercise_name(context=None, exercise_id=None):
+
+#     ex = get_cache_value('current_exercise_being_reviewed')
+#     if not ex:
+#         abort(404)    
+#     ex['name'] = request.form['name']
+
+#     set_cache_value('current_exercise_being_reviewed', ex)
+
+#     return exercise_reviewer_editor_canvas2(context, exercise_id)
+
+
+# @bp.route('/exercise_reviewer/save', methods=['POST'])
+# @auth.login_required
+# def reviewer_save_exercise(context=None):
+#     EXERCISE_ENTITY_NAME= "ExerciseTable"
+#     member_id = get_member_id_from_user_context(context)
+#     if not member_id:
+#         abort(401)
+#     exercise_id = request.form['exercise_id']
     
-    ex = get_cache_value('current_exercise_being_reviewed')
-    if not ex or ex['id'] != exercise_id:
-        abort(404)
+#     ex = get_cache_value('current_exercise_being_reviewed')
+#     if not ex or ex['id'] != exercise_id:
+#         abort(404)
 
-    exercise_type : ExerciseEntity = get_entity_obj_from_entity_name(EXERCISE_ENTITY_NAME)
+#     exercise_type : ExerciseEntity = get_entity_obj_from_entity_name(EXERCISE_ENTITY_NAME)
 
-    print('Saving workout')
-    es = EntityStore()
-    exercise_type.initialize(ex)
-    es.upsert_item(exercise_type)
-    delete_from_cache('current_exercise_being_reviewed')
+#     print('Saving workout')
+#     es = EntityStore()
+#     exercise_type.initialize(ex)
+#     es.upsert_item(exercise_type)
+#     delete_from_cache('current_exercise_being_reviewed')
 
-    response = make_response('')
-    response.headers['HX-Trigger'] = json.dumps({
-        "eventListChanged": True,
-        "showMessage": { "value" : "exercise saved", "target": "body" }
-    })
+#     response = make_response('')
+#     response.headers['HX-Trigger'] = json.dumps({
+#         "eventListChanged": True,
+#         "showMessage": { "value" : "exercise saved", "target": "body" }
+#     })
 
-    return response
+#     return response
 
 
 # ── Workout View ────────────────────────────────────────────────
