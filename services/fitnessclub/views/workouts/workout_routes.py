@@ -6,7 +6,7 @@ from common.fitness.active_fitness_registry import get_fitnessclub_entity_filter
 from common.fitness.cacher import get_cache_value, set_cache_value, delete_from_cache
 from common.fitness.entities_getter import delete_entity, get_entities
 from common.fitness.entities_getter import filter_entities_by_member_role
-from common.fitness.exercise_entity import ExerciseEntity
+from common.fitness.exercise_entity import ExerciseEntity, show_exercise_viewer
 from common.fitness.exercise_parameters import get_editor_type_for_unit_parameter, get_editor_type_for_value_parameter
 from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
 from common.fitness.hx_common import rm_spaces
@@ -1757,15 +1757,8 @@ def exercise_details(context=None, exercise_id=None):
     exercise = get_entity("ExerciseTable", exercise_id)
     allow_popups = request.args.get("allow_popups", default='false')
     modal_mode = request.args.get("modal_mode", default='false').lower() == 'true'
-    # exercise = exercises.get(exercise_id)
-    if not exercise:
-        abort(404)
-    # Render only the drill-in partial
-    return render_template("_exercise_details_view.html",
-                           exercise=exercise,
-                           allow_popups=allow_popups,
-                           modal_mode=modal_mode,
-                           context=context)
+    return show_exercise_viewer(exercise, context)
+
 
 @bp.route("/viewer/exercise/<exercise_id>/feedback", methods=["POST"])
 @auth.login_required

@@ -95,10 +95,11 @@
                         {% endif %}
 
                         <div class="mt-auto d-flex justify-content-between align-items-center">
-                            <small class="text-muted">
-                                <i class="bi bi-activity me-1"></i>{{ entity_action_label }}
-                            </small>
-                            {% if entity_action_route %}
+                            {% if entity_action_route and not allow_multi_select|default(false) %}
+                                <small class="text-muted">
+                                    <i class="bi bi-activity me-1"></i>{{ entity_action_label }}
+                                </small>
+                            
                                 {% if entity_action_route_method %}
                                     {% set action_method = entity_action_route_method %}
                                 {% else %}
