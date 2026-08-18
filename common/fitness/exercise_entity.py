@@ -1,6 +1,7 @@
 from hashlib import sha256
 from common.entity_store import EntityObject
-from common.fitness.hx_common import hx_render_template
+from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
+from common.fitness.member_entity import get_member_id_from_user_context
 from common.fitness.utils import convert_to_alphanumeric
 import json
 from common.fitness.exercise_schema import exercise_schema
@@ -353,3 +354,17 @@ def render_exercise_popup_viewer_html(context, entity, can_edit=False, filter_te
                               errors={},
                               context=context,
                               can_edit=can_edit)
+
+
+def show_exercise_viewer(entity_to_view, context):
+    member_id = get_member_id_from_user_context(context)
+    if member_id:
+        if entity_to_view.get('created_by_member_id', None) == member_id:
+            can_edit = True
+        else:
+            # check if the member is an admin
+            from common.fitness.member_entity import is_member_an_admin
+            if is_member_an_admin(member_id):
+                can_edit = True
+
+    return render_exercise_popup_viewer_html(context, entity_to_view, can_edit=can_edit, filter_terms=get_filter_terms_from_request())

@@ -4,9 +4,10 @@ from urllib import response
 from flask import Blueprint, abort, make_response, redirect, render_template, request, session, url_for, jsonify
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
+from common.fitness.exercise_entity import show_exercise_viewer
 from common.fitness.hx_common import parse_listing_filter
 from common.fitness.entities_getter import get_entities
-from common.fitness.exercise_entity import ExerciseEntity, render_exercise_popup_viewer_html
+from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
 from common.fitness.member_entity import get_member_id_from_user_context
 from common.fitness.exercise_schema import exercise_schema
@@ -153,8 +154,10 @@ def exercise_listing_base(entity_name, page, page_size, view, fields_to_display,
     results_target_container = target if target else 'results-area'
     if modal_mode:
         entity_add_route = None
+        entity_action_route=None
     else:
         entity_add_route = '/exercises/new?'
+        entity_action_route='/exercises/edit?'
 
     multi_select_post_route = request.form.get('multi_select_post_route') or request.args.get('multi_select_post_route')
     multi_select_button_label = request.form.get('multi_select_button_label') or request.args.get('multi_select_button_label') or 'Add Selected'
@@ -191,7 +194,7 @@ def exercise_listing_base(entity_name, page, page_size, view, fields_to_display,
         filter_dialog_route=f'/exercises/filter-dialog?entity_table={entity_name}',        
         entities_listing_route=entities_listing_route,
         entity_view_route=f'/exercises/view?entity_table={entity_name}',
-        entity_action_route='/exercises/edit?',
+        entity_action_route=entity_action_route,
         entity_action_icon='bi-pencil-square',
         entity_action_label='Edit Exercise',
         favorite_toggle_route='/admin/toggle-favorite',
@@ -220,19 +223,8 @@ def view_exercise_details(context=None):
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
     entity_to_view = es.get_item_by_composite_key(composite_key)
-    # here we need to determine if the current member can edit the exercise, which is the case if the member is an admin or if the exercise was created by the member
-    member_id = get_member_id_from_user_context(context)
-    can_edit = False
-    if member_id:
-        if entity_to_view.get('created_by_member_id', None) == member_id:
-            can_edit = True
-        else:
-            # check if the member is an admin
-            from common.fitness.member_entity import is_member_an_admin
-            if is_member_an_admin(member_id):
-                can_edit = True
-   
-    return render_exercise_popup_viewer_html(context, entity_to_view, can_edit=can_edit, filter_terms=get_filter_terms_from_request())
+
+    return show_exercise_viewer(entity_to_view, context)
 
 @bp.route('/filter-dialog')
 @auth.login_required

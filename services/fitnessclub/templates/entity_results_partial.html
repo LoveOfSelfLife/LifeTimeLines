@@ -39,7 +39,7 @@
                     {% for field in fields_to_display.listing_view %}
                     <th scope="col">{{ field }}</th>
                     {% endfor %}
-                    {% if entity_action_route %}
+                    {% if entity_action_route and not allow_multi_select %}
                     <th scope="col" class="text-center">{{ entity_action_label }}</th>
                     {% endif %}
                 </tr>
@@ -110,7 +110,7 @@
                         {% set action_target = main_content_container %}
                     {% endif %}
 
-                    {% if entity_action_route %}
+                    {% if entity_action_route and not allow_multi_select %}
                     <td class="text-center">
                         <button class="btn btn-sm btn-outline-light"
                             hx-{{ action_method }}="{{ entity_action_route }}&key={{ entity.key }}&page={{ page }}&filter={{ filter_terms }}"

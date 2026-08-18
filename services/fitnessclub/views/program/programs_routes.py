@@ -883,13 +883,13 @@ def edit_workout(context=None, program_id=None):
     current_program_workouts = get_cache_value('current_program_workouts')
     wk_id = request.form['workout_id']
 
-    # we need to keep track of the workout that is being removed so we can unlink it from the program when we save the program
-    # so first find the workout to unlink from the program
+    # we need to keep track of the workout that is being edited
     workout_to_edit = next((wk for wk in current_program_workouts if wk.get('id', None) == wk_id), None)
     set_cache_value('workout_editor_context', { 'editing_program_workout': workout_to_edit,
                                                 'program_id': program_id } )
+    # we we get there we are definately editing a workout definition (vs a workout instance)
+    workout_to_edit = MemberWorkoutDefinitionEntity(workout_to_edit)
     return bring_up_workouts_builder(workout_to_edit)
-
 
 @bp.route('/builder/<program_id>/remove', methods=['POST'])
 @auth.login_required

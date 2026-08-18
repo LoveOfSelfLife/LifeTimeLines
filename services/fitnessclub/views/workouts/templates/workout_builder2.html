@@ -9,7 +9,7 @@
                             placeholder="Workout Name" hx-trigger="change delay:500ms, focusout"
                             hx-post="{{ url_for('workouts.update_workout_name', workout_id=workout.id) }}" hx-swap="none">
                     </div>
-                    {% if role_context.role == 'coach' %}
+                    {% if role_context.role == 'coach' and workout_type != 'workout_instance' %}
                     <div class="col-md-6 mt-3 mt-md-0">
                         <label for="assigned_member" class="form-label">Assign To:</label>
                         <select name="assigned_member_id" id="assigned_member" class="form-select"
@@ -51,7 +51,7 @@
                     </button>
                     {% endif %}
 
-                    {% if not editing_program_workout %}
+                    {% if not editing_program_workout and workout_type != 'workout_instance' %}
                     <button class="btn btn-success"
                         hx-post="{{ url_for('workouts.save_workout_copy', workout_id=workout.id) }}"
                         hx-target="#entities-container" hx-swap="show:top"

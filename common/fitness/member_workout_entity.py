@@ -19,7 +19,9 @@ class MemberWorkoutDefinitionEntity (EntityObject):
             "member_program_id",        # reference the member program this workout is part of, if any
             "order_index",              # index to determine the order of workouts within a program
             "purpose",                  # optional field to describe the purpose of this workout within the context of a program
-            "workout_type"              # type of workout: "standard" (default) or "alternative"
+            "workout_type",             # type of workout: "standard" (default) or "alternative"
+            "updated_ts",                # timestamp of the last update to this workout definition
+            "updated_by"                 # member_id of the user who last updated this workout definition
             ]
     key_field="id"
     partition_value="workout"
@@ -40,8 +42,10 @@ class MemberWorkoutInstanceEntity (EntityObject):
             "adjustments_for_next_workout",
             "member_workout_def_id",          # reference to the member workout definition from which this instance was created
             "member_program_id",              # reference to the member program this workout instance is part of, if any
-            "member_program_name",             # name of the member program this workout instance is part of, if any
-            "next_time_workout_sections"       # this field is used to store the workout sections with adjustments for the next time already applied.
+            "member_program_name",            # name of the member program this workout instance is part of, if any
+            "next_time_workout_sections",     # this field is used to store the workout sections with adjustments for the next time already applied.
+            "updated_ts",                     # timestamp of the last update to this workout definition
+            "updated_by"                      # member_id of the user who last updated this workout definition
             ]
     key_field="id"
     partition_field="member_id"
