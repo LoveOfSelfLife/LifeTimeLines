@@ -19,6 +19,7 @@ from common.fitness.programs import get_last_workout_instance_for_workout
 from common.fitness.home_page_view import render_home_page_workout
 from common.fitness.workout_state import get_active_workout_state, update_active_workout_state
 from common.fitness.exercise_alternatives import find_slot, perform_exercise_swap, record_exercise_swap
+from services.fitnessclub.views.program.programs_routes import PROGRAM_MULTI_SELECT_SESSION_KEY
 
 bp = Blueprint('workouts', __name__, template_folder='templates')
 from auth import auth
@@ -32,7 +33,7 @@ from common.fitness.entity_constants import WORKOUT_ENTITY_NAME, WORKOUT_INSTANC
 
 def new_workout(name='New Workout'):
     wid = str(uuid.uuid4())
-    return {
+    w = {
         'id': wid,
         'name': name,
         WORKOUT_SECTIONS: [
@@ -46,7 +47,7 @@ def new_workout(name='New Workout'):
             {'name':'Cardio', 'section_type':'cardio', 'exercises':[]}
         ]
     }
-
+    return MemberWorkoutDefinitionEntity(w)
 # ──────────────────────────────────────────────────
 @bp.route('/')
 @auth.login_required
@@ -92,12 +93,12 @@ def workouts_listing2(context=None, page=1, filter_terms=None):
 
     return workouts_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities)
 
-def workouts_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities):
-    page_size = 100
+def workouts_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities, allow_multi_select=False, selected_entity_keys=None, modal_mode=False, page_size=100):
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
     end = start + page_size
     current = entities[start:end]
+    selected_entity_keys = selected_entity_keys or []
 
     if request.headers.get('HX-Target') == 'results-area':
         template_file_name = 'entity_results_partial.html'
@@ -106,31 +107,99 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
 
     # Set results_target_container based on target parameter
     results_target_container = target if target else 'results-area'
-    target = target if target else 'results-area'
-    # displays workouts at the top level
-    return hx_render_template(
-        template_file_name,
-        entity_name=entity_name,
+    entities_listing_route = f'/workout/workouts-listing?entity_table={entity_name}&target={target}'
+    if allow_multi_select:
+        entities_listing_route += '&allow_multi_select=true'
+
+    if allow_multi_select:
+        entity_action_route = None
+        entity_action_route_method = None
+        entity_action_icon='bi-plus'
+        entity_action_route_target = None
+        entity_action_label='Add Workout',
+    else:
+        entity_action_route = f'/workouts/edit?entity_table={entity_name}'
+        entity_action_icon='bi-pencil-square'
+        entity_action_route_method = None
+        entity_action_route_target = None
+        entity_action_label='Edit Workout',
+
+    template_data = dict(
         title="Workouts Library",
-        main_content_container="entities-container",        
         fields_to_display=fields_to_display,
+        main_content_container='xyz',
         entities=current,
+        entity_name=entity_name,
         filter_terms=filter_terms,
         args=request.args,
         page=page,
         view=view,
         total_pages=total_pages,
-        entity_add_route=f"{url_for('workouts.builder_new')}?x=1",
-        entities_listing_route=f'/workouts/workouts-listing?entity_table={entity_name}&target={target}',
+        entities_listing_route=entities_listing_route,
         entity_view_route=f'/workouts/viewer/workout?entity_table={entity_name}',
-        entity_action_route=f'/workouts/edit?entity_table={entity_name}',
-        entity_action_icon='bi-pencil-square',  
-        entity_action_label='Edit Workout',
+        entity_action_route=entity_action_route,
+        entity_action_route_method=entity_action_route_method,
+        entity_action_route_target=entity_action_route_target,
+        entity_action_icon=entity_action_icon,
+        entity_action_label=entity_action_label,
         favorite_toggle_route='/admin/toggle-favorite',
         results_target_container=results_target_container,
-        entity_card_view_html='workout_card_view.html',        
-        modal_mode=False,
-        context=context)
+        entity_card_view_html='workout_card_view.html',
+        allow_multi_select=allow_multi_select,
+        selected_entity_keys=selected_entity_keys,
+        multi_select_checkbox_name='selected_entity_keys',
+        multi_select_post_route=url_for('program.add_multiple_workouts') if allow_multi_select else None,
+        multi_select_button_label='Add Selected Workouts',
+        multi_select_button_icon='bi-plus-circle',
+        modal_mode=modal_mode,
+        context=context,
+    )
+
+    # displays workouts at the top level
+    if modal_mode:
+        return hx_render_template('workouts_listing_modal.html', **template_data)
+
+    return hx_render_template(template_file_name, **template_data)
+
+# def workouts_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities, allow_multi_select=True, selected_entity_keys=[], modal_mode=False):
+#     page_size = 100
+#     total_pages = (len(entities) + page_size - 1) // page_size
+#     start = (page - 1) * page_size
+#     end = start + page_size
+#     current = entities[start:end]
+
+#     if request.headers.get('HX-Target') == 'results-area':
+#         template_file_name = 'entity_results_partial.html'
+#     else:
+#         template_file_name = 'entity_list_component.html'
+
+#     # Set results_target_container based on target parameter
+#     results_target_container = target if target else 'results-area'
+#     target = target if target else 'results-area'
+#     # displays workouts at the top level
+#     return hx_render_template(
+#         template_file_name,
+#         entity_name=entity_name,
+#         title="Workouts Library",
+#         main_content_container="entities-container",        
+#         fields_to_display=fields_to_display,
+#         entities=current,
+#         filter_terms=filter_terms,
+#         args=request.args,
+#         page=page,
+#         view=view,
+#         total_pages=total_pages,
+#         entity_add_route=f"{url_for('workouts.builder_new')}?x=1",
+#         entities_listing_route=f'/workouts/workouts-listing?entity_table={entity_name}&target={target}',
+#         entity_view_route=f'/workouts/viewer/workout?entity_table={entity_name}',
+#         entity_action_route=f'/workouts/edit?entity_table={entity_name}',
+#         entity_action_icon='bi-pencil-square',  
+#         entity_action_label='Edit Workout',
+#         favorite_toggle_route='/admin/toggle-favorite',
+#         results_target_container=results_target_container,
+#         entity_card_view_html='workout_card_view.html',        
+#         modal_mode=modal_mode,
+#         context=context)
 
 @bp.route('/filter-dialog')
 @auth.login_required
@@ -229,6 +298,12 @@ def builder(context=None, workout_id=None):
             workout_type = 'workout_instance'
         else:
             workout_type = 'workout_definition'
+
+        can_delete_workout = True
+        if workout.get('member_program_id', None):
+            # If the workout is part of a program, we may want to restrict we should prevent deleting the workout
+            can_delete_workout = False
+            
         return hx_render_template('workout_builder2.html', 
                                 workout=workout,
                                 workout_type=workout_type,
@@ -237,7 +312,8 @@ def builder(context=None, workout_id=None):
                                 editing_program_workout=editing_program_workout,
                                 can_save_workout=can_save_workout,
                                 accessible_members=accessible_members,
-                                role_context=role_context)
+                                role_context=role_context,
+                                can_delete_workout=can_delete_workout)
 
 
 # ── Fragments ────────────────────────────────────────────────────
@@ -837,6 +913,53 @@ def add_multiple_exercises(context=None, workout_id=None):
     })
     return response
 
+@bp.route('/builder/<workout_id>/add-workouts', methods=['POST'])
+@auth.login_required
+def add_multiple_workouts(context=None, workout_id=None):
+    current_workout = get_cache_value('current_workout')
+    if current_workout:
+        if current_workout['id'] != workout_id:
+            abort(404)
+    else:
+        current_workout = new_workout()
+        set_cache_value('current_workout', current_workout)
+
+    selected_keys = request.form.getlist('selected_entity_keys')
+    selected_keys = list(dict.fromkeys([key for key in selected_keys if key]))
+
+    if not selected_keys:
+        response = make_response('')
+        response.headers['HX-Trigger'] = json.dumps({
+            "refreshWorkoutCanvas": {"target": "body"},
+            "showMessage": {"target": "body", "value": "No workouts selected."}
+        })
+        return response
+
+    es = EntityStore()
+    added_count = 0
+    for composite_key_str in selected_keys:
+        try:
+            composite_key = literal_eval(composite_key_str)
+        except (ValueError, SyntaxError):
+            continue
+
+        ex = es.get_item_by_composite_key(composite_key)
+        if not ex:
+            continue
+
+        _add_workout_to_workout(current_workout, ex)
+        added_count += 1
+
+    set_cache_value('current_workout', current_workout)
+    session.pop('exercise_modal_selected_keys', None)
+
+    response = make_response('')
+    response.headers['HX-Trigger'] = json.dumps({
+        "refreshWorkoutCanvas": {"target": "body"},
+        "showMessage": {"target": "body", "value": f"Added {added_count} workout(s)."}
+    })
+    return response
+
 @bp.route('/builder/<workout_id>/add-alternatives', methods=['POST'])
 @auth.login_required
 def add_multiple_alternatives(context=None, workout_id=None):
@@ -911,29 +1034,10 @@ def remove_alternative(context=None, workout_id=None):
 
     return workout_canvas2(context, workout_id)
 
+# this is the method we use to add a source workout to an existing workout, which is the current workout in the cache.  
+# We will add all the exercises from the source workout to the current workout, including their parameters.
+def _add_workout_to_workout(current_workout, source_workout):
 
-@auth.login_required
-def add_workout(context=None, workout_id=None):
-
-    current_workout = get_cache_value('current_workout')
-    if current_workout:
-        if current_workout['id'] != workout_id:
-            abort(404)
-    else:
-        # if there is no workout in the cache, we create a new one
-        current_workout = new_workout()
-        set_cache_value('current_workout', current_workout)
-
-    # here we get the key of the workout from the query parameters
-    # and we look it up in the workouts catalog
-    # if it is not found we abort with a 404
-    # if it is found we add the workout to the workout
-    # and we save the workout to the redis cache
-    composite_key_str = request.args.get('key', None)
-    composite_key = eval(composite_key_str) if composite_key_str else None
-    es = EntityStore()
-    
-    source_workout = es.get_item_by_composite_key(composite_key)
     if not source_workout:
         abort(404)
     
@@ -961,9 +1065,6 @@ def add_workout(context=None, workout_id=None):
                                     'Pu':ex['parameters'].get('Pu', '')}
                     })
                 break
-
-    set_cache_value('current_workout', current_workout)
-    return workout_canvas2(context, workout_id)
 
 
 @bp.route('/builder/<workout_id>/remove', methods=['POST'])
@@ -1391,6 +1492,41 @@ def exercise_listing(context=None):
 
 ########################################
 # displays the workouts library within the workout builder
+
+@bp.route('/workouts-listing-modal', methods=['GET'])
+@auth.login_required
+def workouts_listing_modal(context=None):
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+
+    session[PROGRAM_MULTI_SELECT_SESSION_KEY] = []
+
+    page = int(request.args.get('page', 1))
+    page_size = 100
+    target = request.args.get('target')
+    view = request.args.get('view', None) or session.get('view_preference', 'list')
+    fields_to_display = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
+    filter_terms = get_filter_terms_from_request()
+    entities = get_entities(WORKOUT_ENTITY_NAME, fields_to_display, filter_terms, member_id=member_id)
+    entities = filter_entities_by_member_role(member_id, entities)
+
+    # context, entity_name, page, target, view, fields_to_display, filter_terms, entities, allow_multi_select=True, selected_entity_keys=[], modal_mode=True,
+    
+    return workouts_listing_base(
+        context,
+        WORKOUT_ENTITY_NAME,
+        page,
+        target,
+        view,
+        fields_to_display,
+        filter_terms,
+        entities,
+        allow_multi_select=True,
+        selected_entity_keys=[],
+        modal_mode=True,
+    )
+
 
 @bp.route('/builder/workouts-listing', methods=['GET', 'POST'])
 @auth.login_required

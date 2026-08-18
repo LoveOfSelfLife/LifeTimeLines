@@ -39,13 +39,17 @@
                     </button>
                     {% if not editing_program_workout %}
                     <button class="btn btn-success" 
-                        {% if can_save_workout and not editing_program_workout %}
+                        {% if can_save_workout and not editing_program_workout and can_delete_workout %}
                             hx-post="{{ url_for('workouts.delete_workout', workout_id=workout.id) }}" 
                             hx-vals='{"workout_id":"{{ workout.id }}"}' hx-target="#entities-container"
                             hx-swap="innerHTML show:top" 
                         {% else %} 
                             disabled
-                            title="Only the workout creator can delete a workout" 
+                            {% if can_delete_workout %}
+                                title="Only the workout creator can delete a workout" 
+                            {% else %}
+                                title="This workout is part of a program and cannot be deleted" 
+                            {% endif %}
                         {% endif %}>
                         <i class="bi bi-trash"></i> Delete
                     </button>
@@ -68,6 +72,15 @@
                     </button>
                 </div>
             </div>
+            <button
+                type="button"
+                {# class="btn" #}
+                title="Add workouts"
+                {# hx-get="{{ url_for('program.workouts_listing_modal', program_id=program.id, target='results-area') }}" #}
+                hx-target="#modals-here"
+                hx-swap="innerHTML">
+                <i class="bi bi-plus-lg">Add workout</i>
+            </button>            
             <div id="canvas" class="workout-builder-canvas" hx-get="{{ url_for('workouts.workout_dynamic_canvas', workout_id=workout.id) }}"
                 hx-trigger="load, refreshWorkoutCanvas from:body" hx-swap="innerHTML">
                 Loading…

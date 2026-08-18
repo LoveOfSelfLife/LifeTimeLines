@@ -52,6 +52,8 @@ def get_entities(entity_name, fields_to_display, filter_term=None, partition_key
 
 def _matches_single_pattern_term(entity, term):
     """Check if a single pattern term matches the entity."""
+    fields_to_ignore = ['id', 'timestamp', 'created_ts', 'updated_ts']
+
     if ':' in term:
         # Attribute filter: "equip:bar"
         attr_part, value_part = term.split(':', 1)
@@ -59,6 +61,8 @@ def _matches_single_pattern_term(entity, term):
         value_part = value_part.strip()
         # Find attribute where attr_part is a substring of the attribute name
         for key, value in entity.items():
+            if key.lower() in fields_to_ignore:
+                continue
             if attr_part in key.lower():
                 if value_part in str(value).lower():
                     return True
@@ -66,6 +70,8 @@ def _matches_single_pattern_term(entity, term):
     else:
         # Value filter: search all string attributes
         for key, value in entity.items():
+            if key.lower() in fields_to_ignore:
+                continue
             if isinstance(value, str) or isinstance(value, list):
                 if term in str(value).lower():
                     return True
@@ -90,8 +96,8 @@ def matches_text_pattern_filter(entity, pattern_str):
     if not pattern_str:
         return True
 
-    if entity.get("id", None) == 'ace_62':
-        pass
+    # if entity.get("id", None) == 'ace_62':
+    #     pass
 
     pattern_str = pattern_str.lower().strip()
 
@@ -265,28 +271,6 @@ def get_entity(entity_name, key, partition_key=None, member_id=None):
         entity_store_cache_dict[entity_name] = EntityStoreCache(get_entity_obj_from_entity_name(entity_name))
 
     return entity_store_cache_dict[entity_name].get_item_by_key(key)
-
-def get_entity2(entity, key, partition_key=None):
-    global entity_store_cache_dict
-
-    cache_key = get_cache_key(entity, partition_key)
-    if entity_store_cache_dict.get(cache_key, None) is None:
-        entity_store_cache_dict[cache_key] = EntityStoreCache(entity, partition_key)
-    return entity_store_cache_dict[cache_key].get_item_by_key(key)
-
-
-def matches_filter(entity,term):
-    if term is None:
-        return True
-    term = term.lower()
-    terms = term.split()
-    for t in terms:
-        for field in entity.get_fields():
-            if field in entity and isinstance(entity[field], str):
-                if t in entity[field].lower():
-                    return True
-    return False
-
 
 def filter_entities_by_member_role(member_id, entities):
     # if I'm a client, then I should only see entities that are assigned to me, or entities that I created. 
