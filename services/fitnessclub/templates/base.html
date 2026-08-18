@@ -78,6 +78,20 @@
 
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" id="clubDropdown" role="button" data-bs-toggle="dropdown">
+              <i class="bi bi-info-circle"></i> History
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="clubDropdown">
+              <li><a class="dropdown-item" hx-get="/workouts/history" hx-target="#content" hx-swap="innerHTML">
+                <i class="bi bi-list-check"></i> Workouts
+              </a></li>
+              <li><a class="dropdown-item" hx-get="/workouts/history/exercises" hx-target="#content" hx-swap="innerHTML">
+                <i class="bi bi-list-check"></i> Exercises
+              </a></li>
+            </ul>
+          </li>
+
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" id="clubDropdown" role="button" data-bs-toggle="dropdown">
               <i class="bi bi-info-circle"></i> About
             </a>
             <ul class="dropdown-menu" aria-labelledby="clubDropdown">

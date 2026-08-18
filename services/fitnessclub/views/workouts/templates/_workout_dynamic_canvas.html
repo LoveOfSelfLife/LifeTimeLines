@@ -163,6 +163,10 @@
       padding: 0 0.3rem 0 0.05rem;
     }
   }
+  .workout-alt-item {
+    border: 1px solid #007bff !important;
+    box-shadow: 0 0 8px rgba(0, 123, 255, 0.5); /* Blue glowing edge */
+  }
   
 </style>
 
@@ -240,10 +244,10 @@
               </div>
               {% if item.alternatives and item.alternatives|length > 0 %}
               <div class="workout-alt-list mt-2 ps-3 border-start">
-                <div class="text-muted small mb-1">Alternatives</div>
+                <div class="text small mb-1">Alternatives</div>
                 {% for alt in item.alternatives %}
                   {% set alt_ex = exercises[alt.id] %}
-                  <div class="d-flex align-items-center justify-content-between workout-alt-item py-1 px-2 mb-1 border rounded">
+                  <div class="d-flex align-items-center justify-content-between workout-alt-item py-1 px-2 mb-1 border rounded" style="border: 3px solid black;">
                     <div class="flex-grow-1">
                       <span class="fw-semibold">
                         <a href="#" class="text-decoration-none"
