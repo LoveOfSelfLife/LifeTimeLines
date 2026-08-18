@@ -1,10 +1,11 @@
+import copy
 from datetime import datetime
 from ast import literal_eval
 from flask import Blueprint, jsonify, make_response, render_template, request, current_app
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import get_cache_value, set_cache_value, delete_from_cache
-from common.fitness.entities_getter import delete_entity, get_entities
+from common.fitness.entities_getter import resolve_selected_workout_keys, delete_entity, get_entities, as_bool
 from common.fitness.entities_getter import filter_entities_by_member_role
 from common.fitness.exercise_entity import ExerciseEntity, show_exercise_viewer
 from common.fitness.exercise_parameters import get_editor_type_for_unit_parameter, get_editor_type_for_value_parameter
@@ -19,7 +20,7 @@ from common.fitness.programs import get_last_workout_instance_for_workout
 from common.fitness.home_page_view import render_home_page_workout
 from common.fitness.workout_state import get_active_workout_state, update_active_workout_state
 from common.fitness.exercise_alternatives import find_slot, perform_exercise_swap, record_exercise_swap
-from services.fitnessclub.views.program.programs_routes import PROGRAM_MULTI_SELECT_SESSION_KEY
+from common.fitness.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
 
 bp = Blueprint('workouts', __name__, template_folder='templates')
 from auth import auth
@@ -85,13 +86,15 @@ def workouts_listing2(context=None, page=1, filter_terms=None):
     
     if view != session.get('view_preference'):
         session['view_preference'] = view
-    
+    allow_multi_select = as_bool(request.form.get('allow_multi_select', None),
+                                  as_bool(request.args.get('allow_multi_select', None), False))
+    selected_entity_keys = resolve_selected_workout_keys(allow_multi_select=allow_multi_select)    
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
 
     entities = filter_entities_by_member_role(member_id, entities)
 
-    return workouts_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities)
+    return workouts_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities, allow_multi_select=allow_multi_select, selected_entity_keys=selected_entity_keys, modal_mode=False, page_size=100 )
 
 def workouts_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities, allow_multi_select=False, selected_entity_keys=None, modal_mode=False, page_size=100):
     total_pages = (len(entities) + page_size - 1) // page_size
@@ -107,7 +110,7 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
 
     # Set results_target_container based on target parameter
     results_target_container = target if target else 'results-area'
-    entities_listing_route = f'/workouts/workouts-listing?entity_table={entity_name}&target={target}'
+    entities_listing_route = f'/workouts/workouts-listing?entity_table={entity_name}&target={results_target_container}'
     if allow_multi_select:
         entities_listing_route += '&allow_multi_select=true'
 
@@ -124,6 +127,8 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
         entity_action_route_target = None
         entity_action_label='Edit Workout'
 
+    entity_add_route = f"{url_for('workouts.builder_new')}?x=1" if not allow_multi_select else None
+
     template_data = dict(
         title="Workouts Library",
         fields_to_display=fields_to_display,
@@ -135,6 +140,7 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
         page=page,
         view=view,
         total_pages=total_pages,
+        entity_add_route=entity_add_route,
         entities_listing_route=entities_listing_route,
         entity_view_route=f'/workouts/viewer/workout?entity_table={entity_name}',
         entity_action_route=entity_action_route,
@@ -148,7 +154,7 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
         allow_multi_select=allow_multi_select,
         selected_entity_keys=selected_entity_keys,
         multi_select_checkbox_name='selected_entity_keys',
-        multi_select_post_route=url_for('program.add_multiple_workouts') if allow_multi_select else None,
+        multi_select_post_route=url_for('workouts.add_multiple_workouts') if allow_multi_select else None,
         multi_select_button_label='Add Selected Workouts',
         multi_select_button_icon='bi-plus-circle',
         modal_mode=modal_mode,
@@ -913,14 +919,11 @@ def add_multiple_exercises(context=None, workout_id=None):
     })
     return response
 
-@bp.route('/builder/<workout_id>/add-workouts', methods=['POST'])
+@bp.route('/builder/add-workouts', methods=['POST'])
 @auth.login_required
-def add_multiple_workouts(context=None, workout_id=None):
+def add_multiple_workouts(context=None):
     current_workout = get_cache_value('current_workout')
-    if current_workout:
-        if current_workout['id'] != workout_id:
-            abort(404)
-    else:
+    if not current_workout:
         current_workout = new_workout()
         set_cache_value('current_workout', current_workout)
 
@@ -1044,27 +1047,47 @@ def _add_workout_to_workout(current_workout, source_workout):
     # current_workout is the current workout from the cache
     # source_workout is the workout we are adding to the current workout, i.e. is the source of the exercises
     # we will add the exercises from the source to the current, including the parameters of each exercise
+    
     for src_sect in source_workout[WORKOUT_SECTIONS]:
+        source_copied = False
         src_sect_name = src_sect['name']
         # find the section in the current workout and add the exercises to it
+        # if there are no exercises in the source section, we will not add the section to the current workout
+        if not src_sect.get('exercises', []):
+            continue
         for curr_sect in current_workout[WORKOUT_SECTIONS]:
-            if curr_sect['name']==src_sect_name:
-                # add the exercises from the wk section to the current workout section
-                for ex in src_sect['exercises']:
-                    curr_sect['exercises'].append({
-                      'id':ex['id'],
-                      'parameters':{'S':ex['parameters'].get('S', ''),
-                                    'R':ex['parameters'].get('R', ''),
-                                    'T':ex['parameters'].get('T', 'secs'),
-                                    'Tu':ex['parameters'].get('Tu', ''),
-                                    'D':ex['parameters'].get('D', ''),
-                                    'Du':ex['parameters'].get('Du', 'ft'),
-                                    'F':ex['parameters'].get('F', ''),
-                                    'Fu':ex['parameters'].get('Fu', 'lbs'),
-                                    'P':ex['parameters'].get('P', ''),
-                                    'Pu':ex['parameters'].get('Pu', '')}
-                    })
+            if curr_sect['name'].lower() == src_sect_name.lower():
+                add_exercises_to_section(src_sect, curr_sect)
+                source_copied = True
                 break
+        if not source_copied:
+            # if the section does not exist in the current workout, we will add it and then add the exercises to it
+            new_section = {
+                'name': src_sect_name,
+                'exercises': []
+            }
+            add_exercises_to_section(src_sect, new_section)
+            current_workout[WORKOUT_SECTIONS].append(new_section)
+
+            
+def add_exercises_to_section(src_sect, curr_sect):
+    # add the exercises from the wk section to the current workout section
+    for ex in src_sect['exercises']:
+        curr_sect['exercises'].append( copy.deepcopy(ex) )
+
+        # curr_sect['exercises'].append({
+        #               'id':ex['id'],
+        #               'parameters':{'S':ex['parameters'].get('S', ''),
+        #                             'R':ex['parameters'].get('R', ''),
+        #                             'T':ex['parameters'].get('T', 'secs'),
+        #                             'Tu':ex['parameters'].get('Tu', ''),
+        #                             'D':ex['parameters'].get('D', ''),
+        #                             'Du':ex['parameters'].get('Du', 'ft'),
+        #                             'F':ex['parameters'].get('F', ''),
+        #                             'Fu':ex['parameters'].get('Fu', 'lbs'),
+        #                             'P':ex['parameters'].get('P', ''),
+        #                             'Pu':ex['parameters'].get('Pu', '')}
+        #             })
 
 
 @bp.route('/builder/<workout_id>/remove', methods=['POST'])

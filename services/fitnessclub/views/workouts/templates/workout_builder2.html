@@ -76,7 +76,7 @@
                 type="button"
                 {# class="btn" #}
                 title="Add workouts"
-                {# hx-get="{{ url_for('program.workouts_listing_modal', program_id=program.id, target='results-area') }}" #}
+                hx-get="{{ url_for('workouts.workouts_listing_modal', target='results-area') }}" 
                 hx-target="#modals-here"
                 hx-swap="innerHTML">
                 <i class="bi bi-plus-lg">Add workout</i>

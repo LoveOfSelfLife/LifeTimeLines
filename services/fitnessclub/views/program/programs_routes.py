@@ -9,7 +9,8 @@ from common.entity_store import EntityObject, EntityStore
 from common.fitness import workout_entity
 from common.fitness.active_fitness_registry import get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import delete_from_cache, get_cache_value, set_cache_value
-from common.fitness.entities_getter import delete_entity, get_entity, get_entities
+from common.fitness.entities_getter import as_bool, delete_entity, get_entity, get_entities
+from common.fitness.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
 from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
 from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
@@ -28,9 +29,6 @@ from common.fitness.entities_getter import filter_entities_by_member_role
 bp = Blueprint('program', __name__, template_folder='templates')
 from auth import auth
 
-PROGRAM_MULTI_SELECT_SESSION_KEY = 'program_builder_selected_workout_keys'
-
-
 def _normalize_form_datetime(value, fallback=None):
     if not value:
         return fallback
@@ -39,42 +37,6 @@ def _normalize_form_datetime(value, fallback=None):
         return datetime.fromisoformat(value).isoformat()
     except ValueError:
         return fallback
-
-
-def _as_bool(value, default=False):
-    if value is None:
-        return default
-    return str(value).strip().lower() in ('1', 'true', 'yes', 'on')
-
-
-def _resolve_selected_workout_keys(allow_multi_select=False):
-    if not allow_multi_select:
-        session.pop(PROGRAM_MULTI_SELECT_SESSION_KEY, None)
-        return []
-
-    selected_keys = [str(key) for key in session.get(PROGRAM_MULTI_SELECT_SESSION_KEY, []) if key]
-    selected_keys = list(dict.fromkeys(selected_keys))
-
-    toggle_key_raw = request.form.get('multi_select_toggle_key')
-    toggle_key = str(toggle_key_raw) if toggle_key_raw else None
-
-    if toggle_key is not None:
-        posted_checked_values = set(str(value) for value in request.form.getlist('selected_entity_keys') if value)
-        if toggle_key in posted_checked_values:
-            if toggle_key not in selected_keys:
-                selected_keys.append(toggle_key)
-        else:
-            selected_keys = [key for key in selected_keys if key != toggle_key]
-
-        session[PROGRAM_MULTI_SELECT_SESSION_KEY] = selected_keys
-        return selected_keys
-
-    posted_selected_keys = [str(key) for key in request.form.getlist('selected_entity_keys') if key]
-    if posted_selected_keys:
-        selected_keys = list(dict.fromkeys(posted_selected_keys))
-
-    session[PROGRAM_MULTI_SELECT_SESSION_KEY] = selected_keys
-    return selected_keys
 
 @bp.route('/')
 @auth.login_required
@@ -236,10 +198,10 @@ def workouts_listing(context=None):
     else:
             abort(404)     
 
-    allow_multi_select = _as_bool(request.form.get('allow_multi_select', None),
-                                  _as_bool(request.args.get('allow_multi_select', None), False))
-    selected_entity_keys = _resolve_selected_workout_keys(allow_multi_select=allow_multi_select)
-    # modal_mode = _as_bool(request.args.get('modal_mode', None), False) if request.method == 'GET' else _as_bool(request.form.get('modal_mode', None), False)   
+    allow_multi_select = as_bool(request.form.get('allow_multi_select', None),
+                                  as_bool(request.args.get('allow_multi_select', None), False))
+
+    # modal_mode = as_bool(request.args.get('modal_mode', None), False) if request.method == 'GET' else as_bool(request.form.get('modal_mode', None), False)   
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
     entities = filter_entities_by_member_role(member_id, entities)
 

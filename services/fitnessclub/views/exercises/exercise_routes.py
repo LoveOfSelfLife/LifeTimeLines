@@ -4,6 +4,9 @@ from urllib import response
 from flask import Blueprint, abort, make_response, redirect, render_template, request, session, url_for, jsonify
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
+from common.fitness.entities_getter import resolve_selected_entity_keys
+from common.fitness.entities_getter import as_bool
+from common.fitness.entities_getter import MULTI_SELECT_SESSION_KEY
 from common.fitness.exercise_entity import show_exercise_viewer
 from common.fitness.hx_common import parse_listing_filter
 from common.fitness.entities_getter import get_entities
@@ -15,43 +18,6 @@ from common.fitness.member_exercise_history import get_exercise_history_for_memb
 from common.fitness.utils import generate_id
 bp = Blueprint('exercises', __name__, template_folder='templates')
 from auth import auth
-MULTI_SELECT_SESSION_KEY = 'exercise_modal_selected_keys'
-
-
-def _as_bool(value, default=False):
-    if value is None:
-        return default
-    return str(value).strip().lower() in ('1', 'true', 'yes', 'on')
-
-
-def _resolve_selected_entity_keys(allow_multi_select=False):
-    if not allow_multi_select:
-        session.pop(MULTI_SELECT_SESSION_KEY, None)
-        return []
-
-    selected_keys = [str(key) for key in session.get(MULTI_SELECT_SESSION_KEY, []) if key]
-    selected_keys = list(dict.fromkeys(selected_keys))
-
-    toggle_key_raw = request.form.get('multi_select_toggle_key')
-    toggle_key = str(toggle_key_raw) if toggle_key_raw else None
-    if toggle_key is not None:
-        posted_checked_values = set(str(value) for value in request.form.getlist('selected_entity_keys') if value)
-        if toggle_key in posted_checked_values:
-            if toggle_key not in selected_keys:
-                selected_keys.append(toggle_key)
-        else:
-            selected_keys = [key for key in selected_keys if key != toggle_key]
-
-        session[MULTI_SELECT_SESSION_KEY] = selected_keys
-        return selected_keys
-
-    posted_selected_keys = [str(key) for key in request.form.getlist('selected_entity_keys') if key]
-    if posted_selected_keys:
-        selected_keys = list(dict.fromkeys(posted_selected_keys))
-
-    session[MULTI_SELECT_SESSION_KEY] = selected_keys
-    return selected_keys
-
 @bp.route('/')
 @auth.login_required
 def root(context=None):
@@ -71,7 +37,7 @@ def exercises_listing(context=None):
         abort(401)
     page = int(request.args.get('page', 1))
     filter_terms = get_filter_terms_from_request()   
-    # modal_mode = _as_bool(request.args.get('modal_mode', None), False) if request.method == 'GET' else _as_bool(request.form.get('modal_mode', None), False)     
+    # modal_mode = as_bool(request.args.get('modal_mode', None), False) if request.method == 'GET' else as_bool(request.form.get('modal_mode', None), False)     
     return exercises_listing2(member_id, page=page, filter_terms=filter_terms, modal_mode=False)
 
 
@@ -83,7 +49,7 @@ def exercises_listing_modal(context=None):
         abort(401)
     page = int(request.args.get('page', 1))
     filter_terms = get_filter_terms_from_request()
-    if _as_bool(request.args.get('allow_multi_select', None), False):
+    if as_bool(request.args.get('allow_multi_select', None), False):
         session[MULTI_SELECT_SESSION_KEY] = []
     return exercises_listing2(member_id, page=page, filter_terms=filter_terms, modal_mode=True)
 
@@ -103,9 +69,9 @@ def exercises_listing2(member_id, page=1, filter_terms=[], modal_mode=False):
     
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
 
-    allow_multi_select = _as_bool(request.form.get('allow_multi_select', None),
-                                  _as_bool(request.args.get('allow_multi_select', None), False))
-    selected_entity_keys = _resolve_selected_entity_keys(allow_multi_select=allow_multi_select)
+    allow_multi_select = as_bool(request.form.get('allow_multi_select', None),
+                                  as_bool(request.args.get('allow_multi_select', None), False))
+    selected_entity_keys = resolve_selected_entity_keys(allow_multi_select=allow_multi_select)
 
     # For checkbox toggles, avoid re-rendering listing content. Return only OOB state updates.
     if request.method == 'POST' and request.form.get('multi_select_toggle_key') is not None and allow_multi_select:
