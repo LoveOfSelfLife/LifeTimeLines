@@ -28,7 +28,7 @@ class MemberWorkoutDefinitionEntity (EntityObject):
         super().__init__(d)
 
 class MemberWorkoutInstanceEntity (EntityObject):
-    table_name="MemberWorkoutInstanceBackupTable"   # TODO: change back to "MemberWorkoutInstanceTable" after migration is complete
+    table_name="MemberWorkoutInstanceTable"   
     fields=["id", 
             'name',
             "member_id", 

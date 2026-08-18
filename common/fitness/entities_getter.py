@@ -8,15 +8,14 @@ from common.fitness.member_entity import is_member_an_admin
 from common.fitness.roles_service import is_member_client, is_member_coach
 entity_store_cache_dict = {}
 
-def get_entities(entity_name, fields_to_display, filter_term=None, partition_key=None, sort_by='name', sort_ascending=True, member_id=None):
-
+def get_entities(entity_name, fields_to_display, filter_term=None, partition_key=None, sort_by='name', sort_key_fn=None, sort_ascending=True, member_id=None):
 
     if filter_term:
         if isinstance(filter_term, str):
             import ast
             filter_term = ast.literal_eval(filter_term)
 
-    filtered_entities = get_filtered_entities(entity_name, filter_term, partition_key, sort_by, sort_ascending, member_id=member_id)
+    filtered_entities = get_filtered_entities(entity_name, filter_term, partition_key, sort_by, sort_key_fn=sort_key_fn, sort_ascending=sort_ascending, member_id=member_id)
     favorite_entity_ids = set()
     if member_id:
         favorite_entity_ids = get_all_favorite_entity_ids(entity_name, member_id)
@@ -208,7 +207,7 @@ def generic_entity_filter(entities, filter_term, member_id=None, favorite_entity
     return filtered_entities
 
 
-def get_filtered_entities(entity_name, filter_term=None, partition_key=None, sort_by='name', sort_ascending=True, member_id=None):
+def get_filtered_entities(entity_name, filter_term=None, partition_key=None, sort_by='name', sort_key_fn=None, sort_ascending=True, member_id=None):
     global entity_store_cache_dict
 
     entity_type = get_entity_obj_from_entity_name(entity_name)
@@ -237,7 +236,9 @@ def get_filtered_entities(entity_name, filter_term=None, partition_key=None, sor
         # If no filter term is provided, still filter out hidden entities
         entities = [e for e in entities if not is_entity_hidden(e)]
 
-    if sort_by and sort_by in entity_type.get_fields():
+    if sort_key_fn:
+        entities = sorted(entities, key=sort_key_fn, reverse=not sort_ascending)
+    elif sort_by and sort_by in entity_type.get_fields():
         entities = sorted(entities, key=lambda x: x.get(sort_by).lower() if x.get(sort_by) else x.get(sort_by, ''), reverse=not sort_ascending)
     return entities
 
@@ -292,19 +293,19 @@ def filter_entities_by_member_role(member_id, entities):
     # If I'm a coach, then I should see entities that are assigned to me, or entities that I created, or entities that are assigned to my team members. 
     # If I'm an admin, then I should see all entities.
     if is_member_client(member_id):
-        relevant_entities = [e for e in entities if e.get('entity', {}).get('assigned_to_member_id') == member_id or e.get('entity', {}).get('created_by') == member_id]
+        relevant_entities = [e for e in entities if e.get('entity', {}).get('assigned_to_member_id') == member_id or e.get('entity', {}).get('created_by') == member_id or e.get('entity', {}).get('member_id') == member_id]
         entities = relevant_entities
     elif is_member_an_admin(member_id):
         # admins can see all entities, so no filtering needed
         pass
     elif is_member_coach(member_id):
-        relevant_entities = [e for e in entities if e.get('entity', {}).get('assigned_to_member_id') == member_id or e.get('entity', {}).get('created_by') == member_id]
+        relevant_entities = [e for e in entities if e.get('entity', {}).get('assigned_to_member_id') == member_id or e.get('entity', {}).get('created_by') == member_id or e.get('entity', {}).get('member_id') == member_id]
 
         team_members = get_coachs_team_members(member_id)
         team_member_ids =  { tm.get('member_id') for tm in team_members if tm.get('member_id') }
 
         # relevant entity is any entity that was created by the team member, or was assigned to the team member
-        teams_entities = [e for e in entities if e.get('entity', {}).get('assigned_to_member_id') in team_member_ids or e.get('entity', {}).get('created_by') in team_member_ids]
+        teams_entities = [e for e in entities if e.get('entity', {}).get('assigned_to_member_id') in team_member_ids or e.get('entity', {}).get('created_by') in team_member_ids or e.get('entity', {}).get('member_id') in team_member_ids]
 
         entities = relevant_entities + teams_entities
     else:

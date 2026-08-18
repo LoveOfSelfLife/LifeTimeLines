@@ -205,7 +205,10 @@ def start_workout(context=None):
 def completed_workout_details_modal(context=None):
     """Modal showing completed workout details"""
     try:
-        workout_instance_key = request.args.get('workout_instance_key')
+        workout_instance_key = request.args.get('key', None)
+        if not workout_instance_key:
+            workout_instance_key = request.args.get('workout_instance_key')
+
         if not workout_instance_key:
             return hx_render_template(
                 template_string='<div class="alert alert-danger">No workout specified</div>',

@@ -12,7 +12,7 @@ from common.fitness.hx_common import get_filter_terms_from_request, hx_render_te
 from common.fitness.hx_common import rm_spaces
 from common.fitness.member_entity import get_member_id_from_user_context, is_member_an_admin
 from common.fitness.roles_service import get_accessible_members_for_context, get_member_role_context
-from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, get_exercises_from_workout, map_exercise_to_sections
+from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout, map_exercise_to_sections
 from common.fitness.edit_workout_object import bring_up_workouts_builder
 from common.fitness.programs import get_last_workout_instance_for_workout
 from common.fitness.programs import get_last_workout_instance_for_workout
@@ -2136,3 +2136,84 @@ def get_initial_editable_text2(workout_id, exercise_id, param, param_value, acti
 
     return new_html
 
+@bp.route('/history', methods=['GET','POST'])
+@auth.login_required
+def workouts_history_listing(context=None):
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+    page = int(request.args.get('page', 1))
+    filter_terms = get_filter_terms_from_request()
+    return workouts_history_listing2(context, page, filter_terms)
+
+def get_sort_key_fn_for_entity(entity_name):
+    if entity_name == "MemberWorkoutInstanceTable":
+        return lambda x: x.get('started_ts', '')
+    else:
+        return None
+def workouts_history_listing2(context=None, page=1, filter_terms=None):
+    entity_name = MemberWorkoutInstanceEntity().get_table_name()
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+
+    if filter_terms is None:
+        filter_terms = get_filter_terms_from_request()
+
+    target = request.args.get('target', None)
+    # Handle view preference
+    view = (request.form.get('view') if request.method == 'POST' 
+            else request.args.get('view')) or session.get('view_preference', 'list')
+    
+    if view != session.get('view_preference'):
+        session['view_preference'] = view
+    
+    fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
+    sort_key_fn=get_sort_key_fn_for_entity(entity_name)
+    entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member_id, sort_key_fn=sort_key_fn, sort_ascending=False, member_id=member_id)
+
+    entities = filter_entities_by_member_role(member_id, entities)
+
+    return workouts_history_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities)
+
+def workouts_history_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities):
+    page_size = 100
+    total_pages = (len(entities) + page_size - 1) // page_size
+    start = (page - 1) * page_size
+    end = start + page_size
+    current = entities[start:end]
+
+    if request.headers.get('HX-Target') == 'results-area':
+        template_file_name = 'entity_results_partial.html'
+    else:
+        template_file_name = 'entity_list_component.html'
+
+    # Set results_target_container based on target parameter
+    results_target_container = target if target else 'results-area'
+    target = target if target else 'results-area'
+    # displays workouts at the top level
+    return hx_render_template(
+        template_file_name,
+        entity_name=entity_name,
+        title="Workout History",
+        main_content_container="entities-container",        
+        fields_to_display=fields_to_display,
+        entities=current,
+        filter_terms=filter_terms,
+        args=request.args,
+        page=page,
+        view=view,
+        total_pages=total_pages,
+        entity_add_route=f"",
+        entities_listing_route=f'/workouts/history?target={target}',
+        entity_view_route=f"{url_for('home.completed_workout_details_modal')}?x=y",
+        # entity_action_route=f'/workouts/edit?entity_table={entity_name}',
+        entity_action_icon='bi-pencil-square',  
+        entity_action_label='Edit Workout',
+        favorite_toggle_route='/admin/toggle-favorite',
+        results_target_container=results_target_container,
+        entity_card_view_html='workout_card_view.html',        
+        modal_mode=False,
+        context=context)
+                
+                
