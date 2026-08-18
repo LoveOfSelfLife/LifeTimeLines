@@ -28,7 +28,7 @@ import json
 from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity
 
 from common.fitness.entities_getter import get_entities, get_entity, get_filtered_entities
-from common.fitness.entity_constants import WORKOUT_ENTITY_NAME, WORKOUT_SECTIONS
+from common.fitness.entity_constants import WORKOUT_ENTITY_NAME, WORKOUT_INSTANCE_ENTITY_NAME, WORKOUT_SECTIONS
 
 def new_workout(name='New Workout'):
     wid = str(uuid.uuid4())
@@ -157,9 +157,9 @@ def edit_workout_details(context=None):
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
-    w = es.get_item_by_composite_key(composite_key)
-    workout_to_edit = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
-    workout_to_edit.initialize(w)
+    workout_to_edit = es.get_item_by_composite_key(composite_key)
+    # workout_to_edit = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
+    # workout_to_edit.initialize(w)
     # print(f"editing workoug: {json.dumps(workout_to_edit, indent=4)}")
     return bring_up_workouts_builder(workout_to_edit)
     
@@ -213,6 +213,7 @@ def builder(context=None, workout_id=None):
     editing_program_workout = request.args.get('editing_program_workout', None)
 
     workout = get_cache_value('current_workout')
+    workout_type = get_cache_value('workout_type')
 
     if workout and workout['id'] == workout_id:
         # Check if current user can save this workout
@@ -224,9 +225,13 @@ def builder(context=None, workout_id=None):
 
         accessible_members = get_accessible_members_for_context(member_id)
         role_context = get_member_role_context(member_id)
-        
+        if workout_type == MemberWorkoutInstanceEntity().get_table_name():
+            workout_type = 'workout_instance'
+        else:
+            workout_type = 'workout_definition'
         return hx_render_template('workout_builder2.html', 
-                                workout=workout, 
+                                workout=workout,
+                                workout_type=workout_type,
                                 context=context, 
                                 source='exercises', 
                                 editing_program_workout=editing_program_workout,
@@ -1147,18 +1152,23 @@ def save_workout(context=None, workout_id=None):
     if not member_id:
         abort(401)
     
-    
     workout = get_cache_value('current_workout')
+    workout_type = get_cache_value('workout_type')
     if not workout or workout['id'] != workout_id:
         abort(404)
 
-    workout_instance = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
+    workout_instance = get_entity_obj_from_entity_name(workout_type if workout_type else WORKOUT_ENTITY_NAME)
 
     # this is where we save the newly created workout
-    print('Saving workout')
+    print(f'Saving workout to {workout_type if workout_type else WORKOUT_ENTITY_NAME}')
     es = EntityStore()
-    workout['created_by'] = member_id
-    workout['created_ts'] = datetime.now().isoformat()
+    if workout.get('created_ts') is None:
+        workout['created_ts'] = datetime.now().isoformat()
+    if workout.get('created_by') is None:
+        workout['created_by'] = member_id
+    workout['updated_by'] = member_id
+    workout['updated_ts'] = datetime.now().isoformat()
+
     workout_instance.initialize(workout)
     es.upsert_item(workout_instance)
 
@@ -1184,10 +1194,11 @@ def delete_workout(context=None, workout_id=None):
         abort(401)
     
     workout = get_cache_value('current_workout')
+    workout_type = get_cache_value('workout_type')
     if not workout or workout['id'] != workout_id:
         abort(404)
 
-    workout_instance = get_entity_obj_from_entity_name(WORKOUT_ENTITY_NAME)
+    workout_instance = get_entity_obj_from_entity_name(workout_type if workout_type else WORKOUT_ENTITY_NAME)
     workout_instance.initialize(workout)
 
     # this is where we delete the workout
@@ -1202,7 +1213,13 @@ def delete_workout(context=None, workout_id=None):
     if not member_id:
         abort(401)
 
-    response = make_response(workouts_listing2(context))
+    # if we are deleting a workout definition, then we go back to the workouts_listing2 view,
+    # but if we are deleting a workout instance, then we go to the workouts instance listing view
+    if workout_type == WORKOUT_INSTANCE_ENTITY_NAME:
+        response = make_response(workouts_history_listing2(context))
+    else:
+        response = make_response(workouts_listing2(context))
+    
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": { "target": "body" },
             "showMessage": { 
@@ -1214,13 +1231,32 @@ def delete_workout(context=None, workout_id=None):
 @bp.route('/builder/<workout_id>/cancel-editing', methods=['POST'])
 @auth.login_required
 def cancel_editing_workout(context=None, workout_id=None):
+    workout_type = get_cache_value('workout_type')
+    if workout_type == WORKOUT_INSTANCE_ENTITY_NAME:
+        delete_from_cache('current_workout')
+        response = make_response(workouts_history_listing2(context))
+        response.headers['HX-Trigger'] = json.dumps({
+            "eventListChanged": { "target": "body" },
+                "showMessage": { 
+                "target": "body",
+                "value": "canceled editing workout." }
+            })     
+        return response
+
     editing_program_workout = get_cache_value('workout_editor_context')
     if editing_program_workout and editing_program_workout.get('editing_program_workout', None) is not None:
         delete_from_cache('workout_editor_context')
         return redirect(url_for('program.builder'))
     else:
         delete_from_cache('current_workout')
-        return redirect(url_for('workouts.index'))
+        response = make_response(workouts_listing2(context))
+        response.headers['HX-Trigger'] = json.dumps({
+            "eventListChanged": { "target": "body" },
+                "showMessage": { 
+                "target": "body",
+                "value": "canceled editing workout." }
+            })     
+        return response
 
 # this is the route we use to save a workout that is part of a program, i.e. a workout that is being edited from within the program view. 
 # When we save a workout from within the program view we want to replace the workout in the cached list of program workouts with the newly saved workout, 
@@ -2207,7 +2243,7 @@ def workouts_history_listing_base(context, entity_name, page, target, view, fiel
         entity_add_route=f"",
         entities_listing_route=f'/workouts/history?target={target}',
         entity_view_route=f"{url_for('home.completed_workout_details_modal')}?x=y",
-        # entity_action_route=f'/workouts/edit?entity_table={entity_name}',
+        entity_action_route=f'/workouts/edit?entity_table={entity_name}',
         entity_action_icon='bi-pencil-square',  
         entity_action_label='Edit Workout',
         favorite_toggle_route='/admin/toggle-favorite',
