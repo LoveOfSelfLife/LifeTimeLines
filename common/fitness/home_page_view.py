@@ -54,7 +54,7 @@ def render_home_page_workout(member, current_state):
     if not workout_instance:
         # The workout instance is not found, so we display an error message
         return render_template_string('<h1>Workout in progress not found</h1>')
-    program_entity = es.get_item_by_composite_key(program_composite_key)
+    program_entity = es.get_item_by_composite_key(program_composite_key) if program_composite_key else None
 
     # The member has a workout in progress
     wrkout_exercises = get_exercises_from_workout(workout_instance)

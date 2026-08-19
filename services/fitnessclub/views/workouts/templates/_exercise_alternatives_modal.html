@@ -2,7 +2,7 @@
   <div class="modal-content">
     <div class="modal-header">
       <h5 class="modal-title">
-        <i class="bi bi-arrow-left-right me-2"></i>Swap Exercise{% if current_exercise %}: {{ current_exercise.name }}{% endif %}
+        <i class="bi bi-arrow-left-right me-2"></i>Change Exercise for this workout
       </h5>
       <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
     </div>
@@ -16,7 +16,7 @@
           {% endif %}
           <div>
             <div class="text-muted small">Currently doing</div>
-            <div class="fw-semibold">{{ current_exercise.name }}</div>
+            <div class="text text-black">{{ current_exercise.name }}</div>
           </div>
         </div>
       {% endif %}
