@@ -1,11 +1,14 @@
 import re
 
+from flask import request, session
+
 from common.entity_store_cache import EntityStoreCache
 from common.fitness.active_fitness_registry import get_entity_obj_from_entity_name
 from common.fitness.coach_team_entity import get_coachs_team_members
 from common.fitness.favorites_entity import get_all_favorite_entity_ids
 from common.fitness.member_entity import is_member_an_admin
 from common.fitness.roles_service import is_member_client, is_member_coach
+
 entity_store_cache_dict = {}
 
 def get_entities(entity_name, fields_to_display, filter_term=None, partition_key=None, sort_by='name', sort_key_fn=None, sort_ascending=True, member_id=None):
@@ -52,6 +55,8 @@ def get_entities(entity_name, fields_to_display, filter_term=None, partition_key
 
 def _matches_single_pattern_term(entity, term):
     """Check if a single pattern term matches the entity."""
+    fields_to_ignore = ['id', 'timestamp', 'created_ts', 'updated_ts']
+
     if ':' in term:
         # Attribute filter: "equip:bar"
         attr_part, value_part = term.split(':', 1)
@@ -59,6 +64,8 @@ def _matches_single_pattern_term(entity, term):
         value_part = value_part.strip()
         # Find attribute where attr_part is a substring of the attribute name
         for key, value in entity.items():
+            if key.lower() in fields_to_ignore:
+                continue
             if attr_part in key.lower():
                 if value_part in str(value).lower():
                     return True
@@ -66,6 +73,8 @@ def _matches_single_pattern_term(entity, term):
     else:
         # Value filter: search all string attributes
         for key, value in entity.items():
+            if key.lower() in fields_to_ignore:
+                continue
             if isinstance(value, str) or isinstance(value, list):
                 if term in str(value).lower():
                     return True
@@ -90,8 +99,8 @@ def matches_text_pattern_filter(entity, pattern_str):
     if not pattern_str:
         return True
 
-    if entity.get("id", None) == 'ace_62':
-        pass
+    # if entity.get("id", None) == 'ace_62':
+    #     pass
 
     pattern_str = pattern_str.lower().strip()
 
@@ -266,28 +275,6 @@ def get_entity(entity_name, key, partition_key=None, member_id=None):
 
     return entity_store_cache_dict[entity_name].get_item_by_key(key)
 
-def get_entity2(entity, key, partition_key=None):
-    global entity_store_cache_dict
-
-    cache_key = get_cache_key(entity, partition_key)
-    if entity_store_cache_dict.get(cache_key, None) is None:
-        entity_store_cache_dict[cache_key] = EntityStoreCache(entity, partition_key)
-    return entity_store_cache_dict[cache_key].get_item_by_key(key)
-
-
-def matches_filter(entity,term):
-    if term is None:
-        return True
-    term = term.lower()
-    terms = term.split()
-    for t in terms:
-        for field in entity.get_fields():
-            if field in entity and isinstance(entity[field], str):
-                if t in entity[field].lower():
-                    return True
-    return False
-
-
 def filter_entities_by_member_role(member_id, entities):
     # if I'm a client, then I should only see entities that are assigned to me, or entities that I created. 
     # If I'm a coach, then I should see entities that are assigned to me, or entities that I created, or entities that are assigned to my team members. 
@@ -317,3 +304,69 @@ def filter_entities_by_member_role(member_id, entities):
         deduped_entities[entity.get('key')] = entity
     entities = list(deduped_entities.values())
     return entities
+
+
+def resolve_selected_workout_keys(allow_multi_select=False):
+    if not allow_multi_select:
+        session.pop(PROGRAM_MULTI_SELECT_SESSION_KEY, None)
+        return []
+
+    selected_keys = [str(key) for key in session.get(PROGRAM_MULTI_SELECT_SESSION_KEY, []) if key]
+    selected_keys = list(dict.fromkeys(selected_keys))
+
+    toggle_key_raw = request.form.get('multi_select_toggle_key')
+    toggle_key = str(toggle_key_raw) if toggle_key_raw else None
+
+    if toggle_key is not None:
+        posted_checked_values = set(str(value) for value in request.form.getlist('selected_entity_keys') if value)
+        if toggle_key in posted_checked_values:
+            if toggle_key not in selected_keys:
+                selected_keys.append(toggle_key)
+        else:
+            selected_keys = [key for key in selected_keys if key != toggle_key]
+
+        session[PROGRAM_MULTI_SELECT_SESSION_KEY] = selected_keys
+        return selected_keys
+
+    posted_selected_keys = [str(key) for key in request.form.getlist('selected_entity_keys') if key]
+    if posted_selected_keys:
+        selected_keys = list(dict.fromkeys(posted_selected_keys))
+
+    session[PROGRAM_MULTI_SELECT_SESSION_KEY] = selected_keys
+    return selected_keys
+
+def resolve_selected_entity_keys(allow_multi_select=False):
+    if not allow_multi_select:
+        session.pop(MULTI_SELECT_SESSION_KEY, None)
+        return []
+
+    selected_keys = [str(key) for key in session.get(MULTI_SELECT_SESSION_KEY, []) if key]
+    selected_keys = list(dict.fromkeys(selected_keys))
+
+    toggle_key_raw = request.form.get('multi_select_toggle_key')
+    toggle_key = str(toggle_key_raw) if toggle_key_raw else None
+    if toggle_key is not None:
+        posted_checked_values = set(str(value) for value in request.form.getlist('selected_entity_keys') if value)
+        if toggle_key in posted_checked_values:
+            if toggle_key not in selected_keys:
+                selected_keys.append(toggle_key)
+        else:
+            selected_keys = [key for key in selected_keys if key != toggle_key]
+
+        session[MULTI_SELECT_SESSION_KEY] = selected_keys
+        return selected_keys
+
+    posted_selected_keys = [str(key) for key in request.form.getlist('selected_entity_keys') if key]
+    if posted_selected_keys:
+        selected_keys = list(dict.fromkeys(posted_selected_keys))
+
+    session[MULTI_SELECT_SESSION_KEY] = selected_keys
+    return selected_keys
+PROGRAM_MULTI_SELECT_SESSION_KEY = 'program_builder_selected_workout_keys'
+MULTI_SELECT_SESSION_KEY = 'exercise_modal_selected_keys'
+
+
+def as_bool(value, default=False):
+    if value is None:
+        return default
+    return str(value).strip().lower() in ('1', 'true', 'yes', 'on')
