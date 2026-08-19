@@ -1916,7 +1916,7 @@ def exercise_details(context=None, exercise_id=None):
     exercise = get_entity("ExerciseTable", exercise_id)
     allow_popups = request.args.get("allow_popups", default='false')
     modal_mode = request.args.get("modal_mode", default='false').lower() == 'true'
-    return show_exercise_viewer(exercise, context)
+    return show_exercise_viewer(exercise, context, show_dismiss_btn=allow_popups.lower() == 'true')
 
 
 @bp.route("/viewer/exercise/<exercise_id>/feedback", methods=["POST"])

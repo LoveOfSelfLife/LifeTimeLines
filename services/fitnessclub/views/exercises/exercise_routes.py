@@ -190,7 +190,7 @@ def view_exercise_details(context=None):
     es = EntityStore()
     entity_to_view = es.get_item_by_composite_key(composite_key)
 
-    return show_exercise_viewer(entity_to_view, context)
+    return show_exercise_viewer(entity_to_view, context, show_dismiss_btn=True)
 
 @bp.route('/filter-dialog')
 @auth.login_required

@@ -1,84 +1,77 @@
-
 <div id="dialog" class="modal-dialog modal-dialog-centered">
-  <div class="modal-content">
-    <div class="modal-body">
-        <input type="hidden" name="entity_table" value="{{ exercise.name }}">
-        <div class="card">
-            <!-- exercise details view -->
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h6 class="mb-0">{{ exercise.name }}</h6>
-                <div class="d-flex gap-2">
-                    {# {% if can_edit %}
-                    <button type="button" class="btn btn-outline-primary btn-sm"
+    <div class="modal-content">
+        <div class="modal-body">
+            <input type="hidden" name="entity_table" value="{{ exercise.name }}">
+            <div class="card">
+                <!-- exercise details view -->
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">{{ exercise.name }}</h6>
+                    <div class="d-flex gap-2">
+                        {# {% if can_edit %}
+                        <button type="button" class="btn btn-outline-primary btn-sm"
                             hx-get="/exercises/edit?key={{ (exercise.id, 'exercise', 'ExerciseTable') }}"
-                            hx-target="#entities-container"
-                            hx-swap="innerHTML show:top"
-                            data-bs-dismiss="modal">
-                        <i class="bi bi-pencil-square me-1"></i>Edit
-                    </button>
-                    {% endif %} #}
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            hx-target="#entities-container" hx-swap="innerHTML show:top" data-bs-dismiss="modal">
+                            <i class="bi bi-pencil-square me-1"></i>Edit
+                        </button>
+                        {% endif %} #}
+                        {% if show_dismiss_btn %}
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
-            <div class="card-body">
-                {# exercise.primaryMuscles is a possibly empty list of musclse that this exercise affects.
-                Here we display the list of primary muscles, just before the instructions #}
-                {% if exercise.primaryMuscles %}
-                <span> <h6 class="mb-0">Muscles: </h6>
-                   <div class="text-white small mt-0">
-                    {% for muscle in exercise.primaryMuscles %}
-                            {{ muscle }},  
-                    {% endfor %}
-                    {% for muscle in exercise.secondaryMuscles %}
-                           {{ muscle }}, 
-                    {% endfor %}
-                    </span>
-                {% endif %}
-                </div>                        
-                <h6 class="mt-2">Instructions: </h6>
-                <p class="small">{{ exercise.instructions }}</p>
+                <div class="card-body">
+     
+                
 
                 {% if exercise.images %}
-                <h6>Images</h6>
+
                 <div class="row gx-2">
                     {% if exercise.gif %}
                     <div class="col-12 mb-2">
-                        <img
-                        src="{{ exercise.gif }}"
-                        alt="GIF"
-                        data-full-url="{{ exercise.gif }}"
-                        class="img-fluid rounded"
-                        style="cursor:pointer;"
-                        >
+                        <img src="{{ exercise.gif }}" alt="GIF" data-full-url="{{ exercise.gif }}"
+                            class="img-fluid rounded" style="cursor:pointer;">
                     </div>
                     {% else %}
-                        {% for img in exercise.images %}
-                        <div class="col-12 mb-2">
-                            <img
-                            src="{{ img.url }}"
-                            alt="{{ img.description }}"
-                            data-full-url="{{ img.url }}"
-                            class="img-fluid rounded"
-                            style="cursor:pointer;"
-                            >
-                        </div>
-                        {% endfor %}
+                    {% for img in exercise.images %}
+                    <div class="col-12 mb-2">
+                        <img src="{{ img.url }}" alt="{{ img.description }}" data-full-url="{{ img.url }}"
+                            class="img-fluid rounded" style="cursor:pointer;">
+                    </div>
+                    {% endfor %}
                     {% endif %}
                 </div>
                 {% endif %}
 
                 {% if exercise.videos %}
-                <h6>Video</h6>
+
                 {% for vid in exercise.videos %}
-                    <video controls class="w-100 mb-2">
+                <video controls class="w-100 mb-2">
                     <source src="{{ vid.url }}" type="video/mp4">
                     Your browser does not support embedded video.
-                    </video>
+                </video>
                 {% endfor %}
                 {% endif %}
+
+                <h6 class="mt-2">Instructions: </h6>
+                <p class="small">{{ exercise.instructions }}</p>
+
+               {# exercise.primaryMuscles is a possibly empty list of musclse that this exercise affects.
+                    Here we display the list of primary muscles, just before the instructions #}
+                    {% if exercise.primaryMuscles %}
+                    <span>
+                        <h6 class="mb-0">Muscles: </h6>
+                        <div class="text-white small mt-0">
+                            {% for muscle in exercise.primaryMuscles %}
+                            {{ muscle }},
+                            {% endfor %}
+                            {% for muscle in exercise.secondaryMuscles %}
+                            {{ muscle }},
+                            {% endfor %}
+                    </span>
+                    {% endif %}
+</div>
             </div>
         </div>
-    </div> 
-  </div>
-</div> 
-
+    </div>
+</div>
+</div>

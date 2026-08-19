@@ -9,7 +9,7 @@ from common.entity_store import EntityObject, EntityStore
 from common.fitness import workout_entity
 from common.fitness.active_fitness_registry import get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import delete_from_cache, get_cache_value, set_cache_value
-from common.fitness.entities_getter import as_bool, delete_entity, get_entity, get_entities
+from common.fitness.entities_getter import as_bool, delete_entity, get_entity, get_entities, resolve_selected_entity_keys, resolve_selected_workout_keys
 from common.fitness.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
 from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
 from common.fitness.get_calendar_service import get_calendar_service
@@ -200,7 +200,7 @@ def workouts_listing(context=None):
 
     allow_multi_select = as_bool(request.form.get('allow_multi_select', None),
                                   as_bool(request.args.get('allow_multi_select', None), False))
-
+    selected_entity_keys = resolve_selected_workout_keys(allow_multi_select=allow_multi_select)
     # modal_mode = as_bool(request.args.get('modal_mode', None), False) if request.method == 'GET' else as_bool(request.form.get('modal_mode', None), False)   
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
     entities = filter_entities_by_member_role(member_id, entities)
@@ -457,14 +457,12 @@ def view_workout2(context=None, workout_id=None):
     member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
-    workout_key_str = request.args.get('workout_key_str', None)
-    workout_composite_key = workout_key_str.split('|')
-    workout = es.get_item_by_composite_key(workout_composite_key)
-    workout_definition_key = workout.get_composite_key() if workout else None
 
     current_program_workouts = get_cache_value('current_program_workouts')
     workout = next((wk for wk in current_program_workouts if wk.get('id', None) == workout_id), None)
-    
+    workout = MemberWorkoutDefinitionEntity(workout) if workout else None
+    workout_definition_key = workout.get_composite_key() if workout else None
+
     if not workout:
         abort(404)
     
@@ -481,7 +479,7 @@ def view_workout2(context=None, workout_id=None):
         workout=workout,
         exercises=exercises,
         workout_sections=workout_sections,
-        workout_definition_key=workout_definition_key if workout_definition_key else workout.get('id',None),
+        workout_definition_key=workout_definition_key,
         program_id=program_id,
         member_id=member_id
     )

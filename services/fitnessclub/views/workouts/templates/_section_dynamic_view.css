@@ -1,6 +1,86 @@
 
 <!-- Exercise Timer Styles and JavaScript -->
 <style>
+  .workout-exercise-item .exercise-main {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .workout-exercise-item .exercise-content-column {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .workout-exercise-item .name-image {
+    gap: 0.75rem;
+  }
+
+  .workout-exercise-item .exercise-name {
+    margin-bottom: 0;
+    margin-right: 0.5rem;
+  }
+
+  .workout-exercise-item .exercise-thumbnail {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    cursor: pointer;
+  }
+
+  .workout-exercise-item .exercise-image-column {
+    margin-left: auto;
+    display: flex;
+    align-items: stretch;
+    justify-content: flex-end;
+    min-height: 100px;
+  }
+
+  .workout-exercise-item .exercise-preview-image {
+    max-height: 100px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  .workout-exercise-item .swap-exercise-btn {
+    align-self: center;
+    margin-left: 0.25rem;
+    white-space: nowrap;
+  }
+
+  .workout-exercise-item .exercise-parameters {
+    text-align: left;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .workout-exercise-item .exercise-parameters strong {
+    justify-content: flex-start;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .workout-exercise-item .exercise-parameters strong > div {
+    max-width: 100%;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .workout-exercise-item .exercise-parameters .timer-container {
+    margin-left: 0;
+  }
+
   .timer-ring-wrapper {
     position: relative;
     display: inline-flex;

@@ -348,15 +348,16 @@ exercise_filters = [
                 ]
 
 
-def render_exercise_popup_viewer_html(context, entity, can_edit=False, filter_terms=[]):
+def render_exercise_popup_viewer_html(context, entity, can_edit=False, show_dismiss_btn=False, filter_terms=[]):
     return hx_render_template('_exercise_details_form.html',
                               exercise=entity,
                               errors={},
                               context=context,
-                              can_edit=can_edit)
+                              can_edit=can_edit,
+                              show_dismiss_btn=show_dismiss_btn)
 
 
-def show_exercise_viewer(entity_to_view, context):
+def show_exercise_viewer(entity_to_view, context, show_dismiss_btn=False):
     member_id = get_member_id_from_user_context(context)
     if member_id:
         if entity_to_view.get('created_by_member_id', None) == member_id:
@@ -366,5 +367,7 @@ def show_exercise_viewer(entity_to_view, context):
             from common.fitness.member_entity import is_member_an_admin
             if is_member_an_admin(member_id):
                 can_edit = True
+            else:
+                can_edit = False
 
-    return render_exercise_popup_viewer_html(context, entity_to_view, can_edit=can_edit, filter_terms=get_filter_terms_from_request())
+    return render_exercise_popup_viewer_html(context, entity_to_view, can_edit=can_edit, show_dismiss_btn=show_dismiss_btn, filter_terms=get_filter_terms_from_request())
