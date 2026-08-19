@@ -13,7 +13,7 @@
     color: #000 !important;
   }
 </style>
-
+<!-- exercise_details_view.html -->
  <div id="dialog" class="modal-dialog modal-dialog-centered">
     <div class="card exercise-details-card">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -36,7 +36,7 @@
       {% endif %}
     </div>
     <div class="card-body">
-      <p class="small">{{ exercise.instructions }}</p>
+
 
       {% if exercise.gif %}
         <h6>GIF</h6>
@@ -87,6 +87,8 @@
           </video>
         {% endfor %}
       {% endif %}
+
+      <p class="small">{{ exercise.instructions }}</p>
     </div>
   </div>
 <!-- </div> -->

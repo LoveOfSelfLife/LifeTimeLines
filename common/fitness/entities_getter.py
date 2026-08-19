@@ -305,6 +305,9 @@ def filter_entities_by_member_role(member_id, entities):
     entities = list(deduped_entities.values())
     return entities
 
+PROGRAM_MULTI_SELECT_SESSION_KEY = 'program_builder_selected_workout_keys'
+MULTI_SELECT_SESSION_KEY = 'exercise_modal_selected_keys'
+
 
 def resolve_selected_workout_keys(allow_multi_select=False):
     if not allow_multi_select:
@@ -362,8 +365,6 @@ def resolve_selected_entity_keys(allow_multi_select=False):
 
     session[MULTI_SELECT_SESSION_KEY] = selected_keys
     return selected_keys
-PROGRAM_MULTI_SELECT_SESSION_KEY = 'program_builder_selected_workout_keys'
-MULTI_SELECT_SESSION_KEY = 'exercise_modal_selected_keys'
 
 
 def as_bool(value, default=False):

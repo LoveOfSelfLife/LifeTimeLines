@@ -1,64 +1,66 @@
 <div class="list-group" style="gap: 10px;">
   {% for item in section.exercises %}
   {% set ex = exercises[item.id] %}
-  <div class="list-group-item">
-    <div>
-      <div id = "name-image" class="d-flex align-items-center justify-content-between">
-        <h6 class="mb-1 font-weight-bold">
-          {{ ex.name }}
-        </h6>
-        <div class="btn-group btn-group-sm" role="group">
-          {% if ex.gif %}
-            <div onclick="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')">
-              <img src="{{ ex.gif }}" class="img-fluid rounded border" style="max-height: 80px;">
-            </div>
-          {% elif ex.images and ex.images|length > 0 %}
-            <div onclick="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')">
-              <img src="{{ ex.images[-1].url }}" class="img-fluid rounded border" style="max-height: 80px;">
-            </div>
-          {% else %}
-            <div onclick="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')">
-              <img src="{{ url_for('static', filename='images/exercise.png') }}" class="img-fluid rounded border"
-                style="max-height: 80px;">
-            </div>
+  <div class="list-group-item workout-exercise-item">
+    <div class="exercise-main d-flex align-items-start justify-content-between gap-3">
+      <div class="exercise-content-column">
+        <div class="name-image d-flex align-items-center gap-2">
+          {% if active_workout and workout_instance_key and item.alternatives and item.alternatives|length > 0 %}
+            <button type="button" class="btn btn-sm btn-outline-primary swap-exercise-btn"
+              hx-get="{{ url_for('workouts.show_exercise_alternatives', section_name=section.name, slot_index=loop.index0) }}?workout_instance_key={{ workout_instance_key }}"
+              hx-target="#modals-here" hx-swap="innerHTML"
+              data-bs-toggle="modal" data-bs-target="#modals-here">
+              <i class="bi bi-arrow-left-right me-1"></i>
+            </button>
           {% endif %}
-        </div>        
-      </div>
-      {% if active_workout and workout_instance_key and item.alternatives and item.alternatives|length > 0 %}
-        <button type="button" class="btn btn-sm btn-outline-secondary mt-1"
-          hx-get="{{ url_for('workouts.show_exercise_alternatives', section_name=section.name, slot_index=loop.index0) }}?workout_instance_key={{ workout_instance_key }}"
-          hx-target="#modals-here" hx-swap="innerHTML"
-          data-bs-toggle="modal" data-bs-target="#modals-here">
-          <i class="bi bi-arrow-left-right me-1"></i>Swap Exercise
-        </button>
-      {% endif %}
-      <div id="parameters">
-        {% set timer = namespace(has_timer=False, timer_value=None, timer_units=None) %}      
-        {% set param_ns = namespace(unit_param_id=None, param_list=[]) %}          
+          <h6 class="mb-1 font-weight-bold exercise-name">
+            {{ ex.name }}
+          </h6>
 
-        {% set param_ns.param_list = exercise_parameters %}
-        {% include "_dynamic_parameter.html" %}
-        <strong>          
-          <!-- Timer for time-based exercises -->
-          {% if active_workout and timer.has_timer and timer.timer_value is not none %}
-          {% set timer_duration = timer.timer_value %}
-          {% set timer_unit = timer.timer_units or 'sec' %}
-          <div class="timer-container ms-2 d-inline-block">
-            <div class="timer-ring-wrapper" data-exercise-id="{{ ex.id }}" data-duration="{{ timer_duration }}" data-unit="{{ timer_unit }}"
-              onclick="startExerciseTimer('{{ ex.id }}', Number('{{ timer_duration }}'), '{{ timer_unit }}')"
-              title="Start {{ timer_duration }} {{ timer_unit }} timer">
-              <svg class="timer-ring-svg" viewBox="0 0 44 44">
-                <circle class="timer-ring-bg" cx="22" cy="22" r="19"></circle>
-                <circle class="timer-ring-progress" cx="22" cy="22" r="19"></circle>
-              </svg>
-              <div class="timer-ring-content">
-                <i class="bi bi-stopwatch timer-ring-icon"></i>
-                <span class="timer-display" id="timer-{{ ex.id }}">{{ timer_duration }}{{ timer_unit[0] }}</span>
+        </div>
+        <div id="parameters" class="exercise-parameters">
+          {% set timer = namespace(has_timer=False, timer_value=None, timer_units=None) %}      
+          {% set param_ns = namespace(unit_param_id=None, param_list=[]) %}          
+
+          {% set param_ns.param_list = exercise_parameters %}
+          {% include "_dynamic_parameter.html" %}
+          <strong class="d-flex align-items-center justify-content-start flex-wrap gap-2 mb-0">          
+            <!-- Timer for time-based exercises -->
+            {% if active_workout and timer.has_timer and timer.timer_value is not none %}
+            {% set timer_duration = timer.timer_value %}
+            {% set timer_unit = timer.timer_units or 'sec' %}
+            <div class="timer-container d-inline-block">
+              <div class="timer-ring-wrapper" data-exercise-id="{{ ex.id }}" data-duration="{{ timer_duration }}" data-unit="{{ timer_unit }}"
+                onclick="startExerciseTimer('{{ ex.id }}', Number('{{ timer_duration }}'), '{{ timer_unit }}')"
+                title="Start {{ timer_duration }} {{ timer_unit }} timer">
+                <svg class="timer-ring-svg" viewBox="0 0 44 44">
+                  <circle class="timer-ring-bg" cx="22" cy="22" r="19"></circle>
+                  <circle class="timer-ring-progress" cx="22" cy="22" r="19"></circle>
+                </svg>
+                <div class="timer-ring-content">
+                  <i class="bi bi-stopwatch timer-ring-icon"></i>
+                  <span class="timer-display" id="timer-{{ ex.id }}">{{ timer_duration }}{{ timer_unit[0] }}</span>
+                </div>
               </div>
             </div>
+            {% endif %}
+          </strong>
+        </div>
+      </div>
+      <div class="exercise-image-column">
+        {% if ex.gif %}
+          <div class="exercise-thumbnail" onclick="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')">
+            <img src="{{ ex.gif }}" class="img-fluid rounded border exercise-preview-image">
           </div>
-          {% endif %}
-        </strong>
+        {% elif ex.images and ex.images|length > 0 %}
+          <div class="exercise-thumbnail" onclick="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')">
+            <img src="{{ ex.images[-1].url }}" class="img-fluid rounded border exercise-preview-image">
+          </div>
+        {% else %}
+          <div class="exercise-thumbnail" onclick="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')">
+            <img src="{{ url_for('static', filename='images/exercise.png') }}" class="img-fluid rounded border exercise-preview-image">
+          </div>
+        {% endif %}
       </div>
     </div>
     <!-- Placeholder for details -->
