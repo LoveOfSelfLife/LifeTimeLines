@@ -18,12 +18,11 @@ class PDF_Converter_Command:
     def __init__(self, message_content_obj, token):
         self.message_content_obj = message_content_obj
         self.token = token
-
+        self.logger = logging.getLogger(__name__)
     def covert_to_pdf(self, token):
         # Implement the logic to convert HTML to PDF using the provided token for authentication if needed.
         # This is a placeholder implementation and should be replaced with actual conversion logic.
-        logger = logging.getLogger(__name__)
-        logger.info(f'Converting HTML to PDF with token')
+        self.logger.info(f'Converting HTML to PDF with token')
         # Simulate conversion process
 
         input = self.message_content_obj.get('input')
@@ -32,16 +31,16 @@ class PDF_Converter_Command:
         self.make_pdf_from_file(input, output)
 
         time.sleep(2)
-        logger.info(f'Conversion completed for message: {self.message_content_obj}')
+        self.logger.info(f'Conversion completed for message: {self.message_content_obj}')
         return True
     
     def make_pdf_from_file(self, html_file, output_pdf):
         """Generate a PDF file from an HTML file."""
         try:
             HTML(filename=html_file).write_pdf(output_pdf)
-            logger.info(f"Successfully created PDF: {output_pdf}")
+            self.logger.info(f"Successfully created PDF: {output_pdf}")
         except Exception as e:
-            logger.error(f"An error occurred: {e}")
+            self.logger.error(f"An error occurred: {e}")
 
 
 def main() -> None:
