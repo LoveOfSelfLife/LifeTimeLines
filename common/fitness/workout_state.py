@@ -1,8 +1,9 @@
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import session
 import json
+import pytz
 
 def initialize_active_workout_state(workout_instance_key, program_key, scheduled_workout_event_id, is_adhoc_workout=False):
     """
@@ -18,7 +19,8 @@ def initialize_active_workout_state(workout_instance_key, program_key, scheduled
         'is_adhoc_workout': is_adhoc_workout,
         'exercise_parameters': {},
         'exercise_swaps': {},
-        'time_workout_started': datetime.now().isoformat(),
+        # US/Eastern local time (DST-aware), matching MemberWorkoutInstanceEntity.started_ts
+        'time_workout_started': datetime.now(timezone.utc).astimezone(pytz.timezone('US/Eastern')).isoformat(),
         'keep_screen_awake': False
     }
     session['current_workout_instance_state'] = json.dumps(current_state)

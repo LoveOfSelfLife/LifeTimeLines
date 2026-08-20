@@ -1,8 +1,9 @@
 import copy
 from ast import literal_eval
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 
+import pytz
 import uuid
 from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, session, url_for
 from common.entity_store import EntityObject, EntityStore
@@ -984,8 +985,9 @@ def start_workout(context=None):
     # If no event ID provided, create a new scheduled event (adhoc workout)
     if not scheduled_workout_event_id:
         calendar_service = get_calendar_service()
-        current_date = datetime.now().date().strftime("%Y-%m-%d")
-        current_time = datetime.now().time().strftime("%H:%M")
+        now_local = datetime.now(timezone.utc).astimezone(pytz.timezone('US/Eastern'))
+        current_date = now_local.date().strftime("%Y-%m-%d")
+        current_time = now_local.time().strftime("%H:%M")
         scheduled_workout_event_id = calendar_service.add_workout_event(
             member_short_name=short_name,
             event_date=current_date, 
@@ -1079,7 +1081,8 @@ def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, m
     workout_instance.update({
         'id': str(uuid.uuid4()),
         'member_id': member_id,
-        'started_ts': datetime.now().isoformat(),
+        # stored as US/Eastern local time to match finished_ts, not raw server UTC clock
+        'started_ts': datetime.now(timezone.utc).astimezone(pytz.timezone('US/Eastern')).isoformat(),
         'finished_ts': "",
         'scheduled_workout_event_id': scheduled_workout_event_id,
         'member_workout_def_id': workout_entity['id'] if workout_entity else None,
@@ -1181,7 +1184,8 @@ def really_finish_workout(context=None, workout_instance_key=None):
         es.upsert_item(workout_definition)
 
     workout_instance['started_ts'] = _normalize_form_datetime(started_ts, workout_instance.get('started_ts'))
-    workout_instance['finished_ts'] = _normalize_form_datetime(finished_ts, datetime.now().isoformat())
+    # fallback also uses US/Eastern local time, matching the value the finishing_workout form is prefilled with
+    workout_instance['finished_ts'] = _normalize_form_datetime(finished_ts, datetime.now(timezone.utc).astimezone(pytz.timezone('US/Eastern')).isoformat())
     workout_instance['member_feedback'] = member_feedback.strip()
     es.upsert_item(workout_instance)
     
