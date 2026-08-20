@@ -62,26 +62,8 @@
             {% endif %}
 
             {% if data.team_members %}
-            <div class="team-members mb-1 mt-3">
-                <small class="text-light opacity-75 d-block mb-1">
-                    <i class="bi bi-people me-1"></i>Other members scheduled for this workout:
-                </small>
-                <div class="team-list">
-                    {% for member in data.team_members %}
-                    {% if member.attendance_status == 'attending' %}
-                    <span class="badge bg-success me-1">
-                        <i class="bi bi-check-circle-fill me-1"></i>{{ member.name }} @ {{ member.time }}
-                    </span>
-                    {% elif member.attendance_status == 'declined' %}
-                    <span class="badge bg-danger me-1">
-                        <i class="bi bi-x-circle-fill me-1"></i>{{ member.name }} @ {{ member.time }}
-                    </span>
-                    {% else %}
-                    <span class="badge bg-secondary me-1">{{ member.name }} @ {{ member.time }}</span>
-                    {% endif %}
-                    {% endfor %}
-                </div>
-            </div>
+            {% set team_members = data.team_members %}
+            {% include 'home/_team_member_badges.html' %}
             {% endif %}
         </div>
     </div>

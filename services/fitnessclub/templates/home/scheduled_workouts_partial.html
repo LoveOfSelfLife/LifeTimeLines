@@ -78,18 +78,8 @@
                 {% set selected_workout_key = event.selected_workout_key %}
                 {% set program_key = data.program_key %}
                 {% include 'home/_start_workout_controls.html' %}
-                    {% if event.team_members %}
-                        <div class="team-members mb-1 mt-3">
-                            <small class="text-light opacity-75 d-block mb-1">
-                                <i class="bi bi-people me-1"></i>Other members working out as well:
-                            </small>
-                            <div class="team-list">
-                                {% for member in event.team_members %}
-                                <span class="badge bg-secondary me-1">{{ member.name }} @ {{ member.time }}</span>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    {% endif %}
+                    {% set team_members = event.team_members %}
+                    {% include 'home/_team_member_badges.html' %}
                 {% endif %}
             </div>
         </div>
@@ -129,16 +119,8 @@
                 </div>
 
                 {% if upcoming.team_members %}
-                <div class="team-members mb-1 mt-2">
-                    <small class="text-light opacity-75 d-block mb-1">
-                        <i class="bi bi-people me-1"></i>Other members working out as well:
-                    </small>
-                    <div class="team-list">
-                        {% for member in upcoming.team_members %}
-                        <span class="badge bg-secondary me-1">{{ member.name }} @ {{ member.time }}</span>
-                        {% endfor %}
-                    </div>
-                </div>
+                {% set team_members = upcoming.team_members %}
+                {% include 'home/_team_member_badges.html' %}
                 {% endif %}
             </div>
         </div>

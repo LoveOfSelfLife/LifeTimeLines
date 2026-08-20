@@ -354,6 +354,7 @@ class HomePageDataService:
                     {
                         'name': get_member_name_from_member_id(e['member_id']),
                         'time': e['display_time'],
+                        'attendance_status': e['confirmstatus'],
                     }
                     for e in others
                 ]
