@@ -18,6 +18,20 @@
         <div class="row g-4">
             {# Global Quick Start Workout Section #}
 
+            {# Attendance Confirmation Panel (only rendered when a not-yet-completed workout is scheduled today/tomorrow) #}
+            <div class="col-12">
+                <div id="attendance-panel-content" hx-get="{{ url_for('home.attendance_panel_partial') }}"
+                    hx-trigger="load, eventListChanged from:body"
+                    hx-swap="innerHTML">
+                    {# Loading placeholder #}
+                    <div class="text-center py-2">
+                        <div class="spinner-border spinner-border-sm text-light" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {# Scheduled Workouts Section #}
             <div class="col-12">
                 <div class="dashboard-section">

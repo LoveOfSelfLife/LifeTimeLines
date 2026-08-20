@@ -16,7 +16,7 @@ from common.fitness.favorites_entity import get_all_favorite_entity_ids
 from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import hx_render_template
 from common.fitness.member_entity import get_member_id_from_user_context, get_member_detail_from_user_context, get_user_profile
-from common.fitness.home_data_service import HomePageDataService, format_seconds
+from common.fitness.home_data_service import HomePageDataService, format_seconds, get_program_workout_options
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity
 from common.fitness.programs import get_last_workout_instance_for_workout, get_members_current_active_program, get_program_workouts
 # from common.fitness.workout_state import set_active_workout_state
@@ -43,17 +43,7 @@ def scheduled_workouts_partial2(context=None):
         
         # Get alternative workout options for select elements
         current_program = get_members_current_active_program(member_id)
-        current_prog_workouts = []
-        
-        if current_program:
-            # Create alternative workout options
-            for workout_def in get_program_workouts(current_program):
-                workout_info = {
-                    'key': str(workout_def.get_composite_key()),
-                    'name': workout_def.get('name', 'Unnamed Workout'),
-                    'description': workout_def.get('description', '')
-                    }
-                current_prog_workouts.append(workout_info)
+        current_prog_workouts = get_program_workout_options(current_program)
         
         return hx_render_template(
             template_file='home/scheduled_workouts_partial.html',
@@ -95,18 +85,7 @@ def adhoc_workouts_partial2(context=None):
             }
             all_workouts.append(workout_info)
 
-        if current_program:
-            # Get all workouts from the program
-            all_program_workouts = get_program_workouts(current_program)
-            
-            # Create alternative workout options
-            for workout_def in all_program_workouts:
-                workout_info = {
-                    'key': str(workout_def.get_composite_key()),
-                    'name': workout_def.get('name', 'Unnamed Workout'),
-                    'description': workout_def.get('description', '')
-                    }
-                all_workouts.append(workout_info)
+        all_workouts.extend(get_program_workout_options(current_program))
         # Remove duplicates based on workout key
         unique_workouts = {str(workout['key']): workout for workout in all_workouts}.values()
         prog_workouts = list(unique_workouts)
@@ -123,6 +102,57 @@ def adhoc_workouts_partial2(context=None):
         print(f"Error loading adhoc workouts: {e}")
         return hx_render_template(
             template_string=f'<div class="alert alert-danger">Error loading adhoc workouts: {str(e)}</div>',
+            context=context
+        )
+
+@bp.route("/attendance-panel")
+@auth.login_required
+def attendance_panel_partial(context=None):
+    """HTMX partial for the workout attendance confirmation panel"""
+    try:
+        member_id = get_member_id_from_user_context(context)
+        home_service = HomePageDataService()
+        attendance_data = home_service.get_attendance_panel_data(member_id, datetime.now(timezone.utc))
+
+        return hx_render_template(
+            template_file='home/attendance_panel_partial.html',
+            data=attendance_data,
+            context=context
+        )
+
+    except Exception as e:
+        print(f"Error loading attendance panel: {e}")
+        return hx_render_template(
+            template_string='<div class="alert alert-danger">Error loading attendance panel</div>',
+            context=context
+        )
+
+@bp.route("/attendance-panel/respond", methods=['POST'])
+@auth.login_required
+def attendance_respond(context=None):
+    """Record the member's attendance RSVP directly on the calendar event, then re-render the panel"""
+    try:
+        member_id = get_member_id_from_user_context(context)
+        event_id = request.form.get('event_id')
+        confirmstatus = request.form.get('confirmstatus')
+
+        if event_id and confirmstatus in ('attending', 'declined'):
+            cal = get_calendar_service()
+            cal.update_confirmation_status_of_workout_event(event_id, confirmstatus)
+
+        home_service = HomePageDataService()
+        attendance_data = home_service.get_attendance_panel_data(member_id, datetime.now(timezone.utc))
+
+        return hx_render_template(
+            template_file='home/attendance_panel_partial.html',
+            data=attendance_data,
+            context=context
+        )
+
+    except Exception as e:
+        print(f"Error updating attendance: {e}")
+        return hx_render_template(
+            template_string='<div class="alert alert-danger">Error updating attendance</div>',
             context=context
         )
 

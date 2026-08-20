@@ -73,45 +73,11 @@
                 <small class="text-light opacity-75 d-block mb-1">
                     <i class="fas fa-dumbbell me-2"></i>Recommended Workout:
                 </small>
-                <div class="workout-actions d-flex">
-                    <button type="button"
-                        class="btn btn-success btn-sm rounded-0 rounded-start quick-start-button flex-shrink-0"
-                        onclick="document.getElementById('start-form-{{ event.event_id }}').requestSubmit();"
-                        title="Start selected workout">
-                        Start <i class="bi bi-play-fill"></i>
-                    </button>
-
-                    <form id="start-form-{{ event.event_id }}" class="d-flex flex-shrink-1"
-                        style="margin: 0; min-width: 0;" hx-post="{{ url_for('program.start_workout') }}"
-                        hx-target="#content" hx-swap="innerHTML">
-
-                        <input type="hidden" name="program_key" value="{{ data.program_key if 'program_key' in data else '' }}">
-                        <input type="hidden" name="scheduled_workout_event_id" value="{{ event.event_id }}">
-                        <div class="custom-select-wrapper flex-grow-1" style="min-width: 120px;">
-                            <select id="{{ select_id }}"
-                                class="form-select form-select-sm quick-start-select custom-select" name="workout_key"
-                                hx-get="{{ url_for('home.update_peek_button') }}?button_id={{ peek_id }}"
-                                hx-target="#{{ peek_id }}" hx-swap="outerHTML" hx-trigger="load, change"
-                                hx-include="#{{ select_id }}" style="border-radius: 0; min-width: 0;" required>
-                                <option value="">Choose Workout...</option>
-                                {% if program_workouts %}
-                                    {% for prog_workout in program_workouts %}
-                                    <option value="{{ prog_workout.key }}" {% if prog_workout.key == event.selected_workout_key %}selected{% endif %}>
-                                        {{ prog_workout.name }}
-                                    </option>
-                                    {% endfor %}
-                                {% endif %}
-                            </select>
-                        </div>
-                        <button id="{{ peek_id }}" type="button"
-                            class="btn btn-light btn-sm rounded-0 rounded-end flex-shrink-0"
-                            title="Preview selected workout"
-                            style="border-left: 1px solid rgba(0,0,0,0.125);">
-                            <i class="bi bi-eye me-1"></i>
-                        </button>
-                    </form>
-
-                </div>
+                {% set form_id = 'start-form-' ~ event.event_id %}
+                {% set event_id = event.event_id %}
+                {% set selected_workout_key = event.selected_workout_key %}
+                {% set program_key = data.program_key %}
+                {% include 'home/_start_workout_controls.html' %}
                     {% if event.team_members %}
                         <div class="team-members mb-1 mt-3">
                             <small class="text-light opacity-75 d-block mb-1">
