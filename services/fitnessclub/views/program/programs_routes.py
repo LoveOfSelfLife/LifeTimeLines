@@ -16,7 +16,7 @@ from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_
 from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
 from common.fitness.hx_common import rm_spaces
-from common.fitness.member_entity import MembershipRegistry, get_member_id_from_user_context, get_user_profile, is_member_an_admin
+from common.fitness.member_entity import MembershipRegistry, get_member_id_from_user_context, is_member_an_admin
 from common.fitness.member_exercise_history import extract_and_load_exercise_events_from_workout_instance
 from common.fitness.member_program_entity import MemberProgramsEntity
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout
@@ -978,26 +978,10 @@ def add_multiple_workouts(context=None, program_id=None):
 @auth.login_required
 def start_workout(context=None):
     member_id = get_member_id_from_user_context(context)
-    short_name = get_user_profile(member_id).get('short_name', None)
 
     scheduled_workout_event_id = request.form.get('scheduled_workout_event_id', None)
-
-    # If no event ID provided, create a new scheduled event (adhoc workout)
-    if not scheduled_workout_event_id:
-        calendar_service = get_calendar_service()
-        now_local = datetime.now(timezone.utc).astimezone(pytz.timezone('US/Eastern'))
-        current_date = now_local.date().strftime("%Y-%m-%d")
-        current_time = now_local.time().strftime("%H:%M")
-        scheduled_workout_event_id = calendar_service.add_workout_event(
-            member_short_name=short_name,
-            event_date=current_date, 
-            event_time=current_time,
-            location="YMCA", 
-            metadata=f'#id={member_id}'
-        )
-        is_adhoc_workout = True
-    else:
-        is_adhoc_workout = False
+    # adhoc workouts (no pre-scheduled calendar event) are no longer given a calendar event
+    is_adhoc_workout = not scheduled_workout_event_id
 
 
     workout_key_str = request.form.get('workout_key', None)
@@ -1196,8 +1180,10 @@ def really_finish_workout(context=None, workout_instance_key=None):
     # session.pop('current_workout_instance_state', None)
     session.pop(f"last_section_{workout_instance['id']}", None)
 
-    cal = get_calendar_service()
-    cal.update_status_of_workout_event(scheduled_workout_event_id, 'done')
+    # adhoc workouts have no calendar event to mark done
+    if scheduled_workout_event_id:
+        cal = get_calendar_service()
+        cal.update_status_of_workout_event(scheduled_workout_event_id, 'done')
 
     return redirect('/')
 

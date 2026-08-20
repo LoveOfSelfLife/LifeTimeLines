@@ -19,6 +19,14 @@
             <span class="text-light opacity-75">{{ end_time }}</span>
           </div>
         </div>
+        {% if workout_instance.get('member_feedback') %}
+        <div class="row g-3 mt-1">
+          <div class="col-12">
+            <strong>Feedback</strong><br>
+            <span class="text-light opacity-75">{{ workout_instance.get('member_feedback') }}</span>
+          </div>
+        </div>
+        {% endif %}
       </div>
 
       {% if workout_sections %}
