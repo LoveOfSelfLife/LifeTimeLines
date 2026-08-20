@@ -416,6 +416,7 @@ class GoogleCalendarService (AbstractCalendarService):
                 'member_id': metadata.get('id', ''),
                 'status': metadata.get('status', ''),
                 'name': metadata.get('name', ''),
+                'confirmstatus': metadata.get('confirmstatus', ''),
                 'recurring_event_id': recurring_event_id,
                 'summary': event_summary
             }
@@ -557,22 +558,14 @@ class GoogleCalendarService (AbstractCalendarService):
         if not event:
             print(f"Event with ID {event_id} not found.")
             return
-        # then we update the metadata of the event with the new status
-        # metadata is a string that contains the member ID, status and name
-        event_metadata = event.get('description', '')
-        # if the event has a description, we can extract the member id and created by id from it
-        metadata = extract_id_and_status(event_metadata)
-        member_id = metadata.get('id', '')
-        event_status = metadata.get('status', '')
-        member_name = metadata.get('name', '')    
-        
-        #format the metadata string with the new status
-        update_metadata = ""
-        if member_id:
-            update_metadata += f"#id={member_id}\n#status={status}"
-        if name:
-            update_metadata += f"\n#name={name}"
-        event['description'] = update_metadata
+        # merge into existing metadata so unrelated tags (e.g. #confirmstatus) are preserved
+        metadata = extract_id_and_status(event.get('description', ''))
+        event['description'] = _build_event_metadata_string(
+            id=metadata.get('id', ''),
+            status=status,
+            name=name or metadata.get('name', ''),
+            confirmstatus=metadata.get('confirmstatus', ''),
+        )
         try:
             event = self.service.events().update(calendarId=self.calendar_id, eventId=event_id, body=event).execute()
             print("Event updated")
@@ -580,20 +573,64 @@ class GoogleCalendarService (AbstractCalendarService):
         except Exception as error:
             print(f"An error occurred attempting to update the event: {error}")
 
+    def update_confirmation_status_of_workout_event(self, event_id, confirmstatus):
+        """
+        Updates the member's attendance confirmation status (#confirmstatus=) of a workout event,
+        preserving the other metadata tags (#id, #status, #name) already on the event.
+
+        Args:
+            event_id (str): The ID of the event to update.
+            confirmstatus (str): The new confirmation status ('attending' or 'declined').
+        """
+        calendar_service = GoogleCalendarService()
+        event = calendar_service.get_event(event_id)
+        if not event:
+            print(f"Event with ID {event_id} not found.")
+            return
+        metadata = extract_id_and_status(event.get('description', ''))
+        event['description'] = _build_event_metadata_string(
+            id=metadata.get('id', ''),
+            status=metadata.get('status', ''),
+            name=metadata.get('name', ''),
+            confirmstatus=confirmstatus,
+        )
+        try:
+            event = self.service.events().update(calendarId=self.calendar_id, eventId=event_id, body=event).execute()
+            print("Event updated")
+
+        except Exception as error:
+            print(f"An error occurred attempting to update the event: {error}")
+
+
+def _build_event_metadata_string(id=None, status=None, name=None, confirmstatus=None):
+    """Rebuilds the '#tag=value' description string, merging only the provided fields."""
+    lines = []
+    if id:
+        lines.append(f"#id={id}")
+    if status:
+        lines.append(f"#status={status}")
+    if name:
+        lines.append(f"#name={name}")
+    if confirmstatus:
+        lines.append(f"#confirmstatus={confirmstatus}")
+    return "\n".join(lines)
+
 
 def extract_id_and_status(s):
     import re
-    # Use regex to find id and status, allowing for newlines
+    # Use regex to find id, status, name and confirmstatus, allowing for newlines
     id_match = re.search(r'#id=([^\n#]+)', s)
     status_match = re.search(r'#status=([^\n#]+)', s)
     name_match = re.search(r'#name=([^\n#]+)', s)
+    confirmstatus_match = re.search(r'#confirmstatus=([^\n#]+)', s)
 
     # Extract the values or return None if not found
     id_value = id_match.group(1) if id_match else None
     status_value = status_match.group(1) if status_match else None
     name_value = name_match.group(1) if name_match else None
-    # print(f"Extracted: id={id_value}, status={status_value}, name={name_value}")
-    return { "id": id_value, "status": status_value, "name": name_value }
+    confirmstatus_value = confirmstatus_match.group(1) if confirmstatus_match else None
+    # print(f"Extracted: id={id_value}, status={status_value}, name={name_value}, confirmstatus={confirmstatus_value}")
+    return { "id": id_value, "status": status_value, "name": name_value, "confirmstatus": confirmstatus_value }
 
 
 def get_date_of_event(event):
