@@ -519,11 +519,17 @@ class HomePageDataService:
         }
         """
         try:
-            # Calculate start of current week (Monday)
-            days_since_monday = current_datetime.weekday()
-            week_start = current_datetime - timedelta(days=days_since_monday)
+            # Calculate start of current week (Monday) in US/Eastern local time
+            local_tz = pytz.timezone('US/Eastern')
+            if current_datetime.tzinfo is None:
+                current_datetime_local = local_tz.localize(current_datetime)
+            else:
+                current_datetime_local = current_datetime.astimezone(local_tz)
+            days_since_monday = current_datetime_local.weekday()
+            week_start = current_datetime_local - timedelta(days=days_since_monday)
             week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
-            week_start = week_start.replace(tzinfo=pytz.timezone('US/Eastern'))
+            # re-normalize: replace() on an aware pytz datetime doesn't recompute the DST offset
+            week_start = local_tz.normalize(week_start)
             # Get completed workouts for this week
             filter_criteria = {
                 'member_id': member_id,
@@ -540,7 +546,10 @@ class HomePageDataService:
                 end_time = workout.get('finished_ts')
                 if end_time:
                     end_dt = datetime.fromisoformat(end_time) if isinstance(end_time, str) else end_time
-                    end_dt = end_dt.replace(tzinfo=pytz.timezone('US/Eastern'))
+                    if end_dt.tzinfo is None:
+                        end_dt = local_tz.localize(end_dt)
+                    else:
+                        end_dt = end_dt.astimezone(local_tz)
                     if end_dt >= week_start:
                         this_week_workouts.append(workout)
             

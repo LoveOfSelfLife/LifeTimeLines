@@ -12,10 +12,12 @@ def _parse_program_boundary(boundary_value):
         return None
 
     import pytz
+    local_tz = pytz.timezone('US/Eastern')
     parsed_value = dt.fromisoformat(boundary_value)
     if parsed_value.tzinfo is None:
-        return parsed_value.replace(tzinfo=pytz.timezone('US/Eastern'))
-    return parsed_value.astimezone(pytz.timezone('US/Eastern'))
+        # localize() (not replace(tzinfo=...)) correctly resolves the DST-aware offset for this date
+        return local_tz.localize(parsed_value)
+    return parsed_value.astimezone(local_tz)
 
 
 def _get_candidate_programs_for_member(member_id):
