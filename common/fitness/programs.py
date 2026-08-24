@@ -98,7 +98,7 @@ def get_program_workouts_for_program(program, workout_type=None):
     member_workouts = get_filtered_entities(MemberWorkoutDefinitionEntity.table_name)
     workouts_in_program = [w for w in member_workouts if w.get('member_program_id', None) == program.get('id', None)]
     if workout_type:
-        workouts_in_program = [w for w in workouts_in_program if w.get('workout_type') == workout_type]
+        workouts_in_program = [w for w in workouts_in_program if w.get('workout_type', 'standard') == workout_type]
     workouts_in_program.sort(key=lambda w: w.get('order_index', 0))
     return workouts_in_program
 
@@ -122,7 +122,7 @@ def get_last_workout_instance_for_workout(workout_def_id, member_id):
 
 def get_next_workout_in_program(program, member_id):
     # This function should return the next workout in the program for the member
-    print(f"Program: {program}, Member ID: {member_id}")
+
 
     # in the new data model, all instances of workouts are stored as MemberWorkoutInstanceEntity entities
     # every time a MemberWorkoutDefinitionEntity is done by a member, a MemberWorkoutInstanceEntity is created to track the instance of the workout

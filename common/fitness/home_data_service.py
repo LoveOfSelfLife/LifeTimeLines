@@ -156,24 +156,29 @@ class HomePageDataService:
     def get_attendance_panel_data(self, member_id: str, current_datetime: datetime) -> Dict:
         """
         Build data for the attendance confirmation panel: the member's single earliest
-        not-yet-completed workout event scheduled for today or tomorrow, their RSVP status
-        (read from the calendar event's #confirmstatus tag), and teammates scheduled the same day.
-        Reuses the same calendar fetch as get_scheduled_workouts_data (no extra calendar call).
+        not-yet-completed workout event scheduled today or any day in the future, their RSVP
+        status (read from the calendar event's #confirmstatus tag), and teammates scheduled
+        the same day. Uses its own calendar fetch (wider horizon than the scheduled-workouts
+        panel) since it needs to look arbitrarily far ahead for the next not-yet-completed event.
         """
         try:
-            events_by_date, member_events, today_date, local_tz, current_member_id_str = self._fetch_team_events(member_id, current_datetime)
-            tomorrow_date = today_date + timedelta(days=1)
-
+            # 14-day look-ahead: bounded so we don't scan the calendar indefinitely, but far
+            # enough to find "the next not-yet-completed workout" regardless of how far out it is.
+            end_date = (current_datetime + timedelta(days=14)).strftime("%Y-%m-%d")
+            events_by_date, member_events, today_date, local_tz, current_member_id_str = self._fetch_team_events(
+                member_id, current_datetime, end_date=end_date
+            )
+            # we want candidates to be the member's earliest not-yet-completed event from today onwards.
+            # in addition, we don't want to include an event for today if the member declined the event and the event time is 1 or more hours in the past (we don't want to nag them about a workout they already declined and missed).
             candidates = [
                 e for e in member_events
-                if e['event_date'] in (today_date, tomorrow_date) and not e['is_completed']
+                if e['event_date'] >= today_date and not e['is_completed'] and not (e['event_date'] == today_date and e['confirmstatus'] == 'declined' and e['event_datetime'] <= current_datetime - timedelta(hours=1))
             ]
             if not candidates:
                 return {'has_event': False}
 
             attention_event = candidates[0]
             is_today = attention_event['event_date'] == today_date
-            day_label = 'today' if is_today else 'tomorrow'
 
             team_members = [
                 {
@@ -188,31 +193,33 @@ class HomePageDataService:
             data = {
                 'has_event': True,
                 'event_id': attention_event['event_id'],
-                'day_label': day_label,
                 'is_today': is_today,
                 'scheduled_datetime': attention_event['event_datetime'],
                 'display_time': attention_event['display_time'],
                 'attendance_status': attention_event['confirmstatus'],
                 'team_members': team_members,
+                'has_active_program': False,
                 'program_key': None,
                 'workout_name': None,
                 'workout_key': None,
                 'program_workouts': [],
             }
 
-            if is_today:
-                current_program = get_members_current_active_program(member_id, current_date_dt=current_datetime)
-                if current_program:
-                    data['program_key'] = str(current_program.get_composite_key())
+            current_program = get_members_current_active_program(member_id, current_date_dt=current_datetime)
+            if current_program:
+                data['has_active_program'] = True
+                data['program_key'] = str(current_program.get_composite_key())
+                if is_today:
+                    # only needed to populate the "start workout now" dropdown
                     data['program_workouts'] = get_program_workout_options(current_program)
-                    next_workout = get_next_workout_in_program(current_program, member_id)
-                    if next_workout:
-                        candidate_key = next_workout.get('next_workout_key')
-                        if candidate_key:
-                            next_workout_definition = self.entity_store.get_item_by_composite_key(candidate_key)
-                            if next_workout_definition:
-                                data['workout_name'] = next_workout_definition.get('name', 'Selected Workout')
-                                data['workout_key'] = str(next_workout_definition.get_composite_key())
+                next_workout = get_next_workout_in_program(current_program, member_id)
+                if next_workout:
+                    candidate_key = next_workout.get('next_workout_key')
+                    if candidate_key:
+                        next_workout_definition = self.entity_store.get_item_by_composite_key(candidate_key)
+                        if next_workout_definition:
+                            data['workout_name'] = next_workout_definition.get('name', 'Selected Workout')
+                            data['workout_key'] = str(next_workout_definition.get_composite_key())
 
             return data
         except Exception as e:

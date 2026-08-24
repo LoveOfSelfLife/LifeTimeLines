@@ -113,10 +113,12 @@ def attendance_panel_partial(context=None):
         member_id = get_member_id_from_user_context(context)
         home_service = HomePageDataService()
         attendance_data = home_service.get_attendance_panel_data(member_id, datetime.now(timezone.utc))
-
+        # lets pass in the member name into this template so we can show it in the panel
+        member_detail = get_member_detail_from_user_context(context)
         return hx_render_template(
             template_file='home/attendance_panel_partial.html',
             data=attendance_data,
+            member=member_detail,
             context=context
         )
 
@@ -133,6 +135,7 @@ def attendance_respond(context=None):
     """Record the member's attendance RSVP directly on the calendar event, then re-render the panel"""
     try:
         member_id = get_member_id_from_user_context(context)
+        member_detail = get_member_detail_from_user_context(context)
         event_id = request.form.get('event_id')
         confirmstatus = request.form.get('confirmstatus')
 
@@ -146,6 +149,7 @@ def attendance_respond(context=None):
         return hx_render_template(
             template_file='home/attendance_panel_partial.html',
             data=attendance_data,
+            member=member_detail,
             context=context
         )
 

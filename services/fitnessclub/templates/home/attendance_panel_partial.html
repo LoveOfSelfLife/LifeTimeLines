@@ -1,31 +1,43 @@
-{# Attendance Confirmation Panel: shown only when the member has an uncompleted workout event today or tomorrow #}
+{# Attendance Confirmation Panel: shown whenever the member has an uncompleted workout event today or any day in the future #}
 {% if data.has_event %}
 <div class="attendance-panel">
     <div class="workout-card mb-3">
         <div class="card-body p-3">
+            {% if data.is_today %}
             <h6 class="workout-name mb-2">
-                You have a workout scheduled <strong>{{ data.day_label }}</strong> at {{ data.display_time }}
+                You have a workout scheduled <strong>today</strong> at {{ data.display_time }}
             </h6>
+            {% else %}
+            <h6 class="workout-name mb-2">
+                You have a workout scheduled on {{ data.scheduled_datetime.strftime('%a %b-%d-%Y at %I:%M%p') }}
+            </h6>
+            {% endif %}
 
             {% if data.attendance_status == 'attending' %}
                 <p class="text-light mb-2">
-                    <i class="bi bi-check-circle-fill text-success me-1"></i>You confirmed that you will attend this workout
+                <span class="badge bg-success me-1">
+                    <i class="bi bi-check-circle-fill me-1"></i>{{ member.name }}
+                </span> will attend
                 </p>
-                <button class="btn btn-danger btn-outline-light btn-sm"
+
+                <button class="btn btn-outline-light btn-sm"
                     hx-post="{{ url_for('home.attendance_respond') }}"
                     hx-vals='{"event_id": "{{ data.event_id }}", "confirmstatus": "declined"}'
                     hx-target="#attendance-panel-content" hx-swap="innerHTML">
-                    Click if you changed your mind & will NOT attend
+                    Click here if you changed your mind
                 </button>
             {% elif data.attendance_status == 'declined' %}
                 <p class="text-light mb-2">
-                    <i class="bi bi-x-circle-fill text-danger me-1"></i>You confirmed that you will NOT attend this workout.
+                <span class="badge bg-danger me-1">
+                    <i class="bi bi-check-circle-fill me-1"></i>{{ member.name }}
+                </span> will NOT attend
+                    
                 </p>
-                <button class="btn btn-success btn-outline-light btn-sm"
+                <button class="btn btn-outline-light btn-sm"
                     hx-post="{{ url_for('home.attendance_respond') }}"
                     hx-vals='{"event_id": "{{ data.event_id }}", "confirmstatus": "attending"}'
                     hx-target="#attendance-panel-content" hx-swap="innerHTML">
-                    Click if you changed your mind & will attend
+                    Click here if you changed your mind
                 </button>
             {% else %}
                 <p class="text-light opacity-75 mb-2">Will you be attending this workout?</p>
@@ -43,6 +55,27 @@
                         No, you will not attend
                     </button>
                 </div>
+            {% endif %}
+
+            {% if not data.is_today %}
+            <!-- add some space above this div -->
+            <div class="text-light mb-2 mt-3">
+                {% if data.workout_key %}
+                Next workout: <button
+                    type="button"
+                    class="btn btn-link p-0 align-baseline workout-link text-light"
+                    hx-get="/workouts/viewer/workout"
+                    hx-vals='{"key": "{{ data.workout_key }}", "is_modal": "true"}'
+                    hx-target="#modals-here"
+                    hx-swap="innerHTML">
+                    {{ data.workout_name }}
+                </button>
+                {% elif data.has_active_program %}
+                <span>{{ data.workout_name }}</span>
+                {% else %}
+                <span>You do not have an active program</span>
+                {% endif %}
+            </div>
             {% endif %}
 
             {% if data.is_today and data.program_key and data.attendance_status in ('attending', 'pending') %}
