@@ -8,6 +8,7 @@ from common.fitness.entities_getter import resolve_selected_entity_keys
 from common.fitness.entities_getter import as_bool
 from common.fitness.entities_getter import MULTI_SELECT_SESSION_KEY
 from common.fitness.exercise_entity import show_exercise_viewer
+from common.fitness.exercise_entity import movement_category_definitions
 from common.fitness.hx_common import parse_listing_filter
 from common.fitness.entities_getter import get_entities
 from common.fitness.exercise_entity import ExerciseEntity
@@ -242,11 +243,14 @@ def new_exercise(context=None):
             else:
                 exercise_data[field] = ''
 
- 
+    # movement_categories is not part of the schema, so default it explicitly
+    exercise_data.setdefault('movement_categories', [])
+
     return hx_render_template('exercises/exercise_editor.html',
                          exercise=exercise_data,
                          is_new=True,
                          schema=exercise_schema,
+                         movement_category_definitions=movement_category_definitions,
                          save_url='/exercises/save',
                          cancel_url=f'/exercises/cancel',
                          context=context)
@@ -272,6 +276,9 @@ def edit_exercise(context=None):
     # Remove Timestamp field if present
     if 'Timestamp' in exercise_data:
         del exercise_data['Timestamp']
+
+    # Older exercises may not have a gif field yet
+    exercise_data.setdefault('gif', '')
     
     # here we need to determine if the current member can edit the exercise, which is the case if the member is an admin 
     # or if the exercise was created by the member
@@ -324,8 +331,8 @@ def edit_exercise(context=None):
             exercise_data[media_field] = []
             print(f"INFO: {media_field} field doesn't exist, setting to empty array")
 
-    # Parse primary and secondary muscles if they are strings
-    for muscle_field in ['primaryMuscles', 'secondaryMuscles']:
+    # Parse primary and secondary muscles, and movement categories if they are strings
+    for muscle_field in ['primaryMuscles', 'secondaryMuscles', 'movement_categories']:
         if muscle_field in exercise_data:
             muscle_value = exercise_data[muscle_field]
             if isinstance(muscle_value, str) and muscle_value.strip():
@@ -355,6 +362,7 @@ def edit_exercise(context=None):
                          exercise=exercise_data,
                          is_new=False,
                          schema=exercise_schema,  
+                         movement_category_definitions=movement_category_definitions,
                          save_url=f'/exercises/save/{exercise_id}?page={current_listing_page}&filter={current_listing_filter}',
                          cancel_url=f'/exercises/cancel?page={current_listing_page}&filter={current_listing_filter}',
                          context=context)
@@ -370,7 +378,7 @@ def save_exercise(exercise_id=None, context=None):
         print(f"DEBUG SAVE: Raw form data received: {dict(request.form)}")
         
         # Handle array fields (checkboxes and multi-selects)
-        array_fields = ['primaryMuscles', 'secondaryMuscles', 'physical_fitness_components']
+        array_fields = ['primaryMuscles', 'secondaryMuscles', 'physical_fitness_components', 'movement_categories']
         for field in array_fields:
             if field in exercise_data:
                 values = request.form.getlist(field)
@@ -423,6 +431,8 @@ def save_exercise(exercise_id=None, context=None):
             exercise_data['udf1'] = ''
         if 'udf2' not in exercise_data:
             exercise_data['udf2'] = ''
+        if 'gif' not in exercise_data:
+            exercise_data['gif'] = ''
         
         exercise_data['created_by_member_id'] = get_member_id_from_user_context(context)
 

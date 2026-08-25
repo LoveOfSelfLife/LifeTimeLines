@@ -543,17 +543,29 @@ background: #f9f9f9;
     font-size: x-small;
 }
 .form-check-label {
+    margin: 0px;
     margin-left: 5px;
     color:white;
     font-size: medium;
     text-align: left; /* Ensure labels are left-justified */
 }
-.form-check-input {
-    margin-right: 5px;
-    border-color:black;
-    width: 20px; /* Adjust size of checkbox */
-    height: 20px; /* Adjust size of checkbox */
+
+.form-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
+
+.form-check-input[type=checkbox] {
+  float: none;
+  margin: 0px;
+  position: static;
+  margin-right: 5px;
+  border-color:black;
+  width: 20px; /* Adjust size of checkbox */
+  height: 20px; /* Adjust size of checkbox */
+}
+
 .col-md-12 span.h3.card-title.level-2 {
   color: blue;
 }

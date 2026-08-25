@@ -174,7 +174,7 @@
                   <label class="form-check-label fw-bold" for="resistance_doubled">
                     Resistance Doubled
                   </label>
-                  <div class="form-text">Weight per hand (total = 2x weight)</div>
+                  <div class="form-text">Weight is per hand (so total = 2x weight)</div>
                 </div>
               </div>
             </div>
@@ -182,7 +182,7 @@
             <!-- Physical Fitness Components -->
             <div class="mb-4">
               <label class="form-label fw-bold">Physical Fitness Components</label>
-              <div class="row">
+              <div class="muscle-group-container border rounded p-3" style="">
                 {% set components = ['flexibility', 'mobility', 'balance', 'core', 'power', 'strength', 'cardio', 'endurance', 'myofascia'] %}
                 {% for component in components %}
                   <div class="col-md-4 col-sm-6 mb-2">
@@ -199,12 +199,31 @@
               </div>
             </div>
 
+            <!-- Movement Categories -->
+            <div class="mb-4">
+              <label class="form-label fw-bold">Movement Categories</label>
+              <div class="muscle-group-container border rounded p-3" style="">
+                {% for movement_key, movement_description in movement_category_definitions.items() %}
+                  <div class="col-md-4 col-sm-6 mb-2">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="movement_{{ movement_key }}" 
+                             name="movement_categories" value="{{ movement_key }}"
+                             {% if movement_key in exercise.movement_categories %}checked{% endif %}>
+                      <label class="form-check-label" for="movement_{{ movement_key }}">
+                        {{ movement_description }}
+                      </label>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+
             <!-- Muscle Groups -->
             <div class="row mb-4">
               <!-- Primary Muscles -->
               <div class="col-12 col-lg-6 mb-3">
                 <label class="form-label fw-bold">Primary Muscles *</label>
-                <div class="muscle-group-container border rounded p-3" style="max-height: 250px; overflow-y: auto;">
+                <div class="muscle-group-container border rounded p-3" style="">
                   {% set muscles = ['abdominals', 'hamstrings', 'calves', 'shoulders', 'adductors', 'glutes', 'quadriceps', 'biceps', 'forearms', 'abductors', 'triceps', 'chest', 'lower_back', 'traps', 'middle_back', 'lats', 'neck'] %}
                   {% for muscle in muscles %}
                     <div class="form-check mb-2">
@@ -222,7 +241,7 @@
               <!-- Secondary Muscles -->
               <div class="col-12 col-lg-6 mb-3">
                 <label class="form-label fw-bold">Secondary Muscles</label>
-                <div class="muscle-group-container border rounded p-3" style="max-height: 250px; overflow-y: auto;">
+                <div class="muscle-group-container border rounded p-3" style="">
                   {% for muscle in muscles %}
                     <div class="form-check mb-2">
                       <input class="form-check-input" type="checkbox" id="secondary_{{ muscle }}" 
@@ -321,6 +340,24 @@
               </div>
             </div>
 
+            <!-- GIF Section -->
+            <div class="mb-4">
+              <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center mb-3">
+                <label class="form-label fw-bold mb-2 mb-sm-0">Exercise GIF</label>
+                <div class="btn-group w-100 w-sm-auto" role="group">
+                  <input type="file" id="gif-upload" accept="image/gif" style="display: none;" onchange="handleGifUpload(this)">
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('gif-upload').click()">
+                    <i class="bi bi-upload me-1"></i><span class="d-none d-sm-inline">Upload</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- GIF Preview -->
+              <div id="gif-container" class="media-container"></div>
+
+              <input type="hidden" id="gif" name="gif" value="{{ exercise.gif }}">
+            </div>
+
             <!-- Additional Fields -->
             <div class="section-header mb-3">
               <h5 class="text-light border-bottom pb-2">
@@ -382,17 +419,21 @@
 (function() {
     var rawImagesData = {{ exercise.images | tojson }};
     var rawVideosData = {{ exercise.videos | tojson }};
+    var rawGifUrl = {{ exercise.gif | tojson }};
     
     // Ensure arrays (server should have already processed these)
     window.imagesData = Array.isArray(rawImagesData) ? rawImagesData : [];
     window.videosData = Array.isArray(rawVideosData) ? rawVideosData : [];
+    window.gifUrl = typeof rawGifUrl === 'string' ? rawGifUrl : '';
     
     console.log('Template initialized - Images loaded:', window.imagesData.length, window.imagesData);
     console.log('Template initialized - Videos loaded:', window.videosData.length, window.videosData);
+    console.log('Template initialized - GIF loaded:', window.gifUrl);
     
     // Initialize hidden form fields with media data
     document.getElementById('images_data').value = JSON.stringify(window.imagesData);
     document.getElementById('videos_data').value = JSON.stringify(window.videosData);
+    document.getElementById('gif').value = window.gifUrl;
     console.log('Hidden fields initialized with media data');
     
     // Set up a function to update fields later when updateHiddenMediaFields becomes available
@@ -446,9 +487,11 @@ if (!window.exerciseEditorInitialized) {
           document.getElementById('images_data').value = JSON.stringify(imagesData);
           document.getElementById('videos_data').value = JSON.stringify(videosData);
         }
+        document.getElementById('gif').value = window.gifUrl || '';
         
         console.log('Form submission - Images data:', imagesData);
         console.log('Form submission - Videos data:', videosData);
+        console.log('Form submission - GIF:', window.gifUrl);
       });
 
     }
@@ -467,17 +510,21 @@ if (!window.exerciseEditorInitialized) {
   (function() {
     var rawImagesData = {{ exercise.images | tojson }};
     var rawVideosData = {{ exercise.videos | tojson }};
+    var rawGifUrl = {{ exercise.gif | tojson }};
     
     // Ensure arrays (server should have already processed these)
     window.imagesData = Array.isArray(rawImagesData) ? rawImagesData : [];
     window.videosData = Array.isArray(rawVideosData) ? rawVideosData : [];
+    window.gifUrl = typeof rawGifUrl === 'string' ? rawGifUrl : '';
     
     console.log('Re-initialization - Images loaded:', window.imagesData.length, window.imagesData);
     console.log('Re-initialization - Videos loaded:', window.videosData.length, window.videosData);
+    console.log('Re-initialization - GIF loaded:', window.gifUrl);
     
     // Update hidden form fields with media data
     document.getElementById('images_data').value = JSON.stringify(window.imagesData);
     document.getElementById('videos_data').value = JSON.stringify(window.videosData);
+    document.getElementById('gif').value = window.gifUrl;
     console.log('Hidden fields updated in re-initialization');
   })();
   

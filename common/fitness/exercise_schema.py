@@ -277,6 +277,13 @@ exercise_schema = {
 				}
 			}
 		},
+		"gif": {
+			"type": "string",
+			"format": "url",
+			"title": "GIF",
+			"propertyOrder": 15,
+			"default": ""
+		},
 		"type": {
 			"type": "string",
 			"default": ""

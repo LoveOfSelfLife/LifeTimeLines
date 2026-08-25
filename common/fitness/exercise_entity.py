@@ -94,6 +94,28 @@ movement_category_to_section_map = {
     "SQUAT-SL": "strength",
     "SQUAT-SYM": "strength",
 }
+movement_category_definitions = {
+    "CORE": "General core",
+    "CORE-AE": "Core anti-extension",
+    "CORE-AF": "Core anti-flexion",
+    "CORE-AR": "Core anti-rotation",
+    "CORE-HF": "Core hip-flexion",
+    "CORE-ROT": "Core rotational",
+    "HINGE-BRIDGE": "Hinge bridge",
+    "HINGE-SL": "Single-leg hinge",
+    "HINGE-SYM": "Symmetrical (feet parallel) hinge",
+    "PULL": "General pulling",
+    "PULL-HORZ": "Horizontal pulling",
+    "PULL-VERT": "Vertical pulling",
+    "PUSH": "General pushing",
+    "PUSH-HORZ": "Horizontal pushing",
+    "PUSH-VERT": "Vertical pushing",
+    "RAMP": "RAMP (Raise, Activate & Movement Preparation)",
+    "SQUAT": "General squatting",
+    "SQUAT-ASYM": "Asymmetrical (split stance) squatting",
+    "SQUAT-SL": "Single-leg squatting",
+    "SQUAT-SYM": "Symmetrical (feet parallel) squatting"
+}
 
 def get_section_type_from_movement_category(movement_category):
     return movement_category_to_section_map.get(movement_category, None)
