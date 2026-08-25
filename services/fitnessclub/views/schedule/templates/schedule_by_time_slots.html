@@ -54,8 +54,8 @@
                     hx-get="/schedule/create_event?date={{ date_key }}&modal=1" 
                     hx-target="#modals-here"
                     hx-swap="innerHTML"
-                    title="Join on this day">
-                    <i class="bi bi-person-plus">Schedule for {{ date_display.dayOfWeek }}</i>
+                    title="Schedule for {{ date_display.dayOfWeek }}">
+                    <i class="bi bi-person-plus"></i> Add
                 </button>
             </div>
             
@@ -87,14 +87,14 @@
                             {% endif %}
                             <div>
                                 <span class="time-label">{{ display_time }}</span>
-                                <span class="duration-label">1 hour workout</span>
+                                <span class="duration-label">1 hr</span>
                             </div>
                             <button class="btn btn-sm btn-outline-light"
                                 hx-get="/schedule/create_event?date={{ date_key }}&time={{ time_slot }}&modal=1" 
                                 hx-target="#modals-here"
                                 hx-swap="innerHTML"
-                                title="Join this time slot on this day">
-                                <i class="bi bi-person-plus">Schedule for {{ display_time }}</i>
+                                title="Schedule for {{ display_time }}">
+                                <i class="bi bi-person-plus"></i> Add
                             </button>
                         </div>
                         <div class="members-container">
