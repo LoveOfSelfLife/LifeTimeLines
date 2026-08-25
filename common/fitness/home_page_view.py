@@ -6,6 +6,7 @@ from common.fitness.hx_common import hx_render_template
 from common.fitness.programs import get_members_current_active_program, get_next_workout_in_program
 from common.fitness.member_workout_entity import MemberWorkoutInstanceEntity, get_exercises_from_workout
 from common.fitness.workout_state import get_active_workout_state
+from common.fitness.member_entity import member_allows_on_the_fly_workout
 from common.fitness.workouts import get_scheduled_workouts
 from datetime import datetime, timedelta, timezone
 from flask import render_template, render_template_string, request, redirect, session, url_for
@@ -65,6 +66,7 @@ def render_home_page_workout(member, current_state):
     last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
     workout_view_preference = session.get('workout_view_preference', 'accordion')
     keep_screen_awake = current_state.get('keep_screen_awake', False)
+    allow_on_the_fly_workout = member_allows_on_the_fly_workout(workout_instance.get('member_id'))
     # if last section is not set, then we set the last section to be the first section of the workout that has more than one exercise in it
     if not last:
         for section in workout_sections:
@@ -93,6 +95,7 @@ def render_home_page_workout(member, current_state):
         time_workout_started=workout_started_ts,
         workout_view_preference=workout_view_preference,
         keep_screen_awake=keep_screen_awake,
+        allow_on_the_fly_workout=allow_on_the_fly_workout,
         rs=rm_spaces
     )
 
@@ -131,7 +134,9 @@ def render_finishing_workout_page(member, current_state):
 
     exercise_parameters = current_state.get('exercise_parameters', {})
     exercise_swaps = current_state.get('exercise_swaps', {})
-    parameters_changed = len(exercise_parameters) > 0 or len(exercise_swaps) > 0
+    exercise_removals = current_state.get('exercise_removals', [])
+    exercise_additions = current_state.get('exercise_additions', [])
+    parameters_changed = len(exercise_parameters) > 0 or len(exercise_swaps) > 0 or len(exercise_removals) > 0 or len(exercise_additions) > 0
     return hx_render_template(
         "home/finishing_workout.html",
         workout=workout_instance,

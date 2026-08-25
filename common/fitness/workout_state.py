@@ -19,6 +19,8 @@ def initialize_active_workout_state(workout_instance_key, program_key, scheduled
         'is_adhoc_workout': is_adhoc_workout,
         'exercise_parameters': {},
         'exercise_swaps': {},
+        'exercise_removals': [],
+        'exercise_additions': [],
         # US/Eastern local time (DST-aware), matching MemberWorkoutInstanceEntity.started_ts
         'time_workout_started': datetime.now(timezone.utc).astimezone(pytz.timezone('US/Eastern')).isoformat(),
         'keep_screen_awake': False

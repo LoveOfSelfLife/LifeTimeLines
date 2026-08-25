@@ -13,6 +13,23 @@
               <i class="bi bi-arrow-left-right me-1"></i>
             </button>
           {% endif %}
+          {% if active_workout and workout_instance_key and allow_on_the_fly_workout %}
+            <button type="button" class="btn btn-sm btn-outline-primary"
+              title="Add an exercise after this one"
+              hx-get="/exercises/listing-modal?allow_multi_select=true&multi_select_post_route={{ (url_for('workouts.add_active_exercises') ~ '?workout_instance_key=' ~ workout_instance_key ~ '&section_name=' ~ section.name ~ '&slot_index=' ~ loop.index0) | urlencode }}"
+              hx-target="#modals-here" hx-swap="innerHTML"
+              data-bs-toggle="modal" data-bs-target="#modals-here">
+              <i class="bi bi-plus-lg"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger"
+              title="Remove this exercise"
+              hx-post="{{ url_for('workouts.remove_active_exercise') }}"
+              hx-vals='{"workout_instance_key": "{{ workout_instance_key }}", "section_name": "{{ section.name }}", "slot_index": "{{ loop.index0 }}"}'
+              hx-confirm="Remove this exercise from your workout?"
+              hx-swap="none">
+              <i class="bi bi-trash"></i>
+            </button>
+          {% endif %}
           <h6 class="mb-1 font-weight-bold exercise-name">
             {{ ex.name }}
           </h6>

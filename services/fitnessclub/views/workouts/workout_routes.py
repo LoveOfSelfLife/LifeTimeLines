@@ -20,6 +20,7 @@ from common.fitness.programs import get_last_workout_instance_for_workout
 from common.fitness.home_page_view import render_home_page_workout
 from common.fitness.workout_state import get_active_workout_state, update_active_workout_state
 from common.fitness.exercise_alternatives import find_slot, perform_exercise_swap, record_exercise_swap
+from common.fitness.exercise_onthefly import record_exercise_removal, record_exercise_addition
 from common.fitness.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
 
 bp = Blueprint('workouts', __name__, template_folder='templates')
@@ -510,6 +511,7 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
     except (TypeError, ValueError):
         last_exercise_index = None
     active_workout = request.args.get('active_workout', 'false').lower() == 'true'
+    allow_on_the_fly_workout = request.args.get('allow_on_the_fly_workout', 'false').lower() == 'true'
     workout_instance = None
     workout_definition = None
     
@@ -599,6 +601,7 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
         workout_instance_key=workout_instance_key,
         can_edit_parameters=can_edit_parameters, 
         active_workout=active_workout,
+        allow_on_the_fly_workout=allow_on_the_fly_workout,
         in_program_builder=editing_program_workout,
         purpose_of_parameter_edit=purpose_of_parameter_edit,
         default_exercise_index=last_exercise_index,
@@ -2195,6 +2198,105 @@ def swap_exercise_alternative(context=None, section_name=None, slot_index=None):
     response.headers['HX-Trigger'] = json.dumps({
         "exerciseSwapped": {"target": "body"},
         "closeModal": {"target": "body"}
+    })
+    return response
+
+
+@bp.route("/viewer/exercise/active/remove", methods=["POST"])
+@auth.login_required
+def remove_active_exercise(context=None):
+    """Remove an exercise from the active workout instance (on-the-fly editing)."""
+    workout_instance_key = request.form.get("workout_instance_key", None)
+    section_name = request.form.get("section_name", None)
+    slot_index_raw = request.form.get("slot_index", None)
+    if not workout_instance_key or section_name is None or slot_index_raw is None:
+        abort(400, "workout_instance_key, section_name and slot_index are required")
+    slot_index = int(slot_index_raw)
+
+    es = EntityStore()
+    workout_instance = es.get_item_by_composite_key(literal_eval(workout_instance_key))
+    if not workout_instance:
+        abort(404, "Workout instance not found")
+
+    section = get_workout_section(workout_instance, section_name)
+    if not section or slot_index >= len(section.get('exercises', [])):
+        abort(404, "Exercise slot not found")
+
+    removed_item = section['exercises'].pop(slot_index)
+    es.upsert_item(workout_instance)
+
+    current_workout_state = get_active_workout_state() or {}
+    record_exercise_removal(current_workout_state, removed_item.get('id'))
+    update_active_workout_state(current_workout_state)
+
+    response = make_response('')
+    response.headers['HX-Trigger'] = json.dumps({
+        "workoutChanged": {"target": "body"}
+    })
+    return response
+
+
+@bp.route("/viewer/exercise/active/add", methods=["POST"])
+@auth.login_required
+def add_active_exercises(context=None):
+    """Add one or more exercises to the active workout instance, right after a given slot (on-the-fly editing)."""
+    workout_instance_key = request.args.get("workout_instance_key") or request.form.get("workout_instance_key")
+    section_name = request.args.get("section_name") or request.form.get("section_name")
+    slot_index_raw = request.args.get("slot_index") or request.form.get("slot_index")
+    if not workout_instance_key or section_name is None or slot_index_raw is None:
+        abort(400, "workout_instance_key, section_name and slot_index are required")
+    slot_index = int(slot_index_raw)
+
+    es = EntityStore()
+    workout_instance = es.get_item_by_composite_key(literal_eval(workout_instance_key))
+    if not workout_instance:
+        abort(404, "Workout instance not found")
+
+    section = get_workout_section(workout_instance, section_name)
+    if not section:
+        abort(404, "Section not found")
+
+    selected_keys = request.form.getlist('selected_entity_keys')
+    selected_keys = list(dict.fromkeys([key for key in selected_keys if key]))
+
+    if not selected_keys:
+        response = make_response('')
+        response.headers['HX-Trigger'] = json.dumps({
+            "showMessage": {"target": "body", "value": "No exercises selected."}
+        })
+        return response
+
+    exercises_list = section['exercises']
+    insert_pos = min(slot_index + 1, len(exercises_list))
+    anchor_id = exercises_list[slot_index].get('id') if 0 <= slot_index < len(exercises_list) else None
+
+    current_workout_state = get_active_workout_state() or {}
+    added_count = 0
+    for composite_key_str in selected_keys:
+        try:
+            composite_key = literal_eval(composite_key_str)
+        except (ValueError, SyntaxError):
+            continue
+
+        ex = es.get_item_by_composite_key(composite_key)
+        if not ex:
+            continue
+
+        new_item = {'id': ex['id'], 'parameters': get_initial_params_for_exercise(), 'alternatives': []}
+        exercises_list.insert(insert_pos, new_item)
+        record_exercise_addition(current_workout_state, section_name, anchor_id, new_item['id'], new_item['parameters'])
+        anchor_id = new_item['id']
+        insert_pos += 1
+        added_count += 1
+
+    es.upsert_item(workout_instance)
+    update_active_workout_state(current_workout_state)
+
+    response = make_response('')
+    response.headers['HX-Trigger'] = json.dumps({
+        "workoutChanged": {"target": "body"},
+        "closeModal": {"target": "body"},
+        "showMessage": {"target": "body", "value": f"Added {added_count} exercise(s)."}
     })
     return response
 

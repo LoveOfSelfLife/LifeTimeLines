@@ -16,13 +16,14 @@ from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_
 from common.fitness.get_calendar_service import get_calendar_service
 from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
 from common.fitness.hx_common import rm_spaces
-from common.fitness.member_entity import MembershipRegistry, get_member_id_from_user_context, is_member_an_admin
+from common.fitness.member_entity import MembershipRegistry, get_member_id_from_user_context, is_member_an_admin, member_allows_on_the_fly_workout
 from common.fitness.member_exercise_history import extract_and_load_exercise_events_from_workout_instance
 from common.fitness.member_program_entity import MemberProgramsEntity
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout
 from common.fitness.programs import get_last_workout_instance_for_workout, get_next_workout_in_program, get_workouts_from_program
 from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state, update_active_workout_state
 from common.fitness.exercise_alternatives import apply_recorded_swaps_to_definition
+from common.fitness.exercise_onthefly import apply_recorded_removals_to_definition, apply_recorded_additions_to_definition
 from common.fitness.edit_workout_object import bring_up_workouts_builder
 from common.fitness.roles_service import get_accessible_members_for_context, get_team_coaches_with_details, get_team_for_client, is_member_client, is_member_coach
 from common.fitness.coach_team_entity import get_coachs_team_members
@@ -1042,6 +1043,7 @@ def start_workout(context=None):
         active_workout=True,
         workout_view_preference=workout_view_preference,
         keep_screen_awake=keep_screen_awake,
+        allow_on_the_fly_workout=member_allows_on_the_fly_workout(member_id),
         rs=rm_spaces
     )
 
@@ -1150,12 +1152,23 @@ def really_finish_workout(context=None, workout_instance_key=None):
     
     # if the swap was discarded (strategy 'original'), never persist it to the definition
     exercise_swaps = current_workout_state.get('exercise_swaps', {}) if next_time_strategy != 'original' else {}
+    # same rule applies to on-the-fly exercise removals/additions made during the workout
+    exercise_removals = current_workout_state.get('exercise_removals', []) if next_time_strategy != 'original' else []
+    exercise_additions = current_workout_state.get('exercise_additions', []) if next_time_strategy != 'original' else []
 
     # get the member workout definition for this workout instance, and update it with the parameter adjustments
-    # and/or exercise swaps performed during this workout, but only if there is something to persist
-    if updated_parameters or exercise_swaps:
+    # and/or exercise swaps/removals/additions performed during this workout, but only if there is something to persist
+    if updated_parameters or exercise_swaps or exercise_removals or exercise_additions:
         member_workout_def_id = workout_instance.get('member_workout_def_id', None)
         workout_definition = es.get_item(MemberWorkoutDefinitionEntity({'id': member_workout_def_id}))
+        # apply structural changes (swap/remove/add) first, so the parameter merge below - which is keyed
+        # by each exercise's *current* id - can also pick up live edits made to swapped-in or newly added exercises
+        if exercise_swaps:
+            apply_recorded_swaps_to_definition(workout_definition, exercise_swaps)
+        if exercise_removals:
+            apply_recorded_removals_to_definition(workout_definition, exercise_removals)
+        if exercise_additions:
+            apply_recorded_additions_to_definition(workout_definition, exercise_additions)
         if updated_parameters:
             for section in workout_definition.get('workout_sections', []):
                 for exercise in section.get('exercises', []):
@@ -1163,8 +1176,6 @@ def really_finish_workout(context=None, workout_instance_key=None):
                     if exercise_id and exercise_id in updated_parameters:
                         adjustment = updated_parameters[exercise_id]
                         exercise['parameters'].update(adjustment)
-        if exercise_swaps:
-            apply_recorded_swaps_to_definition(workout_definition, exercise_swaps)
         es.upsert_item(workout_definition)
 
     workout_instance['started_ts'] = _normalize_form_datetime(started_ts, workout_instance.get('started_ts'))
