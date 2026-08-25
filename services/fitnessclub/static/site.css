@@ -555,15 +555,11 @@ background: #f9f9f9;
   align-items: center;
   gap: 0.5rem;
 }
-
-.form-check-input[type=checkbox] {
-  float: none;
-  margin: 0px;
-  position: static;
-  margin-right: 5px;
-  border-color:black;
-  width: 20px; /* Adjust size of checkbox */
-  height: 20px; /* Adjust size of checkbox */
+.form-check-input {
+    margin-right: 5px;
+    border-color:black;
+    width: 20px; /* Adjust size of checkbox */
+    height: 20px; /* Adjust size of checkbox */
 }
 
 .col-md-12 span.h3.card-title.level-2 {
