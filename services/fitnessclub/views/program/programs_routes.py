@@ -999,7 +999,13 @@ def start_workout(context=None):
                                                                                                           scheduled_workout_event_id,
                                                                                                           member_id,
                                                                                                           is_adhoc_workout=is_adhoc_workout)
-  
+
+    # once a member starts a workout, update the confirmation status of the scheduled workout event to be "attending"
+    if scheduled_workout_event_id:
+        scheduled_workout_event_id = str(scheduled_workout_event_id)
+        cal = get_calendar_service()
+        cal.update_confirmation_status_of_workout_event(scheduled_workout_event_id, 'attending')
+        
     last = get_last_section(member_id, workout_instance['id'])
     
     # Get current workout state to see if there are any parameter overrides
