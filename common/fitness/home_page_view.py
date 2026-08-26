@@ -5,7 +5,7 @@ from common.entity_store import EntityStore
 from common.fitness.hx_common import hx_render_template
 from common.fitness.programs import get_members_current_active_program, get_next_workout_in_program
 from common.fitness.member_workout_entity import MemberWorkoutInstanceEntity, get_exercises_from_workout
-from common.fitness.workout_state import get_active_workout_state, get_last_section
+from common.fitness.workout_state import get_active_workout_state, get_last_section, get_exercise_parameters
 from common.fitness.member_entity import member_allows_on_the_fly_workout
 from common.fitness.workouts import get_scheduled_workouts
 from datetime import datetime, timedelta, timezone
@@ -79,7 +79,7 @@ def render_home_page_workout(member, current_state):
         workout=workout_instance,
         workout_sections=workout_sections,
         exercises=exercises,
-        current_parameters=current_state.get('exercise_parameters', {}),
+        current_parameters=get_exercise_parameters(workout_instance.get('member_id')),
         default_section=last,
         program=program_entity,
         program_key=program_composite_key,
@@ -132,7 +132,7 @@ def render_finishing_workout_page(member, current_state):
     local_time_now = datetime.now(timezone.utc).astimezone(pytz.timezone('US/Eastern')).isoformat()
     fininshed_ts_local = to_datetime_local_value(workout_instance.get('finished_ts') or local_time_now)
 
-    exercise_parameters = current_state.get('exercise_parameters', {})
+    exercise_parameters = get_exercise_parameters(workout_instance.get('member_id'))
     exercise_swaps = current_state.get('exercise_swaps', {})
     exercise_removals = current_state.get('exercise_removals', [])
     exercise_additions = current_state.get('exercise_additions', [])

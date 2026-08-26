@@ -10,7 +10,7 @@ from common.entity_store import EntityObject, EntityStore
 from common.fitness import workout_entity
 from common.fitness.active_fitness_registry import get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import delete_from_cache, get_cache_value, set_cache_value
-from common.fitness.entities_getter import as_bool, delete_entity, get_entity, get_entities, resolve_selected_entity_keys, resolve_selected_workout_keys
+from common.fitness.entities_getter import as_bool, delete_entity, get_entity, get_entities, resolve_selected_entity_keys, resolve_selected_workout_keys, clear_selected_workout_keys
 from common.fitness.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
 from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
 from common.fitness.get_calendar_service import get_calendar_service
@@ -21,7 +21,7 @@ from common.fitness.member_exercise_history import extract_and_load_exercise_eve
 from common.fitness.member_program_entity import MemberProgramsEntity
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout
 from common.fitness.programs import get_last_workout_instance_for_workout, get_next_workout_in_program, get_workouts_from_program
-from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state, update_active_workout_state, get_last_section, get_last_exercise_index, clear_last_section
+from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state, update_active_workout_state, get_last_section, get_last_exercise_index, clear_last_section, get_exercise_parameters
 from common.fitness.exercise_alternatives import apply_recorded_swaps_to_definition
 from common.fitness.exercise_onthefly import apply_recorded_removals_to_definition, apply_recorded_additions_to_definition
 from common.fitness.edit_workout_object import bring_up_workouts_builder
@@ -202,7 +202,7 @@ def workouts_listing(context=None):
 
     allow_multi_select = as_bool(request.form.get('allow_multi_select', None),
                                   as_bool(request.args.get('allow_multi_select', None), False))
-    selected_entity_keys = resolve_selected_workout_keys(allow_multi_select=allow_multi_select)
+    selected_entity_keys = resolve_selected_workout_keys(member_id, allow_multi_select=allow_multi_select)
     # modal_mode = as_bool(request.args.get('modal_mode', None), False) if request.method == 'GET' else as_bool(request.form.get('modal_mode', None), False)   
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
     entities = filter_entities_by_member_role(member_id, entities)
@@ -240,7 +240,7 @@ def workouts_listing_modal(context=None):
     if not current_program or current_program.get('id') != program_id:
         abort(404)
 
-    session[PROGRAM_MULTI_SELECT_SESSION_KEY] = []
+    clear_selected_workout_keys(member_id)
 
     page = int(request.args.get('page', 1))
     page_size = 100
@@ -965,7 +965,7 @@ def add_multiple_workouts(context=None, program_id=None):
         added_count += 1
 
     set_cache_value('current_program_workouts', current_program_workouts)
-    session.pop(PROGRAM_MULTI_SELECT_SESSION_KEY, None)
+    clear_selected_workout_keys(get_member_id_from_user_context(context))
 
     response = make_response('')
     response.headers['HX-Trigger'] = json.dumps({
@@ -1007,7 +1007,7 @@ def start_workout(context=None):
     workout_started_ts = current_workout_state.get('time_workout_started', None) if current_workout_state else None
     current_parameters = {}
     if current_workout_state:
-        current_parameters = current_workout_state.get('exercise_parameters', {})
+        current_parameters = get_exercise_parameters(member_id)
     workout_sections = workout_instance['workout_sections']
     
     workout_sections = [s for s in workout_sections if len(s.get('exercises', [])) > 0]
@@ -1119,7 +1119,7 @@ def really_finish_workout(context=None, workout_instance_key=None):
 
     current_workout_state = get_active_workout_state()
     adjustments_for_next_workout = current_workout_state.get('adjustments', {})
-    exercise_parameters = current_workout_state.get('exercise_parameters', {})
+    exercise_parameters = get_exercise_parameters(workout_instance.get('member_id'))
 
     original_parameters = {}
     for section in workout_instance.get('workout_sections', []):
@@ -1187,7 +1187,7 @@ def really_finish_workout(context=None, workout_instance_key=None):
     # store the parameters of the current workout exercises away 
     extract_and_load_exercise_events_from_workout_instance(workout_instance)
 
-    clear_active_workout_state()
+    clear_active_workout_state(workout_instance.get('member_id'))
     # session.pop('current_workout_instance_state', None)
     clear_last_section(workout_instance.get('member_id'), workout_instance['id'])
 
@@ -1233,7 +1233,7 @@ def cancel_workout(context=None, workout_instance_key=None):
             cal.delete_workout_event(scheduled_workout_event_id)
             
     # clear the 'current_workout_instance_state' from the session
-    clear_active_workout_state()
+    clear_active_workout_state(workout_instance.get('member_id'))
     # session.pop('current_workout_instance_state', None)
     clear_last_section(workout_instance.get('member_id'), workout_instance['id'])
 

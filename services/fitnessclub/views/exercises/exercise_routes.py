@@ -4,9 +4,10 @@ from urllib import response
 from flask import Blueprint, abort, make_response, redirect, render_template, request, session, url_for, jsonify
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
-from common.fitness.entities_getter import resolve_selected_entity_keys
+from common.fitness.entities_getter import resolve_selected_entity_keys, clear_selected_entity_keys
 from common.fitness.entities_getter import as_bool
 from common.fitness.entities_getter import MULTI_SELECT_SESSION_KEY
+from common.fitness.cacher import get_cache_value, set_cache_value
 from common.fitness.exercise_entity import show_exercise_viewer
 from common.fitness.exercise_entity import movement_category_definitions
 from common.fitness.hx_common import parse_listing_filter
@@ -51,7 +52,7 @@ def exercises_listing_modal(context=None):
     page = int(request.args.get('page', 1))
     filter_terms = get_filter_terms_from_request()
     if as_bool(request.args.get('allow_multi_select', None), False):
-        session[MULTI_SELECT_SESSION_KEY] = []
+        clear_selected_entity_keys(member_id)
     return exercises_listing2(member_id, page=page, filter_terms=filter_terms, modal_mode=True)
 
 def exercises_listing2(member_id, page=1, filter_terms=[], modal_mode=False):
@@ -59,12 +60,12 @@ def exercises_listing2(member_id, page=1, filter_terms=[], modal_mode=False):
 
     page_size = 100
 
-    # Handle view preference
+    # Handle view preference (member-scoped cache, not Flask session - see entities_getter.py note)
     view = (request.form.get('view') if request.method == 'POST' 
-            else request.args.get('view')) or session.get('view_preference', 'list')
+            else request.args.get('view')) or get_cache_value(f'view_preference_{member_id}') or 'list'
     
-    if view != session.get('view_preference'):
-        session['view_preference'] = view
+    if view != get_cache_value(f'view_preference_{member_id}'):
+        set_cache_value(f'view_preference_{member_id}', view)
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     
@@ -72,7 +73,7 @@ def exercises_listing2(member_id, page=1, filter_terms=[], modal_mode=False):
 
     allow_multi_select = as_bool(request.form.get('allow_multi_select', None),
                                   as_bool(request.args.get('allow_multi_select', None), False))
-    selected_entity_keys = resolve_selected_entity_keys(allow_multi_select=allow_multi_select)
+    selected_entity_keys = resolve_selected_entity_keys(member_id, allow_multi_select=allow_multi_select)
 
     # For checkbox toggles, avoid re-rendering listing content. Return only OOB state updates.
     if request.method == 'POST' and request.form.get('multi_select_toggle_key') is not None and allow_multi_select:
