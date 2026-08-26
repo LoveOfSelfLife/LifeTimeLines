@@ -18,7 +18,7 @@ from common.fitness.edit_workout_object import bring_up_workouts_builder
 from common.fitness.programs import get_last_workout_instance_for_workout
 from common.fitness.programs import get_last_workout_instance_for_workout
 from common.fitness.home_page_view import render_home_page_workout
-from common.fitness.workout_state import get_active_workout_state, update_active_workout_state
+from common.fitness.workout_state import get_active_workout_state, update_active_workout_state, get_last_section, set_last_section as set_last_section_cache, clear_last_section, get_last_exercise_index, set_last_exercise_index as set_last_exercise_index_cache
 from common.fitness.exercise_alternatives import find_slot, perform_exercise_swap, record_exercise_swap
 from common.fitness.exercise_onthefly import record_exercise_removal, record_exercise_addition
 from common.fitness.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
@@ -505,7 +505,7 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
     workout_view_preference = request.args.get('workout_view_preference', 'accordion')
     last_exercise_index_raw = request.args.get('last_exercise_index', None)
     if last_exercise_index_raw in [None, '']:
-        last_exercise_index_raw = session.get(f"last_exercise_index_{workout_id}_{section_name}")
+        last_exercise_index_raw = get_last_exercise_index(get_member_id_from_user_context(context), workout_id, section_name)
     try:
         last_exercise_index = int(last_exercise_index_raw) if last_exercise_index_raw not in [None, ''] else None
     except (TypeError, ValueError):
@@ -544,6 +544,7 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
 
         current_workout_state = get_active_workout_state()
         current_parameters = current_workout_state.get('exercise_parameters', {}) if current_workout_state else {}
+        print(f"Current parameters: {json.dumps(current_parameters, indent=2)}")
         if purpose_of_parameter_edit == 'finishing_workout_next_time' and current_workout_state:
             current_parameters = current_workout_state.get('adjustments') or current_parameters
         update_url = url_for('workouts.update_param_in_session')
@@ -1858,8 +1859,9 @@ def view_workout(context=None):
     if current_workout_state:
         current_parameters = current_workout_state.get('exercise_parameters', {})
     
-    # new: only use the session value if it exists
-    last = session.get(f"last_section_{workout_key_str}")  # no fallback
+    member_id = get_member_id_from_user_context(context)
+    # new: only use the cached value if it exists
+    last = get_last_section(member_id, workout_key_str)
 
     workout_sections = workout[WORKOUT_SECTIONS]        
 
@@ -1871,7 +1873,7 @@ def view_workout(context=None):
                 break
 
     last_exercise_indexes_by_section = {
-        section.get('name'): session.get(f"last_exercise_index_{workout.get('id')}_{section.get('name')}")
+        section.get('name'): get_last_exercise_index(member_id, workout.get('id'), section.get('name'))
         for section in workout_sections
     }
         
@@ -1897,7 +1899,7 @@ from common.fitness.entities_getter import get_entity
 def set_last_section(context=None, workout_id=None, section_name=None):
     # guard: make sure section_name is valid for this workout_id…
     print(f"Setting last section for workout {workout_id} to {section_name}")
-    session[f"last_section_{workout_id}"] = section_name
+    set_last_section_cache(get_member_id_from_user_context(context), workout_id, section_name)
     return ("", 204)
 
 @bp.route("/viewer/workout/<workout_id>/set_last_exercise_index/<section_name>", methods=["POST"])
@@ -1910,7 +1912,7 @@ def set_last_exercise_index(context=None, workout_id=None, section_name=None, ex
             exercise_index = int(exercise_index_raw) if exercise_index_raw is not None else 0
         except (TypeError, ValueError):
             exercise_index = 0
-    session[f"last_exercise_index_{workout_id}_{section_name}"] = exercise_index
+    set_last_exercise_index_cache(get_member_id_from_user_context(context), workout_id, section_name, exercise_index)
     return ("", 204)
 
 @bp.route("/viewer/exercise/<exercise_id>/details")

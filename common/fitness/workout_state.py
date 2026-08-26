@@ -4,6 +4,27 @@ from datetime import datetime, timezone
 from flask import session
 import json
 import pytz
+from common.fitness.cacher import get_cache_value, set_cache_value, delete_from_cache
+
+# last-viewed section/exercise-index bookkeeping is stored directly in the Redis cache (not Flask's
+# session) because it must not share a save-the-whole-blob-per-request cycle with the much more
+# critical current_workout_instance_state - doing so caused unrelated section-switch requests to
+# clobber in-flight exercise parameter edits with a stale session snapshot.
+
+def get_last_section(member_id, workout_id):
+    return get_cache_value(f"last_section_{member_id}_{workout_id}")
+
+def set_last_section(member_id, workout_id, section_name):
+    set_cache_value(f"last_section_{member_id}_{workout_id}", section_name)
+
+def clear_last_section(member_id, workout_id):
+    delete_from_cache(f"last_section_{member_id}_{workout_id}")
+
+def get_last_exercise_index(member_id, workout_id, section_name):
+    return get_cache_value(f"last_exercise_index_{member_id}_{workout_id}_{section_name}")
+
+def set_last_exercise_index(member_id, workout_id, section_name, exercise_index):
+    set_cache_value(f"last_exercise_index_{member_id}_{workout_id}_{section_name}", exercise_index)
 
 def initialize_active_workout_state(workout_instance_key, program_key, scheduled_workout_event_id, is_adhoc_workout=False):
     """

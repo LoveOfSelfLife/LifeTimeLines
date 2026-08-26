@@ -21,7 +21,7 @@ from common.fitness.member_exercise_history import extract_and_load_exercise_eve
 from common.fitness.member_program_entity import MemberProgramsEntity
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout
 from common.fitness.programs import get_last_workout_instance_for_workout, get_next_workout_in_program, get_workouts_from_program
-from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state, update_active_workout_state
+from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state, update_active_workout_state, get_last_section, get_last_exercise_index, clear_last_section
 from common.fitness.exercise_alternatives import apply_recorded_swaps_to_definition
 from common.fitness.exercise_onthefly import apply_recorded_removals_to_definition, apply_recorded_additions_to_definition
 from common.fitness.edit_workout_object import bring_up_workouts_builder
@@ -1000,7 +1000,7 @@ def start_workout(context=None):
                                                                                                           member_id,
                                                                                                           is_adhoc_workout=is_adhoc_workout)
   
-    last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
+    last = get_last_section(member_id, workout_instance['id'])
     
     # Get current workout state to see if there are any parameter overrides
     current_workout_state = get_active_workout_state()
@@ -1018,7 +1018,7 @@ def start_workout(context=None):
                 break
 
     last_exercise_indexes_by_section = {
-        section.get('name'): session.get(f"last_exercise_index_{workout_instance.get('id')}_{section.get('name')}")
+        section.get('name'): get_last_exercise_index(member_id, workout_instance.get('id'), section.get('name'))
         for section in workout_sections
     }
 
@@ -1189,7 +1189,7 @@ def really_finish_workout(context=None, workout_instance_key=None):
 
     clear_active_workout_state()
     # session.pop('current_workout_instance_state', None)
-    session.pop(f"last_section_{workout_instance['id']}", None)
+    clear_last_section(workout_instance.get('member_id'), workout_instance['id'])
 
     # adhoc workouts have no calendar event to mark done
     if scheduled_workout_event_id:
@@ -1235,7 +1235,7 @@ def cancel_workout(context=None, workout_instance_key=None):
     # clear the 'current_workout_instance_state' from the session
     clear_active_workout_state()
     # session.pop('current_workout_instance_state', None)
-    session.pop(f"last_section_{workout_instance['id']}", None)
+    clear_last_section(workout_instance.get('member_id'), workout_instance['id'])
 
     # remove the workout_instance from the entity store
     es.delete_item(workout_instance)

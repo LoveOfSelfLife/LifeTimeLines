@@ -5,7 +5,7 @@ from common.entity_store import EntityStore
 from common.fitness.hx_common import hx_render_template
 from common.fitness.programs import get_members_current_active_program, get_next_workout_in_program
 from common.fitness.member_workout_entity import MemberWorkoutInstanceEntity, get_exercises_from_workout
-from common.fitness.workout_state import get_active_workout_state
+from common.fitness.workout_state import get_active_workout_state, get_last_section
 from common.fitness.member_entity import member_allows_on_the_fly_workout
 from common.fitness.workouts import get_scheduled_workouts
 from datetime import datetime, timedelta, timezone
@@ -62,8 +62,8 @@ def render_home_page_workout(member, current_state):
     exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
     workout_sections = workout_instance.get('workout_sections', [])
 
-    # only use the session value if it exists
-    last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
+    # only use the cached value if it exists
+    last = get_last_section(workout_instance.get('member_id'), workout_instance['id'])
     workout_view_preference = session.get('workout_view_preference', 'accordion')
     keep_screen_awake = current_state.get('keep_screen_awake', False)
     allow_on_the_fly_workout = member_allows_on_the_fly_workout(workout_instance.get('member_id'))
@@ -119,8 +119,8 @@ def render_finishing_workout_page(member, current_state):
     exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
     workout_sections = workout_instance.get('workout_sections', [])
 
-    # only use the session value if it exists
-    last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
+    # only use the cached value if it exists
+    last = get_last_section(workout_instance.get('member_id'), workout_instance['id'])
 
     # if last section is not set, then we set the last section to be the first section of the workout that has more than one exercise in it
     if not last:
