@@ -468,7 +468,7 @@ def update_peek_button(context=None):
                 type="button"
                 class="btn btn-light btn-sm rounded-0 rounded-end"
                 title="Preview selected workout"
-                hx-get="/workouts/viewer/workout"
+            hx-get="/home/workout-preview-modal"
                 hx-vals="{hx_vals_escaped}"
                 hx-target="#modals-here"
                 hx-swap="innerHTML"
@@ -492,3 +492,69 @@ def update_peek_button(context=None):
         template_string=button_html,
         context=context
     )
+
+
+@bp.route("/workout-preview-modal")
+@auth.login_required
+def workout_preview_modal(context=None):
+    """Show a read-only preview of a selected workout before it is started."""
+    try:
+        workout_key = request.args.get('key')
+        if not workout_key:
+            return hx_render_template(
+                template_string='<div class="alert alert-danger">No workout specified</div>',
+                context=context
+            )
+
+        entity_store = EntityStore()
+        workout = entity_store.get_item_by_composite_key(eval(workout_key))
+        if not workout:
+            return hx_render_template(
+                template_string='<div class="alert alert-danger">Workout not found</div>',
+                context=context
+            )
+
+        from views.workouts.workout_routes import (
+            extract_workout_parameters_for_workout,
+            get_workout_sections,
+        )
+        from common.fitness.member_workout_entity import get_exercises_from_workout
+
+        workout_sections = get_workout_sections(workout)
+        exercises = {exercise.get('id'): exercise for exercise in get_exercises_from_workout(workout)}
+        exercise_parameters_map = extract_workout_parameters_for_workout(
+            workout.get('id'),
+            workout,
+            exercises,
+            {},
+            ''
+        )
+
+        populated_sections = []
+        for section in workout_sections:
+            section_items = []
+            for item in section.get('exercises', []):
+                exercise = exercises.get(item.get('id'))
+                if exercise:
+                    section_items.append({
+                        'exercise': exercise,
+                        'param_list': exercise_parameters_map.get(section.get('name'), {}).get(exercise.get('id'), {}).get('param_list', [])
+                    })
+            if section_items:
+                populated_sections.append({
+                    'name': section.get('name'),
+                    'items': section_items
+                })
+
+        return hx_render_template(
+            template_file='home/modals/workout_preview_modal.html',
+            workout_name=workout.get('name') or workout.get('workout_name') or 'Workout Preview',
+            workout_sections=populated_sections,
+            context=context
+        )
+    except Exception as e:
+        print(f"Error loading workout preview: {e}")
+        return hx_render_template(
+            template_string='<div class="alert alert-danger">Error loading workout preview</div>',
+            context=context
+        )
