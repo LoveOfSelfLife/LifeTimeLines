@@ -48,10 +48,13 @@ class ExerciseEntity (EntityObject):
     
     def exercises_uses_external_force(self):
         # this function is used to determine if the exercise uses an external force, which is the case if the exercise has a non-bodyweight equipment
-        equipment = self.get("equipment", None)
-        if not equipment or equipment.lower().startswith("body"):
-            return False
-        return True
+        equipment_list = self.get("equipment_list", [])
+        force_imposing_equipment = {equip["name"] for equip in EQUIPMENT_DETAIL if equip["imposes_force"]}
+        for equip in equipment_list:
+            if equip.replace(" ", "_") in force_imposing_equipment:
+                return True
+        return False
+
     
 class ExerciseReviewEntity (EntityObject):
     table_name="ExerciseReviewTable"
@@ -121,25 +124,30 @@ MOVEMENT_CATEGORIES = ["CORE",
                        "SQUAT-SL", 
                        "SQUAT-SYM"]
 
-EQUIPMENT = ['risers', 
-             'barbell', 
-             'other', 
-             'medicine ball', 
-             'pull up bar', 
-             'ropes', 
-             'dumbbell', 
-             'bands', 
-             'stability ball', 
-             'machine', 
-             'exercise ball', 
-             'bosu', 
-             'trx', 
-             'cable', 
-             'foam_roll', 
-             'bodyweight', 
-             'kettlebells', 
-             'foam roll', 
-             'e-z curl bar']
+EQUIPMENT_DETAIL = [
+    { "name": "risers", "imposes_force": False },
+    { "name": "barbell", "imposes_force": True },
+    { "name": "trap_bar", "imposes_force": True },
+    { "name": "landmine", "imposes_force": True },
+    { "name": "other", "imposes_force": True },
+    { "name": "medicine_ball", "imposes_force": False },
+    { "name": "pull_up_bar", "imposes_force": False },
+    { "name": "ropes", "imposes_force": False },
+    { "name": "dumbbell", "imposes_force": True },
+    { "name": "bands", "imposes_force": True },
+    { "name": "stability_ball", "imposes_force": False },
+    { "name": "machine", "imposes_force": True },
+    { "name": "exercise_ball", "imposes_force": True },
+    { "name": "bosu", "imposes_force": False },
+    { "name": "trx", "imposes_force": False },
+    { "name": "foam_roll", "imposes_force": False  },
+    { "name": "bodyweight", "imposes_force": False },
+    { "name": "cable", "imposes_force": True },
+    { "name": "kettlebells", "imposes_force": True },
+    { "name": "curling_barbell", "imposes_force": True }
+]
+
+EQUIPMENT = [e["name"] for e in EQUIPMENT_DETAIL]
 
 movement_category_to_section_map = {
     "CORE": "core",

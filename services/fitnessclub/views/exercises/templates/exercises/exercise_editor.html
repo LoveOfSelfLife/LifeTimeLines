@@ -102,19 +102,25 @@
             </div>
 
             <div class="row mb-3">
-              <div class="col-md-6">
-                <label for="equipment" class="form-label fw-bold">Equipment Type *</label>
-                <select class="form-select" id="equipment" name="equipment" >
-                  {% set equipment_types = ['bodyweight', 'machine', 'kettlebells', 'dumbbell', 'cable', 'barbell', 'bands', 'medicine_ball', 'exercise_ball', 'e_z_curl_bar', 'foam_roll'] %}
+              <div class="col-md-8">
+                <label class="form-label fw-bold">Equipment</label>
+                <div class="row border rounded p-3">
                   {% for eq in equipment_types %}
-                    <option value="{{ eq }}" {% if exercise.equipment == eq %}selected{% endif %}>
-                      {{ eq.replace('_', ' ').title() }}
-                    </option>
+                    <div class="col-md-4 col-sm-6 mb-2">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="equipment_{{ eq }}"
+                               name="equipment_list" value="{{ eq }}"
+                               {% if eq in exercise.equipment_list %}checked{% endif %}>
+                        <label class="form-check-label" for="equipment_{{ eq }}">
+                          {{ eq.replace('_', ' ').replace('-', ' ').title() }}
+                        </label>
+                      </div>
+                    </div>
                   {% endfor %}
-                </select>
+                </div>
               </div>
-              
-              <div class="col-md-6">
+
+              <div class="col-md-4">
                 <label for="equipment_detail" class="form-label fw-bold">Equipment Details</label>
                 <input type="text" class="form-control" id="equipment_detail" name="equipment_detail" 
                        value="{{ exercise.equipment_detail }}" placeholder="Additional equipment details...">

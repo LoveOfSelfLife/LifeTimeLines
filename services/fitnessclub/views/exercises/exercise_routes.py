@@ -12,7 +12,7 @@ from common.fitness.exercise_entity import show_exercise_viewer
 from common.fitness.exercise_entity import movement_category_definitions
 from common.fitness.hx_common import parse_listing_filter
 from common.fitness.entities_getter import get_entities
-from common.fitness.exercise_entity import ExerciseEntity
+from common.fitness.exercise_entity import EQUIPMENT, ExerciseEntity
 from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
 from common.fitness.member_entity import get_member_id_from_user_context
 from common.fitness.exercise_schema import exercise_schema
@@ -251,6 +251,7 @@ def new_exercise(context=None):
                          exercise=exercise_data,
                          is_new=True,
                          schema=exercise_schema,
+                         equipment_types=EQUIPMENT,
                          movement_category_definitions=movement_category_definitions,
                          save_url='/exercises/save',
                          cancel_url=f'/exercises/cancel',
@@ -280,6 +281,7 @@ def edit_exercise(context=None):
 
     # Older exercises may not have a gif field yet
     exercise_data.setdefault('gif', '')
+    exercise_data.setdefault('equipment_list', [])
     
     # here we need to determine if the current member can edit the exercise, which is the case if the member is an admin 
     # or if the exercise was created by the member
@@ -357,12 +359,14 @@ def edit_exercise(context=None):
     
     # Get exercise ID from the composite key or the data
     exercise_id = exercise_data.get('id')
+    equipment_types = list(dict.fromkeys(EQUIPMENT + exercise_data['equipment_list']))
     current_listing_page=request.args.get('page', 1)
     current_listing_filter=request.args.get('filter', '')   
     return hx_render_template('exercises/exercise_editor.html',
                          exercise=exercise_data,
                          is_new=False,
                          schema=exercise_schema,  
+                         equipment_types=equipment_types,
                          movement_category_definitions=movement_category_definitions,
                          save_url=f'/exercises/save/{exercise_id}?page={current_listing_page}&filter={current_listing_filter}',
                          cancel_url=f'/exercises/cancel?page={current_listing_page}&filter={current_listing_filter}',
@@ -379,7 +383,7 @@ def save_exercise(exercise_id=None, context=None):
         print(f"DEBUG SAVE: Raw form data received: {dict(request.form)}")
         
         # Handle array fields (checkboxes and multi-selects)
-        array_fields = ['primaryMuscles', 'secondaryMuscles', 'physical_fitness_components', 'movement_categories']
+        array_fields = ['primaryMuscles', 'secondaryMuscles', 'physical_fitness_components', 'movement_categories', 'equipment_list']
         for field in array_fields:
             if field in exercise_data:
                 values = request.form.getlist(field)

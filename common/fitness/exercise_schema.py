@@ -4,7 +4,8 @@ exercise_schema = {
 	"required": [
 		"name",
 		"category",
-		"equipment",
+        "equipment",
+		"equipment_list",
 		"equipment_detail",
 		"force",
 		"instructions",
@@ -63,17 +64,20 @@ exercise_schema = {
 					"power",
 					"strength",
 					"cardio",
-					"endurance"
+					"endurance",
                     "myofascia"
 				]
 			},
 			"uniqueItems": True,
 			"default": []
 		},        
-		"equipment": {
-			"type": "string",
+		"equipment_list": {
+			"type": "array",
+			"title": "Equipment",
 			"propertyOrder": 3,
-			"enum": [
+			"items": {
+				"type": "string",
+				"enum": [
 				"bodyweight",
 				"machine",
 				"kettlebells",
@@ -83,9 +87,21 @@ exercise_schema = {
 				"bands",
 				"medicine_ball",
 				"exercise_ball",
-				"e_z_curl_bar",
-				"foam_roll"
+				"curling_barbell",
+				"foam_roll",
+				"risers",
+				"trap_bar",
+				"landmine",
+				"other",
+				"pull_up_bar",
+				"ropes",
+				"stability_ball",
+				"bosu",
+				"trx"
 			]
+			},
+			"uniqueItems": True,
+			"default": []
 		},
 		"equipment_detail": {
 			"type": "string",
