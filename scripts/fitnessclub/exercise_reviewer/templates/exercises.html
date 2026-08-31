@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>Exercise Classifier</title>
+
+    <!-- Bootstrap -->
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
+    <!-- HTMX -->
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"></script>
+
+    <style>
+
+        body {
+            background: #080708;
+            color: #ffffff;
+        }
+
+        .exercise-card {
+            background: rgb(6, 6, 6);
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .exercise-video {
+            width: 280px;
+            max-width: 100%;
+            border-radius: 6px;
+            background: black;
+        }
+
+        .exercise-name {
+            font-size: 32px;
+            font-weight: bold;
+        }
+
+        .exercise-id {
+            color: #777;
+            font-size: 0.8rem;
+        }
+	.classification {
+	    display: grid;
+	    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+	    gap: 8px 16px;
+	    max-width: 700px;
+	}
+
+        .classification label {
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .save-bar {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+
+            background: white;
+            border-bottom: 1px solid #ccc;
+
+            padding: 10px 0;
+            margin-bottom: 15px;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="container-fluid px-4">
+
+    <!-- Sticky save area -->
+
+    <div class="save-bar">
+
+        <div class="d-flex align-items-center gap-3">
+
+            <button
+                class="btn btn-primary"
+                hx-post="{{ url_for('save') }}"
+                hx-target="#save-status"
+                hx-swap="innerHTML"
+            >
+                Save
+            </button>
+
+            <div id="save-status"></div>
+
+            <input
+                type="text"
+                id="exercise-filter"
+                class="form-control"
+                style="max-width: 320px;"
+                placeholder="Filter e.g. orig:xyz (press Enter)"
+                onkeydown="if (event.key === 'Enter') { event.preventDefault(); applyExerciseFilter(this.value); }"
+            >
+
+            <div id="exercise-filter-count" class="text-muted"></div>
+
+        </div>
+
+    </div>
+
+
+    <h2 class="mb-3">
+        Exercise Classification
+    </h2>
+
+
+    {% for exercise in exercises %}
+
+        <div class="exercise-card" data-search='{{ search_index[exercise.id] | tojson }}'>
+
+            <div class="row align-items-center">
+
+                <!-- Video -->
+
+                <div class="col-md-auto">
+
+                    {% if exercise.gif_url %}
+                        <img
+                            class="exercise-video"
+                            src="{{ exercise.gif_url }}"
+                            alt="GIF for {{ exercise.id }}"
+                        >
+                    {% elif exercise.video_filename %}
+                    <video
+                        class="exercise-video"
+                        controls
+                    >
+
+                        <source
+                            src="{{ url_for(
+                                'video',
+                                filename=exercise.video_filename
+                            ) }}"
+                            type="video/mp4"
+                        >
+                        Your browser does not support HTML video.
+                    </video>
+                    {% else %}
+                        <p>No video or gif available.</p>
+                    {% endif %}
+                </div>
+
+
+                <!-- Exercise information -->
+
+                <div class="col">
+
+                    <div class="exercise-name">
+                        {{ exercise.name if exercise.name else exercise.id }}
+                    </div>
+
+                    <div class="exercise-id mb-2">
+                        {{ exercise.id }}
+                    </div>
+
+
+                    {% if exercise.description %}
+
+                        <div class="mb-3">
+                            {{ exercise.description }}
+                        </div>
+
+                    {% endif %}
+
+
+                    <!-- Classification checkboxes -->
+
+                    {% for group, info in categories.items() %}
+
+                        <div class="mb-3">
+
+                            <div class="fw-bold mb-1">
+                                {{ info.label }}
+                            </div>
+
+                            <div class="classification">
+
+                                {% for flag in info.flags %}
+
+                                    <div class="form-check">
+
+                                        <input
+                                            class="form-check-input"
+                                            type="checkbox"
+
+                                            id="{{ exercise.id }}-{{ group }}-{{ flag }}"
+
+                                            name="value"
+                                            value="1"
+
+                                            {% if classification_state[exercise.id][group][flag] %}
+                                                checked
+                                            {% endif %}
+
+                                            hx-post="{{ url_for(
+                                                'update_flag',
+                                                exercise_id=exercise.id,
+                                                group=group,
+                                                flag=flag
+                                            ) }}"
+
+                                            hx-trigger="change"
+
+                                            hx-swap="none"
+                                        >
+
+                                        <label
+                                            class="form-check-label"
+                                            for="{{ exercise.id }}-{{ group }}-{{ flag }}"
+                                        >
+                                            {{ flag | title }}
+                                        </label>
+
+                                    </div>
+
+                                {% endfor %}
+
+                            </div>
+
+                        </div>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+    {% endfor %}
+
+
+</div>
+
+<script>
+
+    function applyExerciseFilter(raw) {
+
+        const text = (raw || "").trim();
+        const cards = document.querySelectorAll(".exercise-card");
+        const countLabel = document.getElementById("exercise-filter-count");
+
+        if (!text) {
+            cards.forEach(card => { card.style.display = ""; });
+            if (countLabel) {
+                countLabel.textContent = "";
+            }
+            return;
+        }
+
+        const sepIndex = text.indexOf(":");
+        const keyNeedle = (sepIndex === -1 ? text : text.slice(0, sepIndex)).trim().toLowerCase();
+        const valueNeedle = (sepIndex === -1 ? "" : text.slice(sepIndex + 1)).trim().toLowerCase();
+
+        let matchCount = 0;
+
+        cards.forEach(card => {
+
+            let data;
+
+            try {
+                data = JSON.parse(card.dataset.search || "{}");
+            } catch (e) {
+                data = {};
+            }
+
+            const isMatch = Object.entries(data).some(([key, value]) => {
+                if (!key.toLowerCase().includes(keyNeedle)) {
+                    return false;
+                }
+                return !valueNeedle || String(value).toLowerCase().includes(valueNeedle);
+            });
+
+            card.style.display = isMatch ? "" : "none";
+
+            if (isMatch) {
+                matchCount += 1;
+            }
+        });
+
+        if (countLabel) {
+            countLabel.textContent = `${matchCount} match${matchCount === 1 ? "" : "es"}`;
+        }
+    }
+
+</script>
+
+</body>
+
+</html>
