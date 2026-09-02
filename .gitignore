@@ -209,3 +209,5 @@ scripts/fitnessclub/alf-programs/
 scripts/fitnessclub/NROLFL/
 scripts/fitnessclub/Cosgrove/
 scripts/fitnessclub/exercise_reviewer/*.json
+scripts/fitnessclub/exercise_reviewer/*.txt
+scripts/fitnessclub/exercise_reviewer/*.csv

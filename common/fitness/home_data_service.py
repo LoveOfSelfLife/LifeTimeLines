@@ -471,7 +471,7 @@ class HomePageDataService:
             }
             
             completed_instances = self.entity_store.list_items(MemberWorkoutInstanceEntity({"member_id": member_id}))
-            completed_instances = sorted(completed_instances, key=lambda x: x.get('finished_ts', ''), reverse=True)
+            completed_instances = sorted(completed_instances, key=lambda x: x.get('started_ts', ''), reverse=True)
             max_completed_to_show = 15
             completed_workouts = []
             for instance in completed_instances:
@@ -483,15 +483,15 @@ class HomePageDataService:
                 if not workout_def:
                     continue
                 workout_name = workout_def.get('name', 'Unnamed Workout')
-                if instance.get('finished_ts', None):
-                    end_time = datetime.fromisoformat(instance['finished_ts'])
+                if instance.get('started_ts', None):
+                    start_time = datetime.fromisoformat(instance['started_ts'])
                 else:
                     continue
 
                 completed_workouts.append({
                     'workout_name': workout_name,
                     'workout_instance': instance,
-                    'completed_datetime': end_time,
+                    'completed_datetime': start_time,
                     'workout_instance_key': instance.get_composite_key()
                 })
             

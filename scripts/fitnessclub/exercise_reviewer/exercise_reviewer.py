@@ -7,6 +7,7 @@ import threading
 app = Flask(__name__)
 
 VIDEO_DIR = Path("C:/Users/richk/Downloads/ALF_videos/videos")
+GIF_DIR = Path("C:/Users/richk/Downloads/ALF_videos/gifs")
 INPUT_EXERCISES_FILE = Path("vimeo_exercises.json")
 # INPUT_EXERCISES_FILE = Path("tbl_store_exercises.json")
 # OUTPUT_EXERCISES_FILE = Path("classified_exercises.json")
@@ -47,8 +48,8 @@ def load_exercises():
 
         exercise["video_filename"] = video
 
-        if gif_url := exercise.get("gif", None):
-            exercise["gif_url"] = gif_url
+        gif_path = GIF_DIR / f"{Path(video).stem}.gif" if video else None
+        exercise["gif_filename"] = gif_path.name if gif_path and gif_path.is_file() else ""
 
         # Migrate the old flat "attributes" field to "movements".
         if "attributes" in exercise:
@@ -88,7 +89,7 @@ def build_search_index(exercise):
     combined = {
         key: value
         for key, value in exercise.items()
-        if key not in ("video_filename", "gif_url")
+        if key not in ("video_filename", "gif_filename", "gif_url")
     }
     combined.update(classification_state[exercise["id"]])
 
@@ -127,6 +128,16 @@ def video(filename):
     """
     return send_from_directory(
         VIDEO_DIR,
+        filename,
+        conditional=True,
+    )
+@app.route("/gifs/<path:filename>")
+def gif(filename):
+    """
+    Serve GIFs from the GIF_DIR.
+    """
+    return send_from_directory(
+        GIF_DIR,
         filename,
         conditional=True,
     )
@@ -177,7 +188,7 @@ def save():
             item = {
                 key: value
                 for key, value in exercise.items()
-                if key != "video_filename" and key != "gif_url"
+                if key not in ("video_filename", "gif_filename", "gif_url")
             }
             item['origin'] = 'vimeo'
             for group in CATEGORIES:

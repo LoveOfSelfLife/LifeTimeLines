@@ -310,6 +310,10 @@ def builder(context=None, workout_id=None):
         if workout.get('member_program_id', None):
             # If the workout is part of a program, we may want to restrict we should prevent deleting the workout
             can_delete_workout = False
+            # that is, unless the member is an admin
+            if is_member_an_admin(member_id):
+                can_delete_workout = True
+
             
         return hx_render_template('workout_builder2.html', 
                                 workout=workout,
