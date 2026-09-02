@@ -283,6 +283,16 @@
                     </div>
                     <button
                       type="button"
+                      class="btn btn-link btn-sm text-primary p-0 ms-2"
+                      hx-post="{{ url_for('workouts.swap_alternative', workout_id=workout.id) }}"
+                      hx-vals='{"exercise_id":"{{ item.id }}", "alternative_id":"{{ alt.id }}"}'
+                      hx-target="#canvas"
+                      hx-swap="innerHTML"
+                      title="Use as primary exercise">
+                      <i class="bi bi-arrow-left-right"></i>
+                    </button>
+                    <button
+                      type="button"
                       class="btn btn-link btn-sm text-danger p-0 ms-2"
                       hx-post="{{ url_for('workouts.remove_alternative', workout_id=workout.id) }}"
                       hx-vals='{"exercise_id":"{{ item.id }}", "alternative_id":"{{ alt.id }}"}'

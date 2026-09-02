@@ -1045,6 +1045,30 @@ def remove_alternative(context=None, workout_id=None):
 
     return workout_canvas2(context, workout_id)
 
+
+@bp.route('/builder/<workout_id>/swap_alternative', methods=['POST'])
+@auth.login_required
+def swap_alternative(context=None, workout_id=None):
+    """Replace a primary exercise with one of its alternatives in the workout builder."""
+    workout = get_cache_value('current_workout')
+    if not workout or workout['id'] != workout_id:
+        abort(404)
+
+    exercise_id = request.form.get('exercise_id')
+    alternative_id = request.form.get('alternative_id')
+    if not exercise_id or not alternative_id:
+        abort(400, 'exercise_id and alternative_id are required')
+
+    item = find_exercise_item_or_alternative(workout, exercise_id)
+    if not item:
+        abort(404, 'Exercise not found in workout')
+
+    if not perform_exercise_swap(item, alternative_id):
+        abort(404, 'Alternative exercise not found in workout')
+
+    set_cache_value('current_workout', workout)
+    return workout_canvas2(context, workout_id)
+
 # this is the method we use to add a source workout to an existing workout, which is the current workout in the cache.  
 # We will add all the exercises from the source workout to the current workout, including their parameters.
 def _add_workout_to_workout(current_workout, source_workout):
