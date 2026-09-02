@@ -107,7 +107,24 @@
     padding-top: 1.15rem;
   }
 
+  .workout-section-card .section-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(30rem, 1fr));
+    gap: 0.75rem;
+    padding: 0.5rem;
+  }
+
+  .workout-section-card .section-grid > .workout-canvas-item {
+    width: auto;
+    min-width: 0;
+    margin: 0;
+  }
+
   @media (max-width: 767.98px) {
+    .workout-section-card .section-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
     .workout-section-card .card-header {
       padding: 0.5rem 0.75rem;
     }
@@ -169,7 +186,7 @@
   }
   
 </style>
-
+<!-- Workout Sections _workout_dynamic_canvas.html -->
 {% for sec in workout.workout_sections %}
   <div class="card mb-3 workout-section-card">
     <div class="card-header d-flex align-items-center gap-2">
@@ -184,7 +201,7 @@
         <i class="bi bi-plus-lg">add {{ sec.section_type }}-related exercise</i>
       </button>
     </div>
-    <ul class="list-group list-group-flush section-list"
+    <ul class="list-group list-group-flush section-list section-grid"
         data-section="{{ sec.name }}">
       {% for item in sec.exercises %}
         {% set ex = exercises[item.id] %}
