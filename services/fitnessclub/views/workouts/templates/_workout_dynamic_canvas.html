@@ -70,7 +70,8 @@
     flex: 1 1 auto;
   }
 
-  .drag-handle {
+  .drag-handle,
+  .alternative-drag-handle {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -78,7 +79,8 @@
     line-height: 1;
   }
 
-  .drag-handle:active {
+  .drag-handle:active,
+  .alternative-drag-handle:active {
     cursor: grabbing;
   }
 
@@ -184,6 +186,27 @@
     border: 1px solid #007bff !important;
     box-shadow: 0 0 8px rgba(0, 123, 255, 0.5); /* Blue glowing edge */
   }
+
+  .workout-alt-drop-list {
+    min-height: 2.25rem;
+    border: 2px dashed rgba(0, 123, 255, 0.7);
+    border-radius: 0.35rem;
+    background: rgba(0, 123, 255, 0.04);
+    padding: 0.4rem;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
+
+  .workout-alt-drop-list.ctrl-drag-over {
+    border-style: solid;
+    border-color: #007bff;
+    background: rgba(0, 123, 255, 0.12);
+  }
+
+  .alternative-drop-hint {
+    color: #5e6b78;
+    font-size: 0.78rem;
+    padding: 0.2rem 0.35rem;
+  }
   
 </style>
 <!-- Workout Sections _workout_dynamic_canvas.html -->
@@ -206,10 +229,10 @@
       {% for item in sec.exercises %}
         {% set ex = exercises[item.id] %}
         <li class="list-group-item workout-canvas-item py-2"
-            data-exercise-id="{{ item.id }}" data-workout-id="{{ workout.id }}">
+          data-exercise-id="{{ item.id }}" data-workout-id="{{ workout.id }}">
           <div class="d-flex align-items-stretch w-100 workout-canvas-row">
             <div class="workout-drag-column">
-              <span class="drag-handle" title="Drag to reorder">☰</span>
+              <span class="drag-handle" title="Drag to reorder; hold Ctrl while dragging to add as an alternative">☰</span>
             </div>
 
             <div class="flex-fill me-3 d-flex flex-column workout-canvas-content">
@@ -259,12 +282,15 @@
               <div class="mt-auto pt-2">
                 {% include "_dynamic_parameter.html" %}
               </div>
-              {% if item.alternatives and item.alternatives|length > 0 %}
               <div class="workout-alt-list mt-2 ps-3 border-start">
                 <div class="text small mb-1">Alternatives</div>
-                {% for alt in item.alternatives %}
-                  {% set alt_ex = exercises[alt.id] %}
-                  <div class="d-flex align-items-center justify-content-between workout-alt-item py-1 px-2 mb-1 border rounded" style="border: 3px solid black;">
+                <div class="workout-alt-drop-list" data-primary-exercise-id="{{ item.id }}">
+                  {% for alt in item.alternatives %}
+                    {% set alt_ex = exercises[alt.id] %}
+                    <div class="d-flex align-items-center justify-content-between workout-alt-item py-1 px-2 mb-1 border rounded"
+                      data-exercise-id="{{ alt.id }}" data-workout-id="{{ workout.id }}"
+                      data-parent-exercise-id="{{ item.id }}">
+                    <span class="alternative-drag-handle me-2" title="Drag to make primary; hold Ctrl to add as an alternative">☰</span>
                     <div class="flex-grow-1">
                       <span class="fw-semibold">
                         <a href="#" class="text-decoration-none"
@@ -302,9 +328,11 @@
                       <i class="bi bi-trash"></i>
                     </button>
                   </div>
-                {% endfor %}
+                  {% else %}
+                    <div class="alternative-drop-hint">Hold Ctrl and drop an exercise here to add an alternative</div>
+                  {% endfor %}
+                </div>
               </div>
-              {% endif %}
             </div>
 
             {% if ex.gif %}

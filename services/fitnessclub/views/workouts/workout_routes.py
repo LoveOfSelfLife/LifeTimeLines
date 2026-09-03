@@ -769,34 +769,33 @@ def workout_dynamic_canvas(context=None, workout_id=None):
 
 def workout_dynamic_canvas2(context=None, workout_id=None):
     w =  get_cache_value('current_workout')
+    if not w:
+        abort(404)
     # add a section type for each section of the workout if it doesn't already exist
     # section type is just the section name after removing everything after the first space, and converting to lowercase, so "Strength A" becomes "strength"
     for sec in w[WORKOUT_SECTIONS]:
         if 'section_type' not in sec:
             sec['section_type'] = map_section_name_to_type(sec['name'])
-    if w:
-        wrkout_exercises = get_exercises_from_workout(w)
-        exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
-        # also look up each exercise's alternatives so the canvas can display their name/media/parameters
-        for sec in w[WORKOUT_SECTIONS]:
-            for item in sec.get('exercises', []):
-                for alt in item.get('alternatives', []):
-                    alt_id = alt.get('id')
-                    if alt_id and alt_id not in exercises:
-                        alt_ex = get_entity("ExerciseTable", alt_id)
-                        if alt_ex:
-                            exercises[alt_id] = alt_ex
-        exercise_parameters_map = extract_workout_parameters_for_workout(workout_id, w, exercises, {}, url_for('workouts.update_param_in_cache'))
-        return hx_render_template('_workout_dynamic_canvas.html',
-                                    workout=w,
-                                    exercises=exercises,
-                                    exercise_parameters = exercise_parameters_map,
-                                    workout_id=workout_id,
-                                    purpose_of_parameter_edit='workout_builder',
-                                    can_edit_parameters=True,
-                                    context=context)
-    else:
-        abort(404)
+    wrkout_exercises = get_exercises_from_workout(w)
+    exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
+    # also look up each exercise's alternatives so the canvas can display their name/media/parameters
+    for sec in w[WORKOUT_SECTIONS]:
+        for item in sec.get('exercises', []):
+            for alt in item.get('alternatives', []):
+                alt_id = alt.get('id')
+                if alt_id and alt_id not in exercises:
+                    alt_ex = get_entity("ExerciseTable", alt_id)
+                    if alt_ex:
+                        exercises[alt_id] = alt_ex
+    exercise_parameters_map = extract_workout_parameters_for_workout(workout_id, w, exercises, {}, url_for('workouts.update_param_in_cache'))
+    return hx_render_template('_workout_dynamic_canvas.html',
+                                workout=w,
+                                exercises=exercises,
+                                exercise_parameters = exercise_parameters_map,
+                                workout_id=workout_id,
+                                purpose_of_parameter_edit='workout_builder',
+                                can_edit_parameters=True,
+                                context=context)
 
 
 def _add_exercise_to_workout(workout, exercise, preferred_section=None):
@@ -1068,6 +1067,83 @@ def swap_alternative(context=None, workout_id=None):
 
     set_cache_value('current_workout', workout)
     return workout_canvas2(context, workout_id)
+
+
+@bp.route('/builder/<workout_id>/add-as-alternative', methods=['POST'])
+@auth.login_required
+def add_as_alternative(context=None, workout_id=None):
+    """Convert a Ctrl-dragged primary or alternative exercise into an alternative."""
+    workout = get_cache_value('current_workout')
+    if not workout or workout.get('id') != workout_id:
+        abort(404)
+
+    exercise_id = request.form.get('exercise_id')
+    source_parent_exercise_id = request.form.get('source_parent_exercise_id')
+    target_exercise_id = request.form.get('target_exercise_id')
+    if not exercise_id or not target_exercise_id or exercise_id == target_exercise_id:
+        abort(400, 'Different exercise_id and target_exercise_id values are required')
+
+    source_item = None
+    source_section = None
+    target_item = None
+    for section in workout[WORKOUT_SECTIONS]:
+        for item in section['exercises']:
+            if not source_parent_exercise_id and item['id'] == exercise_id and source_item is None:
+                source_item = item
+                source_section = section
+            if item['id'] == target_exercise_id and target_item is None:
+                target_item = item
+            if item['id'] == source_parent_exercise_id:
+                for alternative in item.get('alternatives', []):
+                    if alternative['id'] == exercise_id:
+                        source_item = alternative
+                        source_section = item
+                        break
+    if not source_item or not target_item:
+        abort(404, 'Exercise not found in workout')
+    if source_section is target_item:
+        abort(400, 'An alternative cannot be added to its current primary exercise')
+
+    if source_parent_exercise_id:
+        source_section['alternatives'].remove(source_item)
+    else:
+        source_section['exercises'].remove(source_item)
+    target_item.setdefault('alternatives', []).append(source_item)
+
+    set_cache_value('current_workout', workout)
+    return workout_dynamic_canvas2(context, workout_id)
+
+
+@bp.route('/builder/<workout_id>/promote-alternative', methods=['POST'])
+@auth.login_required
+def promote_alternative(context=None, workout_id=None):
+    """Move a normally dragged alternative into a primary exercise list position."""
+    workout = get_cache_value('current_workout')
+    if not workout or workout.get('id') != workout_id:
+        abort(404)
+
+    exercise_id = request.form.get('exercise_id')
+    source_parent_exercise_id = request.form.get('source_parent_exercise_id')
+    target_section_name = request.form.get('target_section')
+    target_index = request.form.get('target_index', type=int)
+    if not exercise_id or not source_parent_exercise_id or target_section_name is None or target_index is None:
+        abort(400, 'Alternative, parent, and target position are required')
+
+    source_parent = find_exercise_item_or_alternative(workout, source_parent_exercise_id)
+    target_section = next((section for section in workout[WORKOUT_SECTIONS] if section['name'] == target_section_name), None)
+    if not source_parent or not target_section:
+        abort(404, 'Exercise or section not found')
+
+    alternative = next((item for item in source_parent.get('alternatives', []) if item['id'] == exercise_id), None)
+    if not alternative:
+        abort(404, 'Alternative exercise not found')
+
+    source_parent['alternatives'].remove(alternative)
+    target_index = max(0, min(target_index, len(target_section['exercises'])))
+    target_section['exercises'].insert(target_index, alternative)
+
+    set_cache_value('current_workout', workout)
+    return workout_dynamic_canvas2(context, workout_id)
 
 # this is the method we use to add a source workout to an existing workout, which is the current workout in the cache.  
 # We will add all the exercises from the source workout to the current workout, including their parameters.
