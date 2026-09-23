@@ -67,7 +67,7 @@ def initialize_active_workout_state(workout_instance_key, program_key, scheduled
         'exercise_additions': [],
         # US/Eastern local time (DST-aware), matching MemberWorkoutInstanceEntity.started_ts
         'time_workout_started': datetime.now(timezone.utc).astimezone(pytz.timezone('US/Eastern')).isoformat(),
-        'keep_screen_awake': False
+        'keep_screen_awake': True
     }
     session['current_workout_instance_state'] = json.dumps(current_state)
 
