@@ -1,4 +1,7 @@
 <div id="{{ main_content_container }}">
+    {% set allow_multi_select = allow_multi_select|default(false) %}
+    {% set multi_select_checkbox_name = multi_select_checkbox_name|default('selected_entity_keys') %}
+    {% set selected_entity_keys = selected_entity_keys|default([]) %}
     <div class="card-body" 
             hx-trigger="entityListChanged from:body" 
             hx-get="{{ entities_listing_route }}" 
@@ -9,13 +12,28 @@
         <div class="search-filter-area">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <!-- Add New Button -->
-                <div>
+                <div class="d-flex align-items-center gap-2">
                     {% if entity_add_route %}
                     <button class="btn btn-dark btn-sm"
                         hx-get="{{ entity_add_route}}&page={{ page }}&filter={{ filter_terms }}"
                         hx-target="#{{ main_content_container }}"
                         hx-swap="innerHTML">
                         Add New {{ entity_display_name }}
+                    </button>
+                    {% endif %}
+                    {% if allow_multi_select and multi_select_post_route %}
+                    <button class="btn btn-primary btn-sm"
+                        hx-post="{{ multi_select_post_route }}"
+                        hx-target="#modals-here"
+                        hx-swap="innerHTML"
+                        hx-include="[name='{{ multi_select_checkbox_name }}'], [name='search'], [name='view'], [name='favorites_only'], [name='preferred_section']"
+                        {% if multi_select_extra_vals %}
+                        hx-vals='{{ multi_select_extra_vals|tojson }}'
+                        {% endif %}>
+                        {% if multi_select_button_icon %}
+                        <i class="bi {{ multi_select_button_icon }} me-1"></i>
+                        {% endif %}
+                        {{ multi_select_button_label or 'Add Selected' }}
                     </button>
                     {% endif %}
                 </div>
@@ -30,21 +48,21 @@
                 <!-- View Toggle Buttons -->
                 <div class="btn-group" id="view-toggle-buttons" role="group">
                     <button type="button" class="btn btn-outline-primary {% if view == 'card' %}active{% endif %}" data-view="card"
-                        hx-get="{{ entities_listing_route }}&page={{ page }}&filter={{ filter_terms }}&view=card"
+                        hx-get="{{ entities_listing_route }}&page={{ page }}&filter={{ filter_terms }}&view=card&modal_mode={{ modal_mode }}"
                         {% if args %}
                         hx-vals='{{ args|tojson }}'
                         {% endif %}
                         hx-target="#{{ results_target_container or 'results-area' }}"
-                        hx-include="[name='search'], [name='favorites_only']">
+                        hx-include="[name='search'], [name='favorites_only'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
                         <i class="bi bi-grid"></i>
                     </button>
                     <button type="button" class="btn btn-outline-primary {% if view == 'list' %}active{% endif %}" data-view="list"
-                        hx-get="{{ entities_listing_route }}&page={{ page }}&filter={{ filter_terms }}&view=list"
+                        hx-get="{{ entities_listing_route }}&page={{ page }}&filter={{ filter_terms }}&view=list&modal_mode={{ modal_mode }}"
                         {% if args %}
                         hx-vals='{{ args|tojson }}'
                         {% endif %}
                         hx-target="#{{ results_target_container or 'results-area' }}"
-                        hx-include="[name='search'], [name='favorites_only']">
+                        hx-include="[name='search'], [name='favorites_only'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
                         <i class="bi bi-list"></i>  
                     </button>
                 </div>
@@ -68,8 +86,8 @@
             </script>
 
          
-            {% set search_value = (filter_terms | selectattr('type', 'equalto', 'text') | selectattr('value') | map(attribute='value') | first) or '' %}
-
+            {# {% set search_value = (filter_terms | selectattr('type', 'equalto', 'summary') | selectattr('value') | map(attribute='value') | first) or '' %} #}
+            {% set search_value = (filter_terms | selectattr('summary', 'defined') | map(attribute='summary') | first) or '' %}
             <div class="filter-bar d-flex justify-content-between align-items-center mb-0 p-2 border rounded">
                 <div class="d-flex flex-grow-1 align-items-center gap-2">
                     <input class="form-control" type="search"
@@ -78,7 +96,10 @@
                         hx-post="{{ entities_listing_route }}"
                         hx-target="#{{ results_target_container or 'results-area' }}"
                         hx-swap="innerHTML"
-                        hx-include="[name='view'], [name='favorites_only']"
+                        hx-include="[name='view'], [name='favorites_only'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
+                        {% if modal_mode %}
+                        hx-vals='{ "modal_mode": {{ modal_mode|tojson }}}'
+                        {% endif %}
                         hx-trigger="input changed delay:500ms, keyup[key=='Enter']"
                         hx-indicator=".htmx-indicator">
                     
@@ -88,29 +109,85 @@
                 <!-- Favorites Toggle -->
                 {% set favorites_active = (filter_terms | selectattr('type', 'equalto', 'favorites') | selectattr('value', 'equalto', 'true') | list | length > 0) %}
                 <button 
-                        id="favorites-toggle-1"
+                        id="favorites-toggle"
                         type="button" 
                         class="btn {% if favorites_active %}btn-outline-secondary{% else %}btn-outline-secondary{% endif %} favorites-toggle"
-                        {# class="btn {% if favorites_active %}btn-danger{% else %}btn-outline-secondary{% endif %} favorites-toggle" #}
                         style="height: 38px;"
                         data-favorites="{% if favorites_active %}true{% else %}false{% endif %}"
                         hx-post="{{ entities_listing_route }}"
                         hx-target="#{{ results_target_container or 'results-area' }}"
                         hx-swap="innerHTML"
-                        hx-include="[name='search'], [name='view']"
+                        hx-include="[name='search'], [name='view'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
+                        {% if modal_mode %}
+                        hx-vals='{"favorites_only": {% if favorites_active %}false{% else %}true{% endif %}, "modal_mode": {{ modal_mode|tojson }}}'
+                        {% else %}
                         hx-vals='{"favorites_only": {% if favorites_active %}false{% else %}true{% endif %}}'
+                        {% endif %}
                         title="{% if favorites_active %}Show all items{% else %}Show favorites only{% endif %}">
-                    <i class="bi bi-heart"></i> 
+                    <i class="bi {% if favorites_active %}bi-heart-fill{% else %}bi-heart{% endif %}"></i> 
                 </button>
 
                 <!-- Hidden input to maintain state -->
-                <input type="hidden" name="favorites_only" value="{% if favorites_active %}true{% else %}false{% endif %}">
+                <input type="hidden" id="favorites-only-state" name="favorites_only" value="{% if favorites_active %}true{% else %}false{% endif %}">
+
+                {% if allow_multi_select %}
+                    <div id="multi-select-state">
+                        <input type="hidden" name="allow_multi_select" value="true">
+                        <input type="hidden" name="multi_select_post_route" value="{{ multi_select_post_route }}">
+                        <input type="hidden" name="preferred_section" value="{{ preferred_section or '' }}">
+                        {% for selected_key in selected_entity_keys %}
+                        <input type="hidden" name="{{ multi_select_checkbox_name }}" value="{{ selected_key }}">
+                        {% endfor %}
+                    </div>
+                {% endif %}
 
             </div>
-
+        </div>
         <!-- Results area that gets replaced -->
         <div id="{{ results_target_container or 'results-area' }}">
             {% include 'entity_results_partial.html' %}
         </div>
+
+    {% if total_pages > 1 %}
+        <nav id="pagination-wrapper" aria-label="Page navigation" class="pagination-wrapper">
+        <ul class="pagination mb-0">
+            <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+            <a class="page-link" href="#"
+                hx-get="{{ entities_listing_route }}&page={{ page - 1 }}&filter={{ filter_terms }}&view={{ view }}&modal_mode={{ modal_mode }}"
+                {% if args %}
+                hx-vals='{{ args|tojson }}'
+                {% endif %}
+                hx-target="#{{ results_target_container or 'results-area' }}"
+                hx-include="[name='search'], [name='favorites_only'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
+            <span aria-hidden="true">&laquo;</span>
+            </a>
+            </li>
+            <li class="d-flex align-items-center px-3">
+                Page {{ page }} of {{ total_pages }}
+            </li>
+            <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+            <a class="page-link" href="#"
+                hx-get="{{ entities_listing_route }}&page={{ page + 1 }}&filter={{ filter_terms }}&view={{ view }}&modal_mode={{ modal_mode }}"
+                {% if args %}
+                hx-vals='{{ args|tojson }}'
+                {% endif %}
+                hx-target="#{{ results_target_container or 'results-area' }}"
+                hx-include="[name='search'], [name='favorites_only'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
+            <span aria-hidden="true">&raquo;</span>
+            </a>
+            </li>
+        </ul>
+        </nav>
+    {% else %}
+    <nav id="pagination-wrapper" aria-label="Page navigation" class="pagination-wrapper">
+        <ul class="pagination mb-0">
+            <li class="d-flex align-items-center px-3">
+                Page {{ page }} of {{ total_pages }}
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+
+
     </div>
 </div>

@@ -5,8 +5,8 @@ import os
 from datetime import datetime
 
 # Version information
-VERSION_MAJOR = 1
-VERSION_MINOR = 0
+VERSION_MAJOR = 2
+VERSION_MINOR = 2
 VERSION_PATCH = 0
 VERSION_BUILD = os.getenv('BUILD_NUMBER', 'dev')
 

@@ -1,26 +1,44 @@
-from datetime import datetime
+import copy
+from ast import literal_eval
+from datetime import datetime, timezone
 import json
 
+import pytz
 import uuid
 from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, session, url_for
 from common.entity_store import EntityObject, EntityStore
-from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_listing_fields_for_entity
+from common.fitness import workout_entity
+from common.fitness.active_fitness_registry import get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import delete_from_cache, get_cache_value, set_cache_value
-from common.fitness.entities_getter import get_entity, get_entities
+from common.fitness.entities_getter import as_bool, delete_entity, get_entity, get_entities, resolve_selected_entity_keys, resolve_selected_workout_keys, clear_selected_workout_keys
+from common.fitness.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
 from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
 from common.fitness.get_calendar_service import get_calendar_service
-from common.fitness.hx_common import hx_render_template
+from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
 from common.fitness.hx_common import rm_spaces
-from common.fitness.member_entity import MembershipRegistry, get_member_id_from_user_context, get_user_profile
+from common.fitness.member_entity import MembershipRegistry, get_member_id_from_user_context, is_member_an_admin, member_allows_on_the_fly_workout
 from common.fitness.member_exercise_history import extract_and_load_exercise_events_from_workout_instance
-from common.fitness.member_program_entity import MemberProgramEntity
+from common.fitness.member_program_entity import MemberProgramsEntity
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout
-from common.fitness.programs import get_program_workouts
-from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state
-from common.fitness.edit_workout_object import edit_workout_object
-from common.fitness.roles_service import get_accessible_members_for_context, get_member_role
+from common.fitness.programs import get_last_workout_instance_for_workout, get_next_workout_in_program, get_workouts_from_program
+from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state, update_active_workout_state, get_last_section, get_last_exercise_index, clear_last_section, get_exercise_parameters
+from common.fitness.exercise_alternatives import apply_recorded_swaps_to_definition
+from common.fitness.exercise_onthefly import apply_recorded_removals_to_definition, apply_recorded_additions_to_definition
+from common.fitness.edit_workout_object import bring_up_workouts_builder
+from common.fitness.roles_service import get_accessible_members_for_context, get_team_coaches_with_details, get_team_for_client, is_member_client, is_member_coach
+from common.fitness.coach_team_entity import get_coachs_team_members
+from common.fitness.entities_getter import filter_entities_by_member_role
 bp = Blueprint('program', __name__, template_folder='templates')
 from auth import auth
+
+def _normalize_form_datetime(value, fallback=None):
+    if not value:
+        return fallback
+
+    try:
+        return datetime.fromisoformat(value).isoformat()
+    except ValueError:
+        return fallback
 
 @bp.route('/')
 @auth.login_required
@@ -53,24 +71,19 @@ def programs_listing2(context=None):
         session['view_preference'] = view
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
-    filter_terms = _get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request()
 
     member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
-    entities = []
+    entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member_id, member_id=member_id)
+    entities = filter_entities_by_member_role(member_id, entities)
 
-    # if the member is a coach, we want to show them programs for all of their teams, so we need to get the list of members they have access to (themselves and any clients on their teams) and then get programs for all of those members
-    if get_member_role(member_id) == 'coach':
-        accessible_members = get_accessible_members_for_context(member_id)
+    sort_by='end_date'
+    sort_ascending=False
+    sort_key = lambda x: str(x.get('entity', {}).get(sort_by, '')).lower()
 
-        for member in accessible_members:
-            print(f"Accessible member: {member.get('id')} - {member.get('name')}")
-            member_entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member.get('id'), sort_by='end_date', sort_ascending=False, member_id=member.get('id'))
-            entities.extend(member_entities)
-    else:
-        entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member_id, sort_by='end_date', sort_ascending=False, member_id=member_id)
-
+    entities = sorted(entities, key=sort_key, reverse=not sort_ascending)    
     return program_listing_base(context, entity_name, page, page_size, view, fields_to_display, filter_terms, entities)
 
 def program_listing_base(context, entity_name, page, page_size, view, fields_to_display, filter_terms, entities):
@@ -106,6 +119,7 @@ def program_listing_base(context, entity_name, page, page_size, view, fields_to_
         entity_action_route=f'/program/edit?entity_table={entity_name}',
         entity_action_icon='bi-pencil-square',  
         entity_action_label='Edit Program',
+        favorite_toggle_route='/admin/toggle-favorite',
         results_target_container=results_target_container,
         entity_card_view_html='program_card_view.html',
         context=context)
@@ -140,7 +154,8 @@ def program_viewer(context=None):
     alternative_workouts = [w for w in workouts if w.get('workout_type', 'standard') == 'alternative']
     
     # Get member information
-    member = get_entity('MemberTable', program.get('member_id'))
+    assigned_member_id = program.get('assigned_to_member_id') or program.get('member_id')
+    member = get_entity('MemberTable', assigned_member_id)
     member_name = member.get('name', 'Unknown Member') if member else 'Unknown Member'
     
     return hx_render_template(
@@ -171,11 +186,9 @@ def workouts_listing(context=None):
         session['view_preference'] = view
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
-    filter_terms = _get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request()
 
             
-    entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
-
     # mobile = request.args.get('mobile', type=bool, default=False)
     # div_id = 'lib-list-mobile' if mobile else 'lib-list'
     div_id = target
@@ -187,14 +200,80 @@ def workouts_listing(context=None):
     else:
             abort(404)     
 
+    allow_multi_select = as_bool(request.form.get('allow_multi_select', None),
+                                  as_bool(request.args.get('allow_multi_select', None), False))
+    selected_entity_keys = resolve_selected_workout_keys(member_id, allow_multi_select=allow_multi_select)
+    # modal_mode = as_bool(request.args.get('modal_mode', None), False) if request.method == 'GET' else as_bool(request.form.get('modal_mode', None), False)   
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
-    return workouts_listing_base(context, entity_name, program_id, page, target, view, page_size, fields_to_display, div_id, filter_terms, entities)
+    entities = filter_entities_by_member_role(member_id, entities)
 
-def workouts_listing_base(context, entity_name, program_id, page, target, view, page_size, fields_to_display, div_id, filter_terms, entities):
+    return workouts_listing_base(
+        context,
+        entity_name,
+        program_id,
+        page,
+        target,
+        view,
+        page_size,
+        fields_to_display,
+        div_id,
+        filter_terms,
+        entities,
+        allow_multi_select=allow_multi_select,
+        selected_entity_keys=selected_entity_keys,
+        modal_mode=False,
+    )
+
+
+@bp.route('/workouts-listing-modal', methods=['GET'])
+@auth.login_required
+def workouts_listing_modal(context=None):
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+
+    program_id = request.args.get('program_id')
+    if not program_id:
+        abort(400)
+
+    current_program = get_cache_value('current_program')
+    if not current_program or current_program.get('id') != program_id:
+        abort(404)
+
+    clear_selected_workout_keys(member_id)
+
+    page = int(request.args.get('page', 1))
+    page_size = 100
+    target = request.args.get('target')
+    view = request.args.get('view', None) or session.get('view_preference', 'list')
+    fields_to_display = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
+    filter_terms = get_filter_terms_from_request()
+    entities = get_entities(WORKOUT_ENTITY_NAME, fields_to_display, filter_terms, member_id=member_id)
+    entities = filter_entities_by_member_role(member_id, entities)
+
+    return workouts_listing_base(
+        context,
+        WORKOUT_ENTITY_NAME,
+        program_id,
+        page,
+        target,
+        view,
+        page_size,
+        fields_to_display,
+        target,
+        filter_terms,
+        entities,
+        allow_multi_select=True,
+        selected_entity_keys=[],
+        modal_mode=True,
+    )
+
+def workouts_listing_base(context, entity_name, program_id, page, target, view, page_size, fields_to_display, div_id, filter_terms, entities, allow_multi_select=False, selected_entity_keys=None, modal_mode=False):
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
     end = start + page_size
     current = entities[start:end]
+    selected_entity_keys = selected_entity_keys or []
 
     if request.headers.get('HX-Target') == 'results-area':
         template_file_name = 'entity_results_partial.html'
@@ -203,13 +282,23 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
 
     # Set results_target_container based on target parameter
     results_target_container = target if target else 'results-area'
+    entities_listing_route = f'/program/workouts-listing?entity_table={entity_name}&target={target}&program_id={program_id}'
+    if allow_multi_select:
+        entities_listing_route += '&allow_multi_select=true'
 
-    # displays workouts at the top level
-    return hx_render_template(
-        template_file_name,
+    if allow_multi_select:
+        entity_action_route = None
+        entity_action_route_method = None
+        entity_action_route_target = None
+    else:
+        entity_action_route = f'/program/builder/{program_id}/add?entity_table={entity_name}'
+        entity_action_route_method = 'post'
+        entity_action_route_target = 'program-canvas'
+
+    template_data = dict(
         title="Workouts Library",
         fields_to_display=fields_to_display,
-        main_content_container=div_id,        
+        main_content_container='xyz',
         entities=current,
         entity_name=entity_name,
         filter_terms=filter_terms,
@@ -217,22 +306,50 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
         page=page,
         view=view,
         total_pages=total_pages,
-        entities_listing_route=f'/program/workouts-listing?entity_table={entity_name}&target={target}&program_id={program_id}',
+        entities_listing_route=entities_listing_route,
         entity_view_route=f'/workouts/viewer/workout?entity_table={entity_name}',
-        entity_action_route=f'/program/builder/{program_id}/add?entity_table={entity_name}',
-        entity_action_route_method='post',
-        entity_action_route_target="program-canvas",
-        entity_action_icon='bi-plus',  
+        entity_action_route=entity_action_route,
+        entity_action_route_method=entity_action_route_method,
+        entity_action_route_target=entity_action_route_target,
+        entity_action_icon='bi-plus',
         entity_action_label='Add Workout',
+        favorite_toggle_route='/admin/toggle-favorite',
         results_target_container=results_target_container,
         entity_card_view_html='workout_card_view.html',
-        context=context)
+        allow_multi_select=allow_multi_select,
+        selected_entity_keys=selected_entity_keys,
+        multi_select_checkbox_name='selected_entity_keys',
+        multi_select_post_route=url_for('program.add_multiple_workouts', program_id=program_id) if allow_multi_select else None,
+        multi_select_button_label='Add Selected Workouts',
+        multi_select_button_icon='bi-plus-circle',
+        modal_mode=modal_mode,
+        context=context,
+    )
+
+    # displays workouts at the top level
+    if modal_mode:
+        return hx_render_template('workouts_listing_modal.html', **template_data)
+
+    return hx_render_template(template_file_name, **template_data)
+
+
+# def _build_program_workout_copy(source_workout, current_program, order_index):
+#     copied_workout = source_workout.copy()
+#     copied_workout['id'] = str(uuid.uuid4())
+#     copied_workout['member_program_id'] = current_program['id']
+#     copied_workout['order_index'] = order_index
+
+#     workout_copy = MemberWorkoutDefinitionEntity(copied_workout)
+#     workout_copy['key'] = workout_copy.get_composite_key()
+#     workout_copy['key_str'] = '|'.join(workout_copy.get_composite_key())
+#     return workout_copy
 
 def new_program(name='new-workout-program', member_id=None):
     program_id = str(uuid.uuid4())
     return {
         'id': program_id,
-        'member_id': member_id,
+        'created_by': member_id,
+        'assigned_to_member_id': member_id,
         'name': name,
         'start_date': None,
         'end_date': None
@@ -304,12 +421,16 @@ def program_workouts_canvas(context=None, program_id=None):
     p = get_cache_value('current_program')
     if p:
         # we only want to populate the current_program_workouts cache the first time
-        # if it is already populated, we will use that
-        if not get_cache_value('current_program_workouts'):
+        # we check the current_program_workouts cache for this.  It can be empty for a few reasons
+        # 1) we have not populated it yet - this is the first time we are loading the builder view for this program, and
+        # 2) we have populated it, but there are no workouts for this program yet - this could be the case if we just created a new program and have not added any workouts to it yet
+        # 3) it was previously populated, but we deleted all the workouts using the program builder.  In this case, the workouts that we removed will be in the workouts_to_remove cache,
+        # and we will check that when we load the workouts for the program.  If there are workouts in the workouts_to_remove cache, we know that the current_program_workouts cache is empty because 
+        # we removed all the workouts from it, so we will not populate it with an empty list - instead, we will just leave it as is (empty) until we add new workouts to the program.  
+        # 
+        if not get_cache_value('current_program_workouts') and not get_cache_value('workouts_to_remove'):
             # get the workouts from the program
-            program_workouts = get_workouts_from_program(p)
-            # workouts_dict = { wk.get('id', None): wk for wk in program_workouts }
-            workouts_list = program_workouts
+            workouts_list = get_workouts_from_program(p)
             for wk in workouts_list:
                 wk['key'] = wk.get_composite_key()
                 wk['key_str'] = '|'.join(wk.get_composite_key())
@@ -334,47 +455,75 @@ def program_workouts_canvas(context=None, program_id=None):
 @bp.route("/viewer/workout2/<workout_id>")
 @auth.login_required
 def view_workout2(context=None, workout_id=None):
+    es = EntityStore()
     member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
 
-    current_program = get_cache_value('current_program')
     current_program_workouts = get_cache_value('current_program_workouts')
-    
-    # workout = current_program_workouts.get(workout_id, None)
-    # find the workout in the current_program_workouts list that has an id matching workout_id
     workout = next((wk for wk in current_program_workouts if wk.get('id', None) == workout_id), None)
-    
+    workout = MemberWorkoutDefinitionEntity(workout) if workout else None
+    workout_definition_key = workout.get_composite_key() if workout else None
+
     if not workout:
         abort(404)
-
-    # workout_key_pipe_delimited_str = request.args.get('keyStrPipeDelimited', None)
-    # # Convert pipe-delimited string to a list
-    # workout_composite_key = workout_key_pipe_delimited_str.split('|')
-    # workout = EntityStore().get_item_by_composite_key2(workout_composite_key)
-    # if not workout:
-    #     abort(404)
     
     program_id = request.args.get('program_id', None)
 
     wrkout_exercises = get_exercises_from_workout(workout)
     exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
 
-    if 'workout_sections' in workout:
-        workout_sections = workout['workout_sections']
-    else:
-        workout_sections = workout['sections']
-
+    workout_sections = workout['workout_sections']
+    
     return render_template(
         "workout_view2.html",
         program=None,  # No program context in this view
         workout=workout,
         exercises=exercises,
         workout_sections=workout_sections,
+        workout_definition_key=workout_definition_key,
         program_id=program_id,
         member_id=member_id
     )
+@bp.route('/update_param_in_cache/<workout_id>', methods=['POST'])
+@auth.login_required
+def update_param_in_cache(context=None, workout_id=None):
 
+    workouts = get_cache_value('current_program_workouts')
+    # get workout from the list that has id matching workout_id
+    current_workout = next((wk for wk in workouts if wk.get('id', None) == workout_id), None)
+    if not current_workout:
+        abort(404)
+
+    exid  = request.form['exercise_id']
+    param = request.form['param']
+    value = request.form['value'] or None
+    for s in current_workout['workout_sections']:
+        for it in s['exercises']:
+            if it['id']==exid:
+                it['parameters'][param] = value
+
+    set_cache_value('current_program_workouts', workouts)
+
+    # w = get_cache_value('current_workout')
+    # exid  = request.form['exercise_id']
+    # workout_id = request.form['workout_id']
+    # param = request.form['param']
+    # value = request.form['value'] or None
+
+    # for s in w[WORKOUT_SECTIONS]:
+    #     for it in s['exercises']:
+    #         if it['id']==exid:
+    #             it['parameters'][param] = value
+
+    # set_cache_value('current_workout', w)
+
+    return ('', 204)
+
+
+## this route does not appear to be used anymore
+## - but the basic idea is to get the workout from the current_program_workouts cache, update the parameter value, then save back to cache
+##
 @bp.route('/builder/<workout_id>/update_param', methods=['POST'])
 @auth.login_required
 def update_param(context=None, workout_id=None):
@@ -456,17 +605,11 @@ def update_assigned_member(context=None, program_id=None):
     if not p:
         abort(404)
         
-    # Update the member_id for the program
+    # Keep member_id as the creator/owner. Update assignment separately.
     assigned_member_id = request.form['assigned_member_id']
-    p['member_id'] = assigned_member_id
+    p['assigned_to_member_id'] = assigned_member_id
     
     set_cache_value('current_program', p)
-
-    # get all the workouts for the program and update their member_id as well
-    current_program_workouts = get_cache_value('current_program_workouts')
-    for wk in current_program_workouts:
-        wk['member_id'] = assigned_member_id
-    set_cache_value('current_program_workouts', current_program_workouts)
 
     response = make_response('', 200)
     return response
@@ -498,14 +641,6 @@ def update_workout_name(context=None, program_id=None, workout_id=None):
     response = make_response('', 200)
     return response
 
-def get_workouts_from_program(program):
-    # in the 1.0 data model, the workouts are stored as embedded objects in the program
-    # in the 2.0 data model, the workouts are stored as separate entities in the MemberWorkoutDefinitionTable, where 
-    # those entities have a member_program_id field that references the program they belong to
-    workouts = get_program_workouts(program, program['member_id'])
-    workouts = sorted(workouts, key=lambda x: x.get('order_index', 0))
-    return workouts
-
 @bp.route('/builder/<program_id>/save', methods=['POST'])
 @auth.login_required
 def save_program(context=None, program_id=None):
@@ -532,10 +667,13 @@ def save_program(context=None, program_id=None):
     workouts_to_remove = get_cache_value('workouts_to_remove') or []
 
     for wtr in workouts_to_remove:
-        es.delete_item(MemberWorkoutDefinitionEntity(wtr))
+        # es.delete_item(MemberWorkoutDefinitionEntity(wtr))
+        if wtr.get('member_program_id') == current_program['id']:
+            wtr['member_program_id'] = None  # unlink the workouts from the program
+        es.upsert_item(MemberWorkoutDefinitionEntity(wtr))
     
     es.upsert_items(workouts_in_program)
-    es.upsert_item(MemberProgramEntity(current_program))
+    es.upsert_item(MemberProgramsEntity(current_program))
 
     delete_from_cache('current_program')
     delete_from_cache('current_program_workouts')
@@ -582,6 +720,51 @@ def cancel_editing_program(context=None, program_id=None):
         })
     return response
 
+@bp.route('/builder/<program_id>/delete', methods=['POST'])
+@auth.login_required
+def delete_program(context=None, program_id=None):
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+
+    current_program = get_cache_value('current_program')
+    if current_program:
+        if current_program['id'] != program_id:
+            abort(404)
+
+    es = EntityStore()
+    workouts_in_program = []
+    current_program_workouts = get_cache_value('current_program_workouts')
+
+    for w in current_program_workouts:
+        w['member_program_id'] = None   # unlink the workouts from the program
+        workouts_in_program.append(MemberWorkoutDefinitionEntity(w))
+    es.upsert_items(workouts_in_program)
+
+    # handle workouts that were removed from the program
+    workouts_to_remove = get_cache_value('workouts_to_remove') or []
+
+    for wtr in workouts_to_remove:
+        es.upsert_item(MemberWorkoutDefinitionEntity(wtr))
+
+    es.delete_item(MemberProgramsEntity(current_program))
+
+    delete_from_cache('current_program')
+    delete_from_cache('current_program_workouts')
+    delete_from_cache('workouts_to_remove')
+
+    # delete from the in-memory entity cache
+    delete_entity(MemberProgramsEntity(current_program))
+
+    response = make_response(programs_listing2(context))
+    response.headers['HX-Trigger'] = json.dumps({
+        "eventListChanged": { "target": "body" },
+            "showMessage": { 
+            "target": "body",
+            "value": "program deleted." }
+        })
+    return response
+
 
 @bp.route('/builder/<program_id>/save_copy', methods=['POST'])
 @auth.login_required
@@ -607,6 +790,7 @@ def save_copy_of_program(context=None, program_id=None):
     current_program['id'] = new_program_id
     current_program['name'] = f"{current_program['name']} (copy)"
     current_program['member_id'] = member_id
+    current_program['assigned_to_member_id'] = member_id
     current_program['created_by'] = member_id
 
     workouts_in_program = []
@@ -631,7 +815,7 @@ def save_copy_of_program(context=None, program_id=None):
         es.delete_item(MemberWorkoutDefinitionEntity(wtr))
 
     es.upsert_items(workouts_in_program)
-    es.upsert_item(MemberProgramEntity(current_program))
+    es.upsert_item(MemberProgramsEntity(current_program))
 
     delete_from_cache('current_program')
     delete_from_cache('current_program_workouts')
@@ -651,6 +835,9 @@ def save_copy_of_program(context=None, program_id=None):
         })
     return response
 
+# this is called when you click the edit button on a workout in the program builder canvas 
+# - it loads the workout into the workout editor and sets a cache value to keep track of which workout we are editing 
+# so that when we save the workout, we can update the correct workout in the current_program_workouts cache
 @bp.route('/builder/<program_id>/edit', methods=['POST'])
 @auth.login_required
 def edit_workout(context=None, program_id=None):
@@ -658,22 +845,13 @@ def edit_workout(context=None, program_id=None):
     current_program_workouts = get_cache_value('current_program_workouts')
     wk_id = request.form['workout_id']
 
-    # we need to keep track of the workout that is being removed so we can unlink it from the program when we save the program
-    # so first find the workout to unlink from the program
+    # we need to keep track of the workout that is being edited
     workout_to_edit = next((wk for wk in current_program_workouts if wk.get('id', None) == wk_id), None)
     set_cache_value('workout_editor_context', { 'editing_program_workout': workout_to_edit,
                                                 'program_id': program_id } )
-    return edit_workout_object(workout_to_edit)
-
-    # workout_to_edit['member_program_id'] = None  # unlink from program
-
-    # now remove that workout from the current_program_workouts list
-    # current_program_workouts = [it for it in current_program_workouts if it['id']!=wk_id]
-
-    set_cache_value('current_program_workouts', current_program_workouts)
-
-    return program_workouts_canvas(context, program_id)
-
+    # we we get there we are definately editing a workout definition (vs a workout instance)
+    workout_to_edit = MemberWorkoutDefinitionEntity(workout_to_edit)
+    return bring_up_workouts_builder(workout_to_edit)
 
 @bp.route('/builder/<program_id>/remove', methods=['POST'])
 @auth.login_required
@@ -710,15 +888,6 @@ def add_workout(context=None, program_id=None):
         if current_program['id'] != program_id:
             abort(404)
 
-    # here we get the key of the workout from the query parameters
-    # and we look it up in the workouts table
-    # if it is not found we abort with a 404
-    # if it is found we:
-    # create a copy of the workout from the WorkoutTable and give it a new id
-    # laster when we save the program, we will save the workout copy to the ProgramWorkoutTable
-    # the workouts in the program.workouts list are from teh WorkoutTable
-    # we will copy thos workout objects into the ProgramWorkoutTable, then use the id & Program_id of that copy to populate the program.workouts list
-
     composite_key_str = request.args.get('key', None)
     composite_key = eval(composite_key_str) if composite_key_str else None
 
@@ -726,23 +895,19 @@ def add_workout(context=None, program_id=None):
     if not added_workout:
         abort(404)
 
-    added_workout_id = added_workout['id']
-    added_workout['id'] = str(uuid.uuid4())  # generate a new id for the program workout
-    added_workout['program_id'] = current_program['id']  # set the program id for the workout
-    added_workout['base_workout_def_id'] = added_workout_id  # keep the original workout id for reference
-    added_workout['member_id'] = current_program['member_id']  # set the member id for the workout
-    added_workout['created_by'] = current_program['member_id']  # set the created by for the workout
-    added_workout['member_program_id'] = current_program['id']  # set the member program id for the workout
-    added_workout['order_index'] = num_workouts  # set the order index for the workout
-    workout_copy = MemberWorkoutDefinitionEntity(added_workout)
-
-    workout_copy['key'] = workout_copy.get_composite_key()
-    workout_copy['key_str'] = '|'.join(workout_copy.get_composite_key())    
-
-    # current_program['workouts'].append({'key': workout_copy.get_composite_key(), 'id':workout_copy['id'], "name": workout_copy['name']})
-    # current_program_workouts[workout_copy['id']] = workout_copy
-    # append to the current_program_workouts list
-    current_program_workouts.append(workout_copy)
+    # workout_copy = _build_program_workout_copy(added_workout, current_program, num_workouts)
+    # only allow a workout to be added if it not already a part of another program
+    # check if the added_workout has a member_program_id that is not None
+    if added_workout.get('member_program_id', None) is not None:
+        response = make_response('')
+        response.headers['HX-Trigger'] = json.dumps({
+            "refreshProgramCanvas": {"target": "body"},
+            "showMessage": {"target": "body", "value": "Workout is already part of another program and cannot be added."}
+        })
+        return response
+    else:
+        added_workout['member_program_id'] = current_program['id']
+        current_program_workouts.append(added_workout)
 
     # update the cache
     set_cache_value('current_program', current_program)
@@ -751,38 +916,120 @@ def add_workout(context=None, program_id=None):
     return program_workouts_canvas(context, program_id)
 
 
-@bp.route('/start_workout/<workout_key>', methods=['POST'])
+@bp.route('/builder/<program_id>/add-multiple', methods=['POST'])
 @auth.login_required
-def start_workout(context=None, workout_key=None):
+def add_multiple_workouts(context=None, program_id=None):
+    current_program = get_cache_value('current_program')
+    if not current_program or current_program.get('id') != program_id:
+        abort(404)
+
+    current_program_workouts = get_cache_value('current_program_workouts') or []
+    selected_keys = list(dict.fromkeys([key for key in request.form.getlist('selected_entity_keys') if key]))
+
+    if not selected_keys:
+        response = make_response('')
+        response.headers['HX-Trigger'] = json.dumps({
+            "refreshProgramCanvas": {"target": "body"},
+            "showMessage": {"target": "body", "value": "No workouts selected."}
+        })
+        return response
+
+    added_count = 0
+    es = EntityStore()
+    errmsg = ""
+    for composite_key_str in selected_keys:
+        try:
+            composite_key = literal_eval(composite_key_str)
+        except (ValueError, SyntaxError):
+            continue
+
+        source_workout = es.get_item_by_composite_key(composite_key)
+        if not source_workout:
+            continue
+        # only allow a workout to be added if it not already a part of another program
+        # check if the added_workout has a member_program_id that is not None
+        if source_workout.get('member_program_id', None) is not None:
+            response = make_response('')
+            response.headers['HX-Trigger'] = json.dumps({
+                "refreshProgramCanvas": {"target": "body"},
+                "showMessage": {"target": "body", "value": "Workout is already part of another program and cannot be added."}
+            })
+            errmsg += f"could not add workout \"{source_workout.get('name', 'unknown')}\" because it is already part of another program."
+            continue
+        else:
+            source_workout['member_program_id'] = current_program['id']
+            current_program_workouts.append(source_workout)
+
+        # workout_copy = _build_program_workout_copy(source_workout, current_program, len(current_program_workouts))
+        # current_program_workouts.append(workout_copy)
+        added_count += 1
+
+    set_cache_value('current_program_workouts', current_program_workouts)
+    clear_selected_workout_keys(get_member_id_from_user_context(context))
+
+    response = make_response('')
+    response.headers['HX-Trigger'] = json.dumps({
+        "refreshProgramCanvas": {"target": "body"},
+        "showMessage": {"target": "body", "value": f"Added {added_count} workout(s). {errmsg}"}
+    })
+    return response
+
+
+@bp.route('/start_workout', methods=['POST'])
+@auth.login_required
+def start_workout(context=None):
+    member_id = get_member_id_from_user_context(context)
 
     scheduled_workout_event_id = request.form.get('scheduled_workout_event_id', None)
-    workout_composite_key = eval(workout_key) if workout_key else None
+    # adhoc workouts (no pre-scheduled calendar event) are no longer given a calendar event
+    is_adhoc_workout = not scheduled_workout_event_id
+
+
+    workout_key_str = request.form.get('workout_key', None)
+    workout_key = eval(workout_key_str) if workout_key_str else None
+    workout = EntityStore().get_item_by_composite_key(workout_key) if workout_key else None
 
     program_composite_key_str = request.form.get('program_key', None)
     program_composite_key = eval(program_composite_key_str) if program_composite_key_str else None
 
-    last_program_workout_instance_key_str = request.form.get('last_program_workout_instance_key', None)
-    last_program_workout_instance_key = eval(last_program_workout_instance_key_str) if last_program_workout_instance_key_str else None
+    
 
-    adjustments_for_next_workout = request.form.get('adjustments_for_next_workout', None)
-
-    workout_instance, exercises, program_entity, workout_instance_key, adjustments = _start_workout_logic(workout_key, 
+    workout_instance, exercises, program_entity, workout_instance_key, adjustments = _start_workout_logic(workout_key_str, 
                                                                                                           program_composite_key_str, 
                                                                                                           scheduled_workout_event_id,
-                                                                                                          last_program_workout_instance_key,
-                                                                                                          adjustments_for_next_workout)
-  
-    last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
+                                                                                                          member_id,
+                                                                                                          is_adhoc_workout=is_adhoc_workout)
+
+    # once a member starts a workout, update the confirmation status of the scheduled workout event to be "attending"
+    if scheduled_workout_event_id:
+        scheduled_workout_event_id = str(scheduled_workout_event_id)
+        cal = get_calendar_service()
+        cal.update_confirmation_status_of_workout_event(scheduled_workout_event_id, 'attending')
+        
+    last = get_last_section(member_id, workout_instance['id'])
     
     # Get current workout state to see if there are any parameter overrides
     current_workout_state = get_active_workout_state()
+    workout_started_ts = current_workout_state.get('time_workout_started', None) if current_workout_state else None
     current_parameters = {}
     if current_workout_state:
-        current_parameters = current_workout_state.get('exercise_parameters', {})
-    if 'workout_sections' in workout_instance:
-        workout_sections = workout_instance['workout_sections']
-    else:
-        workout_sections = workout_instance['sections']       
+        current_parameters = get_exercise_parameters(member_id)
+    workout_sections = workout_instance['workout_sections']
+    
+    workout_sections = [s for s in workout_sections if len(s.get('exercises', [])) > 0]
+    if not last:
+        for section in workout_sections:
+            if len(section.get('exercises', [])) > 0:
+                last = section.get('name', None)
+                break
+
+    last_exercise_indexes_by_section = {
+        section.get('name'): get_last_exercise_index(member_id, workout_instance.get('id'), section.get('name'))
+        for section in workout_sections
+    }
+
+    workout_view_preference = session.get('workout_view_preference', 'accordion')
+    keep_screen_awake = current_workout_state.get('keep_screen_awake', True) if current_workout_state else False
     return render_template(
         "workout_view.html",
         workout=workout_instance,
@@ -790,90 +1037,23 @@ def start_workout(context=None, workout_key=None):
         exercises=exercises,
         current_parameters=current_parameters,
         default_section=last,
+        last_exercise_indexes_by_section=last_exercise_indexes_by_section,
         program=program_entity,
         program_key=program_composite_key,
         workout_instance_key=workout_instance_key,
         scheduled_workout_event_id=scheduled_workout_event_id,
         finish_workout_url=url_for('program.finish_workout', workout_instance_key=workout_instance_key),
         cancel_workout_url=url_for('program.cancel_workout', workout_instance_key=workout_instance_key),
-        adjustments=adjustments,
         show_finish_button=True,
-        rs=rm_spaces
-    )
- 
-
-@bp.route('/schedule_and_start', methods=['POST'])
-@auth.login_required
-def schedule_and_start(context=None):
-    member_id = get_member_id_from_user_context(context)
-    short_name = get_user_profile(member_id).get('short_name', None)    
-
-    # This function is called when the user does not have a workout scheduled on their calendar
-    # and they click on the "Start Workout" button
-    # It will schedule the workout for now and then start it
-    # It will also update the current state in the session
-    # and return the workout view with the exercises
-
-    # workout_key = eval(workout_instance_key) if workout_instance_key else None
-    # es = EntityStore()
-    # workout_instance = es.get_item_by_composite_key2(workout_key)
-    
-    # if not workout_instance:
-    #     abort(404)
-
-    # post to the google calendar service that the workout is finished
-
-    program_key_str = request.form.get('program_key', None)
-    workout_key_str = request.form.get('workout_key', None)
-
-    last_program_workout_instance_key_str = request.form.get('last_program_workout_instance_key', None)
-    last_program_workout_instance_key = eval(last_program_workout_instance_key_str) if last_program_workout_instance_key_str else None
-
-    adjustments_for_next_workout = request.form.get('adjustments_for_next_workout', None)
-
-    calendar_service = get_calendar_service()
-    current_date = datetime.now().date().strftime("%Y-%m-%d")
-    current_time = datetime.now().time().strftime("%H:%M")
-    scheduled_workout_event_id = calendar_service.add_workout_event(member_short_name=short_name,
-                                               event_date=current_date, event_time=current_time,
-                                               location="YMCA", metadata=f'#id={member_id}')
-    
-    workout_instance, exercises, program_entity, workout_instance_key, adjustments = _start_workout_logic(workout_key_str, 
-                                                                                                          program_key_str, 
-                                                                                                          scheduled_workout_event_id,
-                                                                                                          last_program_workout_instance_key,
-                                                                                                          adjustments_for_next_workout)
-  
-    last = session.get(f"last_section_{workout_instance['id']}")  # no fallback
-    
-    # Get current workout state to see if there are any parameter overrides
-    current_workout_state = get_active_workout_state()
-    current_parameters = {}
-    if current_workout_state:
-        current_parameters = current_workout_state.get('exercise_parameters', {})
-    if 'workout_sections' in workout_instance:
-        workout_sections = workout_instance['workout_sections']
-    else:
-        workout_sections = workout_instance['sections']       
-    return render_template(
-        "workout_view.html",
-        workout=workout_instance,
-        workout_sections=workout_sections,
-        exercises=exercises,
-        current_parameters=current_parameters,
-        default_section=last,
-        program=program_entity,
-        program_key=program_key_str,
-        workout_instance_key=workout_instance_key,
-        scheduled_workout_event_id=scheduled_workout_event_id,
-        finish_workout_url=url_for('program.finish_workout', workout_instance_key=workout_instance_key),
-        cancel_workout_url=url_for('program.cancel_workout', workout_instance_key=workout_instance_key),
-        adjustments=adjustments,
-        show_finish_button=True,
+        time_workout_started=workout_started_ts,
+        active_workout=True,
+        workout_view_preference=workout_view_preference,
+        keep_screen_awake=keep_screen_awake,
+        allow_on_the_fly_workout=member_allows_on_the_fly_workout(member_id),
         rs=rm_spaces
     )
 
-def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, last_program_workout_instance_key, adjustments_for_next_workout_str):
+def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, member_id, is_adhoc_workout=False):
     """
     Encapsulates the logic for starting a workout, including copying the workout,
     updating the program, and setting the session state.
@@ -882,72 +1062,33 @@ def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, l
     workout_composite_key = eval(workout_key) if workout_key else None
     program_composite_key = eval(program_key) if program_key else None
 
-    workout_entity = es.get_item_by_composite_key(workout_composite_key)
-    program_entity = es.get_item_by_composite_key(program_composite_key)
-    last_program_workout_instance = es.get_item_by_composite_key(last_program_workout_instance_key) if last_program_workout_instance_key else None
-    adjustments_for_next_workout = eval(adjustments_for_next_workout_str) if adjustments_for_next_workout_str else {}   
+    workout_entity = es.get_item_by_composite_key(workout_composite_key) if workout_composite_key else None
+    program_entity = es.get_item_by_composite_key(program_composite_key) if program_composite_key else None
 
-    # we first copy the workout to the MemberWorkoutInstanceTable
-    # all workouts in this program are bassed on the workout definitions in the MemberWorkoutDefinitionTable, that is the reps & sets for exercises are defined there
-    # however, if there is a workout instance from a previous workout in the program, then we should copy the resistance & time parameters from that instance
-    # to the new workout instance
-    # then, finally, we will apply any adjustments that were made during the last workout to the new workout instance
-    workout_instance = MemberWorkoutInstanceEntity(workout_entity.copy())
-    if last_program_workout_instance:
-        # go through each of the exercises in the last workout instance
-        # and copy the parameters to the new workout instance
-        for last_section, new_section in zip(last_program_workout_instance.get('workout_sections', []), workout_instance.get('workout_sections', [])):
-            for last_exercise, new_exercise in zip(last_section.get('exercises', []), new_section.get('exercises', [])):
-                # copy just the weight, units & time parameters from the last exercise to the new exercise
-                last_params = last_exercise.get('parameters', {})
-                new_params = new_exercise.get('parameters', {})
-                new_params['weight'] = last_params.get('weight', 0)
-                new_params['units'] = last_params.get('units', '')
-                new_params['time'] = last_params.get('time', 0)
-                new_exercise['parameters'] = new_params
-    
-    # now we want to apply the adjustments in the adjustments dict to the new workout instance
-    # we do this by going through each of the  exercises in the workout instance
-    # and applying the adjustments to the parameters of the exercises
-    # for now, we will just apply the adjustment to the "weight" parameter, but we should figure out how to apply the adjustment to the time parameter as well
-    # TODO:  figure out how to apply the adjustment to the time parameter as well
-    if adjustments_for_next_workout:
-        for section in workout_instance.get('workout_sections', []):
-            for exercise in section.get('exercises', []):
-                # apply the adjustments to the exercise parameters
-                # check if the exercise has an adjustment in the adjustments_for_next_workout dict
-                exercise_id = exercise.get('id', None)
-                if not exercise_id:
-                    continue
-                if exercise_id in adjustments_for_next_workout:
-                    adjustment = adjustments_for_next_workout[exercise_id]
-                    exercise['parameters'] = adjustment
+    workout_def_id = workout_entity.get('id', None) if workout_entity else None
+
+    # deep-copy so swapping alternatives during the workout never mutates the original definition
+    workout_instance = MemberWorkoutInstanceEntity(copy.deepcopy(dict(workout_entity))) if workout_entity else MemberWorkoutInstanceEntity({})
 
     workout_instance.update({
         'id': str(uuid.uuid4()),
-        'started_ts': datetime.now().isoformat(),
+        'member_id': member_id,
+        # stored as US/Eastern local time to match finished_ts, not raw server UTC clock
+        'started_ts': datetime.now(timezone.utc).astimezone(pytz.timezone('US/Eastern')).isoformat(),
         'finished_ts': "",
         'scheduled_workout_event_id': scheduled_workout_event_id,
-        'member_workout_def_id': workout_entity['id'],
-        'member_program_id': program_entity['id'],
-        'member_program_name': program_entity.get('name', ''),
-        'name': workout_entity.get('name', 'Unnamed Workout')
+        'member_workout_def_id': workout_entity['id'] if workout_entity else None,
+        'member_program_id': program_entity['id'] if program_entity else None,
+        'member_program_name': program_entity.get('name', '') if program_entity else '',
+        'name': workout_entity.get('name', 'Unnamed Workout') if workout_entity else 'Unnamed Workout'
     })
     es.upsert_item(workout_instance)
     workout_instance_key = workout_instance.get_composite_key()
 
-    # # add the workout instance to the program's workout_instances list
-    # program_entity['workout_instances'] = program_entity.get('workout_instances', []) + [{'program_workout_instance_id': workout_instance.get('id'),
-    #                                                                                       'program_workout_instance_key': workout_instance_key,
-    #                                                                                       "started_ts": datetime.now().isoformat(),
-    #                                                                                       "finished_ts": "",
-    #                                                                                       "scheduled_workout_event_id": scheduled_workout_event_id}]
-    # es.upsert_item(program_entity)
-
     wrkout_exercises = get_exercises_from_workout(workout_instance)
     exercises = {ex.get('id', None): ex for ex in wrkout_exercises}
 
-    initialize_active_workout_state(workout_instance_key, program_key, scheduled_workout_event_id)
+    initialize_active_workout_state(workout_instance_key, program_key, scheduled_workout_event_id, is_adhoc_workout=is_adhoc_workout)
     adjustments = {}
     return workout_instance, exercises, program_entity, workout_instance_key, adjustments
 
@@ -956,46 +1097,121 @@ def _start_workout_logic(workout_key, program_key, scheduled_workout_event_id, l
 @auth.login_required
 def finish_workout(context=None, workout_instance_key=None):
 
+    current_workout_state = get_active_workout_state()
+    if not current_workout_state:
+        abort(404)
+    current_workout_state['state'] = 'finishing_workout'
+    update_active_workout_state(current_workout_state)
+    return redirect('/')
+
+@bp.route('/really_finish_workout/<workout_instance_key>', methods=['POST'])
+@auth.login_required
+def really_finish_workout(context=None, workout_instance_key=None):
+
     es = EntityStore()
     workout_composite_key = eval(workout_instance_key) if workout_instance_key else None
     workout_instance = es.get_item_by_composite_key(workout_composite_key)
 
-    program_composite_key_str = request.form.get('program_key', None)
-    program_composite_key = eval(program_composite_key_str) if program_composite_key_str else None
-    program_entity = es.get_item_by_composite_key(program_composite_key)
+    # program_composite_key_str = request.form.get('program_key', None)
+    # program_composite_key = eval(program_composite_key_str) if program_composite_key_str else None
+    # program_entity = es.get_item_by_composite_key(program_composite_key)
     
-    # post to the google calenard service that the workout is finished
+    # post to the google calendar service that the workout is finished
     scheduled_workout_event_id = request.form.get('scheduled_workout_event_id', None)
+    started_ts = request.form.get('started_ts', None)
+    finished_ts = request.form.get('finished_ts', None)
+    member_feedback = request.form.get('member_feedback', '')
+    next_time_strategy = request.form.get('next_time_strategy', 'custom')
 
     current_workout_state = get_active_workout_state()
     adjustments_for_next_workout = current_workout_state.get('adjustments', {})
-    exercise_parameters = current_workout_state.get('exercise_parameters', {})
+    exercise_parameters = get_exercise_parameters(workout_instance.get('member_id'))
+
+    original_parameters = {}
+    for section in workout_instance.get('workout_sections', []):
+        for exercise in section.get('exercises', []):
+            exercise_id = exercise.get('id', None)
+            if exercise_id:
+                original_parameters[exercise_id] = exercise.get('parameters', {}).copy()
 
     # here we want to update the parameters of the exercises in the workout instance
     # with the parameters from the current workout state
-    # clear the 'current_workout_instance_state' from the session
+    
     for exercise, params in exercise_parameters.items():
         for section in workout_instance.get('workout_sections', []):
             for ex in section.get('exercises', []):
                 if ex.get('id', None) == exercise:
-                    ex['parameters'] = params
+                    # here I want to update the parameters of the exercise with the params from the current workout state
+                    for k, v in params.items():
+                        ex['parameters'][k] = v
+
+    # if the strategy is original, then we don't need to update the memberWorkoutDefinition with the adjustments_for_next_workout, as next time we will just use the original parameters
+
+    if next_time_strategy == 'original':
+        updated_parameters = None
+    # otherwise, if the strategy is performed_today, then we want to use the parameters from the current workout state as the adjustments for next time
+    # we will update the memberWorkoutDefinition with the adjustments_for_next_workout, so that next time we will use these parameters
+    elif next_time_strategy == 'performed_today':
+        updated_parameters = exercise_parameters
+    else:
+        updated_parameters = adjustments_for_next_workout if adjustments_for_next_workout else exercise_parameters
     
-    workout_instance['finished_ts'] = datetime.now().isoformat()
-    workout_instance['adjustments_for_next_workout'] = adjustments_for_next_workout
-    
+    # if the swap was discarded (strategy 'original'), never persist it to the definition
+    exercise_swaps = current_workout_state.get('exercise_swaps', {}) if next_time_strategy != 'original' else {}
+    # same rule applies to on-the-fly exercise removals/additions made during the workout
+    exercise_removals = current_workout_state.get('exercise_removals', []) if next_time_strategy != 'original' else []
+    exercise_additions = current_workout_state.get('exercise_additions', []) if next_time_strategy != 'original' else []
+
+    # get the member workout definition for this workout instance, and update it with the parameter adjustments
+    # and/or exercise swaps/removals/additions performed during this workout, but only if there is something to persist
+    if updated_parameters or exercise_swaps or exercise_removals or exercise_additions:
+        member_workout_def_id = workout_instance.get('member_workout_def_id', None)
+        workout_definition = es.get_item(MemberWorkoutDefinitionEntity({'id': member_workout_def_id}))
+        # apply structural changes (swap/remove/add) first, so the parameter merge below - which is keyed
+        # by each exercise's *current* id - can also pick up live edits made to swapped-in or newly added exercises
+        if exercise_swaps:
+            apply_recorded_swaps_to_definition(workout_definition, exercise_swaps)
+        if exercise_removals:
+            apply_recorded_removals_to_definition(workout_definition, exercise_removals)
+        if exercise_additions:
+            apply_recorded_additions_to_definition(workout_definition, exercise_additions)
+        if updated_parameters:
+            for section in workout_definition.get('workout_sections', []):
+                for exercise in section.get('exercises', []):
+                    exercise_id = exercise.get('id', None)
+                    if exercise_id and exercise_id in updated_parameters:
+                        adjustment = updated_parameters[exercise_id]
+                        exercise['parameters'].update(adjustment)
+        es.upsert_item(workout_definition)
+
+    workout_instance['started_ts'] = _normalize_form_datetime(started_ts, workout_instance.get('started_ts'))
+    # fallback also uses US/Eastern local time, matching the value the finishing_workout form is prefilled with
+    workout_instance['finished_ts'] = _normalize_form_datetime(finished_ts, datetime.now(timezone.utc).astimezone(pytz.timezone('US/Eastern')).isoformat())
+    workout_instance['member_feedback'] = member_feedback.strip()
     es.upsert_item(workout_instance)
     
     # store the parameters of the current workout exercises away 
     extract_and_load_exercise_events_from_workout_instance(workout_instance)
 
-    clear_active_workout_state()
+    clear_active_workout_state(workout_instance.get('member_id'))
     # session.pop('current_workout_instance_state', None)
-    session.pop(f"last_section_{workout_instance['id']}", None)
+    clear_last_section(workout_instance.get('member_id'), workout_instance['id'])
 
+    # adhoc workouts have no calendar event to mark done
+    if scheduled_workout_event_id:
+        cal = get_calendar_service()
+        cal.update_status_of_workout_event(scheduled_workout_event_id, 'done')
 
-    cal = get_calendar_service()
-    cal.update_status_of_workout_event(scheduled_workout_event_id, 'done')
+    return redirect('/')
 
+@bp.route('/continue_workout/<workout_instance_key>', methods=['POST'])
+@auth.login_required
+def continue_workout(context=None, workout_instance_key=None):
+    current_workout_state = get_active_workout_state()
+    if not current_workout_state:
+        abort(404)
+    current_workout_state['state'] = 'workout_started'
+    update_active_workout_state(current_workout_state)
     return redirect('/')
 
 @bp.route('/cancel_workout/<workout_instance_key>', methods=['POST'])
@@ -1013,11 +1229,19 @@ def cancel_workout(context=None, workout_instance_key=None):
     if not workout_instance:
         abort(404)
 
-
+    # check if the workout instance is adhoc or scheduled
+    workout_state = get_active_workout_state()
+    if workout_state and workout_state.get('is_adhoc_workout', False):
+        # if it is an adhoc workout, we need to delete the calendar event that was created for it
+        scheduled_workout_event_id = workout_instance.get('scheduled_workout_event_id', None)
+        if scheduled_workout_event_id:
+            cal = get_calendar_service()
+            cal.delete_workout_event(scheduled_workout_event_id)
+            
     # clear the 'current_workout_instance_state' from the session
-    clear_active_workout_state()
+    clear_active_workout_state(workout_instance.get('member_id'))
     # session.pop('current_workout_instance_state', None)
-    session.pop(f"last_section_{workout_instance['id']}", None)
+    clear_last_section(workout_instance.get('member_id'), workout_instance['id'])
 
     # remove the workout_instance from the entity store
     es.delete_item(workout_instance)

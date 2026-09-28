@@ -1,0 +1,62 @@
+        <!-- this is _section_dynamic_view with the parameters for the exercise -->
+
+        <strong class="font-weight-bold d-flex align-items-center" style="gap: 0.3rem;">
+          {% set parameters = param_ns.param_list[ex.id] %}
+          {# here we can get the list of objects that represent the relevant parameters for this exercise #}
+          {# each object represents either a parameter or a text snippet to embelish the presentation of the parameters
+          for this exercise #}
+          {% for param in parameters['param_list'] %}
+
+            {% if param.param == 'T' %}
+              {% set timer.has_timer = True %}
+              {% set timer.timer_value = param.value %}
+            {% endif %}
+
+            {% if param.param == 'Tu' %}
+              {% set timer.timer_units = param.value %}
+            {% endif %}
+
+            {% if param.type == 'text' %}
+              {{ param.value }}
+            {% elif param.type == 'var' %}
+              {# this is where set render the variable as an updatable htmx element#}
+              {% if can_edit_parameters %}
+                {% if param.param == 'T' or param.param == 'D' or param.param == 'F' or param.param == 'P' %}
+                    {% set param_ns.unit_param_id = 'param-' ~ param.wkout_id ~ '-' ~ param.ex_id ~ '-' ~ param.param ~ 'u' %}
+                {% else %}
+                    {% set param_ns.unit_param_id = None %}
+                {% endif %}
+
+                <div id=param-{{param.wkout_id}}-{{param.ex_id}}-{{param.param}} 
+                  class="d-flex align-items-baseline"
+                  hx-get="/workouts/get-editor-for-parameter/{{param.wkout_id}}/{{param.ex_id}}/{{param.param}}?value={{param.value}}&active_workout={{active_workout}}&purpose_of_parameter_edit={{purpose_of_parameter_edit}}"
+                   {% if param_ns.unit_param_id %}
+                    hx-vals='js:{ "unit-param-value": document.getElementById("{{param_ns.unit_param_id}}")?.textContent.trim() || "" }'
+                    name = "{{ param.param }}"
+                  {% else %}
+                    name="unit-param-value"
+                  {% endif %}
+                  {% if param_ns.unit_param_id %}
+                    hx-vals='js:{ "unit-param-value": document.getElementById("{{param_ns.unit_param_id}}")?.textContent.trim() || "" }'
+                    name = "{{ param.param }}"
+                  {% else %}
+                    name="unit-param-value"
+                  {% endif %}
+                  hx-target="#param-{{param.wkout_id}}-{{param.ex_id}}-{{param.param}}" 
+                  hx-trigger="click"
+                  hx-swap="outerHTML">
+                  {# {{ param.value }} #}
+                  {{ '____' if param.value == '' or (param.value | trim) == 'None' else param.value }}
+                  <i class="bi bi-pencil-square text-muted ms-1" style="font-size: 0.75rem; margin-left:0px;" title="Click to edit"
+                    aria-hidden="true"></i>
+                </div>
+
+                {% else %}
+                <div>
+                    {# {{ param.value }} #}
+                    {{ '____' if param.value == '' or (param.value | trim) == 'None' else param.value }}
+                </div>
+              {% endif %}
+            {% endif %}
+          {% endfor %}
+        </strong>

@@ -30,6 +30,18 @@ def get_team_members(team_id):
         all_members_of_team.append(mt)
     return all_members_of_team
 
+def get_members_team_members(member_id):
+    """Get all members that are on the same team(s) as the given member"""
+    member_teams = get_members_teams(member_id)
+    team_members = []
+    for mt in member_teams:
+        team_id = mt.get("team_id")
+        members_of_team = get_team_members(team_id)
+        team_members.extend(members_of_team)
+    # Remove duplicates (in case member is on multiple teams with overlapping members)
+    unique_team_members = { tm.get("member_id"): tm for tm in team_members }.values()
+    return list(unique_team_members)
+
 def add_member_to_team(member_id, team_id):
     """Add a member to a team"""
     es = EntityStore()

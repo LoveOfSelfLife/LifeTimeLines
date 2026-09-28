@@ -3,9 +3,11 @@ from flask import redirect, render_template, request, Blueprint, url_for, sessio
 from auth import auth
 from common.blob_store import BlobStore
 import os
+from common.fitness.home_page_view import render_finishing_workout_page, render_home_page_workout
 from common.fitness.hx_common import hx_render_template
 from common.fitness.member_entity import MembershipRegistry, get_member_detail_from_user_context, get_member_email_from_user_context, get_member_id_from_user_context, get_member_name_from_user_context, FirstTimeUserException, UnregisteredMemberException
-from common.fitness.home_page_view import generate_current_home_page_view
+from common.fitness.programs import get_members_current_active_program, get_program_workouts
+from common.fitness.workout_state import get_active_workout_state
 
 bp = Blueprint('/', __name__, template_folder='templates')  
 
@@ -30,6 +32,7 @@ def home():
 @bp.route("/")
 @auth.login_required
 def index(context = None):
+    """Redirect to new home dashboard"""
     member_registry = MembershipRegistry()
     member_registry.refresh_members()   # always refresh members on index page load
 
@@ -38,8 +41,44 @@ def index(context = None):
     member_name = get_member_name_from_user_context(context)
     try:
         member = member_registry.verify_member_registration(member_id)
-        home_page_view = generate_current_home_page_view(member)
-        return hx_render_template(template_string=home_page_view, context=context, member=member)
+
+        member_detail = get_member_detail_from_user_context(context)
+        
+        current_workout_session_state = get_active_workout_state()
+        if current_workout_session_state:
+            if current_workout_session_state.get('state', None) == 'workout_started':
+                # render the workout that is in progress
+                return render_home_page_workout(member_detail, current_workout_session_state)
+            elif current_workout_session_state.get('state', None) == 'finishing_workout':
+                # render the finishing workout screen
+                return render_finishing_workout_page(member_detail, current_workout_session_state)
+        
+        current_program = get_members_current_active_program(member_id)
+        workouts_in_program = []
+        
+        if current_program:
+            # Get all workouts from the program
+            program_workouts = get_program_workouts(current_program)
+
+            # Create alternative workout options
+            for workout_def in program_workouts:
+                workout_info = {
+                    'key': str(workout_def.get_composite_key()),
+                    'name': workout_def.get('name', 'Unnamed Workout'),
+                    'description': workout_def.get('description', ''),
+                    'workout_type': workout_def.get('workout_type', 'alternative')
+                }
+                workouts_in_program.append(workout_info)
+        
+        # For the main dashboard, we load the template with placeholders
+        # Each section will load its content via HTMX
+        return hx_render_template(
+            template_file='home/dashboard.html',
+            member=member_detail,
+            workouts_in_program=workouts_in_program,
+            context=context,
+            program_key=current_program.get_composite_key() if current_program else None
+        )
         
     except UnregisteredMemberException as e:
         print(f"User not registered: {e}")
@@ -52,7 +91,13 @@ def index(context = None):
         member = member_registry.get_member(member_id)
         return render_template("first_time_user.html", member=member)
     
-
+    except Exception as e:
+        print(f"Error loading home dashboard: {e}")
+        return hx_render_template(
+            template_string='<div class="alert alert-danger">Error loading dashboard</div>',
+            context=context
+        )    
+    
 @bp.route("/logout2")
 def logout():
     print("logout")

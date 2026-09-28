@@ -1,0 +1,244 @@
+{# Analytics Partial Template #}
+<div class="analytics-dashboard">
+  {# Weekly Summary Card #}
+  <div class="analytics-card mb-4">
+    <div class="card-header d-flex align-items-center">
+      <h5 class="mb-0"><i class="bi bi-calendar-week me-2"></i>Weekly Summary</h5>
+      <span class="badge bg-primary ms-auto">This Week</span>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        {# Workouts This Week #}
+        <div class="col-6 col-md-3">
+          <div class="metric-card text-center">
+            <div class="metric-value">{{ data.weekly_summary.workouts_this_week }}</div>
+            <div class="metric-label">Workouts</div>
+          </div>
+        </div>
+
+        {# Total Duration #}
+        <div class="col-6 col-md-3">
+          <div class="metric-card text-center">
+            <div class="metric-value">
+              {% if data.weekly_summary.total_duration_minutes >= 60 %}
+                {{ "%.1f"|format(data.weekly_summary.total_duration_minutes / 60) }}h
+              {% else %}
+                {{ data.weekly_summary.total_duration_minutes }}m
+              {% endif %}
+            </div>
+            <div class="metric-label">Total Time</div>
+          </div>
+        </div>
+
+        {# Average Duration #}
+        <div class="col-6 col-md-3">
+          <div class="metric-card text-center">
+            <div class="metric-value">{{ data.weekly_summary.avg_duration_minutes }}m</div>
+            <div class="metric-label">Avg Duration</div>
+          </div>
+        </div>
+
+        {# Completion Rate #}
+        <div class="col-6 col-md-3">
+          <div class="metric-card text-center">
+            <div class="metric-value">{{ data.weekly_summary.completion_rate }}%</div>
+            <div class="metric-label">Completion</div>
+          </div>
+        </div>
+      </div>
+
+      {# Most Common Workout #}
+      {% if data.weekly_summary.most_common_workout != 'None' %}
+        <div class="mt-3 pt-3 border-top border-light border-opacity-25">
+          <div class="d-flex align-items-center">
+            <i class="bi bi-trophy text-warning me-2"></i>
+            <span class="text-light opacity-75">Most frequent: </span>
+            <strong class="ms-1">{{ data.weekly_summary.most_common_workout }}</strong>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Available Reports #}
+  <div class="analytics-card">
+    <div class="card-header">
+      <h5 class="mb-0"><i class="bi bi-graph-up-arrow me-2"></i>Available Reports</h5>
+    </div>
+    <div class="card-body">
+      {% if data.available_reports %}
+        <div class="reports-list">
+          {% for report in data.available_reports %}
+            <div class="report-item mb-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="report-info">
+                  <h6 class="report-name mb-1">
+                    {% if report.type == 'chart' %}
+                      <i class="bi bi-bar-chart me-1 text-info"></i>
+                    {% elif report.type == 'detailed' %}
+                      <i class="bi bi-table me-1 text-success"></i>
+                    {% else %}
+                      <i class="bi bi-file-text me-1 text-primary"></i>
+                    {% endif %}
+                    {{ report.name }}
+                  </h6>
+                  <small class="report-description text-light opacity-75">
+                    {{ report.description }}
+                  </small>
+                </div>
+                <button class="btn btn-sm btn-outline-light"
+                        hx-get="{{ url_for('home.analytics_partial') }}"
+                        hx-vals='{"report_type": "{{ report.type }}", "report_name": "{{ report.name }}"}'
+                        hx-target="#analytics-content"
+                        hx-swap="innerHTML">
+                  <i class="bi bi-eye"></i>
+                </button>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="text-center py-3">
+          <i class="bi bi-graph-down text-muted fs-1"></i>
+          <p class="mt-2 mb-0 text-light opacity-75">No reports available yet</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  {# Quick Actions #}
+  <div class="mt-4">
+    <div class="d-flex flex-wrap gap-2">
+      <button class="btn btn-info btn-sm"
+              hx-get="{{ url_for('home.analytics_partial') }}"
+              hx-target="#analytics-content"
+              hx-swap="innerHTML">
+        <i class="bi bi-arrow-clockwise me-1"></i>Refresh Analytics
+      </button>
+      
+      <button class="btn btn-success btn-sm" disabled>
+        <i class="bi bi-download me-1"></i>Export Data (Coming Soon)
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Analytics Specific Styles */
+.analytics-dashboard .analytics-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.analytics-card .card-header {
+  background: rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.75rem 1rem;
+  border-radius: 8px 8px 0 0;
+}
+
+.analytics-card .card-header h5 {
+  color: #fff;
+  font-weight: 600;
+}
+
+.analytics-card .card-body {
+  padding: 1rem;
+}
+
+.metric-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 1rem 0.5rem;
+  transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.metric-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.metric-label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: 0.25rem;
+}
+
+.report-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.report-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.report-name {
+  color: #fff;
+  font-weight: 600;
+}
+
+.report-description {
+  font-size: 0.85rem;
+}
+
+/* Mobile responsive */
+@media (max-width: 575px) {
+  .metric-value {
+    font-size: 1.5rem;
+  }
+  
+  .metric-label {
+    font-size: 0.75rem;
+  }
+  
+  .analytics-card .card-body {
+    padding: 0.75rem;
+  }
+}
+
+/* Progress bar animation */
+.completion-progress {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.completion-progress .progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #28a745, #20c997);
+  transition: width 1s ease-out;
+}
+</style>
+
+{# If showing detailed weekly summary (expanded view) #}
+{% if detailed_view %}
+  <div class="detailed-analytics mt-4">
+    <div class="analytics-card">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-calendar-range me-2"></i>Detailed Weekly Analysis</h5>
+      </div>
+      <div class="card-body">
+        {# This would contain charts, detailed breakdowns, etc. #}
+        <div class="text-center py-4">
+          <i class="bi bi-graph-up display-1 text-info opacity-50"></i>
+          <p class="mt-3 text-light opacity-75">Detailed charts and analysis coming soon...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endif %}

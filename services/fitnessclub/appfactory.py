@@ -9,6 +9,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
 from common.discovery import get_service_port
 from base import bp as base_bp
+from views.home.home_routes import bp as home_bp
 from views.schedule.schedule_routes import bp as schedule_bp
 from views.program.programs_routes import bp as program_bp
 from views.exercises.exercise_routes import bp as exercises_bp
@@ -21,6 +22,10 @@ from common.env_context import Env
 from auth import auth
 from datetime import timedelta
 from version import get_version_info
+import redis
+
+from flask import session
+from flask_session import Session
 
 def create_app():
     load_dotenv()
@@ -31,16 +36,15 @@ def create_app():
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.secret_key = Env.SECRET_KEY
 
-    app.config['SESSION_TYPE'] = 'cachelib'
-    app.config['SESSION_CACHELIB'] = RedisCache(
-        host='rediscache' if not Env.ORCH_TESTING_MODE else 'localhost', 
-        port=6379, 
-        key_prefix='fitnessclub', 
-        default_timeout=0
-    )
-    app.config['SESSION_PERMANENT'] = True # Optional, but recommended for persistent sessions
-    app.config['SECRET_KEY'] = Env.SECRET_KEY
-    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=90)
+    # Configure Redis and Flask-Session
+    app.config['SESSION_TYPE'] = 'redis'
+    app.config['SESSION_PERMANENT'] = True
+    app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=365)  # Set session lifetime to 1 year
+    app.config['SESSION_USE_SIGNER'] = True
+    app.config['SESSION_REDIS'] = redis.from_url('redis://rediscache:6379' if not Env.ORCH_TESTING_MODE else 'redis://localhost:6379')
+
+    # Initialize session extension
+    Session(app)
 
     auth.init_app(app)
 
@@ -50,6 +54,7 @@ def create_app():
         return {'version_info': get_version_info()}
 
     for bp in [base_bp, 
+               home_bp,
                admin_bp, 
                schedule_bp, 
                program_bp,

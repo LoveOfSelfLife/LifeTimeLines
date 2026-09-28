@@ -9,6 +9,17 @@
     toast.show()
   });
 
+  // Hides the shared #modals-here modal, used after HTMX actions that finish inside it (e.g. exercise swap)
+  htmx.on("closeModal", () => {
+    const modalEl = document.getElementById("modals-here")
+    if (modalEl) {
+      const modalInstance = bootstrap.Modal.getInstance(modalEl)
+      if (modalInstance) {
+        modalInstance.hide()
+      }
+    }
+  });
+
   // Function to show the toast with a custom message
   window.showToast = function (message) {
     toastBody.innerText = message;

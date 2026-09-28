@@ -3,18 +3,23 @@ import json
 from urllib import response
 from flask import Blueprint, abort, make_response, redirect, render_template, request, session, url_for, jsonify
 from common.entity_store import EntityStore
-from common.fitness.active_fitness_registry import _get_filter_terms_from_request, get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
-from common.fitness.active_fitness_registry import parse_listing_filter
+from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
+from common.fitness.entities_getter import resolve_selected_entity_keys, clear_selected_entity_keys
+from common.fitness.entities_getter import as_bool
+from common.fitness.entities_getter import MULTI_SELECT_SESSION_KEY
+from common.fitness.cacher import get_cache_value, set_cache_value
+from common.fitness.exercise_entity import show_exercise_viewer
+from common.fitness.exercise_entity import movement_category_definitions
+from common.fitness.hx_common import parse_listing_filter
 from common.fitness.entities_getter import get_entities
-from common.fitness.exercise_entity import ExerciseEntity, render_exercise_popup_viewer_html
-from common.fitness.hx_common import hx_render_template
+from common.fitness.exercise_entity import EQUIPMENT, ExerciseEntity
+from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
 from common.fitness.member_entity import get_member_id_from_user_context
 from common.fitness.exercise_schema import exercise_schema
 from common.fitness.member_exercise_history import get_exercise_history_for_member
 from common.fitness.utils import generate_id
 bp = Blueprint('exercises', __name__, template_folder='templates')
 from auth import auth
-
 @bp.route('/')
 @auth.login_required
 def root(context=None):
@@ -22,9 +27,9 @@ def root(context=None):
     if not member_id:
         abort(401)
     page = int(request.args.get('page', 1))
-    filter_terms = _get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request()
 
-    return exercises_listing2(context, page=page, filter_terms=filter_terms)
+    return exercises_listing2(member_id, page=page, filter_terms=filter_terms)
 
 @bp.route('/exercises-listing', methods=['GET', 'POST'])
 @auth.login_required
@@ -33,33 +38,80 @@ def exercises_listing(context=None):
     if not member_id:
         abort(401)
     page = int(request.args.get('page', 1))
-    filter_terms = _get_filter_terms_from_request()        
-    return exercises_listing2(member_id, page=page, filter_terms=filter_terms)
+    filter_terms = get_filter_terms_from_request()   
+    # modal_mode = as_bool(request.args.get('modal_mode', None), False) if request.method == 'GET' else as_bool(request.form.get('modal_mode', None), False)     
+    return exercises_listing2(member_id, page=page, filter_terms=filter_terms, modal_mode=False)
 
-def exercises_listing2(member_id, page=1, filter_terms=[]):
+
+@bp.route('/listing-modal', methods=['GET'])
+@auth.login_required
+def exercises_listing_modal(context=None):
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+    page = int(request.args.get('page', 1))
+    filter_terms = get_filter_terms_from_request()
+    if as_bool(request.args.get('allow_multi_select', None), False):
+        clear_selected_entity_keys(member_id)
+    return exercises_listing2(member_id, page=page, filter_terms=filter_terms, modal_mode=True)
+
+def exercises_listing2(member_id, page=1, filter_terms=[], modal_mode=False):
     entity_name = "ExerciseTable"
 
     page_size = 100
 
-    # Handle view preference
+    # Handle view preference (member-scoped cache, not Flask session - see entities_getter.py note)
     view = (request.form.get('view') if request.method == 'POST' 
-            else request.args.get('view')) or session.get('view_preference', 'list')
+            else request.args.get('view')) or get_cache_value(f'view_preference_{member_id}') or 'list'
     
-    if view != session.get('view_preference'):
-        session['view_preference'] = view
+    if view != get_cache_value(f'view_preference_{member_id}'):
+        set_cache_value(f'view_preference_{member_id}', view)
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
 
-    return exercise_listing_base(entity_name, page, page_size, view, fields_to_display, filter_terms, entities)
+    allow_multi_select = as_bool(request.form.get('allow_multi_select', None),
+                                  as_bool(request.args.get('allow_multi_select', None), False))
+    selected_entity_keys = resolve_selected_entity_keys(member_id, allow_multi_select=allow_multi_select)
+
+    # For checkbox toggles, avoid re-rendering listing content. Return only OOB state updates.
+    if request.method == 'POST' and request.form.get('multi_select_toggle_key') is not None and allow_multi_select:
+        multi_select_post_route = request.form.get('multi_select_post_route') or request.args.get('multi_select_post_route')
+        preferred_section = request.form.get('preferred_section') or request.args.get('preferred_section')
+        if multi_select_post_route and preferred_section and 'preferred_section=' not in multi_select_post_route:
+            separator = '&' if '?' in multi_select_post_route else '?'
+            multi_select_post_route = f"{multi_select_post_route}{separator}preferred_section={preferred_section}"
+
+        return hx_render_template(
+            'entity_multi_select_state_oob.html',
+            allow_multi_select=allow_multi_select,
+            selected_entity_keys=selected_entity_keys,
+            multi_select_checkbox_name='selected_entity_keys',
+            multi_select_post_route=multi_select_post_route,
+            preferred_section=preferred_section,
+        )
+
+    return exercise_listing_base(
+        entity_name,
+        int(page),
+        page_size,
+        view,
+        fields_to_display,
+        filter_terms,
+        entities,
+        allow_multi_select=allow_multi_select,
+        selected_entity_keys=selected_entity_keys,
+        modal_mode=modal_mode,
+    )
 
 
-def exercise_listing_base(entity_name, page, page_size, view, fields_to_display, filter_terms, entities):
+def exercise_listing_base(entity_name, page, page_size, view, fields_to_display, filter_terms, entities, allow_multi_select=False, selected_entity_keys=None, modal_mode=False):
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
     end = start + page_size
     current = entities[start:end]
+    selected_entity_keys = selected_entity_keys or []
     if request.headers.get('HX-Target') == 'results-area':
         template_file_name = 'entity_results_partial.html'
     else:
@@ -68,9 +120,27 @@ def exercise_listing_base(entity_name, page, page_size, view, fields_to_display,
     # Set results_target_container based on request args
     target = request.args.get('target')
     results_target_container = target if target else 'results-area'
-    
-    return hx_render_template(
-        template_file_name,
+    if modal_mode:
+        entity_add_route = None
+        entity_action_route=None
+    else:
+        entity_add_route = '/exercises/new?'
+        entity_action_route='/exercises/edit?'
+
+    multi_select_post_route = request.form.get('multi_select_post_route') or request.args.get('multi_select_post_route')
+    multi_select_button_label = request.form.get('multi_select_button_label') or request.args.get('multi_select_button_label') or 'Add Selected'
+    multi_select_button_icon = request.form.get('multi_select_button_icon') or request.args.get('multi_select_button_icon') or 'bi-plus-circle'
+    preferred_section = request.form.get('preferred_section') or request.args.get('preferred_section')
+
+    if multi_select_post_route and preferred_section and 'preferred_section=' not in multi_select_post_route:
+        separator = '&' if '?' in multi_select_post_route else '?'
+        multi_select_post_route = f"{multi_select_post_route}{separator}preferred_section={preferred_section}"
+
+    entities_listing_route = f'/exercises/exercises-listing?entity_table={entity_name}'
+    if allow_multi_select:
+        entities_listing_route += '&allow_multi_select=true'
+
+    template_data = dict(
         title="Exercises Library",
         entity_name=entity_name,
         main_content_container="entities-container",        
@@ -81,16 +151,29 @@ def exercise_listing_base(entity_name, page, page_size, view, fields_to_display,
         page=page,
         view=view,
         total_pages=total_pages,
-        entity_add_route='/exercises/new?',
+        allow_multi_select=allow_multi_select,
+        selected_entity_keys=selected_entity_keys,
+        multi_select_checkbox_name='selected_entity_keys',
+        multi_select_post_route=multi_select_post_route,
+        multi_select_button_label=multi_select_button_label,
+        multi_select_button_icon=multi_select_button_icon,
+        preferred_section=preferred_section,
+        entity_add_route=entity_add_route,
         filter_dialog_route=f'/exercises/filter-dialog?entity_table={entity_name}',        
-        entities_listing_route=f'/exercises/exercises-listing?entity_table={entity_name}',
+        entities_listing_route=entities_listing_route,
         entity_view_route=f'/exercises/view?entity_table={entity_name}',
-        entity_action_route='/exercises/edit?',
+        entity_action_route=entity_action_route,
         entity_action_icon='bi-pencil-square',
         entity_action_label='Edit Exercise',
+        favorite_toggle_route='/admin/toggle-favorite',
         results_target_container=results_target_container,
         entity_card_view_html='exercise_card_view.html'        
     )
+
+    if modal_mode:
+        return hx_render_template('exercise_listing_modal.html', **template_data)
+
+    return hx_render_template(template_file_name, **template_data)
 
 
 @bp.route('/modal')
@@ -108,8 +191,8 @@ def view_exercise_details(context=None):
     composite_key = eval(composite_key_str) if composite_key_str else None
     es = EntityStore()
     entity_to_view = es.get_item_by_composite_key(composite_key)
-    
-    return render_exercise_popup_viewer_html(context, entity_to_view)
+
+    return show_exercise_viewer(entity_to_view, context, show_dismiss_btn=True)
 
 @bp.route('/filter-dialog')
 @auth.login_required
@@ -161,11 +244,15 @@ def new_exercise(context=None):
             else:
                 exercise_data[field] = ''
 
- 
+    # movement_categories is not part of the schema, so default it explicitly
+    exercise_data.setdefault('movement_categories', [])
+
     return hx_render_template('exercises/exercise_editor.html',
                          exercise=exercise_data,
                          is_new=True,
                          schema=exercise_schema,
+                         equipment_types=EQUIPMENT,
+                         movement_category_definitions=movement_category_definitions,
                          save_url='/exercises/save',
                          cancel_url=f'/exercises/cancel',
                          context=context)
@@ -191,7 +278,32 @@ def edit_exercise(context=None):
     # Remove Timestamp field if present
     if 'Timestamp' in exercise_data:
         del exercise_data['Timestamp']
+
+    # Older exercises may not have a gif field yet
+    exercise_data.setdefault('gif', '')
+    exercise_data.setdefault('equipment_list', [])
     
+    # here we need to determine if the current member can edit the exercise, which is the case if the member is an admin 
+    # or if the exercise was created by the member
+    member_id = get_member_id_from_user_context(context)
+    can_edit = False
+    if member_id:
+        if exercise_data.get('created_by_member_id', None) == member_id:
+            can_edit = True
+        else:
+            # check if the member is an admin
+            from common.fitness.member_entity import is_member_an_admin
+            if is_member_an_admin(member_id):
+                can_edit = True
+    if not can_edit:
+        current_listing_page=request.args.get('page', 1)
+        current_listing_filter_terms = get_filter_terms_from_request()
+        response = make_response(exercises_listing2(member_id, page=current_listing_page, filter_terms=current_listing_filter_terms))
+        response.headers['HX-Trigger'] = json.dumps({
+            "showMessage": { "value": f"You do not have permission to edit this exercise.", "target": "body" }
+        })
+
+        return response
     # Parse images and videos fields if they are stored as strings (legacy data)
     for media_field in ['images', 'videos']:
         if media_field in exercise_data:
@@ -222,8 +334,8 @@ def edit_exercise(context=None):
             exercise_data[media_field] = []
             print(f"INFO: {media_field} field doesn't exist, setting to empty array")
 
-    # Parse primary and secondary muscles if they are strings
-    for muscle_field in ['primaryMuscles', 'secondaryMuscles']:
+    # Parse primary and secondary muscles, and movement categories if they are strings
+    for muscle_field in ['primaryMuscles', 'secondaryMuscles', 'movement_categories']:
         if muscle_field in exercise_data:
             muscle_value = exercise_data[muscle_field]
             if isinstance(muscle_value, str) and muscle_value.strip():
@@ -247,12 +359,15 @@ def edit_exercise(context=None):
     
     # Get exercise ID from the composite key or the data
     exercise_id = exercise_data.get('id')
+    equipment_types = list(dict.fromkeys(EQUIPMENT + exercise_data['equipment_list']))
     current_listing_page=request.args.get('page', 1)
     current_listing_filter=request.args.get('filter', '')   
     return hx_render_template('exercises/exercise_editor.html',
                          exercise=exercise_data,
                          is_new=False,
                          schema=exercise_schema,  
+                         equipment_types=equipment_types,
+                         movement_category_definitions=movement_category_definitions,
                          save_url=f'/exercises/save/{exercise_id}?page={current_listing_page}&filter={current_listing_filter}',
                          cancel_url=f'/exercises/cancel?page={current_listing_page}&filter={current_listing_filter}',
                          context=context)
@@ -268,7 +383,7 @@ def save_exercise(exercise_id=None, context=None):
         print(f"DEBUG SAVE: Raw form data received: {dict(request.form)}")
         
         # Handle array fields (checkboxes and multi-selects)
-        array_fields = ['primaryMuscles', 'secondaryMuscles', 'physical_fitness_components']
+        array_fields = ['primaryMuscles', 'secondaryMuscles', 'physical_fitness_components', 'movement_categories', 'equipment_list']
         for field in array_fields:
             if field in exercise_data:
                 values = request.form.getlist(field)
@@ -321,7 +436,11 @@ def save_exercise(exercise_id=None, context=None):
             exercise_data['udf1'] = ''
         if 'udf2' not in exercise_data:
             exercise_data['udf2'] = ''
+        if 'gif' not in exercise_data:
+            exercise_data['gif'] = ''
         
+        exercise_data['created_by_member_id'] = get_member_id_from_user_context(context)
+
         print(f"Saving exercise data: {exercise_data}")
         
         # Create and save exercise entity

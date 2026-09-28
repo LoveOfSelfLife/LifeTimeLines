@@ -1,3 +1,5 @@
-WORKOUT_ENTITY_NAME = "WorkoutDefinitionTable"
+
+WORKOUT_ENTITY_NAME = "MemberWorkoutDefinitionTable"  
 WORKOUT_SECTIONS = "workout_sections"
-PROGRAM_ENTITY_NAME = "MemberProgramTable"
+PROGRAM_ENTITY_NAME = "MemberProgramsTable"
+WORKOUT_INSTANCE_ENTITY_NAME = "MemberWorkoutInstanceTable"

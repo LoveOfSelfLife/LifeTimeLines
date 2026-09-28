@@ -95,7 +95,8 @@ def format_exercise_history(events, exercise_entity):
     or if the exercise is time based, then we can omit reps & weight and just include sets and time, etc.
     """
     exercise_name = exercise_entity.get('name', None)
-    equipment = exercise_entity.get('equipment', None)
+    equipment_list = exercise_entity.get('equipment_list', None)
+    equipment_str = ",".join(equipment_list) if equipment_list else ""
     exercise_type = exercise_entity.get('type', None)
     formatted_events = []
     for event in events:
@@ -111,7 +112,7 @@ def format_exercise_history(events, exercise_entity):
         formatted_events.append(formatted_event)
     events = {
         'exercise_name': exercise_name,
-        'equipment': equipment,
+        'equipment': equipment_str,
         'exercise_type': exercise_type,
         'events': formatted_events
     }   

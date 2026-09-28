@@ -1,0 +1,104 @@
+{# Attendance Confirmation Panel: shown whenever the member has an uncompleted workout event today or any day in the future #}
+{% if data.has_event %}
+<div class="attendance-panel">
+    <div class="workout-card mb-3">
+        <div class="card-body p-3">
+            {% if data.is_today %}
+            <h6 class="workout-name mb-2">
+                You have a workout scheduled <strong>today</strong> at {{ data.display_time }}
+            </h6>
+            {% else %}
+            <h6 class="workout-name mb-2">
+                You have a workout scheduled on {{ data.scheduled_datetime.strftime('%a %b-%d-%Y at %I:%M%p') }}
+            </h6>
+            {% endif %}
+
+            {% if data.attendance_status == 'attending' %}
+                <p class="text-light mb-2">
+                <span class="badge bg-success me-1">
+                    <i class="bi bi-check-circle-fill me-1"></i>{{ member.name }}
+                </span> will attend
+                </p>
+
+                <button class="btn btn-outline-light btn-sm"
+                    hx-post="{{ url_for('home.attendance_respond') }}"
+                    hx-vals='{"event_id": "{{ data.event_id }}", "confirmstatus": "declined"}'
+                    hx-target="#attendance-panel-content" hx-swap="innerHTML">
+                    Click here if you changed your mind
+                </button>
+            {% elif data.attendance_status == 'declined' %}
+                <p class="text-light mb-2">
+                <span class="badge bg-danger me-1">
+                    <i class="bi bi-check-circle-fill me-1"></i>{{ member.name }}
+                </span> will NOT attend
+                    
+                </p>
+                <button class="btn btn-outline-light btn-sm"
+                    hx-post="{{ url_for('home.attendance_respond') }}"
+                    hx-vals='{"event_id": "{{ data.event_id }}", "confirmstatus": "attending"}'
+                    hx-target="#attendance-panel-content" hx-swap="innerHTML">
+                    Click here if you changed your mind
+                </button>
+            {% else %}
+                <p class="text-light opacity-75 mb-2">Will you be attending this workout?</p>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success btn-sm"
+                        hx-post="{{ url_for('home.attendance_respond') }}"
+                        hx-vals='{"event_id": "{{ data.event_id }}", "confirmstatus": "attending"}'
+                        hx-target="#attendance-panel-content" hx-swap="innerHTML">
+                        Yes, you will attend
+                    </button>
+                    <button class="btn btn-danger btn-outline-light btn-sm"
+                        hx-post="{{ url_for('home.attendance_respond') }}"
+                        hx-vals='{"event_id": "{{ data.event_id }}", "confirmstatus": "declined"}'
+                        hx-target="#attendance-panel-content" hx-swap="innerHTML">
+                        No, you will not attend
+                    </button>
+                </div>
+            {% endif %}
+
+            {% if not data.is_today %}
+            <!-- add some space above this div -->
+            <div class="text-light mb-2 mt-3">
+                {% if data.workout_key %}
+                Preview your next workout: <button
+                    type="button"
+                    class="btn btn-link p-0 align-baseline workout-link text-light"
+                    hx-get="/home/workout-preview-modal"
+                    hx-vals='{"key": "{{ data.workout_key }}", "is_modal": "true"}'
+                    hx-target="#modals-here"
+                    hx-swap="innerHTML">
+                    {{ data.workout_name }}
+                </button>
+                {% elif data.has_active_program %}
+                <span>{{ data.workout_name }}</span>
+                {% else %}
+                <span>You do not have an active program</span>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if data.is_today and data.program_key and data.attendance_status in ('attending', 'pending') %}
+            {% set form_id = 'attendance-start-form-' ~ data.event_id %}
+            {% set event_id = data.event_id %}
+            {% set selected_workout_key = data.workout_key %}
+            {% set program_key = data.program_key %}
+            {% set select_id = 'attendance-workout-select-' ~ data.event_id %}
+            {% set peek_id = 'attendance-peek-workout-btn-' ~ data.event_id %}
+            {% set program_workouts = data.program_workouts %}
+            <div class="mt-3">
+                <small class="text-light opacity-75 d-block mb-1">
+                    <i class="fas fa-dumbbell me-2"></i>Recommended Workout:
+                </small>
+                {% include 'home/_start_workout_controls.html' %}
+            </div>
+            {% endif %}
+
+            {% if data.team_members %}
+            {% set team_members = data.team_members %}
+            {% include 'home/_team_member_badges.html' %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}

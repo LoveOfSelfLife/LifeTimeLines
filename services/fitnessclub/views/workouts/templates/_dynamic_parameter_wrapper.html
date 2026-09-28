@@ -1,0 +1,8 @@
+
+        {% set timer = namespace(has_timer=False, timer_value=None, timer_units=None) %}      
+        {% set param_ns = namespace(unit_param_id=None, param_list=[]) %}          
+
+        {% set param_ns.param_list = exercise_parameters %}
+        {% include "_dynamic_parameter.html" %}
+
+

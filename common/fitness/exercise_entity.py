@@ -1,8 +1,7 @@
 from hashlib import sha256
 from common.entity_store import EntityObject
-
-from common.fitness.favorites_entity import is_entity_a_favorite
-from common.fitness.hx_common import hx_render_template
+from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
+from common.fitness.member_entity import get_member_id_from_user_context
 from common.fitness.utils import convert_to_alphanumeric
 import json
 from common.fitness.exercise_schema import exercise_schema
@@ -10,9 +9,17 @@ from common.fitness.exercise_schema import exercise_review_schema
 
 class ExerciseEntity (EntityObject):
     table_name="ExerciseTable"
-    fields=["id", "type", "name", "force", "level", "mechanic", "equipment", "equipment_detail", 
-            "origin",  "primaryMuscles", "secondaryMuscles", "instructions", "category", "images", "videos", 
-            "setCompletionMeasure", "udf1", "udf2", "physical_fitness_components", "hide"]
+    fields=["id", "type", "name", "force", "level", "mechanic", "equipment", "equipment_detail", "equipment_list",
+            "origin",  "primaryMuscles", "secondaryMuscles", "instructions", "category", "images", "videos", "gif",
+            "created_by_member_id", 
+            "setCompletionMeasure", 
+            "resistance_doubled", # has a boolean value
+            "only_one_set", # has a boolean value
+            "udf1", "udf2", 
+            "physical_fitness_components", 
+            "movement_categories", 
+            "hide"]
+    
     key_field="id"
     partition_value="exercise"
     schema = exercise_schema
@@ -20,6 +27,35 @@ class ExerciseEntity (EntityObject):
     def __init__(self, d={}):
         super().__init__(d)
 
+    def is_resistance_doubled(self):
+        if self.get("resistance_doubled", None) is not None:
+            return self.get("resistance_doubled")
+        # default resistance doubled is False, which means that the weight lifted is the same as the actual resistance specified for the exercise,
+        # if resistance doubled is True, it means that the weight indicated is for each hand, so the total weight lifted is double the resistance specified for the exercise
+        return False
+
+    def is_only_one_set(self):
+        # some exercises i.e. activities are only meant to be done once, e.g. a 5k run, a session of playing pickleball, etc. for these exercises, we set the onlyOneSet field to true, 
+        # therefore in the workout view we can use this information to simplify the Ux to avoid having to ask for # sets
+        if self.get("only_one_set", None) is not None:
+            return self.get("only_one_set")
+        return False
+
+    def get_set_completion_measure(self):
+        # the setCompletionMeasure field indicates what measure is used to determine if a set of the exercise is completed, e.g. "reps", "time", "distance", "other"
+        # if the field is not specified for an exercise, we default to "reps"
+        return self.get("setCompletionMeasure", "reps")
+    
+    def exercises_uses_external_force(self):
+        # this function is used to determine if the exercise uses an external force, which is the case if the exercise has a non-bodyweight equipment
+        equipment_list = self.get("equipment_list", [])
+        force_imposing_equipment = {equip["name"] for equip in EQUIPMENT_DETAIL if equip["imposes_force"]}
+        for equip in equipment_list:
+            if equip.replace(" ", "_") in force_imposing_equipment:
+                return True
+        return False
+
+    
 class ExerciseReviewEntity (EntityObject):
     table_name="ExerciseReviewTable"
     fields=["id", "name", "category", "disposition", "setCompletionMeasure", "comments"]
@@ -30,7 +66,6 @@ class ExerciseReviewEntity (EntityObject):
     def __init__(self, d={}):
         super().__init__(d)
 
-
 class ExerciseIndexEntity (EntityObject):
     table_name="ExerciseIndexTable"
     fields=["exercise_value", "exercise_attribute", "exercises_list" ]
@@ -40,6 +75,291 @@ class ExerciseIndexEntity (EntityObject):
     def __init__(self, d={}):
         super().__init__(d)
 
+MUSCLES = ['abdominals', 
+           'hamstrings', 
+           'calves', 
+           'shoulders', 
+           'adductors', 
+           'glutes', 
+           'quadriceps', 
+           'biceps', 
+           'forearms', 
+           'abductors', 
+           'triceps', 
+           'chest', 
+           'lower_back', 
+           'traps', 
+           'middle_back', 
+           'lats', 
+           'neck']
+    
+PHYSICAL_FITNESS_COMPONENTS = ['flexibility', 
+                               'mobility', 
+                               'balance', 
+                               'core', 
+                               'power', 
+                               'strength', 
+                               'cardio', 
+                               'endurance', 
+                               'myofascia']
+
+MOVEMENT_CATEGORIES = ["CORE", 
+                       "CORE-AE", 
+                       "CORE-AF", 
+                       "CORE-AR", 
+                       "CORE-HF", 
+                       "CORE-ROT", 
+                       "HINGE-BRIDGE", 
+                       "HINGE-SL", 
+                       "HINGE-SYM", 
+                       "PULL", 
+                       "PULL-HORZ", 
+                       "PULL-VERT", 
+                       "PUSH", 
+                       "PUSH-HORZ", 
+                       "PUSH-VERT", 
+                       "RAMP", 
+                       "SQUAT", 
+                       "SQUAT-ASYM", 
+                       "SQUAT-SL", 
+                       "SQUAT-SYM"]
+
+EQUIPMENT_DETAIL = [
+    { "name": "risers", "imposes_force": False },
+    { "name": "barbell", "imposes_force": True },
+    { "name": "trap_bar", "imposes_force": True },
+    { "name": "landmine", "imposes_force": True },
+    { "name": "other", "imposes_force": True },
+    { "name": "medicine_ball", "imposes_force": False },
+    { "name": "pull_up_bar", "imposes_force": False },
+    { "name": "ropes", "imposes_force": False },
+    { "name": "dumbbell", "imposes_force": True },
+    { "name": "bands", "imposes_force": True },
+    { "name": "stability_ball", "imposes_force": False },
+    { "name": "machine", "imposes_force": True },
+    { "name": "exercise_ball", "imposes_force": True },
+    { "name": "bosu", "imposes_force": False },
+    { "name": "trx", "imposes_force": False },
+    { "name": "foam_roll", "imposes_force": False  },
+    { "name": "bodyweight", "imposes_force": False },
+    { "name": "cable", "imposes_force": True },
+    { "name": "kettlebells", "imposes_force": True },
+    { "name": "curling_barbell", "imposes_force": True }
+]
+
+EQUIPMENT = [e["name"] for e in EQUIPMENT_DETAIL]
+
+movement_category_to_section_map = {
+    "CORE": "core",
+    "CORE-AE": "core",
+    "CORE-AF": "core",
+    "CORE-AR": "core",
+    "CORE-HF": "core",
+    "CORE-ROT": "core",
+    "HINGE-BRIDGE": "strength",
+    "HINGE-SL": "strength",
+    "HINGE-SYM": "strength",
+    "PULL": "strength",
+    "PULL-HORZ": "strength",
+    "PULL-VERT": "strength",
+    "PUSH": "strength",
+    "PUSH-HORZ": "strength",
+    "PUSH-VERT": "strength",
+    "RAMP": "warmup",
+    "SQUAT": "strength",
+    "SQUAT-ASYM": "strength",
+    "SQUAT-SL": "strength",
+    "SQUAT-SYM": "strength",
+}
+movement_category_definitions = {
+    "CORE": "General core",
+    "CORE-AE": "Core anti-extension",
+    "CORE-AF": "Core anti-flexion",
+    "CORE-AR": "Core anti-rotation",
+    "CORE-HF": "Core hip-flexion",
+    "CORE-ROT": "Core rotational",
+    "HINGE-BRIDGE": "Hinge bridge",
+    "HINGE-SL": "Single-leg hinge",
+    "HINGE-SYM": "Symmetrical (feet parallel) hinge",
+    "PULL": "General pulling",
+    "PULL-HORZ": "Horizontal pulling",
+    "PULL-VERT": "Vertical pulling",
+    "PUSH": "General pushing",
+    "PUSH-HORZ": "Horizontal pushing",
+    "PUSH-VERT": "Vertical pushing",
+    "RAMP": "RAMP (Raise, Activate & Movement Preparation)",
+    "SQUAT": "General squatting",
+    "SQUAT-ASYM": "Asymmetrical (split stance) squatting",
+    "SQUAT-SL": "Single-leg squatting",
+    "SQUAT-SYM": "Symmetrical (feet parallel) squatting"
+}
+
+def get_section_type_from_movement_category(movement_category):
+    return movement_category_to_section_map.get(movement_category, None)
+
+# the possible values for the physical_fitness_components property of an exercise are:
+physical_fitness_components_to_section_map = {
+    'balance': ['balance'],
+    'aerobic': ['cardio'],
+    'mobility': ['warmup'],
+    'power': ['strength', 'power'],
+    'strength': ['strength'],
+    'Core': ['core'],
+    'core': ['core'],
+    'cardio': ['cardio', 'warmup'],
+    'endurance': ['cardio'],
+    'myofascia': ['warmup'],
+    'flexibility': ['warmup'],
+}
+def get_section_types_from_physical_fitness_components(physical_fitness_components):
+    section_types = set()
+    for pfc in physical_fitness_components:
+        section_types.update(physical_fitness_components_to_section_map.get(pfc, []))
+    return list(section_types)
+
+
+# the following are the possible values for the category property of an exercise, and the corresponding section_type they belong to:
+category_to_section_map = {
+    "cardio": ["cardio", "warmup"],
+    "core": ["core"],
+    "mobility": ["warmup"],
+    "olympic weightlifting": ["strength"],
+    "plyometrics": ["strength"],
+    "powerlifting": ["strength", "power"],
+    "strength": ["strength"],
+    "stretching": ["warmup"],
+    "strongman": ["strength", "power"],
+    "warmup": ["warmup"],
+}
+def get_section_types_from_category(category):
+    return category_to_section_map.get(category, [])
+
+def does_exercise_belong_in_section(exercise, section_type):
+    """Check if an exercise belongs in a given section.
+
+    Args:
+        exercise (dict): The exercise entity.
+        section_type (str): The section type to check against.
+
+    Returns:
+        bool: True if the exercise belongs in the section, False otherwise.
+
+    These are the section types currently supported:
+        warmup
+        core
+        power
+        combination
+        strength
+        balance
+        cardio
+    """
+    if not exercise or not section_type:
+        return False
+    # lets check if the exercise has a section attribute, if yes, then we can use that to determine if it belongs in the section
+    if "section" in exercise and exercise["section"] is not None:
+        if isinstance(exercise["section"], list):
+            # If the section attribute is a list, check if the section_type is in the list
+            if section_type in [s for s in exercise["section"]]:
+                return True
+        else:
+            # If the section attribute is a string, check for a direct match
+            if section_type == str(exercise["section"]):
+                return True
+
+    # next we check movement_categories
+    # if the exercise has a movement_category attribute, we can check section_type against the movement_category
+    # we use the movement_category_to_section_map to map the movement_category to a section_type
+    if 'movement_categories' in exercise and exercise['movement_categories'] is not None:
+        if isinstance(exercise['movement_categories'], list):
+            # If the movement_categories attribute is a list, check if the section_type is in the list
+            # Map each movement category to its section and check against section_type
+            mapped_sections = [get_section_type_from_movement_category(s) for s in exercise['movement_categories']]
+            if section_type in mapped_sections:
+                return True
+        else:
+            # If the movement_categories attribute is a string, map it to its section and check for a match
+            mapped_section = get_section_type_from_movement_category(str(exercise['movement_categories']))
+            if section_type == mapped_section:
+                return True
+            
+    # next we will check the category property
+    # if the exercise has a category attribute, we can map the category to a section_type using the category_to_section_map
+    # then check if the section_type is in the mapped section_types
+    # the category value will be a string
+
+    if 'category' in exercise and exercise['category'] is not None:
+        mapped_sections = get_section_types_from_category(str(exercise['category']))
+        if section_type in mapped_sections:
+            return True
+
+    # next we will check the physical_fitness_components property
+    # if the exercise has a physical_fitness_components attribute, we can map the physical_fitness_components to section_types using the physical_fitness_components_to_section_map
+    # then check if the section_type is in the mapped section_types
+
+    if 'physical_fitness_components' in exercise and len(exercise['physical_fitness_components']) > 0:
+        mapped_sections = []
+        for pfc in exercise['physical_fitness_components']:
+            mapped_sections.extend(get_section_types_from_physical_fitness_components([pfc]))
+        if section_type in mapped_sections:
+            return True
+    return False
+
+def are_these_exercises_related(exercise_entity, general_exercise_entity):
+    """Check if an exercise entity is related to a general exercise entity based on shared attributes."""
+    if not exercise_entity or not general_exercise_entity:
+        return False
+
+    # here we want to check if the exercise_entity and general_exercise_entity share any of the following attributes:
+    # 1. movement_categories, 2. physical_fitness_components, 3. primaryMuscles
+
+    # Check for shared movement categories
+    movement_categories = set(exercise_entity.get("movement_categories", []))
+    general_movement_categories = set(general_exercise_entity.get("movement_categories", []))
+    shared_movement_categories = movement_categories.intersection(general_movement_categories)
+
+    if shared_movement_categories:
+        return True
+
+    # if the exercise does not have movement_categories, we will use a combination of physical_fitness_components and primary muscles 
+    # to determine relatedness
+
+    """
+    these are the possible pfc values:  
+    'balance'
+    'aerobic'
+    'mobility'
+    'power'
+    'strength'
+    'Core'
+    'core'
+    'cardio'
+    'endurance'
+    'myofascia'
+    'flexibility
+
+    first we check which PFC values are shared
+    if any of these are shared: balance, aerobic, mobiility, power, core or Core, cardio, endurance, myofascia or flexibility then we consider the exercises related
+    however, if the only shared PFC values are strength, then we will check if they share any primary muscles, if yes, then we consider them related, otherwise not related
+    """
+
+    pfc_values = exercise_entity.get("physical_fitness_components", [])
+    general_pfc_values = general_exercise_entity.get("physical_fitness_components", [])
+
+    shared_pfc  = set(pfc_values).intersection(set(general_pfc_values))
+    if shared_pfc:
+        if 'strength' in shared_pfc and len(shared_pfc) == 1:
+            # if the only shared section type is strength, then we will check if they share any primary muscles
+            primary_muscles = set(exercise_entity.get("primaryMuscles", []))
+            general_primary_muscles = set(general_exercise_entity.get("primaryMuscles", []))
+            shared_primary_muscles = primary_muscles.intersection(general_primary_muscles)
+            if shared_primary_muscles:
+                return True
+            else:
+                return False
+        else:
+            return True
+    
+    return False
 
 def gen_exercise_id(exercise):
     """Generate an exercise id from the exercise name."""
@@ -56,25 +376,6 @@ def gen_exercise_id(exercise):
 
     return id
 
-
-
-def is_entity_hidden(entity):
-    """Filter out entities that are marked as "hide" 
-    """
-    hide = entity.get("hide", None)
-    return hide
-
-def matches_filter(entity,term):
-    if term is None:
-        return True
-    term = term.lower()
-    terms = term.split()
-    for t in terms:
-        for field in entity.get_fields():
-            if field in entity and isinstance(entity[field], str):
-                if term in entity[field].lower():
-                    return True
-    return False
 
 def exercise_was_reviewed(exercise):
     """Check if an exercise was reviewed by looking it up in the ExerciseReviewTable."""
@@ -146,101 +447,26 @@ exercise_filters = [
                 ]
 
 
-def exercise_entity_filter_term(args={}):
-    terms = [ {"id": f['id'], 
-               "label": f['label'], 
-               "shortlabel": f['shortlabel'],  
-               "value": args.get(f['id'], '')} for f in exercise_filters ]
-    return terms
-    
-def generic_entity_filter(entities, filter_term, member_id=None, favorite_entity_ids=None):
-    # filter_term is a list of dictionaries
-    # each dictionary has an id and a value
-    # for example: [{"id": "text", "value": "squat"}, {"id": "category", "value": "core"}]
-    # in order for an entity from the list of entities to be included in the result
-    # it must match all the filter terms where the value for that filter term is not empty
-    # if the value for a filter term is empty, it is ignored
-    #
-    # first remove all entities that are hidden
-    entities = [e for e in entities if not is_entity_hidden(e)]
-
-    if filter_term is None:
-        return entities
-    if len(filter_term) == 0:
-        return entities
-    filtered_entities = []
-    for entity in entities:
-        if matches_all_terms_in_filter(entity, filter_term, member_id=member_id, favorite_entity_ids=favorite_entity_ids):
-            filtered_entities.append(entity)
-    return filtered_entities
-
-def matches_all_terms_in_filter(entity, filter_term, member_id=None, favorite_entity_ids=None):
-    # check if filter_term is a string, in which case convert it to a python object
-    # using ast.literal_eval
-    if filter_term and isinstance(filter_term, str):
-        import ast
-        filter_term = ast.literal_eval(filter_term)
-    if filter_term is None:
-        return True
-    for term in filter_term:
-        term_value = term.get("value", None)
-        term_type = term.get("type", None)
-        if term_type == 'text' and term_value is not None and term_value != "":
-            term_value = term_value.lower()
-            # if there is a non-empty value for the text filter term
-            # then we check the entire entity to see if the term is in any of the fields
-            # if it does match, then we continue to check the other filter terms
-            # if it does not match, no need to check the other filter terms
-            # and we return False
-            if matches_filter(entity, term_value):
-                continue
-            else:
-                return False
-
-        if term_type == 'favorites' and term_value is not None and term_value != "":
-            if favorite_entity_ids is not None:
-                # Fast lookup using pre-loaded set
-                entity_id = entity.get(entity.key_field)
-                if entity_id not in favorite_entity_ids:
-                    return False
-            continue
-
-        # term_value = term_value.lower() if term_value is not None else None
-        # if term.get("id", None) == "text":
-        #     if term_value and term_value != "":
-        #         # if there is a non-empty value for the text filter term
-        #         # then we check the entire entity to see if the term is in any of the fields
-        #         # if it does match, then we continue to check the other filter terms
-        #         # if it does not match, no need to check the other filter terms
-        #         # and we return False
-        #         if matches_filter(entity, term_value):
-        #             continue
-        #         else:
-        #             return False
-        # if term.get("id") == "physical_fitness_components":
-        #     if term_value and term_value != "":
-        #         # check the PF component field of the entity
-        #         entity_component = entity.get("physical_fitness_components", [])
-        #         if len(entity_component) == 0:
-        #             return False
-        #         if term_value not in entity_component:
-        #             return False
-        #         continue
-        # if term.get("id") == "muscle":
-        #     if term_value and term_value != "":
-        #         entity_prime_muscles = entity.get("primaryMuscles", [])
-        #         entity_secondary_muscles = entity.get("secondaryMuscles", [])
-        #         muscles = entity_prime_muscles + entity_secondary_muscles
-        #         if len(muscles) == 0:
-        #             return False
-        #         if term_value not in [m.lower() for m in muscles]:
-        #             return False
-        #         continue
-    return True
-
-
-def render_exercise_popup_viewer_html(context, entity):
+def render_exercise_popup_viewer_html(context, entity, can_edit=False, show_dismiss_btn=False, filter_terms=[]):
     return hx_render_template('_exercise_details_form.html',
                               exercise=entity,
                               errors={},
-                              context=context)
+                              context=context,
+                              can_edit=can_edit,
+                              show_dismiss_btn=show_dismiss_btn)
+
+
+def show_exercise_viewer(entity_to_view, context, show_dismiss_btn=False):
+    member_id = get_member_id_from_user_context(context)
+    if member_id:
+        if entity_to_view.get('created_by_member_id', None) == member_id:
+            can_edit = True
+        else:
+            # check if the member is an admin
+            from common.fitness.member_entity import is_member_an_admin
+            if is_member_an_admin(member_id):
+                can_edit = True
+            else:
+                can_edit = False
+
+    return render_exercise_popup_viewer_html(context, entity_to_view, can_edit=can_edit, show_dismiss_btn=show_dismiss_btn, filter_terms=get_filter_terms_from_request())
