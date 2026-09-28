@@ -73,8 +73,8 @@
                 {# <div class="list-group"> #}
                 <div>
                   <div id="dynamic-params-{{ section.name }}"
-                    hx-get="/workouts/dynamic_parameters_for_section_viewer/{{workout.id}}/{{section.name}}?workout_instance_key={{workout_instance_key}}&workout_definition_key={{workout_definition_key}}&active_workout={{active_workout}}&purpose_of_parameter_edit={{purpose_of_parameter_edit}}&workout_view_preference={{workout_view_preference}}&last_exercise_index={{ (last_exercise_indexes_by_section or {}).get(section.name, '') }}"
-                    hx-trigger="load, exerciseSwapped from:body" 
+                    hx-get="/workouts/dynamic_parameters_for_section_viewer/{{workout.id}}/{{section.name}}?workout_instance_key={{workout_instance_key}}&workout_definition_key={{workout_definition_key}}&active_workout={{active_workout}}&purpose_of_parameter_edit={{purpose_of_parameter_edit}}&workout_view_preference={{workout_view_preference}}&last_exercise_index={{ (last_exercise_indexes_by_section or {}).get(section.name, '') }}&allow_on_the_fly_workout={{allow_on_the_fly_workout}}"
+                    hx-trigger="load, exerciseSwapped from:body, workoutChanged from:body" 
                     hx-swap="innerHTML">
                     Loading…
                   </div>

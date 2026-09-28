@@ -1,4 +1,5 @@
 from ast import literal_eval
+from datetime import datetime
 from flask import url_for
 from common.entity_store import EntityObject, EntityStore
 
@@ -122,7 +123,7 @@ editable_entities = {
                                               "description"
                                             ],
                         "field_mapping": { "title" : lambda e: e['name'] if 'name' in e else "",
-                                          "date" : lambda e: e['finished_ts'] if 'finished_ts' in e else "",
+                                          "date" : lambda e: simple_date(e['started_ts']) if 'started_ts' in e else "",
                                           "client" : lambda e: get_member_name_from_member_id(e.get('assigned_to_member_id')) if e.get('assigned_to_member_id') else "",
                                               "subtitle" : lambda e: "" + get_member_name_from_member_id(e.get('assigned_to_member_id') or e.get('member_id')) if (e.get('assigned_to_member_id') or e.get('member_id')) else "",
                                               "image_url" : lambda e: url_for('static', filename='images/workout_image.png'),
@@ -149,7 +150,14 @@ editable_entities = {
 
                     }
     }
-
+def simple_date(date_str):
+    if not date_str:
+        return ""
+    try:
+        return datetime.fromisoformat(date_str).strftime("%Y-%m-%d")
+    except Exception as e:
+        print(f"Error parsing date: {e}")
+        return ""
 def get_program_name_from_program_id(program_id):
     if not program_id:
         return None

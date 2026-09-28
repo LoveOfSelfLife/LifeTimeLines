@@ -8,6 +8,7 @@ from common.fitness.coach_team_entity import get_coachs_team_members
 from common.fitness.favorites_entity import get_all_favorite_entity_ids
 from common.fitness.member_entity import is_member_an_admin
 from common.fitness.roles_service import is_member_client, is_member_coach
+from common.fitness.cacher import get_cache_value, set_cache_value, delete_from_cache
 
 entity_store_cache_dict = {}
 
@@ -308,13 +309,20 @@ def filter_entities_by_member_role(member_id, entities):
 PROGRAM_MULTI_SELECT_SESSION_KEY = 'program_builder_selected_workout_keys'
 MULTI_SELECT_SESSION_KEY = 'exercise_modal_selected_keys'
 
+# multi-select selections are stored in the member-scoped Redis cache rather than Flask's session,
+# since a plain session write here would force Flask to re-save the whole session blob (including a
+# possibly stale copy of current_workout_instance_state) whenever a selection modal is opened/used,
+# clobbering in-flight active-workout parameter edits.
 
-def resolve_selected_workout_keys(allow_multi_select=False):
+def clear_selected_workout_keys(member_id):
+    delete_from_cache(f"{PROGRAM_MULTI_SELECT_SESSION_KEY}_{member_id}")
+
+def resolve_selected_workout_keys(member_id, allow_multi_select=False):
     if not allow_multi_select:
-        session.pop(PROGRAM_MULTI_SELECT_SESSION_KEY, None)
+        clear_selected_workout_keys(member_id)
         return []
 
-    selected_keys = [str(key) for key in session.get(PROGRAM_MULTI_SELECT_SESSION_KEY, []) if key]
+    selected_keys = [str(key) for key in (get_cache_value(f"{PROGRAM_MULTI_SELECT_SESSION_KEY}_{member_id}") or []) if key]
     selected_keys = list(dict.fromkeys(selected_keys))
 
     toggle_key_raw = request.form.get('multi_select_toggle_key')
@@ -328,22 +336,25 @@ def resolve_selected_workout_keys(allow_multi_select=False):
         else:
             selected_keys = [key for key in selected_keys if key != toggle_key]
 
-        session[PROGRAM_MULTI_SELECT_SESSION_KEY] = selected_keys
+        set_cache_value(f"{PROGRAM_MULTI_SELECT_SESSION_KEY}_{member_id}", selected_keys)
         return selected_keys
 
     posted_selected_keys = [str(key) for key in request.form.getlist('selected_entity_keys') if key]
     if posted_selected_keys:
         selected_keys = list(dict.fromkeys(posted_selected_keys))
 
-    session[PROGRAM_MULTI_SELECT_SESSION_KEY] = selected_keys
+    set_cache_value(f"{PROGRAM_MULTI_SELECT_SESSION_KEY}_{member_id}", selected_keys)
     return selected_keys
 
-def resolve_selected_entity_keys(allow_multi_select=False):
+def clear_selected_entity_keys(member_id):
+    delete_from_cache(f"{MULTI_SELECT_SESSION_KEY}_{member_id}")
+
+def resolve_selected_entity_keys(member_id, allow_multi_select=False):
     if not allow_multi_select:
-        session.pop(MULTI_SELECT_SESSION_KEY, None)
+        clear_selected_entity_keys(member_id)
         return []
 
-    selected_keys = [str(key) for key in session.get(MULTI_SELECT_SESSION_KEY, []) if key]
+    selected_keys = [str(key) for key in (get_cache_value(f"{MULTI_SELECT_SESSION_KEY}_{member_id}") or []) if key]
     selected_keys = list(dict.fromkeys(selected_keys))
 
     toggle_key_raw = request.form.get('multi_select_toggle_key')
@@ -356,14 +367,14 @@ def resolve_selected_entity_keys(allow_multi_select=False):
         else:
             selected_keys = [key for key in selected_keys if key != toggle_key]
 
-        session[MULTI_SELECT_SESSION_KEY] = selected_keys
+        set_cache_value(f"{MULTI_SELECT_SESSION_KEY}_{member_id}", selected_keys)
         return selected_keys
 
     posted_selected_keys = [str(key) for key in request.form.getlist('selected_entity_keys') if key]
     if posted_selected_keys:
         selected_keys = list(dict.fromkeys(posted_selected_keys))
 
-    session[MULTI_SELECT_SESSION_KEY] = selected_keys
+    set_cache_value(f"{MULTI_SELECT_SESSION_KEY}_{member_id}", selected_keys)
     return selected_keys
 
 

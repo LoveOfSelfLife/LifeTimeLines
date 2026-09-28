@@ -48,10 +48,13 @@ class ExerciseEntity (EntityObject):
     
     def exercises_uses_external_force(self):
         # this function is used to determine if the exercise uses an external force, which is the case if the exercise has a non-bodyweight equipment
-        equipment = self.get("equipment", None)
-        if not equipment or equipment.lower().startswith("body"):
-            return False
-        return True
+        equipment_list = self.get("equipment_list", [])
+        force_imposing_equipment = {equip["name"] for equip in EQUIPMENT_DETAIL if equip["imposes_force"]}
+        for equip in equipment_list:
+            if equip.replace(" ", "_") in force_imposing_equipment:
+                return True
+        return False
+
     
 class ExerciseReviewEntity (EntityObject):
     table_name="ExerciseReviewTable"
@@ -71,6 +74,80 @@ class ExerciseIndexEntity (EntityObject):
 
     def __init__(self, d={}):
         super().__init__(d)
+
+MUSCLES = ['abdominals', 
+           'hamstrings', 
+           'calves', 
+           'shoulders', 
+           'adductors', 
+           'glutes', 
+           'quadriceps', 
+           'biceps', 
+           'forearms', 
+           'abductors', 
+           'triceps', 
+           'chest', 
+           'lower_back', 
+           'traps', 
+           'middle_back', 
+           'lats', 
+           'neck']
+    
+PHYSICAL_FITNESS_COMPONENTS = ['flexibility', 
+                               'mobility', 
+                               'balance', 
+                               'core', 
+                               'power', 
+                               'strength', 
+                               'cardio', 
+                               'endurance', 
+                               'myofascia']
+
+MOVEMENT_CATEGORIES = ["CORE", 
+                       "CORE-AE", 
+                       "CORE-AF", 
+                       "CORE-AR", 
+                       "CORE-HF", 
+                       "CORE-ROT", 
+                       "HINGE-BRIDGE", 
+                       "HINGE-SL", 
+                       "HINGE-SYM", 
+                       "PULL", 
+                       "PULL-HORZ", 
+                       "PULL-VERT", 
+                       "PUSH", 
+                       "PUSH-HORZ", 
+                       "PUSH-VERT", 
+                       "RAMP", 
+                       "SQUAT", 
+                       "SQUAT-ASYM", 
+                       "SQUAT-SL", 
+                       "SQUAT-SYM"]
+
+EQUIPMENT_DETAIL = [
+    { "name": "risers", "imposes_force": False },
+    { "name": "barbell", "imposes_force": True },
+    { "name": "trap_bar", "imposes_force": True },
+    { "name": "landmine", "imposes_force": True },
+    { "name": "other", "imposes_force": True },
+    { "name": "medicine_ball", "imposes_force": False },
+    { "name": "pull_up_bar", "imposes_force": False },
+    { "name": "ropes", "imposes_force": False },
+    { "name": "dumbbell", "imposes_force": True },
+    { "name": "bands", "imposes_force": True },
+    { "name": "stability_ball", "imposes_force": False },
+    { "name": "machine", "imposes_force": True },
+    { "name": "exercise_ball", "imposes_force": True },
+    { "name": "bosu", "imposes_force": False },
+    { "name": "trx", "imposes_force": False },
+    { "name": "foam_roll", "imposes_force": False  },
+    { "name": "bodyweight", "imposes_force": False },
+    { "name": "cable", "imposes_force": True },
+    { "name": "kettlebells", "imposes_force": True },
+    { "name": "curling_barbell", "imposes_force": True }
+]
+
+EQUIPMENT = [e["name"] for e in EQUIPMENT_DETAIL]
 
 movement_category_to_section_map = {
     "CORE": "core",
@@ -93,6 +170,28 @@ movement_category_to_section_map = {
     "SQUAT-ASYM": "strength",
     "SQUAT-SL": "strength",
     "SQUAT-SYM": "strength",
+}
+movement_category_definitions = {
+    "CORE": "General core",
+    "CORE-AE": "Core anti-extension",
+    "CORE-AF": "Core anti-flexion",
+    "CORE-AR": "Core anti-rotation",
+    "CORE-HF": "Core hip-flexion",
+    "CORE-ROT": "Core rotational",
+    "HINGE-BRIDGE": "Hinge bridge",
+    "HINGE-SL": "Single-leg hinge",
+    "HINGE-SYM": "Symmetrical (feet parallel) hinge",
+    "PULL": "General pulling",
+    "PULL-HORZ": "Horizontal pulling",
+    "PULL-VERT": "Vertical pulling",
+    "PUSH": "General pushing",
+    "PUSH-HORZ": "Horizontal pushing",
+    "PUSH-VERT": "Vertical pushing",
+    "RAMP": "RAMP (Raise, Activate & Movement Preparation)",
+    "SQUAT": "General squatting",
+    "SQUAT-ASYM": "Asymmetrical (split stance) squatting",
+    "SQUAT-SL": "Single-leg squatting",
+    "SQUAT-SYM": "Symmetrical (feet parallel) squatting"
 }
 
 def get_section_type_from_movement_category(movement_category):

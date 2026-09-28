@@ -1,4 +1,5 @@
 import json
+from time import sleep
 
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -552,26 +553,34 @@ class GoogleCalendarService (AbstractCalendarService):
             status (str): The new status of the event.
             name (str): The name of the person updating the status. Defaults to None.
         """
-        calendar_service = GoogleCalendarService()
-        # first we get the currrent workout event
-        event = calendar_service.get_event(event_id)
-        if not event:
-            print(f"Event with ID {event_id} not found.")
-            return
-        # merge into existing metadata so unrelated tags (e.g. #confirmstatus) are preserved
-        metadata = extract_id_and_status(event.get('description', ''))
-        event['description'] = _build_event_metadata_string(
-            id=metadata.get('id', ''),
-            status=status,
-            name=name or metadata.get('name', ''),
-            confirmstatus=metadata.get('confirmstatus', ''),
-        )
-        try:
-            event = self.service.events().update(calendarId=self.calendar_id, eventId=event_id, body=event).execute()
-            print("Event updated")
-            
-        except Exception as error:
-            print(f"An error occurred attempting to update the event: {error}")
+        retries = 3
+        while retries > 0:
+
+            calendar_service = GoogleCalendarService()
+            # first we get the currrent workout event
+            event = calendar_service.get_event(event_id)
+            if not event:
+                print(f"Event with ID {event_id} not found.")
+                return False
+            # merge into existing metadata so unrelated tags (e.g. #confirmstatus) are preserved
+            metadata = extract_id_and_status(event.get('description', ''))
+            event['description'] = _build_event_metadata_string(
+                id=metadata.get('id', ''),
+                status=status,
+                name=name or metadata.get('name', ''),
+                confirmstatus=metadata.get('confirmstatus', ''),
+            )
+            try:
+                event = self.service.events().update(calendarId=self.calendar_id, eventId=event_id, body=event).execute()
+                print("Calendar event updated")
+                return True
+
+            except Exception as error:
+                print(f"An error occurred attempting to update the status of the calendar event: {error}")
+                retries -= 1
+                if retries == 0:
+                    return False
+                sleep(0.25)  # wait for quarter of a second before retrying
 
     def update_confirmation_status_of_workout_event(self, event_id, confirmstatus):
         """
@@ -582,25 +591,32 @@ class GoogleCalendarService (AbstractCalendarService):
             event_id (str): The ID of the event to update.
             confirmstatus (str): The new confirmation status ('attending' or 'declined').
         """
-        calendar_service = GoogleCalendarService()
-        event = calendar_service.get_event(event_id)
-        if not event:
-            print(f"Event with ID {event_id} not found.")
-            return
-        metadata = extract_id_and_status(event.get('description', ''))
-        event['description'] = _build_event_metadata_string(
-            id=metadata.get('id', ''),
-            status=metadata.get('status', ''),
-            name=metadata.get('name', ''),
-            confirmstatus=confirmstatus,
-        )
-        try:
-            event = self.service.events().update(calendarId=self.calendar_id, eventId=event_id, body=event).execute()
-            print("Event updated")
+        retries = 3
+        while retries > 0:
+            calendar_service = GoogleCalendarService()
+            event = calendar_service.get_event(event_id)
+            if not event:
+                print(f"Event with ID {event_id} not found.")
+                return
+            metadata = extract_id_and_status(event.get('description', ''))
+            event['description'] = _build_event_metadata_string(
+                id=metadata.get('id', ''),
+                status=metadata.get('status', ''),
+                name=metadata.get('name', ''),
+                confirmstatus=confirmstatus,
+            )        
+            try:
+                event = self.service.events().update(calendarId=self.calendar_id, eventId=event_id, body=event).execute()
+                print("Calendar event updated")
+                return True
 
-        except Exception as error:
-            print(f"An error occurred attempting to update the event: {error}")
-
+            except Exception as error:
+                print(f"An error occurred attempting to update the event: {error}")
+                retries -= 1
+                if retries == 0:
+                    print(f"Failed to update the event with ID {event_id} after multiple attempts.")
+                    return False
+                sleep(0.25)  # wait for quarter of a second before retrying
 
 def _build_event_metadata_string(id=None, status=None, name=None, confirmstatus=None):
     """Rebuilds the '#tag=value' description string, merging only the provided fields."""

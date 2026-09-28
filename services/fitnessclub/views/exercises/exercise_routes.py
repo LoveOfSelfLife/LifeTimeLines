@@ -4,13 +4,15 @@ from urllib import response
 from flask import Blueprint, abort, make_response, redirect, render_template, request, session, url_for, jsonify
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
-from common.fitness.entities_getter import resolve_selected_entity_keys
+from common.fitness.entities_getter import resolve_selected_entity_keys, clear_selected_entity_keys
 from common.fitness.entities_getter import as_bool
 from common.fitness.entities_getter import MULTI_SELECT_SESSION_KEY
+from common.fitness.cacher import get_cache_value, set_cache_value
 from common.fitness.exercise_entity import show_exercise_viewer
+from common.fitness.exercise_entity import movement_category_definitions
 from common.fitness.hx_common import parse_listing_filter
 from common.fitness.entities_getter import get_entities
-from common.fitness.exercise_entity import ExerciseEntity
+from common.fitness.exercise_entity import EQUIPMENT, ExerciseEntity
 from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
 from common.fitness.member_entity import get_member_id_from_user_context
 from common.fitness.exercise_schema import exercise_schema
@@ -50,7 +52,7 @@ def exercises_listing_modal(context=None):
     page = int(request.args.get('page', 1))
     filter_terms = get_filter_terms_from_request()
     if as_bool(request.args.get('allow_multi_select', None), False):
-        session[MULTI_SELECT_SESSION_KEY] = []
+        clear_selected_entity_keys(member_id)
     return exercises_listing2(member_id, page=page, filter_terms=filter_terms, modal_mode=True)
 
 def exercises_listing2(member_id, page=1, filter_terms=[], modal_mode=False):
@@ -58,12 +60,12 @@ def exercises_listing2(member_id, page=1, filter_terms=[], modal_mode=False):
 
     page_size = 100
 
-    # Handle view preference
+    # Handle view preference (member-scoped cache, not Flask session - see entities_getter.py note)
     view = (request.form.get('view') if request.method == 'POST' 
-            else request.args.get('view')) or session.get('view_preference', 'list')
+            else request.args.get('view')) or get_cache_value(f'view_preference_{member_id}') or 'list'
     
-    if view != session.get('view_preference'):
-        session['view_preference'] = view
+    if view != get_cache_value(f'view_preference_{member_id}'):
+        set_cache_value(f'view_preference_{member_id}', view)
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     
@@ -71,7 +73,7 @@ def exercises_listing2(member_id, page=1, filter_terms=[], modal_mode=False):
 
     allow_multi_select = as_bool(request.form.get('allow_multi_select', None),
                                   as_bool(request.args.get('allow_multi_select', None), False))
-    selected_entity_keys = resolve_selected_entity_keys(allow_multi_select=allow_multi_select)
+    selected_entity_keys = resolve_selected_entity_keys(member_id, allow_multi_select=allow_multi_select)
 
     # For checkbox toggles, avoid re-rendering listing content. Return only OOB state updates.
     if request.method == 'POST' and request.form.get('multi_select_toggle_key') is not None and allow_multi_select:
@@ -242,11 +244,15 @@ def new_exercise(context=None):
             else:
                 exercise_data[field] = ''
 
- 
+    # movement_categories is not part of the schema, so default it explicitly
+    exercise_data.setdefault('movement_categories', [])
+
     return hx_render_template('exercises/exercise_editor.html',
                          exercise=exercise_data,
                          is_new=True,
                          schema=exercise_schema,
+                         equipment_types=EQUIPMENT,
+                         movement_category_definitions=movement_category_definitions,
                          save_url='/exercises/save',
                          cancel_url=f'/exercises/cancel',
                          context=context)
@@ -272,6 +278,10 @@ def edit_exercise(context=None):
     # Remove Timestamp field if present
     if 'Timestamp' in exercise_data:
         del exercise_data['Timestamp']
+
+    # Older exercises may not have a gif field yet
+    exercise_data.setdefault('gif', '')
+    exercise_data.setdefault('equipment_list', [])
     
     # here we need to determine if the current member can edit the exercise, which is the case if the member is an admin 
     # or if the exercise was created by the member
@@ -324,8 +334,8 @@ def edit_exercise(context=None):
             exercise_data[media_field] = []
             print(f"INFO: {media_field} field doesn't exist, setting to empty array")
 
-    # Parse primary and secondary muscles if they are strings
-    for muscle_field in ['primaryMuscles', 'secondaryMuscles']:
+    # Parse primary and secondary muscles, and movement categories if they are strings
+    for muscle_field in ['primaryMuscles', 'secondaryMuscles', 'movement_categories']:
         if muscle_field in exercise_data:
             muscle_value = exercise_data[muscle_field]
             if isinstance(muscle_value, str) and muscle_value.strip():
@@ -349,12 +359,15 @@ def edit_exercise(context=None):
     
     # Get exercise ID from the composite key or the data
     exercise_id = exercise_data.get('id')
+    equipment_types = list(dict.fromkeys(EQUIPMENT + exercise_data['equipment_list']))
     current_listing_page=request.args.get('page', 1)
     current_listing_filter=request.args.get('filter', '')   
     return hx_render_template('exercises/exercise_editor.html',
                          exercise=exercise_data,
                          is_new=False,
                          schema=exercise_schema,  
+                         equipment_types=equipment_types,
+                         movement_category_definitions=movement_category_definitions,
                          save_url=f'/exercises/save/{exercise_id}?page={current_listing_page}&filter={current_listing_filter}',
                          cancel_url=f'/exercises/cancel?page={current_listing_page}&filter={current_listing_filter}',
                          context=context)
@@ -370,7 +383,7 @@ def save_exercise(exercise_id=None, context=None):
         print(f"DEBUG SAVE: Raw form data received: {dict(request.form)}")
         
         # Handle array fields (checkboxes and multi-selects)
-        array_fields = ['primaryMuscles', 'secondaryMuscles', 'physical_fitness_components']
+        array_fields = ['primaryMuscles', 'secondaryMuscles', 'physical_fitness_components', 'movement_categories', 'equipment_list']
         for field in array_fields:
             if field in exercise_data:
                 values = request.form.getlist(field)
@@ -423,6 +436,8 @@ def save_exercise(exercise_id=None, context=None):
             exercise_data['udf1'] = ''
         if 'udf2' not in exercise_data:
             exercise_data['udf2'] = ''
+        if 'gif' not in exercise_data:
+            exercise_data['gif'] = ''
         
         exercise_data['created_by_member_id'] = get_member_id_from_user_context(context)
 

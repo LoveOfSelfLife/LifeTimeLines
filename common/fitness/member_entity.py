@@ -14,7 +14,7 @@ class UnregisteredMemberException(Exception):
 
 class MemberEntity (EntityObject):
     table_name="MemberTable"
-    fields=["id", "name", "level", "short_name", "email", "mobile", "sms_consent", "email_consent", "image_url", "role"]
+    fields=["id", "name", "level", "short_name", "email", "mobile", "sms_consent", "email_consent", "image_url", "role", "on_the_fly_workout"]
     key_field="id"
     partition_value="member"
     schema = member_schema
@@ -79,11 +79,6 @@ def get_member_detail_from_user_context(user_context):
     return member
 
 def is_member_an_admin(member_id):
-    # if a member is being impersonated, then the person doing the impersonation must be an admin, so we will return true in that case
-    # impersonated_member_id = get_impersonated_member_id()
-    # if impersonated_member_id:
-    #     return True
-
     members_registry = MembershipRegistry()
     member = members_registry.get_member(member_id)
     return member.get('level') >= 10
@@ -92,6 +87,14 @@ def is_member_advanced(member_id):
     members_registry = MembershipRegistry()
     member = members_registry.get_member(member_id)
     return member.get('level') == 5
+
+def member_allows_on_the_fly_workout(member_id):
+    # admins always have access; otherwise it's an opt-in per-member flag, defaulting to False
+    if is_member_an_admin(member_id):
+        return True
+    members_registry = MembershipRegistry()
+    member = members_registry.get_member(member_id)
+    return bool(member.get('on_the_fly_workout', False)) if member else False
 
 def get_member_email_from_member_id(member_id):
     member_registry = MembershipRegistry()

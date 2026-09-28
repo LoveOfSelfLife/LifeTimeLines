@@ -5,7 +5,7 @@ from flask import Blueprint, jsonify, make_response, render_template, request, c
 from common.entity_store import EntityStore
 from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
 from common.fitness.cacher import get_cache_value, set_cache_value, delete_from_cache
-from common.fitness.entities_getter import resolve_selected_workout_keys, delete_entity, get_entities, as_bool
+from common.fitness.entities_getter import resolve_selected_workout_keys, clear_selected_workout_keys, clear_selected_entity_keys, delete_entity, get_entities, as_bool
 from common.fitness.entities_getter import filter_entities_by_member_role
 from common.fitness.exercise_entity import ExerciseEntity, show_exercise_viewer
 from common.fitness.exercise_parameters import get_editor_type_for_unit_parameter, get_editor_type_for_value_parameter
@@ -18,8 +18,9 @@ from common.fitness.edit_workout_object import bring_up_workouts_builder
 from common.fitness.programs import get_last_workout_instance_for_workout
 from common.fitness.programs import get_last_workout_instance_for_workout
 from common.fitness.home_page_view import render_home_page_workout
-from common.fitness.workout_state import get_active_workout_state, update_active_workout_state
+from common.fitness.workout_state import get_active_workout_state, update_active_workout_state, get_last_section, set_last_section as set_last_section_cache, clear_last_section, get_last_exercise_index, set_last_exercise_index as set_last_exercise_index_cache, get_exercise_parameters, set_exercise_parameter, member_id_from_workout_instance_key
 from common.fitness.exercise_alternatives import find_slot, perform_exercise_swap, record_exercise_swap
+from common.fitness.exercise_onthefly import record_exercise_removal, record_exercise_addition
 from common.fitness.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
 
 bp = Blueprint('workouts', __name__, template_folder='templates')
@@ -88,7 +89,7 @@ def workouts_listing2(context=None, page=1, filter_terms=None):
         session['view_preference'] = view
     allow_multi_select = as_bool(request.form.get('allow_multi_select', None),
                                   as_bool(request.args.get('allow_multi_select', None), False))
-    selected_entity_keys = resolve_selected_workout_keys(allow_multi_select=allow_multi_select)    
+    selected_entity_keys = resolve_selected_workout_keys(member_id, allow_multi_select=allow_multi_select)    
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
 
@@ -309,6 +310,10 @@ def builder(context=None, workout_id=None):
         if workout.get('member_program_id', None):
             # If the workout is part of a program, we may want to restrict we should prevent deleting the workout
             can_delete_workout = False
+            # that is, unless the member is an admin
+            if is_member_an_admin(member_id):
+                can_delete_workout = True
+
             
         return hx_render_template('workout_builder2.html', 
                                 workout=workout,
@@ -504,12 +509,13 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
     workout_view_preference = request.args.get('workout_view_preference', 'accordion')
     last_exercise_index_raw = request.args.get('last_exercise_index', None)
     if last_exercise_index_raw in [None, '']:
-        last_exercise_index_raw = session.get(f"last_exercise_index_{workout_id}_{section_name}")
+        last_exercise_index_raw = get_last_exercise_index(get_member_id_from_user_context(context), workout_id, section_name)
     try:
         last_exercise_index = int(last_exercise_index_raw) if last_exercise_index_raw not in [None, ''] else None
     except (TypeError, ValueError):
         last_exercise_index = None
     active_workout = request.args.get('active_workout', 'false').lower() == 'true'
+    allow_on_the_fly_workout = request.args.get('allow_on_the_fly_workout', 'false').lower() == 'true'
     workout_instance = None
     workout_definition = None
     
@@ -541,7 +547,8 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
         exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
 
         current_workout_state = get_active_workout_state()
-        current_parameters = current_workout_state.get('exercise_parameters', {}) if current_workout_state else {}
+        member_id_for_params = workout_instance.get('member_id') if workout_instance else None
+        current_parameters = get_exercise_parameters(member_id_for_params) if member_id_for_params else {}
         if purpose_of_parameter_edit == 'finishing_workout_next_time' and current_workout_state:
             current_parameters = current_workout_state.get('adjustments') or current_parameters
         update_url = url_for('workouts.update_param_in_session')
@@ -599,6 +606,7 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
         workout_instance_key=workout_instance_key,
         can_edit_parameters=can_edit_parameters, 
         active_workout=active_workout,
+        allow_on_the_fly_workout=allow_on_the_fly_workout,
         in_program_builder=editing_program_workout,
         purpose_of_parameter_edit=purpose_of_parameter_edit,
         default_exercise_index=last_exercise_index,
@@ -761,34 +769,33 @@ def workout_dynamic_canvas(context=None, workout_id=None):
 
 def workout_dynamic_canvas2(context=None, workout_id=None):
     w =  get_cache_value('current_workout')
+    if not w:
+        abort(404)
     # add a section type for each section of the workout if it doesn't already exist
     # section type is just the section name after removing everything after the first space, and converting to lowercase, so "Strength A" becomes "strength"
     for sec in w[WORKOUT_SECTIONS]:
         if 'section_type' not in sec:
             sec['section_type'] = map_section_name_to_type(sec['name'])
-    if w:
-        wrkout_exercises = get_exercises_from_workout(w)
-        exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
-        # also look up each exercise's alternatives so the canvas can display their name/media/parameters
-        for sec in w[WORKOUT_SECTIONS]:
-            for item in sec.get('exercises', []):
-                for alt in item.get('alternatives', []):
-                    alt_id = alt.get('id')
-                    if alt_id and alt_id not in exercises:
-                        alt_ex = get_entity("ExerciseTable", alt_id)
-                        if alt_ex:
-                            exercises[alt_id] = alt_ex
-        exercise_parameters_map = extract_workout_parameters_for_workout(workout_id, w, exercises, {}, url_for('workouts.update_param_in_cache'))
-        return hx_render_template('_workout_dynamic_canvas.html',
-                                    workout=w,
-                                    exercises=exercises,
-                                    exercise_parameters = exercise_parameters_map,
-                                    workout_id=workout_id,
-                                    purpose_of_parameter_edit='workout_builder',
-                                    can_edit_parameters=True,
-                                    context=context)
-    else:
-        abort(404)
+    wrkout_exercises = get_exercises_from_workout(w)
+    exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
+    # also look up each exercise's alternatives so the canvas can display their name/media/parameters
+    for sec in w[WORKOUT_SECTIONS]:
+        for item in sec.get('exercises', []):
+            for alt in item.get('alternatives', []):
+                alt_id = alt.get('id')
+                if alt_id and alt_id not in exercises:
+                    alt_ex = get_entity("ExerciseTable", alt_id)
+                    if alt_ex:
+                        exercises[alt_id] = alt_ex
+    exercise_parameters_map = extract_workout_parameters_for_workout(workout_id, w, exercises, {}, url_for('workouts.update_param_in_cache'))
+    return hx_render_template('_workout_dynamic_canvas.html',
+                                workout=w,
+                                exercises=exercises,
+                                exercise_parameters = exercise_parameters_map,
+                                workout_id=workout_id,
+                                purpose_of_parameter_edit='workout_builder',
+                                can_edit_parameters=True,
+                                context=context)
 
 
 def _add_exercise_to_workout(workout, exercise, preferred_section=None):
@@ -910,7 +917,7 @@ def add_multiple_exercises(context=None, workout_id=None):
         added_count += 1
 
     set_cache_value('current_workout', w)
-    session.pop('exercise_modal_selected_keys', None)
+    clear_selected_entity_keys(get_member_id_from_user_context(context))
 
     response = make_response('')
     response.headers['HX-Trigger'] = json.dumps({
@@ -954,7 +961,7 @@ def add_multiple_workouts(context=None):
         added_count += 1
 
     set_cache_value('current_workout', current_workout)
-    session.pop('exercise_modal_selected_keys', None)
+    clear_selected_entity_keys(get_member_id_from_user_context(context))
 
     response = make_response('')
     response.headers['HX-Trigger'] = json.dumps({
@@ -1006,7 +1013,7 @@ def add_multiple_alternatives(context=None, workout_id=None):
         added_count += 1
 
     set_cache_value('current_workout', w)
-    session.pop('exercise_modal_selected_keys', None)
+    clear_selected_entity_keys(get_member_id_from_user_context(context))
 
     response = make_response('')
     response.headers['HX-Trigger'] = json.dumps({
@@ -1036,6 +1043,107 @@ def remove_alternative(context=None, workout_id=None):
         return ('', 200)
 
     return workout_canvas2(context, workout_id)
+
+
+@bp.route('/builder/<workout_id>/swap_alternative', methods=['POST'])
+@auth.login_required
+def swap_alternative(context=None, workout_id=None):
+    """Replace a primary exercise with one of its alternatives in the workout builder."""
+    workout = get_cache_value('current_workout')
+    if not workout or workout['id'] != workout_id:
+        abort(404)
+
+    exercise_id = request.form.get('exercise_id')
+    alternative_id = request.form.get('alternative_id')
+    if not exercise_id or not alternative_id:
+        abort(400, 'exercise_id and alternative_id are required')
+
+    item = find_exercise_item_or_alternative(workout, exercise_id)
+    if not item:
+        abort(404, 'Exercise not found in workout')
+
+    if not perform_exercise_swap(item, alternative_id):
+        abort(404, 'Alternative exercise not found in workout')
+
+    set_cache_value('current_workout', workout)
+    return workout_canvas2(context, workout_id)
+
+
+@bp.route('/builder/<workout_id>/add-as-alternative', methods=['POST'])
+@auth.login_required
+def add_as_alternative(context=None, workout_id=None):
+    """Convert a Ctrl-dragged primary or alternative exercise into an alternative."""
+    workout = get_cache_value('current_workout')
+    if not workout or workout.get('id') != workout_id:
+        abort(404)
+
+    exercise_id = request.form.get('exercise_id')
+    source_parent_exercise_id = request.form.get('source_parent_exercise_id')
+    target_exercise_id = request.form.get('target_exercise_id')
+    if not exercise_id or not target_exercise_id or exercise_id == target_exercise_id:
+        abort(400, 'Different exercise_id and target_exercise_id values are required')
+
+    source_item = None
+    source_section = None
+    target_item = None
+    for section in workout[WORKOUT_SECTIONS]:
+        for item in section['exercises']:
+            if not source_parent_exercise_id and item['id'] == exercise_id and source_item is None:
+                source_item = item
+                source_section = section
+            if item['id'] == target_exercise_id and target_item is None:
+                target_item = item
+            if item['id'] == source_parent_exercise_id:
+                for alternative in item.get('alternatives', []):
+                    if alternative['id'] == exercise_id:
+                        source_item = alternative
+                        source_section = item
+                        break
+    if not source_item or not target_item:
+        abort(404, 'Exercise not found in workout')
+    if source_section is target_item:
+        abort(400, 'An alternative cannot be added to its current primary exercise')
+
+    if source_parent_exercise_id:
+        source_section['alternatives'].remove(source_item)
+    else:
+        source_section['exercises'].remove(source_item)
+    target_item.setdefault('alternatives', []).append(source_item)
+
+    set_cache_value('current_workout', workout)
+    return workout_dynamic_canvas2(context, workout_id)
+
+
+@bp.route('/builder/<workout_id>/promote-alternative', methods=['POST'])
+@auth.login_required
+def promote_alternative(context=None, workout_id=None):
+    """Move a normally dragged alternative into a primary exercise list position."""
+    workout = get_cache_value('current_workout')
+    if not workout or workout.get('id') != workout_id:
+        abort(404)
+
+    exercise_id = request.form.get('exercise_id')
+    source_parent_exercise_id = request.form.get('source_parent_exercise_id')
+    target_section_name = request.form.get('target_section')
+    target_index = request.form.get('target_index', type=int)
+    if not exercise_id or not source_parent_exercise_id or target_section_name is None or target_index is None:
+        abort(400, 'Alternative, parent, and target position are required')
+
+    source_parent = find_exercise_item_or_alternative(workout, source_parent_exercise_id)
+    target_section = next((section for section in workout[WORKOUT_SECTIONS] if section['name'] == target_section_name), None)
+    if not source_parent or not target_section:
+        abort(404, 'Exercise or section not found')
+
+    alternative = next((item for item in source_parent.get('alternatives', []) if item['id'] == exercise_id), None)
+    if not alternative:
+        abort(404, 'Alternative exercise not found')
+
+    source_parent['alternatives'].remove(alternative)
+    target_index = max(0, min(target_index, len(target_section['exercises'])))
+    target_section['exercises'].insert(target_index, alternative)
+
+    set_cache_value('current_workout', workout)
+    return workout_dynamic_canvas2(context, workout_id)
 
 # this is the method we use to add a source workout to an existing workout, which is the current workout in the cache.  
 # We will add all the exercises from the source workout to the current workout, including their parameters.
@@ -1074,20 +1182,6 @@ def add_exercises_to_section(src_sect, curr_sect):
     # add the exercises from the wk section to the current workout section
     for ex in src_sect['exercises']:
         curr_sect['exercises'].append( copy.deepcopy(ex) )
-
-        # curr_sect['exercises'].append({
-        #               'id':ex['id'],
-        #               'parameters':{'S':ex['parameters'].get('S', ''),
-        #                             'R':ex['parameters'].get('R', ''),
-        #                             'T':ex['parameters'].get('T', 'secs'),
-        #                             'Tu':ex['parameters'].get('Tu', ''),
-        #                             'D':ex['parameters'].get('D', ''),
-        #                             'Du':ex['parameters'].get('Du', 'ft'),
-        #                             'F':ex['parameters'].get('F', ''),
-        #                             'Fu':ex['parameters'].get('Fu', 'lbs'),
-        #                             'P':ex['parameters'].get('P', ''),
-        #                             'Pu':ex['parameters'].get('Pu', '')}
-        #             })
 
 
 @bp.route('/builder/<workout_id>/remove', methods=['POST'])
@@ -1217,11 +1311,10 @@ def save_data(workout_id, exercise_id, param, context=None):
             print("No active workout state found in session. This should not happen if the active workout flag is set. Aborting update.")
             return ('', 400)
 
-        exercise = current_workout_state['exercise_parameters'].get(exercise_id, {})
-        exercise[param] = new_value
-        current_workout_state['exercise_parameters'][exercise_id] = exercise
-
-        update_active_workout_state(current_workout_state)
+        # stored as an atomic per-exercise Redis hash field, not in the session blob, so rapid
+        # successive field saves can never race and clobber each other's values
+        member_id = member_id_from_workout_instance_key(current_workout_state.get('workout_instance_key'))
+        set_exercise_parameter(member_id, exercise_id, param, new_value)
 
     else:
         print(f"Active workout flag is not set. This means the user is editing the workout in the workout builder and we should update the workout in the cache with the new parameter value so that it is reflected in the workout builder view.")
@@ -1235,7 +1328,8 @@ def save_data(workout_id, exercise_id, param, context=None):
             adjustments = current_workout_state.get('adjustments', {})
             exercise = adjustments.get(exercise_id)
             if exercise is None:
-                exercise = current_workout_state.get('exercise_parameters', {}).get(exercise_id, {}).copy()
+                member_id = member_id_from_workout_instance_key(current_workout_state.get('workout_instance_key'))
+                exercise = get_exercise_parameters(member_id).get(exercise_id, {}).copy()
             exercise[param] = new_value
             adjustments[exercise_id] = exercise
             current_workout_state['adjustments'] = adjustments
@@ -1523,7 +1617,7 @@ def workouts_listing_modal(context=None):
     if not member_id:
         abort(401)
 
-    session[PROGRAM_MULTI_SELECT_SESSION_KEY] = []
+    clear_selected_workout_keys(member_id)
 
     page = int(request.args.get('page', 1))
     page_size = 100
@@ -1612,220 +1706,6 @@ def builder_workouts_listing(context=None):
         modal_mode=False,
         context=context)
 
-# ── Main exercise reviewer View ─────────────────────────────────────────────
-# this will display two panels, the one on the left will be the list of exercises
-# and the one on the right will be the details of whatever exercise is selected from the list on the left
-# whichever exercise is selected, will be added to the redis cache as the current exercise being reviewed
-# the action button on the exercise reviewer list will create a form with the exercise details, and the results
-# will targeted for the exercise reviewer details panel
-
-# @bp.route('/exercise_reviewer')
-# @auth.login_required
-# def exercise_reviewer(context=None):
-
-#     return hx_render_template('exercise_reviewer.html',
-#                               context=context)
-
-# @bp.route('/exercise_reviewer_listing', methods=['GET', 'POST'])
-# @auth.login_required
-# def exercise_reviewer_listing(context=None):
-#     exercise_id = request.args.get('exercise_id', None)
-#     target = request.args.get('target', None)
-
-#     mobile = request.args.get('mobile', type=bool, default=False)
-#     div_id = 'reviewer-list-mobile' if mobile else 'reviewer-list'
-#     target = div_id
-#     member_id = get_member_id_from_user_context(context)
-#     if not member_id:
-#         abort(401)    
-#     entity_name = "ExerciseTable"
-#     page = int(request.args.get('page', 1))
-#     page_size = 100
-
-#     # Handle view preference
-#     view = (request.form.get('view') if request.method == 'POST' 
-#             else request.args.get('view')) or session.get('view_preference', 'list')
-    
-#     if view != session.get('view_preference'):
-#         session['view_preference'] = view
-    
-#     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
-#     filter_terms = get_filter_terms_from_request()
-#     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
-    
-#     total_pages = (len(entities) + page_size - 1) // page_size
-#     start = (page - 1) * page_size
-#     end = start + page_size
-#     current = entities[start:end]
-
-#     if not entity_name:
-#         return "No entity name provided", 404
-#     entity_type = get_entity_obj_from_entity_name(entity_name)
-
-#     if request.headers.get('HX-Target') == 'results-area':
-#         template_file_name = 'entity_results_partial.html'
-#     else:
-#         template_file_name = 'entity_list_component.html'
-
-#     return hx_render_template(template_file_name,
-#                               fields_to_display=fields_to_display,
-#                               main_content_container='xyz',
-#                               entities=current,
-#                               entity_name=entity_name,
-#                               entity_display_name=entity_type.get_display_name(),
-#                               filter_terms=filter_terms,
-#                               args=request.args,
-#                               page=page,
-#                               view=view,
-#                               total_pages=total_pages,
-#                               filter_dialog_route=f'/workouts/exercise_reviewer/filter-dialog?entity_table={entity_name}&target={target}',
-#                               entities_listing_route=f'/workouts/exercise_reviewer_listing?target={target}',
-#                               entity_view_route=f'/exercises/view?entity_table={entity_name}',
-#                               entity_action_route=f'/workouts/exercise_reviewer/review?target={target}',
-#                               entity_action_route_method='post',
-#                               entity_action_route_target="canvas",                              
-#                               entity_action_icon='bi-arrow-right-square-fill',
-#                               favorite_toggle_route='/admin/toggle-favorite',
-#                               results_target_container=target if target else 'results-area',
-#                               context=context)      
-
-# @bp.route('/exercise_reviewer/filter-dialog')
-# @auth.login_required
-# def exercise_reviewer_filter_dialog(context=None):
-#     target = request.args.get('target', None)
-#     entity_name = "ExerciseTable"
-#     entity_type = get_entity_obj_from_entity_name(entity_name)
-#     filters = get_fitnessclub_entity_filters_for_entity(entity_name)
-
-#     return hx_render_template('filter_dialog.html', 
-#                               entities_listing_route=f'/workouts/exercise_reviewer_listing?target={target}',
-#                               filter_results_target=target,
-#                               entity_display_name=entity_type.get_display_name(),                              
-#                               entity_name=entity_name,
-#                               filters=filters,
-#                               args=request.args,
-#                               context=context)
-
-# @bp.route('/exercise_reviewer/review', methods=['POST'])
-# @auth.login_required
-# def exercise_reviewer_review(context=None):
-
-#     composite_key_str = request.args.get('key', None)
-#     composite_key = eval(composite_key_str) if composite_key_str else None
-#     es = EntityStore()
-
-#     ex = es.get_item_by_composite_key(composite_key)
-#     if not ex:
-#         abort(404)
-    
-#     exercise_id = ex['id']
-
-#     set_cache_value('current_exercise_being_reviewed', ex)
-
-#     return exercise_reviewer_editor_canvas2(context, exercise_id)
-
-
-# @bp.route('/exercise_reviewer/<exercise_id>/canvas')
-# @auth.login_required
-# def exercise_reviewer_editor_canvas(context=None, exercise_id=None):
-#     return exercise_reviewer_editor_canvas2(context, exercise_id)
-
-# def exercise_reviewer_editor_canvas2(context=None, exercise_id=None):
-#     es = EntityStore()
-
-#     exercise =  get_cache_value('current_exercise_being_reviewed')
-#     if not exercise:
-#         abort(404)
-
-#     exercise_id = exercise['id']
-    
-#     er = ExerciseReviewEntity({ "id": exercise_id })
-#     exercise_review = es.get_item(er)
-#     if not exercise_review:
-#         exercise_review = ExerciseReviewEntity({ "id": exercise_id })
-#         es.upsert_item(exercise_review)
-
-#     return hx_render_template('exercise_reviewer_editor_canvas.html',
-#                             exercise=exercise,
-#                             exercise_review=exercise_review,
-#                             exercise_review_schema=exercise_review.get_schema(),
-#                             update_entity_url=url_for('workouts.update_exercise_review')
-#                             )
-
-
-# @bp.route('/exercise_reviewer/updatereview', methods=['POST'])
-# @auth.login_required
-# def update_exercise_review(context=None):
-#     table_id = "ExerciseReviewTable"
-#     data = request.get_json(silent=True)
-#     if data is None:
-#         return jsonify({"error": "Invalid or missing JSON"}), 400
-
-#     print(f"Received JSON payload for table {table_id}: {data}")
-#     entity = get_entity_obj_from_entity_name(table_id)        
-
-#     es = EntityStore()
-    
-#     # this assumes that the entity uses 'id' as the key field
-#     # it also assumes that the entity has a fixed partition value
-#     # probably need to make this more generic in the future
-#     # TODO: fix this to be more generic
-
-#     entity.initialize(data)
-#     es.upsert_item(entity)
-
-#     response = make_response('')
-#     response.headers['HX-Trigger'] = json.dumps({
-#         "entityListChanged": True,
-#         "showMessage": { "value": f"item was saved.", "target": "body" }
-#     })
-
-#     return response
-
-
-# @bp.route('/exercise_reviewer/<exercise_id>/updatename', methods=['POST'])
-# @auth.login_required
-# def update_exercise_name(context=None, exercise_id=None):
-
-#     ex = get_cache_value('current_exercise_being_reviewed')
-#     if not ex:
-#         abort(404)    
-#     ex['name'] = request.form['name']
-
-#     set_cache_value('current_exercise_being_reviewed', ex)
-
-#     return exercise_reviewer_editor_canvas2(context, exercise_id)
-
-
-# @bp.route('/exercise_reviewer/save', methods=['POST'])
-# @auth.login_required
-# def reviewer_save_exercise(context=None):
-#     EXERCISE_ENTITY_NAME= "ExerciseTable"
-#     member_id = get_member_id_from_user_context(context)
-#     if not member_id:
-#         abort(401)
-#     exercise_id = request.form['exercise_id']
-    
-#     ex = get_cache_value('current_exercise_being_reviewed')
-#     if not ex or ex['id'] != exercise_id:
-#         abort(404)
-
-#     exercise_type : ExerciseEntity = get_entity_obj_from_entity_name(EXERCISE_ENTITY_NAME)
-
-#     print('Saving workout')
-#     es = EntityStore()
-#     exercise_type.initialize(ex)
-#     es.upsert_item(exercise_type)
-#     delete_from_cache('current_exercise_being_reviewed')
-
-#     response = make_response('')
-#     response.headers['HX-Trigger'] = json.dumps({
-#         "eventListChanged": True,
-#         "showMessage": { "value" : "exercise saved", "target": "body" }
-#     })
-
-#     return response
-
 
 # ── Workout View ────────────────────────────────────────────────
 
@@ -1851,12 +1731,13 @@ def view_workout(context=None):
     
     # Get current workout state to see if there are any parameter overrides
     current_workout_state = get_active_workout_state()
+    member_id = get_member_id_from_user_context(context)
     current_parameters = {}
     if current_workout_state:
-        current_parameters = current_workout_state.get('exercise_parameters', {})
+        current_parameters = get_exercise_parameters(member_id)
     
-    # new: only use the session value if it exists
-    last = session.get(f"last_section_{workout_key_str}")  # no fallback
+    # new: only use the cached value if it exists
+    last = get_last_section(member_id, workout_key_str)
 
     workout_sections = workout[WORKOUT_SECTIONS]        
 
@@ -1868,7 +1749,7 @@ def view_workout(context=None):
                 break
 
     last_exercise_indexes_by_section = {
-        section.get('name'): session.get(f"last_exercise_index_{workout.get('id')}_{section.get('name')}")
+        section.get('name'): get_last_exercise_index(member_id, workout.get('id'), section.get('name'))
         for section in workout_sections
     }
         
@@ -1894,7 +1775,7 @@ from common.fitness.entities_getter import get_entity
 def set_last_section(context=None, workout_id=None, section_name=None):
     # guard: make sure section_name is valid for this workout_id…
     print(f"Setting last section for workout {workout_id} to {section_name}")
-    session[f"last_section_{workout_id}"] = section_name
+    set_last_section_cache(get_member_id_from_user_context(context), workout_id, section_name)
     return ("", 204)
 
 @bp.route("/viewer/workout/<workout_id>/set_last_exercise_index/<section_name>", methods=["POST"])
@@ -1907,7 +1788,7 @@ def set_last_exercise_index(context=None, workout_id=None, section_name=None, ex
             exercise_index = int(exercise_index_raw) if exercise_index_raw is not None else 0
         except (TypeError, ValueError):
             exercise_index = 0
-    session[f"last_exercise_index_{workout_id}_{section_name}"] = exercise_index
+    set_last_exercise_index_cache(get_member_id_from_user_context(context), workout_id, section_name, exercise_index)
     return ("", 204)
 
 @bp.route("/viewer/exercise/<exercise_id>/details")
@@ -2195,6 +2076,105 @@ def swap_exercise_alternative(context=None, section_name=None, slot_index=None):
     response.headers['HX-Trigger'] = json.dumps({
         "exerciseSwapped": {"target": "body"},
         "closeModal": {"target": "body"}
+    })
+    return response
+
+
+@bp.route("/viewer/exercise/active/remove", methods=["POST"])
+@auth.login_required
+def remove_active_exercise(context=None):
+    """Remove an exercise from the active workout instance (on-the-fly editing)."""
+    workout_instance_key = request.form.get("workout_instance_key", None)
+    section_name = request.form.get("section_name", None)
+    slot_index_raw = request.form.get("slot_index", None)
+    if not workout_instance_key or section_name is None or slot_index_raw is None:
+        abort(400, "workout_instance_key, section_name and slot_index are required")
+    slot_index = int(slot_index_raw)
+
+    es = EntityStore()
+    workout_instance = es.get_item_by_composite_key(literal_eval(workout_instance_key))
+    if not workout_instance:
+        abort(404, "Workout instance not found")
+
+    section = get_workout_section(workout_instance, section_name)
+    if not section or slot_index >= len(section.get('exercises', [])):
+        abort(404, "Exercise slot not found")
+
+    removed_item = section['exercises'].pop(slot_index)
+    es.upsert_item(workout_instance)
+
+    current_workout_state = get_active_workout_state() or {}
+    record_exercise_removal(current_workout_state, removed_item.get('id'))
+    update_active_workout_state(current_workout_state)
+
+    response = make_response('')
+    response.headers['HX-Trigger'] = json.dumps({
+        "workoutChanged": {"target": "body"}
+    })
+    return response
+
+
+@bp.route("/viewer/exercise/active/add", methods=["POST"])
+@auth.login_required
+def add_active_exercises(context=None):
+    """Add one or more exercises to the active workout instance, right after a given slot (on-the-fly editing)."""
+    workout_instance_key = request.args.get("workout_instance_key") or request.form.get("workout_instance_key")
+    section_name = request.args.get("section_name") or request.form.get("section_name")
+    slot_index_raw = request.args.get("slot_index") or request.form.get("slot_index")
+    if not workout_instance_key or section_name is None or slot_index_raw is None:
+        abort(400, "workout_instance_key, section_name and slot_index are required")
+    slot_index = int(slot_index_raw)
+
+    es = EntityStore()
+    workout_instance = es.get_item_by_composite_key(literal_eval(workout_instance_key))
+    if not workout_instance:
+        abort(404, "Workout instance not found")
+
+    section = get_workout_section(workout_instance, section_name)
+    if not section:
+        abort(404, "Section not found")
+
+    selected_keys = request.form.getlist('selected_entity_keys')
+    selected_keys = list(dict.fromkeys([key for key in selected_keys if key]))
+
+    if not selected_keys:
+        response = make_response('')
+        response.headers['HX-Trigger'] = json.dumps({
+            "showMessage": {"target": "body", "value": "No exercises selected."}
+        })
+        return response
+
+    exercises_list = section['exercises']
+    insert_pos = min(slot_index + 1, len(exercises_list))
+    anchor_id = exercises_list[slot_index].get('id') if 0 <= slot_index < len(exercises_list) else None
+
+    current_workout_state = get_active_workout_state() or {}
+    added_count = 0
+    for composite_key_str in selected_keys:
+        try:
+            composite_key = literal_eval(composite_key_str)
+        except (ValueError, SyntaxError):
+            continue
+
+        ex = es.get_item_by_composite_key(composite_key)
+        if not ex:
+            continue
+
+        new_item = {'id': ex['id'], 'parameters': get_initial_params_for_exercise(), 'alternatives': []}
+        exercises_list.insert(insert_pos, new_item)
+        record_exercise_addition(current_workout_state, section_name, anchor_id, new_item['id'], new_item['parameters'])
+        anchor_id = new_item['id']
+        insert_pos += 1
+        added_count += 1
+
+    es.upsert_item(workout_instance)
+    update_active_workout_state(current_workout_state)
+
+    response = make_response('')
+    response.headers['HX-Trigger'] = json.dumps({
+        "workoutChanged": {"target": "body"},
+        "closeModal": {"target": "body"},
+        "showMessage": {"target": "body", "value": f"Added {added_count} exercise(s)."}
     })
     return response
 

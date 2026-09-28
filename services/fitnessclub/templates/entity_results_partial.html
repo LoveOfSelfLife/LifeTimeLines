@@ -1,6 +1,5 @@
 
 
-              
 <input type="hidden" name="view" value="{{ view }}">
 {% set allow_multi_select = allow_multi_select|default(false) %}
 {% set multi_select_checkbox_name = multi_select_checkbox_name|default('selected_entity_keys') %}
@@ -25,15 +24,15 @@
     {% endif %}
 
     <div class="table-responsive">
-        <table class="table table-hover entity-table align-middle">
+        <table class="table table-hover entity-table align-middle" style="table-layout: fixed; width:100%;">
             <thead>
                 <tr>
                     {% if allow_multi_select %}
-                    <th scope="col" class="text-center" style="width: 1%;">
+                    <th scope="col" class="text-center" style="width: 24px;">
                         <i class="bi bi-check2-square"></i>
                     </th>
                     {% endif %}
-                    <th scope="col" class="text-center" style="width: 1%;">
+                    <th scope="col" class="text-center" style="width: 24px;">
                         <i class="bi bi-heart"></i>
                     </th>
                     {% for field in fields_to_display.listing_view %}

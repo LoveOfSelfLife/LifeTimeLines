@@ -178,6 +178,111 @@ function stopRecording(type) {
 }
 
 /**
+ * Handle GIF file upload from input
+ */
+function handleGifUpload(input) {
+    const file = input.files[0];
+    if (!file) {
+        return;
+    }
+    if (!file.type.includes('gif') && !file.name.toLowerCase().endsWith('.gif')) {
+        showEditorToast('Please select a GIF file');
+        input.value = '';
+        return;
+    }
+    uploadGifFile(file);
+    input.value = '';
+}
+
+/**
+ * Upload GIF file to cloud storage and store its URL
+ */
+async function uploadGifFile(file) {
+    const formData = new FormData();
+    formData.append('file', file, file.name);
+
+    try {
+        const response = await fetch('/api/upload/fitness-media', {
+            method: 'POST',
+            body: formData,
+            credentials: 'same-origin'
+        });
+
+        if (!response.ok) {
+            throw new Error(`Upload failed: ${response.statusText}`);
+        }
+
+        const result = await response.json();
+
+        if (result.url) {
+            window.gifUrl = result.url;
+            const gifField = document.getElementById('gif');
+            if (gifField) {
+                gifField.value = window.gifUrl;
+            }
+            renderGif();
+            showEditorToast('GIF uploaded successfully!');
+        }
+    } catch (err) {
+        console.error('GIF upload error:', err);
+        showEditorToast(`Upload failed: ${err.message}`);
+    }
+}
+
+/**
+ * Remove the current GIF
+ */
+function removeGif() {
+    if (confirm('Are you sure you want to remove this GIF?')) {
+        window.gifUrl = '';
+        const gifField = document.getElementById('gif');
+        if (gifField) {
+            gifField.value = '';
+        }
+        renderGif();
+        showEditorToast('GIF removed');
+    }
+}
+
+/**
+ * Render GIF preview
+ */
+function renderGif() {
+    const container = document.getElementById('gif-container');
+    if (!container) {
+        return;
+    }
+
+    if (!window.gifUrl) {
+        container.innerHTML = `
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-file-earmark-play display-4"></i>
+                <p class="mt-2">No GIF added yet. Upload a file.</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="media-item card mb-3">
+            <div class="row g-0">
+                <div class="col-md-4">
+                    <img src="${window.gifUrl}" class="img-fluid rounded-start" alt="Exercise GIF"
+                         style="height: 150px; object-fit: cover; width: 100%;">
+                </div>
+                <div class="col-md-8">
+                    <div class="card-body text-end">
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="removeGif()">
+                            <i class="bi bi-trash"></i> Remove
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
  * Handle file upload from input
  */
 function handleFileUpload(input, type) {
@@ -329,6 +434,7 @@ function renderMedia() {
     console.log('renderMedia called - Images:', window.imagesData, 'Videos:', window.videosData);
     renderImages();
     renderVideos();
+    renderGif();
 }
 
 /**

@@ -65,39 +65,156 @@ document.addEventListener('htmx:load', function (event) {
 
 function initSortables() {
   console.log('initSortables called');
+  if (window.controlDragActive === undefined) {
+    window.controlDragActive = false;
+  }
+  function getAlternativeDropTarget(originalEvent) {
+    if (!originalEvent || originalEvent.clientX == null || originalEvent.clientY == null) {
+      return null;
+    }
+    return [...document.querySelectorAll('.workout-alt-drop-list')].find(dropTarget => {
+      const bounds = dropTarget.getBoundingClientRect();
+      return originalEvent.clientX >= bounds.left
+        && originalEvent.clientX <= bounds.right
+        && originalEvent.clientY >= bounds.top
+        && originalEvent.clientY <= bounds.bottom;
+    }) || null;
+  }
+
+  function updateAlternativeDropHighlight(originalEvent, sourceElement) {
+    document.querySelectorAll('.workout-alt-drop-list.ctrl-drag-over').forEach(dropTarget => {
+      dropTarget.classList.remove('ctrl-drag-over');
+    });
+
+    const isControlDrag = (originalEvent && originalEvent.ctrlKey) || window.controlDragActive;
+    const dropTarget = isControlDrag ? getAlternativeDropTarget(originalEvent) : null;
+    if (dropTarget && dropTarget.dataset.primaryExerciseId !== sourceElement.dataset.parentExerciseId
+      && dropTarget.dataset.primaryExerciseId !== sourceElement.dataset.exerciseId) {
+      dropTarget.classList.add('ctrl-drag-over');
+    }
+    return dropTarget;
+  }
+
+  if (!window.workoutControlDragListenersInstalled) {
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Control') {
+        window.controlDragActive = true;
+      }
+    });
+    document.addEventListener('keyup', event => {
+      if (event.key === 'Control') {
+        window.controlDragActive = false;
+        document.querySelectorAll('.workout-alt-drop-list.ctrl-drag-over').forEach(dropTarget => {
+          dropTarget.classList.remove('ctrl-drag-over');
+        });
+      }
+    });
+    window.workoutControlDragListenersInstalled = true;
+  }
+
   document.querySelectorAll('.section-list').forEach(listEl => {
+    if (Sortable.get(listEl)) {
+      return;
+    }
     Sortable.create(listEl, {
-      group: 'sections',         // ← allow cross‐list dragging
+      group: 'sections',
       handle: '.drag-handle',
       animation: 150,
+      onMove(evt) {
+        updateAlternativeDropHighlight(evt.originalEvent, evt.dragged);
+        return !(evt.originalEvent.ctrlKey || window.controlDragActive);
+      },
       onEnd(evt) {
         const exId = evt.item.dataset.exerciseId;
         const workoutId = evt.item.dataset.workoutId;
+        const alternativeDropTarget = updateAlternativeDropHighlight(evt.originalEvent, evt.item);
+        const isControlDrag = evt.originalEvent.ctrlKey || window.controlDragActive;
+        if (isControlDrag && alternativeDropTarget) {
+          htmx.ajax('POST', '/workouts/builder/' + workoutId + '/add-as-alternative', {
+            values: {
+              exercise_id: exId,
+              target_exercise_id: alternativeDropTarget.dataset.primaryExerciseId
+            },
+            target: '#canvas',
+            swap: 'innerHTML'
+          });
+          return;
+        }
+        if (isControlDrag) {
+          return;
+        }
+
         const from = evt.from.dataset.section;
         const to = evt.to.dataset.section;
         const order = [...evt.to.children].map(li => li.dataset.exerciseId);
 
         if (from !== to) {
-          // 1) Tell the server “move” first
-          htmx.ajax('POST',
-            '/workouts/builder/' + workoutId + '/move',
-            {
-              values: { exercise_id: exId, to_section: to },
-              target: '#canvas',
-              swap: 'innerHTML'
-            }
-          );
-        }
-
-        // 2) Then reorder the destination section to match the drop order
-        htmx.ajax('POST',
-          '/workouts/builder/' + workoutId + '/reorder',
-          {
-            values: { section: to, 'order[]': order },
+          htmx.ajax('POST', '/workouts/builder/' + workoutId + '/move', {
+            values: { exercise_id: exId, to_section: to },
             target: '#canvas',
             swap: 'innerHTML'
-          }
-        );
+          });
+        }
+
+        htmx.ajax('POST', '/workouts/builder/' + workoutId + '/reorder', {
+          values: {
+            section: to,
+            'order[]': order
+          },
+          target: '#canvas',
+          swap: 'innerHTML'
+        });
+      }
+    });
+  });
+
+  document.querySelectorAll('.workout-alt-drop-list').forEach(listEl => {
+    if (Sortable.get(listEl)) {
+      return;
+    }
+    Sortable.create(listEl, {
+      group: 'sections',
+      handle: '.alternative-drag-handle',
+      draggable: '.workout-alt-item',
+      animation: 150,
+      onMove(evt) {
+        updateAlternativeDropHighlight(evt.originalEvent, evt.dragged);
+        return evt.to.classList.contains('section-list')
+          && !(evt.originalEvent.ctrlKey || window.controlDragActive);
+      },
+      onEnd(evt) {
+        const alternativeId = evt.item.dataset.exerciseId;
+        const sourceParentId = evt.item.dataset.parentExerciseId;
+        const workoutId = evt.item.dataset.workoutId;
+        const alternativeDropTarget = updateAlternativeDropHighlight(evt.originalEvent, evt.item);
+        const isControlDrag = evt.originalEvent.ctrlKey || window.controlDragActive;
+
+        if (isControlDrag && alternativeDropTarget) {
+          htmx.ajax('POST', '/workouts/builder/' + workoutId + '/add-as-alternative', {
+            values: {
+              exercise_id: alternativeId,
+              source_parent_exercise_id: sourceParentId,
+              target_exercise_id: alternativeDropTarget.dataset.primaryExerciseId
+            },
+            target: '#canvas',
+            swap: 'innerHTML'
+          });
+          return;
+        }
+        if (isControlDrag || !evt.to.classList.contains('section-list')) {
+          return;
+        }
+
+        htmx.ajax('POST', '/workouts/builder/' + workoutId + '/promote-alternative', {
+          values: {
+            exercise_id: alternativeId,
+            source_parent_exercise_id: sourceParentId,
+            target_section: evt.to.dataset.section,
+            target_index: evt.newIndex
+          },
+          target: '#canvas',
+          swap: 'innerHTML'
+        });
       }
     });
   });
