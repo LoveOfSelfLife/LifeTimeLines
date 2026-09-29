@@ -19,6 +19,9 @@ def render_template_string_or_file(template_file=None, template_string=None, **k
     else:
         return render_template(template_file, **kwargs)
 
+def hx_render_string(template_string=None, **kwargs):
+    return render_template_string_or_file(template_string=template_string, **kwargs)
+
 def hx_render_template(template_file=None, template_string=None, **kwargs):
     context = kwargs.get('context', None)
     if request.headers.get("HX-Request"):
