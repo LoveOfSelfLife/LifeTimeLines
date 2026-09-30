@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LifeTimeLines - Home</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='site.css') }}" />
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="logo">LifeTimeLines</div>
+      <div class="nav-buttons">
+
+      </div>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="hero-overlay bg-dark text-white">
+      <h1>Welcome to your LifeTime Timelines</h1>
+      <a href="{{ auth_uri }}" class="hero-btn">Sign In</a>        
+    </div>
+  </section>
+</body>
+</html>
