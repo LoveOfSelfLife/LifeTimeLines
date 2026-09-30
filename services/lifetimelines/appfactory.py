@@ -1,7 +1,7 @@
 import os
 import signal
 from cachelib import RedisCache
-from flask import Flask
+from flask import Flask, app
 from flask_cors import CORS   
 from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
@@ -26,7 +26,8 @@ def create_app():
     app : Flask = Flask(__name__)
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.secret_key = Env.SECRET_KEY
-
+    app.config['EXPLAIN_TEMPLATE_LOADING'] = True
+    
     # Configure Redis and Flask-Session
     app.config['SESSION_TYPE'] = 'redis'
     app.config['SESSION_PERMANENT'] = True

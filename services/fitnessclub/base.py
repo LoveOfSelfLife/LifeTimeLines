@@ -107,7 +107,7 @@ def logout():
         session.pop(key) 
     
     authority_template = "https://{tenant}.b2clogin.com/{tenant}.onmicrosoft.com/{user_flow}"
-    signupsignin_user_flow = os.environ["SIGNUPSIGNIN_USER_FLOW"] = "1"
+    signupsignin_user_flow = os.environ["SIGNUPSIGNIN_USER_FLOW"]
     b2c_tenant = os.environ["B2C_TENANT_NAME"]
     AUTHORITY_URL = authority_template.format(tenant=b2c_tenant, user_flow=signupsignin_user_flow)
 
@@ -117,7 +117,7 @@ def logout():
 @bp.route("/signout_callback")
 def signout_callback():
     print("signout_callback")
-    return redirect(url_for("index"))
+    return redirect(url_for(".index"))
 
 @bp.route("/api/upload/<container_name>", methods=["POST"])
 @auth.login_required
