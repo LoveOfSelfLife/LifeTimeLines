@@ -1,6 +1,6 @@
 from ast import pattern
 
-from flask import render_template, render_template_string, request, session
+from flask import current_app, render_template, render_template_string, request, session
 
 
 from common.fitness.member_entity import MembershipRegistry, get_member_email_from_user_context, get_member_id_from_user_context, get_member_name_from_user_context, is_member_an_admin, FirstTimeUserException, UnregisteredMemberException
@@ -45,7 +45,8 @@ def hx_render_template(template_file=None, template_string=None, **kwargs):
                 if impersonated_member_id:
                     impersonated_member = members_registry.get_member(impersonated_member_id)
                 
-                return render_template('base.html', content=content, show_admin_menu=show_admin_menu, 
+                return render_template('base_generic.html', app_metadata=current_app.config['APP_METADATA'],
+                                     content=content, show_admin_menu=show_admin_menu, 
                                      role_context=role_context, impersonated_member=impersonated_member, **kwargs)
 
             except UnregisteredMemberException as e:
@@ -82,7 +83,8 @@ def hx_render_template(template_file=None, template_string=None, **kwargs):
                 'available_teams': [],
                 'can_select_team': False
             }
-            return render_template('base.html', content=content, show_admin_menu=show_admin_menu, 
+            return render_template('base_generic.html', app_metadata=current_app.config['APP_METADATA'],
+                                 content=content, show_admin_menu=show_admin_menu, 
                                  role_context=role_context, impersonated_member=impersonated_member, **kwargs)
 
 

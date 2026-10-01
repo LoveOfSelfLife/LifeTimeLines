@@ -1,5 +1,6 @@
 import os
 import signal
+import json
 
 # from cachelib import FileSystemCache
 from cachelib import RedisCache
@@ -32,6 +33,9 @@ def create_app():
     initialize_environment()
     
     app : Flask = Flask(__name__)
+    with app.open_resource('templates/base_metadata.json') as metadata_file:
+        app.config['APP_METADATA'] = json.load(metadata_file)
+
     # app.config['EXPLAIN_TEMPLATE_LOADING'] = True
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.secret_key = Env.SECRET_KEY

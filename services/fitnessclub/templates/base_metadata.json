@@ -1,0 +1,130 @@
+{
+  "html_lang": "en",
+  "charset": "UTF-8",
+  "title": "Active Friends Club",
+  "static_endpoint": "static",
+  "stylesheets": [
+    { "url": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" },
+    { "static_asset": "favicon.ico", "rel": "shortcut icon", "type": "image/x-icon" },
+    { "static_asset": "site.css" },
+    { "url": "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" },
+    { "url": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" },
+    { "url": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" }
+  ],
+  "scripts": [
+    { "url": "https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js" },
+    { "url": "https://cdnjs.cloudflare.com/ajax/libs/htmx/2.0.4/htmx.min.js", "crossorigin": "anonymous" },
+    { "static_asset": "js/_hyperscript-0.9.7.js" },
+    { "static_asset": "js/rsjs-menu.js", "module": true },
+    { "url": "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.js" },
+    { "static_asset": "app.js" },
+    { "url": "https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js" },
+    { "static_asset": "dialog.js", "defer": true },
+    { "static_asset": "toast.js", "defer": true },
+    { "url": "https://unpkg.com/alpinejs@3/dist/cdn.min.js", "defer": true }
+  ],
+  "brand": {
+    "icon": "🏋️",
+    "text": "Active Friends Club",
+    "show_version": true,
+    "action": { "hx_get": "/home", "hx_target": "#content", "hx_swap": "innerHTML" }
+  },
+  "member_badge": {
+    "enabled": true,
+    "class": "badge bg-primary bg-gradient me-3 px-3 py-2 fs-6",
+    "style": "cursor: pointer; transition: all 0.3s ease; border-radius: 20px;",
+    "icon_class": "bi bi-person-circle-fill me-2",
+    "onmouseover": "this.style.backgroundColor='#0a58ca'; this.style.transform='scale(1.05)'",
+    "onmouseout": "this.style.backgroundColor=''; this.style.transform='scale(1)'",
+    "action": { "hx_get": "/home", "hx_target": "#content", "hx_swap": "innerHTML" }
+  },
+  "navigation": [
+    {
+      "kind": "link",
+      "label": "Schedule",
+      "icon": "bi bi-list-check",
+      "action": { "hx_get": "/schedule", "hx_target": "#content", "hx_swap": "innerHTML" }
+    },
+    {
+      "kind": "link",
+      "label": "Programs",
+      "icon": "bi bi-list-check",
+      "action": { "hx_get": "/program", "hx_target": "#content", "hx_swap": "innerHTML" }
+    },
+    {
+      "kind": "link",
+      "label": "Workouts",
+      "icon": "bi bi-list-check",
+      "action": { "hx_get": "/workouts", "hx_target": "#content", "hx_swap": "innerHTML" }
+    },
+    {
+      "kind": "link",
+      "label": "Exercises",
+      "icon": "bi bi-list-check",
+      "action": { "hx_get": "/exercises", "hx_target": "#content", "hx_swap": "innerHTML" }
+    },
+    {
+      "kind": "dropdown",
+      "id": "clubDropdown",
+      "label": "History",
+      "icon": "bi bi-info-circle",
+      "children": [
+        { "kind": "link", "label": "Workouts", "icon": "bi bi-list-check", "action": { "hx_get": "/workouts/history", "hx_target": "#content", "hx_swap": "innerHTML" } },
+        { "kind": "link", "label": "Exercises", "icon": "bi bi-list-check", "action": { "hx_get": "/workouts/history/exercises", "hx_target": "#content", "hx_swap": "innerHTML" } }
+      ]
+    },
+    {
+      "kind": "dropdown",
+      "id": "clubDropdown",
+      "label": "About",
+      "icon": "bi bi-info-circle",
+      "children": [
+        { "kind": "link", "label": "Club", "icon": "bi bi-info-circle", "action": { "hx_get": "/about", "hx_target": "#content", "hx_swap": "innerHTML" } },
+        { "kind": "link", "label": "Members", "icon": "bi bi-people", "action": { "hx_get": "/members", "hx_target": "#content", "hx_swap": "innerHTML" } }
+      ]
+    },
+    {
+      "kind": "team_selector",
+      "id": "teamDropdown",
+      "label": "Select Team",
+      "empty_label": "Select Team",
+      "icon": "bi bi-people-fill",
+      "visible_when": "can_select_team",
+      "action": { "hx_post": "/teams/select", "team_id_field": "team_id", "hx_target": "#content", "hx_swap": "innerHTML show:top" }
+    },
+    {
+      "kind": "dropdown",
+      "label": "Settings",
+      "icon": "bi bi-person",
+      "menu_align": "end",
+      "children": [
+        { "kind": "link", "label": "Profile", "icon": "bi bi-gear", "action": { "hx_get": "/profile/profile2", "hx_target": "#content", "hx_swap": "innerHTML" } },
+        { "kind": "divider", "visible_when": "member_admin" },
+        { "kind": "header", "label": "Admin Functions", "visible_when": "member_admin" },
+        { "kind": "link", "label": "Teams", "icon": "bi bi-people-fill", "visible_when": "member_admin", "action": { "hx_get": "/admin/teams", "hx_target": "#content", "hx_swap": "innerHTML" } },
+        { "kind": "link", "label": "Members", "icon": "bi bi-people", "visible_when": "member_admin", "action": { "hx_get": "/admin/profile", "hx_target": "#content", "hx_swap": "innerHTML" } },
+        { "kind": "link", "label": "Impersonate", "icon": "bi bi-person-vcard", "visible_when": "member_admin", "action": { "hx_get": "/admin/impersonate_dialog", "hx_target": "#modals-here", "hx_swap": "innerHTML" } },
+        { "kind": "divider" },
+        { "kind": "link", "label": "Logout", "icon": "bi bi-box-arrow-right", "action": { "href": "/logout2" } }
+      ]
+    }
+  ],
+  "impersonation": {
+    "class": "alert alert-warning alert-dismissible mb-0",
+    "style": "position: fixed; top: 56px; left: 0; right: 0; z-index: 1020; border-radius: 0;",
+    "icon_class": "bi bi-person-vcard",
+    "heading": "Admin Mode:",
+    "message_prefix": "You are currently impersonating",
+    "button_class": "btn btn-sm btn-outline-dark ms-2",
+    "button_label": "Stop Impersonation",
+    "action": { "hx_post": "/admin/stop_impersonation", "hx_target": "body" }
+  },
+  "content": {
+    "class": "container-fluid pt-4",
+    "id": "content",
+    "margin_top": "80px",
+    "impersonated_margin_top": "140px",
+    "empty_message": "Active Friends Club"
+  },
+  "image_modal": { "title": "Image" }
+}
