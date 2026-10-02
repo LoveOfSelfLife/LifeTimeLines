@@ -4,8 +4,8 @@ from auth import auth
 from common.blob_store import BlobStore
 import os
 from common.fitness.home_page_view import render_finishing_workout_page, render_home_page_workout
-from common.fitness.hx_common import hx_render_template
-from common.fitness.member_entity import MembershipRegistry, get_member_detail_from_user_context, get_member_email_from_user_context, get_member_id_from_user_context, get_member_name_from_user_context, FirstTimeUserException, UnregisteredMemberException
+from common.fitness.hx_common import hx_render_fitness_template
+from common.member_entity import MembershipRegistry, get_member_detail_from_user_context, get_member_email_from_user_context, get_member_id_from_user_context, get_member_name_from_user_context, FirstTimeUserException, UnregisteredMemberException
 from common.fitness.programs import get_members_current_active_program, get_program_workouts
 from common.fitness.workout_state import get_active_workout_state
 
@@ -13,17 +13,17 @@ bp = Blueprint('/', __name__, template_folder='templates')
 
 @bp.route("/about")
 def about():
-    return hx_render_template('about.html', context=None)
+    return hx_render_fitness_template('about.html', context=None)
 
 
 @bp.route("/privacy")
 def privacy():
-    return render_template('privacy.html', context=None)
+    return hx_render_fitness_template('privacy.html', context=None)
 
 
 @bp.route("/data-deletion")
 def data_deletion():
-    return render_template('data_deletion.html', context=None)
+    return hx_render_fitness_template('data_deletion.html', context=None)
 
 @bp.route("/home")
 def home():
@@ -72,7 +72,7 @@ def index(context = None):
         
         # For the main dashboard, we load the template with placeholders
         # Each section will load its content via HTMX
-        return hx_render_template(
+        return hx_render_fitness_template(
             template_file='home/dashboard.html',
             member=member_detail,
             workouts_in_program=workouts_in_program,
@@ -93,7 +93,7 @@ def index(context = None):
     
     except Exception as e:
         print(f"Error loading home dashboard: {e}")
-        return hx_render_template(
+        return hx_render_fitness_template(
             template_string='<div class="alert alert-danger">Error loading dashboard</div>',
             context=context
         )    
@@ -196,7 +196,7 @@ def members_page(context=None):
     accessible_members = get_accessible_members_for_context(member_id)
     current_team = get_current_team_context(member_id)
     
-    return hx_render_template('members_page.html', 
+    return hx_render_fitness_template('members_page.html', 
                               members=accessible_members,
                               current_team=current_team,
                               context=context)

@@ -10,11 +10,12 @@ from common.fitness.entities_getter import MULTI_SELECT_SESSION_KEY
 from common.fitness.cacher import get_cache_value, set_cache_value
 from common.fitness.exercise_entity import show_exercise_viewer
 from common.fitness.exercise_entity import movement_category_definitions
-from common.fitness.hx_common import parse_listing_filter
+from common.fitness.filter_funcs import get_filter_terms_from_request
+from common.fitness.filter_funcs import parse_listing_filter
 from common.fitness.entities_getter import get_entities
 from common.fitness.exercise_entity import EQUIPMENT, ExerciseEntity
-from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
-from common.fitness.member_entity import get_member_id_from_user_context
+from common.fitness.hx_common import hx_render_fitness_template
+from common.member_entity import get_member_id_from_user_context
 from common.fitness.exercise_schema import exercise_schema
 from common.fitness.member_exercise_history import get_exercise_history_for_member
 from common.fitness.utils import generate_id
@@ -29,7 +30,7 @@ def root(context=None):
     page = int(request.args.get('page', 1))
     filter_terms = get_filter_terms_from_request()
 
-    return exercises_listing2(member_id, page=page, filter_terms=filter_terms)
+    return exercises_listing2(context, member_id, page=page, filter_terms=filter_terms)
 
 @bp.route('/exercises-listing', methods=['GET', 'POST'])
 @auth.login_required
@@ -40,7 +41,7 @@ def exercises_listing(context=None):
     page = int(request.args.get('page', 1))
     filter_terms = get_filter_terms_from_request()   
     # modal_mode = as_bool(request.args.get('modal_mode', None), False) if request.method == 'GET' else as_bool(request.form.get('modal_mode', None), False)     
-    return exercises_listing2(member_id, page=page, filter_terms=filter_terms, modal_mode=False)
+    return exercises_listing2(context, member_id, page=page, filter_terms=filter_terms, modal_mode=False)
 
 
 @bp.route('/listing-modal', methods=['GET'])
@@ -53,9 +54,9 @@ def exercises_listing_modal(context=None):
     filter_terms = get_filter_terms_from_request()
     if as_bool(request.args.get('allow_multi_select', None), False):
         clear_selected_entity_keys(member_id)
-    return exercises_listing2(member_id, page=page, filter_terms=filter_terms, modal_mode=True)
+    return exercises_listing2(context, member_id, page=page, filter_terms=filter_terms, modal_mode=True)
 
-def exercises_listing2(member_id, page=1, filter_terms=[], modal_mode=False):
+def exercises_listing2(context, member_id, page=1, filter_terms=[], modal_mode=False):
     entity_name = "ExerciseTable"
 
     page_size = 100
@@ -83,16 +84,18 @@ def exercises_listing2(member_id, page=1, filter_terms=[], modal_mode=False):
             separator = '&' if '?' in multi_select_post_route else '?'
             multi_select_post_route = f"{multi_select_post_route}{separator}preferred_section={preferred_section}"
 
-        return hx_render_template(
+        return hx_render_fitness_template(
             'entity_multi_select_state_oob.html',
             allow_multi_select=allow_multi_select,
             selected_entity_keys=selected_entity_keys,
             multi_select_checkbox_name='selected_entity_keys',
             multi_select_post_route=multi_select_post_route,
             preferred_section=preferred_section,
+            context=context,
         )
 
     return exercise_listing_base(
+        context,
         entity_name,
         int(page),
         page_size,
@@ -106,7 +109,7 @@ def exercises_listing2(member_id, page=1, filter_terms=[], modal_mode=False):
     )
 
 
-def exercise_listing_base(entity_name, page, page_size, view, fields_to_display, filter_terms, entities, allow_multi_select=False, selected_entity_keys=None, modal_mode=False):
+def exercise_listing_base(context, entity_name, page, page_size, view, fields_to_display, filter_terms, entities, allow_multi_select=False, selected_entity_keys=None, modal_mode=False):
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
     end = start + page_size
@@ -141,6 +144,7 @@ def exercise_listing_base(entity_name, page, page_size, view, fields_to_display,
         entities_listing_route += '&allow_multi_select=true'
 
     template_data = dict(
+        context=context,
         title="Exercises Library",
         entity_name=entity_name,
         main_content_container="entities-container",        
@@ -171,9 +175,9 @@ def exercise_listing_base(entity_name, page, page_size, view, fields_to_display,
     )
 
     if modal_mode:
-        return hx_render_template('exercise_listing_modal.html', **template_data)
+        return hx_render_fitness_template('exercise_listing_modal.html', **template_data)
 
-    return hx_render_template(template_file_name, **template_data)
+    return hx_render_fitness_template(template_file_name, **template_data)
 
 
 @bp.route('/modal')
@@ -201,7 +205,7 @@ def filter_dialog(context=None):
     entity_type = get_entity_obj_from_entity_name(entity_name)
     filters = get_fitnessclub_entity_filters_for_entity(entity_name)
     view = request.args.get('view', 'list')
-    return hx_render_template('filter_dialog.html', 
+    return hx_render_fitness_template('filter_dialog.html', 
                               entities_listing_route=f'/exercises/exercises-listing?entity_table={entity_name}',
                               entity_display_name=entity_type.get_display_name(),                              
                               entity_name=entity_name,
@@ -221,7 +225,7 @@ def exercise_history_dialog(context=None):
     if not member_id:
         abort(401)
     ex_history = get_exercise_history_for_member(member_id, exercise_id)
-    return hx_render_template('exercise_history_dialog.html', 
+    return hx_render_fitness_template('exercise_history_dialog.html', 
                               exercise_history=ex_history,
                               context=context)
 
@@ -247,7 +251,7 @@ def new_exercise(context=None):
     # movement_categories is not part of the schema, so default it explicitly
     exercise_data.setdefault('movement_categories', [])
 
-    return hx_render_template('exercises/exercise_editor.html',
+    return hx_render_fitness_template('exercises/exercise_editor.html',
                          exercise=exercise_data,
                          is_new=True,
                          schema=exercise_schema,
@@ -292,13 +296,13 @@ def edit_exercise(context=None):
             can_edit = True
         else:
             # check if the member is an admin
-            from common.fitness.member_entity import is_member_an_admin
+            from common.member_entity import is_member_an_admin
             if is_member_an_admin(member_id):
                 can_edit = True
     if not can_edit:
         current_listing_page=request.args.get('page', 1)
         current_listing_filter_terms = get_filter_terms_from_request()
-        response = make_response(exercises_listing2(member_id, page=current_listing_page, filter_terms=current_listing_filter_terms))
+        response = make_response(exercises_listing2(context,member_id, page=current_listing_page, filter_terms=current_listing_filter_terms))
         response.headers['HX-Trigger'] = json.dumps({
             "showMessage": { "value": f"You do not have permission to edit this exercise.", "target": "body" }
         })
@@ -362,7 +366,7 @@ def edit_exercise(context=None):
     equipment_types = list(dict.fromkeys(EQUIPMENT + exercise_data['equipment_list']))
     current_listing_page=request.args.get('page', 1)
     current_listing_filter=request.args.get('filter', '')   
-    return hx_render_template('exercises/exercise_editor.html',
+    return hx_render_fitness_template('exercises/exercise_editor.html',
                          exercise=exercise_data,
                          is_new=False,
                          schema=exercise_schema,  
@@ -461,7 +465,7 @@ def save_exercise(exercise_id=None, context=None):
         member_id = get_member_id_from_user_context(context)
         if not member_id:
             abort(401)
-        response = make_response(exercises_listing2(member_id, page=current_listing_page, filter_terms=current_listing_filter))
+        response = make_response(exercises_listing2(context, member_id, page=current_listing_page, filter_terms=current_listing_filter))
         response.headers['HX-Trigger'] = json.dumps({
             "eventListChanged": { "target": "body" },
                 "showMessage": { 
@@ -493,7 +497,7 @@ def cancel_exercise(exercise_id=None, context=None):
     filter_param = request.args.get('filter', '')
     current_listing_filter = parse_listing_filter(filter_param)
         
-    response = make_response(exercises_listing2(member_id, page=current_listing_page, filter_terms=current_listing_filter))
+    response = make_response(exercises_listing2(context, member_id, page=current_listing_page, filter_terms=current_listing_filter))
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": { "target": "body" },
             "showMessage": { 

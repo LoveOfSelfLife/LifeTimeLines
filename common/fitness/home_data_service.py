@@ -15,7 +15,7 @@ from datetime import datetime, timedelta, timezone
 import pytz
 from common.entity_store import EntityStore
 from common.fitness.coach_team_entity import get_team_coaches
-from common.fitness.member_entity import get_member_name_from_member_id
+from common.member_entity import get_member_name_from_member_id
 from common.fitness.member_team_entity import get_members_team_members, get_team_members
 from common.fitness.programs import get_members_current_active_program, get_next_workout_in_program
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity

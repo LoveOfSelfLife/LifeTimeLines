@@ -6,7 +6,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from common.fitness.abstract_calendar_service import AbstractCalendarService
-from common.fitness.member_entity import get_user_profile
+from common.member_entity import get_user_profile
 from common.vault import Vault
 from datetime import datetime, timedelta
 

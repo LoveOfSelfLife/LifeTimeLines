@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="{{ app_metadata.html_lang | default('en') }}">
+<head>
+  <meta charset="{{ app_metadata.charset | default('UTF-8') }}">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ app_metadata.title }}</title>
+
+  {% for stylesheet in app_metadata.stylesheets %}
+  {% if stylesheet.static_asset %}
+  <link rel="{{ stylesheet.rel | default('stylesheet') }}" href="{{ url_for(app_metadata.static_endpoint | default('static'), filename=stylesheet.static_asset) }}"{% if stylesheet.type %} type="{{ stylesheet.type }}"{% endif %}>
+  {% else %}
+  <link rel="{{ stylesheet.rel | default('stylesheet') }}" href="{{ stylesheet.url }}"{% if stylesheet.type %} type="{{ stylesheet.type }}"{% endif %}{% if stylesheet.crossorigin %} crossorigin="{{ stylesheet.crossorigin }}"{% endif %}>
+  {% endif %}
+  {% endfor %}
+
+  {% for script in app_metadata.scripts %}
+  {% if script.static_asset %}
+  <script src="{{ url_for(app_metadata.static_endpoint | default('static'), filename=script.static_asset) }}"{% if script.module %} type="module"{% endif %}{% if script.defer %} defer{% endif %}></script>
+  {% else %}
+  <script src="{{ script.url }}"{% if script.module %} type="module"{% endif %}{% if script.defer %} defer{% endif %}{% if script.crossorigin %} crossorigin="{{ script.crossorigin }}"{% endif %}></script>
+  {% endif %}
+  {% endfor %}
+</head>
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <div class="container-fluid">
+      <a class="navbar-brand" hx-get="{{ app_metadata.brand.action.hx_get }}" hx-target="{{ app_metadata.brand.action.hx_target }}" hx-swap="{{ app_metadata.brand.action.hx_swap }}">
+        {{ app_metadata.brand.icon }} {{ app_metadata.brand.text }}{% if app_metadata.brand.show_version %} {{ version_info.short_version }}{% endif %}
+      </a>
+      {% if app_metadata.member_badge.enabled and member and member.name %}
+      <span class="{{ app_metadata.member_badge.class }}"
+            style="{{ app_metadata.member_badge.style }}"
+            hx-get="{{ app_metadata.member_badge.action.hx_get }}" hx-target="{{ app_metadata.member_badge.action.hx_target }}" hx-swap="{{ app_metadata.member_badge.action.hx_swap }}"
+            onmouseover="{{ app_metadata.member_badge.onmouseover }}"
+            onmouseout="{{ app_metadata.member_badge.onmouseout }}">
+        <i class="{{ app_metadata.member_badge.icon_class }}"></i>{{ member.name }}
+      </span>
+      {% endif %}
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          {% for item in app_metadata.navigation %}
+          {% set visible = not item.visible_when or (item.visible_when == 'member_name' and member and member.name) or (item.visible_when == 'member_admin' and member and member.admin) or (item.visible_when == 'can_select_team' and role_context.can_select_team) %}
+          {% if visible %}
+            {% if item.kind == 'link' %}
+          <li class="nav-item">
+            <a class="nav-link"{% if item.action.hx_get %} hx-get="{{ item.action.hx_get }}"{% endif %}{% if item.action.hx_post %} hx-post="{{ item.action.hx_post }}"{% endif %}{% if item.action.href %} href="{{ item.action.href }}"{% endif %}{% if item.action.hx_get or item.action.hx_post %} hx-target="{{ item.action.hx_target | default('#content') }}" hx-swap="{{ item.action.hx_swap | default('innerHTML') }}"{% endif %}>
+              {% if item.icon %}<i class="{{ item.icon }}"></i> {% endif %}{{ item.label }}
+            </a>
+          </li>
+            {% elif item.kind == 'dropdown' %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle"{% if item.id %} id="{{ item.id }}"{% endif %} role="button" data-bs-toggle="dropdown">
+              {% if item.icon %}<i class="{{ item.icon }}"></i> {% endif %}{{ item.label }}
+            </a>
+            <ul class="dropdown-menu{% if item.menu_align == 'end' %} dropdown-menu-end{% endif %}"{% if item.id %} aria-labelledby="{{ item.id }}"{% endif %}>
+              {% for child in item.children %}
+              {% set child_visible = not child.visible_when or (child.visible_when == 'member_admin' and member and member.admin) %}
+              {% if child_visible %}
+                {% if child.kind == 'divider' %}
+              <li><hr class="dropdown-divider"></li>
+                {% elif child.kind == 'header' %}
+              <li><h6 class="dropdown-header">{{ child.label }}</h6></li>
+                {% else %}
+              <li><a class="dropdown-item"{% if child.action.hx_get %} hx-get="{{ child.action.hx_get }}"{% endif %}{% if child.action.hx_post %} hx-post="{{ child.action.hx_post }}"{% endif %}{% if child.action.href %} href="{{ child.action.href }}"{% endif %}{% if child.action.hx_target %} hx-target="{{ child.action.hx_target }}"{% endif %}{% if child.action.hx_swap %} hx-swap="{{ child.action.hx_swap }}"{% endif %}>{% if child.icon %}<i class="{{ child.icon }}"></i> {% endif %}{{ child.label }}</a></li>
+                {% endif %}
+              {% endif %}
+              {% endfor %}
+            </ul>
+          </li>
+            {% elif item.kind == 'team_selector' %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" id="{{ item.id }}" role="button" data-bs-toggle="dropdown">
+              {% if item.icon %}<i class="{{ item.icon }}"></i> {% endif %}{% if role_context.current_team %}{{ role_context.current_team.name }}{% else %}{{ item.empty_label }}{% endif %}
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="{{ item.id }}">
+              {% for team in role_context.available_teams %}
+              <li><a class="dropdown-item" hx-post="{{ item.action.hx_post }}" hx-vals='{{ {item.action.team_id_field: team.id} | tojson }}' hx-target="{{ item.action.hx_target }}" hx-swap="{{ item.action.hx_swap }}">{{ team.name }}</a></li>
+              {% endfor %}
+            </ul>
+          </li>
+            {% endif %}
+          {% endif %}
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  {% if impersonated_member %}
+  <div class="{{ app_metadata.impersonation.class }}" role="alert" style="{{ app_metadata.impersonation.style }}">
+    <div class="container">
+      <strong><i class="{{ app_metadata.impersonation.icon_class }}"></i> {{ app_metadata.impersonation.heading }}</strong>
+      {{ app_metadata.impersonation.message_prefix }} {{ impersonated_member.name }} ({{ impersonated_member.email }})
+      <button type="button" class="{{ app_metadata.impersonation.button_class }}" hx-post="{{ app_metadata.impersonation.action.hx_post }}" hx-target="{{ app_metadata.impersonation.action.hx_target }}">
+        {{ app_metadata.impersonation.button_label }}
+      </button>
+    </div>
+  </div>
+  {% endif %}
+
+  <main class="{{ app_metadata.content.class }}" id="{{ app_metadata.content.id }}" style="margin-top: {% if impersonated_member %}{{ app_metadata.content.impersonated_margin_top }}{% else %}{{ app_metadata.content.margin_top }}{% endif %};">
+    {%- if content %}
+      {{ content|safe }}
+    {%- else %}
+      <p class="text-center p-3">{{ app_metadata.content.empty_message }}</p>
+    {%- endif %}
+  </main>
+
+  <div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="toast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div id="toast-body" class="toast-body"></div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modals-here" class="modal modal-blur fade" style="display: none" aria-hidden="false" tabindex="-1">
+    <div id="dialog" class="modal-dialog modal-lg modal-dialog-centered" role="document">
+      <div class="modal-content"></div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="imageModalLabel">{{ app_metadata.image_modal.title }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body text-center">
+          <img id="modalImage" src="" class="img-fluid" alt="">
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

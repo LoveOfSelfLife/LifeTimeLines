@@ -1,6 +1,7 @@
 import unittest
 
-from common.fitness.hx_common import add_filter_terms_summary, resolve_favorites_filter_terms
+from common.fitness.filter_funcs import resolve_favorites_filter_terms
+from common.fitness.filter_funcs import add_filter_terms_summary
 
 
 class TestResolveFavoritesFilterTerms(unittest.TestCase):

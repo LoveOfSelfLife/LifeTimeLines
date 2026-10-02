@@ -1,5 +1,6 @@
 import copy
-from ast import literal_eval
+from flask import Blueprint, abort, make_response, render_template, request, session, url_for
+from common.fitness.hx_common import hx_render_fitness_template
 from datetime import datetime, timezone
 import json
 
@@ -14,9 +15,9 @@ from common.fitness.entities_getter import as_bool, delete_entity, get_entity, g
 from common.fitness.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
 from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
 from common.fitness.get_calendar_service import get_calendar_service
-from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
-from common.fitness.hx_common import rm_spaces
-from common.fitness.member_entity import MembershipRegistry, get_member_id_from_user_context, is_member_an_admin, member_allows_on_the_fly_workout
+from common.fitness.filter_funcs import get_filter_terms_from_request
+from common.template_renderer import rm_spaces
+from common.member_entity import MembershipRegistry, get_member_id_from_user_context, is_member_an_admin, member_allows_on_the_fly_workout
 from common.fitness.member_exercise_history import extract_and_load_exercise_events_from_workout_instance
 from common.fitness.member_program_entity import MemberProgramsEntity
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout
@@ -101,7 +102,7 @@ def program_listing_base(context, entity_name, page, page_size, view, fields_to_
     results_target_container = target if target else 'results-area'
     
     # displays workouts at the top level
-    return hx_render_template(
+    return hx_render_fitness_template(
         template_file_name,
         title="Programs Library",
         entity_name=entity_name,
@@ -158,7 +159,7 @@ def program_viewer(context=None):
     member = get_entity('MemberTable', assigned_member_id)
     member_name = member.get('name', 'Unknown Member') if member else 'Unknown Member'
     
-    return hx_render_template(
+    return hx_render_fitness_template(
         "program_viewer.html",
         program=program,
         member_name=member_name,
@@ -328,9 +329,9 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
 
     # displays workouts at the top level
     if modal_mode:
-        return hx_render_template('workouts_listing_modal.html', **template_data)
+        return hx_render_fitness_template('workouts_listing_modal.html', **template_data)
 
-    return hx_render_template(template_file_name, **template_data)
+    return hx_render_fitness_template(template_file_name, **template_data)
 
 
 # def _build_program_workout_copy(source_workout, current_program, order_index):
@@ -405,7 +406,7 @@ def builder(context=None):
         print(f"DEBUG - Accessible members: {[(m.get('id'), m.get('name')) for m in accessible_members]}")
         print(f"DEBUG - Member IDs types: {[type(m.get('id')) for m in accessible_members]}")
         
-        return hx_render_template('program_builder.html', 
+        return hx_render_fitness_template('program_builder.html', 
                                 program=current_program, 
                                 accessible_members=accessible_members,
                                 role_context=role_context,
@@ -445,7 +446,7 @@ def program_workouts_canvas(context=None, program_id=None):
             workouts_list = get_cache_value('current_program_workouts')
 
         if p['id'] == program_id:
-            return hx_render_template('_program_workouts.html',
+            return hx_render_fitness_template('_program_workouts.html',
                                         program=p,
                                         workouts=workouts_list,
                                         context=context)

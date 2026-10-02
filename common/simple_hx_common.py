@@ -1,6 +1,6 @@
 from ast import pattern
 
-from flask import render_template, render_template_string, request, session
+from flask import current_app, render_template, render_template_string, request, session
 
 def rm_spaces(s):
     return s.replace(' ', '_').lower() if s else s
@@ -23,4 +23,9 @@ def hx_render_template(template_file=None, template_string=None, **kwargs):
         return render_template_string_or_file(template_file, template_string, **kwargs)
     else:
         content = render_template_string_or_file(template_file, template_string)
-        return render_template('base.html', content=content, **kwargs)
+        
+        if current_app.config['APP_METADATA']:
+            return render_template('base_generic.html', app_metadata=current_app.config['APP_METADATA'], content=content)
+        else:
+            return render_template('base.html', content=content, **kwargs)
+

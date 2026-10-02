@@ -4,10 +4,8 @@ from flask import url_for
 from common.entity_store import EntityObject, EntityStore
 
 from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME, WORKOUT_INSTANCE_ENTITY_NAME
-from common.fitness.member_entity import MemberEntity, get_member_name_from_member_id
-from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity
+from common.member_entity import get_member_name_from_member_id
 from common.fitness.exercise_entity import exercise_filters
-from common.fitness.member_entity import MemberEntity
 from common.fitness.member_program_entity import MemberProgramsEntity
 
 def extract_image_url(entity):

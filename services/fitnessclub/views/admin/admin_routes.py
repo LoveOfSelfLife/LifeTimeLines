@@ -8,18 +8,20 @@ from common.fitness.active_fitness_registry import get_fitnessclub_entity_filter
 from common.env_context import Env
 from common.fitness.entities_getter import delete_entity
 from common.fitness.exercise_entity import render_exercise_popup_viewer_html
-from common.fitness.member_entity import get_member_id_from_user_context, get_members_list
+from common.fitness.filter_funcs import get_filter_terms_from_request
+from common.fitness.hx_common import hx_render_fitness_template
+from common.member_entity import get_member_id_from_user_context, get_members_list
 from common.fitness.team_entity import get_teams_list, get_team_by_id, save_team
 from common.fitness.member_team_entity import add_member_to_team, remove_member_from_team, get_team_members
 from common.fitness.coach_team_entity import assign_coach_to_team, remove_coach_from_team, get_team_coaches
 from common.fitness.roles_service import get_member_role, is_member_coach, is_member_client
-from common.fitness.impersonation import start_impersonation, stop_impersonation, get_impersonated_member_id
+from common.impersonation import start_impersonation, stop_impersonation, get_impersonated_member_id
 from common.fitness.utils import generate_id
-from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
 from common.entity_store import EntityStore
 from common.fitness.entities_getter import get_entities
 from common.fitness.member_team_entity import get_members_teams
 from common.fitness.favorites_entity import toggle_entity_favorite
+from common.app_info import get_current_app_id
 
 bp = Blueprint('admin', __name__, template_folder='templates')
 
@@ -34,12 +36,35 @@ def root(context=None):
 def profile(context=None):
     return entities_listing2(context=context, entity_name='MemberTable')
 
+@bp.route('/members')
+@auth.login_required
+def members(context=None):
+    return members_listing(context=context)
+
 @bp.route('/entities-listing', methods=['GET', 'POST'])
 @auth.login_required
 def entities_listing(context=None):
     entity_name = request.args.get('entity_table', None)    
     return entities_listing2(context=context, entity_name=entity_name)
 
+def members_listing(context=None):
+    page = int(request.args.get('page', 1))
+    page_size = 100
+
+    # Handle view preference
+    view = (request.form.get('view') if request.method == 'POST' 
+            else request.args.get('view')) or session.get('view_preference', 'list')
+    
+    if view != session.get('view_preference'):
+        session['view_preference'] = view
+    
+    fields_to_display = get_fitnessclub_listing_fields_for_entity('MemberTable')
+    filter_terms = get_filter_terms_from_request()
+
+    member_id = get_member_id_from_user_context(context)
+
+    entities = get_entities('MemberTable', fields_to_display, filter_terms, partition_key=get_current_app_id(), member_id=member_id)
+    return render_entity_template(context, 'MemberTable', page, view, page_size, fields_to_display, filter_terms, entities)
 
 @bp.route('/toggle-favorite', methods=['POST'])
 @auth.login_required
@@ -113,7 +138,7 @@ def render_entity_template(context, entity_name, page, view, page_size, fields_t
     target = request.args.get('target')
     results_target_container = target if target else 'results-area'
 
-    return hx_render_template(
+    return hx_render_fitness_template(
         template_file_name,
         entity_name=entity_name,
         main_content_container="entities-container",        
@@ -146,7 +171,7 @@ def filter_dialog(context=None):
     entity_type = get_entity_obj_from_entity_name(entity_name)
     filters = get_fitnessclub_entity_filters_for_entity(entity_name)
 
-    return hx_render_template('filter_dialog.html', 
+    return hx_render_fitness_template('filter_dialog.html', 
                               entities_listing_route=f'/admin/entities-listing?entity_table={entity_name}',
                               entity_display_name=entity_type.get_display_name(),                              
                               entity_name=entity_name,
@@ -175,7 +200,7 @@ def edit_entity(context=None):
         del(entity_to_edit['Timestamp'])
 
     # return json.dumps(entity_to_edit)
-    return hx_render_template('admin/entity_editor.html', 
+    return hx_render_fitness_template('admin/entity_editor.html', 
                               entity=entity_to_edit, 
                               schema=schema,
                               table_id=table_id, 
@@ -202,7 +227,11 @@ def view_entity(context=None):
     es = EntityStore()
     entity_to_view = es.get_item_by_composite_key(composite_key)
     
-    return render_exercise_popup_viewer_html(context, entity_to_view)
+    return hx_render_fitness_template('admin/entity_viewer.html',
+                              entity=entity_to_view,
+                              schema=entity_instance.get_schema(),
+                              table_id=table_id,
+                              context=context)
 
 @bp.route('/delete/<table_id>', methods=['POST'])
 @auth.login_required
@@ -248,7 +277,7 @@ def existing_entity_editor(context=None, table_id=None):
     entity_to_edit = {}
     schema = entity.get_schema()
     composite_key = (entity_to_edit.get('id', None), entity_to_edit.get('partition_value', None), table_id)
-    return hx_render_template('admin/entity_editor.html', 
+    return hx_render_fitness_template('admin/entity_editor.html', 
                             entity=entity_to_edit, 
                             schema=schema,
                             table_id=table_id, 
@@ -358,7 +387,7 @@ def teams_listing(context=None):
 
 def teams_listing2(context=None):
     """Admin page for managing teams"""
-    return hx_render_template('teams_listing.html', 
+    return hx_render_fitness_template('teams_listing.html', 
                               teams=get_teams_list(), 
                               context=context)
 
@@ -385,12 +414,12 @@ def create_team(context=None):
             })
             return response
         except Exception as e:
-            return hx_render_template('create_team.html', 
+            return hx_render_fitness_template('create_team.html', 
                                       error=str(e), 
                                       form_data=request.form,
                                       context=context)
     
-    return hx_render_template('create_team.html', context=context)
+    return hx_render_fitness_template('create_team.html', context=context)
 
 @bp.route('/teams/<team_id>/manage')
 @auth.login_required
@@ -411,7 +440,7 @@ def manage_team2(team_id, context=None):
     # Get member details for team members
     members_with_details = []
     for mt in team_members:
-        from common.fitness.member_entity import get_user_profile
+        from common.member_entity import get_user_profile
         member = get_user_profile(mt['member_id'])
         if member:
             member_info = dict(member)
@@ -421,7 +450,7 @@ def manage_team2(team_id, context=None):
     # Get member details for team coaches
     coaches_with_details = []
     for ct in team_coaches:
-        from common.fitness.member_entity import get_user_profile
+        from common.member_entity import get_user_profile
         coach = get_user_profile(ct['coach_id'])
         if coach:
             coach_info = dict(coach)
@@ -433,7 +462,7 @@ def manage_team2(team_id, context=None):
     available_members = [m for m in all_members if not any(tm['member_id'] == m['id'] for tm in team_members)]
     available_coaches = [m for m in all_members if get_member_role(m['id']) == 'coach' and not any(tc['coach_id'] == m['id'] for tc in team_coaches)]
     
-    return hx_render_template('manage_team.html',
+    return hx_render_fitness_template('manage_team.html',
                               team=team,
                               team_members=members_with_details,
                               team_coaches=coaches_with_details,

@@ -6,7 +6,7 @@ from common.entity_store_cache import EntityStoreCache
 from common.fitness.active_fitness_registry import get_entity_obj_from_entity_name
 from common.fitness.coach_team_entity import get_coachs_team_members
 from common.fitness.favorites_entity import get_all_favorite_entity_ids
-from common.fitness.member_entity import is_member_an_admin
+from common.member_entity import is_member_an_admin
 from common.fitness.roles_service import is_member_client, is_member_coach
 from common.fitness.cacher import get_cache_value, set_cache_value, delete_from_cache
 
@@ -133,7 +133,7 @@ def _matches_special_filter_term(entity, term_type, pattern):
     Delegate special term matching (e.g. ^section, ^related) to the
     externally-implemented special matcher.
     """
-    from common.fitness.hx_common import entity_matches_special_term
+    from common.fitness.filter_funcs import entity_matches_special_term
     
     return entity_matches_special_term(entity, term_type, pattern)
 

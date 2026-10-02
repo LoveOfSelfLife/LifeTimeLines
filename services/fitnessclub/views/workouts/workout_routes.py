@@ -9,9 +9,10 @@ from common.fitness.entities_getter import resolve_selected_workout_keys, clear_
 from common.fitness.entities_getter import filter_entities_by_member_role
 from common.fitness.exercise_entity import ExerciseEntity, show_exercise_viewer
 from common.fitness.exercise_parameters import get_editor_type_for_unit_parameter, get_editor_type_for_value_parameter
-from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
-from common.fitness.hx_common import rm_spaces
-from common.fitness.member_entity import get_member_id_from_user_context, is_member_an_admin
+from common.fitness.filter_funcs import get_filter_terms_from_request
+from common.fitness.hx_common import hx_render_fitness_template
+from common.template_renderer import rm_spaces
+from common.member_entity import get_member_id_from_user_context, is_member_an_admin
 from common.fitness.roles_service import get_accessible_members_for_context, get_member_role_context
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout, map_exercise_to_sections
 from common.fitness.edit_workout_object import bring_up_workouts_builder
@@ -164,9 +165,9 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
 
     # displays workouts at the top level
     if modal_mode:
-        return hx_render_template('workouts_listing_modal.html', **template_data)
+        return hx_render_fitness_template('workouts_listing_modal.html', **template_data)
 
-    return hx_render_template(template_file_name, **template_data)
+    return hx_render_fitness_template(template_file_name, **template_data)
 
 # def workouts_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities, allow_multi_select=True, selected_entity_keys=[], modal_mode=False):
 #     page_size = 100
@@ -217,7 +218,7 @@ def filter_dialog(context=None):
     entity_type = get_entity_obj_from_entity_name(entity_name)
     filters = get_fitnessclub_entity_filters_for_entity(entity_name)
 
-    return hx_render_template('filter_dialog.html', 
+    return hx_render_fitness_template('filter_dialog.html', 
                               entities_listing_route=f'/workouts/builder/exercises?target={target}&workout_id={workout_id}',
                               filter_results_target=target,
                               entity_display_name=entity_type.get_display_name(),                              
@@ -315,7 +316,7 @@ def builder(context=None, workout_id=None):
                 can_delete_workout = True
 
             
-        return hx_render_template('workout_builder2.html', 
+        return hx_render_fitness_template('workout_builder2.html', 
                                 workout=workout,
                                 workout_type=workout_type,
                                 context=context, 
@@ -788,7 +789,7 @@ def workout_dynamic_canvas2(context=None, workout_id=None):
                     if alt_ex:
                         exercises[alt_id] = alt_ex
     exercise_parameters_map = extract_workout_parameters_for_workout(workout_id, w, exercises, {}, url_for('workouts.update_param_in_cache'))
-    return hx_render_template('_workout_dynamic_canvas.html',
+    return hx_render_fitness_template('_workout_dynamic_canvas.html',
                                 workout=w,
                                 exercises=exercises,
                                 exercise_parameters = exercise_parameters_map,
@@ -1582,7 +1583,7 @@ def exercise_listing(context=None):
     else:
         template_file_name = 'entity_list_component.html'
 
-    return hx_render_template(template_file_name,
+    return hx_render_fitness_template(template_file_name,
                               fields_to_display=fields_to_display,
                               title="Exercises Library",                              
                               main_content_container='xyz',
@@ -2360,7 +2361,7 @@ def workouts_history_listing_base(context, entity_name, page, target, view, fiel
     results_target_container = target if target else 'results-area'
     target = target if target else 'results-area'
     # displays workouts at the top level
-    return hx_render_template(
+    return hx_render_fitness_template(
         template_file_name,
         entity_name=entity_name,
         title="Workout History",

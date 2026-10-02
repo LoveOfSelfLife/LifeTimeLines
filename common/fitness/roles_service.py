@@ -4,7 +4,7 @@ This service provides a centralized API for managing roles and team relationship
 """
 
 from flask import session
-from common.fitness.member_entity import get_user_profile
+from common.member_entity import get_user_profile
 from common.fitness.team_entity import get_team_by_id, get_teams_list
 from common.fitness.member_team_entity import get_members_teams, get_team_members
 from common.fitness.coach_team_entity import get_coachs_teams, get_team_coaches
@@ -14,7 +14,7 @@ SELECTED_TEAM_SESSION_KEY = 'selected_team_id'
 
 def get_current_member_id_from_context(context):
     """Extract member ID from auth context"""
-    from common.fitness.member_entity import get_member_id_from_user_context
+    from common.member_entity import get_member_id_from_user_context
     return get_member_id_from_user_context(context)
 
 def get_member_role(member_id):
@@ -24,7 +24,7 @@ def get_member_role(member_id):
 
 def is_member_admin(member_id):
     """Check if member is admin (level >= 10)"""
-    from common.fitness.member_entity import is_member_an_admin
+    from common.member_entity import is_member_an_admin
     return is_member_an_admin(member_id)
 
 def is_member_coach(member_id):
@@ -139,7 +139,7 @@ def get_accessible_members_for_context(member_id):
     """
     if is_member_admin(member_id):
         # Admin sees all members
-        from common.fitness.member_entity import get_members_list
+        from common.member_entity import get_members_list
         return get_members_list()
     
     current_team = get_current_team_context(member_id)
@@ -151,7 +151,7 @@ def get_accessible_members_for_context(member_id):
     # No team context - for coaches, at least return themselves
     role = get_member_role(member_id)
     if role == 'coach':
-        from common.fitness.member_entity import get_user_profile
+        from common.member_entity import get_user_profile
         coach_details = get_user_profile(member_id)
         if coach_details:
             return [coach_details]

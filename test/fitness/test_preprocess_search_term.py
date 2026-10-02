@@ -1,6 +1,6 @@
 import unittest
 
-from common.fitness.hx_common import preprocess_search_term
+from common.fitness.filter_funcs import preprocess_search_term
 
 
 class TestPreprocessSearchTerm(unittest.TestCase):

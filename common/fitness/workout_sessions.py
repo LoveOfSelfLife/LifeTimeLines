@@ -4,7 +4,7 @@ import os
 
 from common.blob_store import BlobStore
 from common.entity_store import EntityObject, EntityStore
-from common.fitness.member_entity import MemberEntity
+from common.member_entity import MemberEntity
 from common.fitness.utils import generate_id
 from common.fitness.message_publisher import MessagePublisher
 
@@ -76,7 +76,7 @@ def list_workout_sessions(logged_in_member_id, from_date, to_date):
         joined_list = []
         my_activity = ""
         for j in workout_session.get("joined", []):
-            mbr = es.get_item(MemberEntity({ "id": j["member_id"] }))
+            mbr = es.get_item(MemberEntity({ "app": "fitnessclub", "id": j["member_id"] }))
             j["member_short_name"] = mbr["short_name"]
             if j["member_id"] == logged_in_member_id:
                 my_activity = j["activity"]
@@ -107,7 +107,7 @@ def create_new_workout_session(member_id):
     workout_session["description"] = ""
     workout_session["location"] = "Cranford YMCA"
     workout_session["datetime"] = ""
-    workout_session["ownder_member_id"] = member_id
+    workout_session["owner_member_id"] = member_id
     workout_session["joined"] = []
     return workout_session
 

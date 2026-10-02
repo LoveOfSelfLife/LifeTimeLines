@@ -2,15 +2,15 @@ import json
 
 import pytz
 from common.entity_store import EntityStore
-from common.fitness.hx_common import hx_render_template
+from common.fitness.hx_common import hx_render_fitness_template
 from common.fitness.programs import get_members_current_active_program, get_next_workout_in_program
 from common.fitness.member_workout_entity import MemberWorkoutInstanceEntity, get_exercises_from_workout
 from common.fitness.workout_state import get_active_workout_state, get_last_section, get_exercise_parameters
-from common.fitness.member_entity import member_allows_on_the_fly_workout
+from common.member_entity import member_allows_on_the_fly_workout
 from common.fitness.workouts import get_scheduled_workouts
 from datetime import datetime, timedelta, timezone
 from flask import render_template, render_template_string, request, redirect, session, url_for
-from common.fitness.hx_common import rm_spaces
+from common.template_renderer import rm_spaces
 from common.fitness.get_calendar_service import get_calendar_service
 
 
@@ -74,7 +74,7 @@ def render_home_page_workout(member, current_state):
                 last = section.get('name', None)
                 break
         
-    return hx_render_template(
+    return hx_render_fitness_template(
         "workout_view.html",
         workout=workout_instance,
         workout_sections=workout_sections,
@@ -137,7 +137,7 @@ def render_finishing_workout_page(member, current_state):
     exercise_removals = current_state.get('exercise_removals', [])
     exercise_additions = current_state.get('exercise_additions', [])
     parameters_changed = len(exercise_parameters) > 0 or len(exercise_swaps) > 0 or len(exercise_removals) > 0 or len(exercise_additions) > 0
-    return hx_render_template(
+    return hx_render_fitness_template(
         "home/finishing_workout.html",
         workout=workout_instance,
         workout_sections=workout_sections,

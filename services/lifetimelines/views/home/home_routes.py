@@ -7,7 +7,7 @@ All routes use HTMX for dynamic updates and follow the existing authentication p
 
 from flask import Blueprint, abort, make_response, render_template, request, jsonify, session, redirect, url_for
 from auth import auth
-from common.simple_hx_common import hx_render_template
+from common.template_renderer import hx_render_template
 from datetime import datetime, timezone, date
 import json
 

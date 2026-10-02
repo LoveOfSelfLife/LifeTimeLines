@@ -2,8 +2,10 @@ import uuid
 from flask import redirect, render_template, request, Blueprint, url_for, session
 from auth import auth
 import os
+from common.app_info import get_current_app_name
 from common.fitness.home_page_view import render_finishing_workout_page, render_home_page_workout
-from common.simple_hx_common import hx_render_template
+from common.member_entity import FirstTimeUserException, MembershipRegistry, UnregisteredMemberException, get_member_detail_from_user_context, get_member_email_from_user_context, get_member_id_from_user_context, get_member_name_from_user_context
+from common.template_renderer import hx_render_template
 
 bp = Blueprint('/', __name__, template_folder='templates')  
 
@@ -22,21 +24,86 @@ def data_deletion():
 @auth.login_required
 def index(context = None):
     """Redirect to new home dashboard"""
- 
-    try:    
+    member_registry = MembershipRegistry()
+    member_registry.refresh_members()   # always refresh members on index page load
+
+    member_id = get_member_id_from_user_context(context)
+    member_email = get_member_email_from_user_context(context)
+    member_name = get_member_name_from_user_context(context)
+    try:
+        member = member_registry.verify_member_registration(member_id)
+
+        member_detail = get_member_detail_from_user_context(context)
+        
+        # current_workout_session_state = get_active_workout_state()
+        # if current_workout_session_state:
+        #     if current_workout_session_state.get('state', None) == 'workout_started':
+        #         # render the workout that is in progress
+        #         return render_home_page_workout(member_detail, current_workout_session_state)
+        #     elif current_workout_session_state.get('state', None) == 'finishing_workout':
+        #         # render the finishing workout screen
+        #         return render_finishing_workout_page(member_detail, current_workout_session_state)
+        
+        # current_program = get_members_current_active_program(member_id)
+        # workouts_in_program = []
+        
+        # if current_program:
+        #     # Get all workouts from the program
+        #     program_workouts = get_program_workouts(current_program)
+
+        #     # Create alternative workout options
+        #     for workout_def in program_workouts:
+        #         workout_info = {
+        #             'key': str(workout_def.get_composite_key()),
+        #             'name': workout_def.get('name', 'Unnamed Workout'),
+        #             'description': workout_def.get('description', ''),
+        #             'workout_type': workout_def.get('workout_type', 'alternative')
+        #         }
+        #         workouts_in_program.append(workout_info)
+        
         # For the main dashboard, we load the template with placeholders
         # Each section will load its content via HTMX
         return hx_render_template(
-            template_string="hello from lifetimelines",
-            context=context)
+            template_file='home/dashboard.html',
+            member_id=member_id,
+            member=member_detail,
+            context=context
+        )
         
-   
+    except UnregisteredMemberException as e:
+        print(f"User not registered: {e}")
+        member = member_registry.get_member(member_id)
+        app_name = get_current_app_name()
+        return render_template("unregistered_member.html",  member=member, app_name=app_name)
+    
+    except FirstTimeUserException as e:
+        print(f"First time user is not registered: {e}")
+        member_registry.add_member(member_id, member_email, member_name)
+        member = member_registry.get_member(member_id)
+        app_name = get_current_app_name()
+        return render_template("unregistered_member.html", member=member, app_name=app_name)
+    
     except Exception as e:
         print(f"Error loading home dashboard: {e}")
         return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading dashboard</div>',
             context=context
         )    
+     
+    # try:    
+    #     # For the main dashboard, we load the template with placeholders
+    #     # Each section will load its content via HTMX
+    #     return hx_render_template(
+    #         template_string="hello from lifetimelines",
+    #         context=context)
+        
+   
+    # except Exception as e:
+    #     print(f"Error loading home dashboard: {e}")
+    #     return hx_render_template(
+    #         template_string='<div class="alert alert-danger">Error loading dashboard</div>',
+    #         context=context
+    #     )    
     
 @bp.route("/logout2")
 def logout():

@@ -1,7 +1,7 @@
 import os
 import signal
 from cachelib import RedisCache
-from flask import Flask, app
+from flask import Flask, app, json
 from flask_cors import CORS   
 from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
@@ -24,6 +24,8 @@ def create_app():
     initialize_environment()
     
     app : Flask = Flask(__name__)
+    with app.open_resource('templates/base_metadata.json') as metadata_file:
+        app.config['APP_METADATA'] = json.load(metadata_file)
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.secret_key = Env.SECRET_KEY
     app.config['EXPLAIN_TEMPLATE_LOADING'] = True
