@@ -4,21 +4,11 @@ from auth import auth
 import os
 from common.app_info import get_current_app_name
 from common.fitness.home_page_view import render_finishing_workout_page, render_home_page_workout
+from common.fitness.hx_common import hx_render_fitness_template
 from common.member_entity import FirstTimeUserException, MembershipRegistry, UnregisteredMemberException, get_member_detail_from_user_context, get_member_email_from_user_context, get_member_id_from_user_context, get_member_name_from_user_context
 from common.template_renderer import hx_render_template
 
 bp = Blueprint('/', __name__, template_folder='templates')  
-
-
-@bp.route("/privacy")
-def privacy():
-    return render_template('privacy.html', context=None)
-
-
-@bp.route("/data-deletion")
-def data_deletion():
-    return render_template('data_deletion.html', context=None)
-
 
 @bp.route("/")
 @auth.login_required
@@ -72,12 +62,15 @@ def index(context = None):
         
     except UnregisteredMemberException as e:
         print(f"User not registered: {e}")
+        # user is in the registry, but they have not yet been approved
         member = member_registry.get_member(member_id)
         app_name = get_current_app_name()
         return render_template("unregistered_member.html",  member=member, app_name=app_name)
     
     except FirstTimeUserException as e:
         print(f"First time user is not registered: {e}")
+        # the member was not previously registered, so we add them to the registry here
+        # TODO: consider sending a notification to the admins about the newly registered member, for approval
         member_registry.add_member(member_id, member_email, member_name)
         member = member_registry.get_member(member_id)
         app_name = get_current_app_name()
@@ -90,7 +83,18 @@ def index(context = None):
             context=context
         )    
      
-  
+@bp.route("/about")
+def about():
+    return hx_render_template('about.html', context=None)
+
+@bp.route("/privacy")
+def privacy():
+    return hx_render_template('privacy.html', context=None)
+
+@bp.route("/data-deletion")
+def data_deletion():
+    return hx_render_template('data_deletion.html', context=None)
+
 @bp.route("/logout2")
 def logout():
     print("logout")

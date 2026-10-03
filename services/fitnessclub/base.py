@@ -82,14 +82,17 @@ def index(context = None):
         
     except UnregisteredMemberException as e:
         print(f"User not registered: {e}")
+        # user is in the registry, but they have not yet been approved
         member = member_registry.get_member(member_id)
         return render_template("unregistered_member.html",  member=member)
     
     except FirstTimeUserException as e:
         print(f"First time user exception: {e}")
+        # the member was not previously registered, so we add them to the registry here
+        # TODO: consider sending a notification to the admins about the newly registered member, for approval
         member_registry.add_member(member_id, member_email, member_name)
         member = member_registry.get_member(member_id)
-        return render_template("first_time_user.html", member=member)
+        return render_template("unregistered_member.html", member=member)
     
     except Exception as e:
         print(f"Error loading home dashboard: {e}")

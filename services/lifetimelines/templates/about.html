@@ -1,0 +1,123 @@
+<div class="container-fluid" style="min-height: 100vh;">
+    <!-- Hero Section -->
+    <div class="row bg-primary text-white py-5 mb-0">
+        <div class="col-lg-8 mx-auto">
+            <div class="text-center">
+                <h1 class="display-4 fw-bold mb-3">LifeTimeLines</h1>
+                <p class="lead">Your life distilled into meaningful lines on a graph</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row py-5">
+        <div class="col-lg-8 mx-auto">
+            <!-- About Section -->
+            <section class="mb-5">
+                <h2 class="h3 fw-bold text-light mb-4">About LifeTimeLines</h2>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-3 text-white">
+                            LifeTimeLines is a platform that helps you visualize and understand your life through meaningful lines on a graph.
+                            It provides the tools and structure to help you track your personal growth and milestones over time.
+                        </p>
+                        <p class="mb-3 text-white">
+                            LifeTimeLines fosters a supportive community where users can share their journeys, gain insights, and stay motivated,
+                            offering a unique perspective on personal development and life achievements & failures.
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="bg-light p-4 rounded border" style="background: rgba(255, 255, 255, 0.9) !important;">
+                            <h4 class="h5 fw-bold mb-3 text-dark">Mission</h4>
+                            <p class="mb-0 text-muted">
+                                To create a welcoming community where members support each other in achieving their personal growth and life milestones 
+                                through meaningful visualizations, structured tracking, social connections, all while using an intuitive and accessible platform.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Why Join Section -->
+            <section class="mb-5">
+                <h2 class="h3 fw-bold text-light mb-4">Why?</h2>
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="text-center p-4 rounded h-100 border" style="background: rgba(255, 255, 255, 0.9) !important;">
+                            <i class="bi bi-people-fill text-primary fs-1 mb-3"></i>
+                            <h4 class="h5 fw-bold text-dark">ABC</h4>
+                            <p class="text-muted mb-0">
+                                blah blah blah
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center p-4 rounded h-100 border" style="background: rgba(255, 255, 255, 0.9) !important;">
+                            <i class="bi bi-people-fill text-primary fs-1 mb-3"></i>
+                            <h4 class="h5 fw-bold text-dark">ABC</h4>
+                            <p class="text-muted mb-0">
+                                blah blah blah
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Version Information Section -->
+            <section class="mb-5">
+                <h2 class="h3 fw-bold text-light mb-4">Application Information</h2>
+                <div class="p-4 rounded border" style="background: rgba(255, 255, 255, 0.9) !important;">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="fw-bold text-dark">Version Details</h5>
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <td class="text-muted">Version:</td>
+                                    <td class="text-dark fw-semibold">{{ version_info.version }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Build:</td>
+                                    <td class="text-dark">{{ version_info.build }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Branch:</td>
+                                    <td class="text-dark">{{ version_info.build_branch }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="fw-bold text-dark">Build Information</h5>
+                            <table class="table table-sm table-borderless">
+                                <tr>
+                                    <td class="text-muted">Build Date:</td>
+                                    <td class="text-dark">{{ version_info.build_date }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted">Commit:</td>
+                                    <td class="text-dark font-monospace small">{{ version_info.build_commit[:8] if version_info.build_commit != 'unknown' else 'unknown' }}</td>
+                                </tr>
+                                {% if version_info.is_development %}
+                                <tr>
+                                    <td colspan="2">
+                                        <span class="badge bg-warning text-dark">Development Build</span>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="row bg-secondary text-white py-4">
+        <div class="col-12">
+            <div class="text-center">
+                <p class="mb-0">&copy; 2026 LifeTimeLines. All rights reserved.</p>
+                <small class="text-light">Version {{ version_info.version }}</small>
+            </div>
+        </div>
+    </div>
+</div>

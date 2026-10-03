@@ -5,11 +5,10 @@ Home Page Routes for the LifeTimeLines application
 All routes use HTMX for dynamic updates and follow the existing authentication patterns.
 """
 
-from flask import Blueprint, abort, make_response, render_template, request, jsonify, session, redirect, url_for
+from flask import Blueprint
 from auth import auth
 from common.template_renderer import hx_render_template
-from datetime import datetime, timezone, date
-import json
+from common.member_entity import get_member_id_from_user_context, get_members_list
 
 bp = Blueprint('home', __name__, template_folder='../../templates')
 
@@ -23,7 +22,7 @@ def home_partial2(context=None):
     try:
         
         return hx_render_template(
-            template_file='home/home.html',
+            template_file='home/dashboard.html',
             context=context
         )
         
@@ -34,3 +33,13 @@ def home_partial2(context=None):
             context=context
         )
 
+@bp.route("/members")
+@auth.login_required  
+def about_members(context=None):
+    return members_view(context)
+
+def members_view(context=None):
+    member_id = get_member_id_from_user_context(context)
+    members_list = get_members_list()
+    view_type='card'
+    return hx_render_template('membership_list.html', members_list=members_list, current_member_id=member_id, view=view_type)

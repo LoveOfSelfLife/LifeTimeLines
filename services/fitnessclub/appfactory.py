@@ -33,7 +33,7 @@ def create_app():
     initialize_environment()
     
     app : Flask = Flask(__name__)
-    with app.open_resource('templates/base_metadata.json') as metadata_file:
+    with app.open_resource('app_metadata.json') as metadata_file:
         app.config['APP_METADATA'] = json.load(metadata_file)
 
     # app.config['EXPLAIN_TEMPLATE_LOADING'] = True

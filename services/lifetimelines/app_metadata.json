@@ -49,20 +49,10 @@
     {
       "kind": "dropdown",
       "id": "clubDropdown",
-      "label": "History",
-      "icon": "bi bi-info-circle",
-      "children": [
-        { "kind": "link", "label": "Overview", "icon": "bi bi-list-check", "action": { "hx_get": "/history/home", "hx_target": "#content", "hx_swap": "innerHTML" } },
-        { "kind": "link", "label": "Details", "icon": "bi bi-list-check", "action": { "hx_get": "/history/details", "hx_target": "#content", "hx_swap": "innerHTML" } }
-      ]
-    },
-    {
-      "kind": "dropdown",
-      "id": "clubDropdown",
       "label": "About",
       "icon": "bi bi-info-circle",
       "children": [
-        { "kind": "link", "label": "Club", "icon": "bi bi-info-circle", "action": { "hx_get": "/home/club", "hx_target": "#content", "hx_swap": "innerHTML" } },
+        { "kind": "link", "label": "Club", "icon": "bi bi-info-circle", "action": { "hx_get": "/about", "hx_target": "#content", "hx_swap": "innerHTML" } },
         { "kind": "link", "label": "Members", "icon": "bi bi-people", "action": { "hx_get": "/home/members", "hx_target": "#content", "hx_swap": "innerHTML" } }
       ]
     },

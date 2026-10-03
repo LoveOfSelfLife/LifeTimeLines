@@ -8,7 +8,9 @@ from dotenv import load_dotenv
 
 from base import bp as base_bp
 from views.home.home_routes import bp as home_bp
-
+from views.admin.admin_routes import bp as admin_bp
+from views.profile.profile_routes import bp as profile_bp
+from views.calendar.calendar_routes import bp as calendar_bp
 from common.env_init import initialize_environment
 from common.env_context import Env
 from auth import auth
@@ -24,7 +26,7 @@ def create_app():
     initialize_environment()
     
     app : Flask = Flask(__name__)
-    with app.open_resource('templates/base_metadata.json') as metadata_file:
+    with app.open_resource('app_metadata.json') as metadata_file:
         app.config['APP_METADATA'] = json.load(metadata_file)
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.secret_key = Env.SECRET_KEY
@@ -48,7 +50,10 @@ def create_app():
         return {'version_info': get_version_info()}
 
     for bp in [base_bp, 
-               home_bp]:
+               home_bp,
+               admin_bp,
+               profile_bp,
+               calendar_bp]:
         app.register_blueprint(bp, url_prefix=f'/{bp.name}')
 
     CORS(app)  

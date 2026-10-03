@@ -17,29 +17,20 @@ def hx_render_template(template_file=None, template_string=None, **kwargs):
                 kwargs['member'] = member
                 content = _render_template_string_or_file(template_file, template_string, **kwargs)
                 show_admin_menu = is_member_an_admin(member_id)
-
-                # Add role-based context for menu rendering
-                # role_context = kwargs.get('role_context', None)
-
-                # Add impersonation information for display
                 impersonated_member_id = get_impersonated_member_id()
                 impersonated_member = None
                 if impersonated_member_id:
                     impersonated_member = members_registry.get_member(impersonated_member_id)
 
-                return render_template('base_generic.html', app_metadata=get_current_app_metadata(),
+                return render_template('app.html', app_metadata=get_current_app_metadata(),
                                      content=content, show_admin_menu=show_admin_menu,
-                                    #  role_context=role_context, 
                                     impersonated_member=impersonated_member, **kwargs)
 
             except UnregisteredMemberException as e:
                 print(f"User not registered exception: {e}")
                 member = members_registry.get_member(member_id)
                 kwargs['member'] = member
-                # Unregistered members still have role info, provide context
-                # role_context = kwargs.get('role_context', None)
                 return render_template("unregistered_member.html", 
-                                    #    role_context=role_context, 
                                        **kwargs)
 
             except FirstTimeUserException as e:
@@ -49,10 +40,7 @@ def hx_render_template(template_file=None, template_string=None, **kwargs):
                 members_registry.add_member(member_id, member_email, member_name)
                 member = members_registry.get_member(member_id)
                 kwargs['member'] = member
-
-                # role_context = kwargs.get('role_context', None)
                 return render_template("first_time_user.html", 
-                                    #    role_context=role_context, 
                                        **kwargs)
         else:
             abort(401)
