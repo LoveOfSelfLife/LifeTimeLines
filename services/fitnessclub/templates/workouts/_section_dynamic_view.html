@@ -40,7 +40,7 @@
           {% set param_ns = namespace(unit_param_id=None, param_list=[]) %}          
 
           {% set param_ns.param_list = exercise_parameters %}
-          {% include "_dynamic_parameter.html" %}
+          {% include "workouts/_dynamic_parameter.html" %}
           <strong class="d-flex align-items-center justify-content-start flex-wrap gap-2 mb-0">          
             <!-- Timer for time-based exercises -->
             {% if active_workout and timer.has_timer and timer.timer_value is not none %}

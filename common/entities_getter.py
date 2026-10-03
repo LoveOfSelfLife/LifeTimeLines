@@ -1,14 +1,15 @@
 import re
 
 from flask import request, session
-
-from common.entity_store_cache import EntityStoreCache
-from common.fitness.active_fitness_registry import get_entity_obj_from_entity_name
-from common.fitness.coach_team_entity import get_coachs_team_members
-from common.fitness.favorites_entity import get_all_favorite_entity_ids
+from common.favorites_entity import get_all_favorite_entity_ids
 from common.member_entity import is_member_an_admin
-from common.fitness.roles_service import is_member_client, is_member_coach
-from common.fitness.cacher import get_cache_value, set_cache_value, delete_from_cache
+from common.entity_store_cache import EntityStoreCache
+from common.entity_store import get_entity_obj_from_entity_name
+from common.cacher import get_cache_value, set_cache_value, delete_from_cache
+
+from common.coach_team_entity import get_coachs_team_members
+from common.roles_service import is_member_client, is_member_coach
+
 
 entity_store_cache_dict = {}
 
@@ -133,7 +134,7 @@ def _matches_special_filter_term(entity, term_type, pattern):
     Delegate special term matching (e.g. ^section, ^related) to the
     externally-implemented special matcher.
     """
-    from common.fitness.filter_funcs import entity_matches_special_term
+    from common.filter_funcs import entity_matches_special_term
     
     return entity_matches_special_term(entity, term_type, pattern)
 
@@ -271,10 +272,10 @@ def get_entity(entity_name, key, partition_key=None, member_id=None):
 
     entity = get_entity_obj_from_entity_name(entity_name)
     cache_key = get_cache_key(entity, partition_key)
-    if entity_store_cache_dict.get(entity_name, None) is None:
-        entity_store_cache_dict[entity_name] = EntityStoreCache(get_entity_obj_from_entity_name(entity_name))
+    if entity_store_cache_dict.get(cache_key, None) is None:
+        entity_store_cache_dict[cache_key] = EntityStoreCache(get_entity_obj_from_entity_name(entity_name), partition_key=partition_key)
 
-    return entity_store_cache_dict[entity_name].get_item_by_key(key)
+    return entity_store_cache_dict[cache_key].get_item_by_key(key)
 
 def filter_entities_by_member_role(member_id, entities):
     # if I'm a client, then I should only see entities that are assigned to me, or entities that I created. 

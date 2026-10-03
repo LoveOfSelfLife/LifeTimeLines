@@ -1,25 +1,28 @@
 from ast import literal_eval
 import json
 from urllib import response
-from flask import Blueprint, abort, make_response, redirect, render_template, request, session, url_for, jsonify
-from common.entity_store import EntityStore
-from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
-from common.fitness.entities_getter import resolve_selected_entity_keys, clear_selected_entity_keys
-from common.fitness.entities_getter import as_bool
-from common.fitness.entities_getter import MULTI_SELECT_SESSION_KEY
-from common.fitness.cacher import get_cache_value, set_cache_value
+from flask import abort, make_response, redirect, render_template, request, session, url_for, jsonify
+from common.blueprint import create_blueprint
+from common.entity_store import EntityStore, get_entity_obj_from_entity_name
+from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_listing_fields_for_entity
+from common.entities_getter import resolve_selected_entity_keys, clear_selected_entity_keys
+from common.entities_getter import as_bool
+from common.entities_getter import MULTI_SELECT_SESSION_KEY
+from common.cacher import get_cache_value, set_cache_value
 from common.fitness.exercise_entity import show_exercise_viewer
 from common.fitness.exercise_entity import movement_category_definitions
-from common.fitness.filter_funcs import get_filter_terms_from_request
-from common.fitness.filter_funcs import parse_listing_filter
-from common.fitness.entities_getter import get_entities
+from common.filter_funcs import get_filter_terms_from_request
+from common.filter_funcs import parse_listing_filter
+from common.entities_getter import get_entities
 from common.fitness.exercise_entity import EQUIPMENT, ExerciseEntity
-from common.fitness.hx_common import hx_render_fitness_template
+from common.template_renderer import hx_render_fitness_template
 from common.member_entity import get_member_id_from_user_context
 from common.fitness.exercise_schema import exercise_schema
 from common.fitness.member_exercise_history import get_exercise_history_for_member
-from common.fitness.utils import generate_id
-bp = Blueprint('exercises', __name__, template_folder='templates')
+from common.utils import generate_id
+
+bp = create_blueprint('exercises', __name__)
+
 from auth import auth
 @bp.route('/')
 @auth.login_required
@@ -175,7 +178,7 @@ def exercise_listing_base(context, entity_name, page, page_size, view, fields_to
     )
 
     if modal_mode:
-        return hx_render_fitness_template('exercise_listing_modal.html', **template_data)
+        return hx_render_fitness_template('exercises/exercise_listing_modal.html', **template_data)
 
     return hx_render_fitness_template(template_file_name, **template_data)
 
@@ -251,7 +254,7 @@ def new_exercise(context=None):
     # movement_categories is not part of the schema, so default it explicitly
     exercise_data.setdefault('movement_categories', [])
 
-    return hx_render_fitness_template('exercises/exercise_editor.html',
+    return hx_render_fitness_template('exercises/exercises/exercise_editor.html',
                          exercise=exercise_data,
                          is_new=True,
                          schema=exercise_schema,
@@ -366,7 +369,7 @@ def edit_exercise(context=None):
     equipment_types = list(dict.fromkeys(EQUIPMENT + exercise_data['equipment_list']))
     current_listing_page=request.args.get('page', 1)
     current_listing_filter=request.args.get('filter', '')   
-    return hx_render_fitness_template('exercises/exercise_editor.html',
+    return hx_render_fitness_template('exercises/exercises/exercise_editor.html',
                          exercise=exercise_data,
                          is_new=False,
                          schema=exercise_schema,  

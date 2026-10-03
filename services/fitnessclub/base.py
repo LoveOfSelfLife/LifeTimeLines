@@ -1,15 +1,16 @@
 import uuid
-from flask import redirect, render_template, request, Blueprint, url_for, session
+from flask import redirect, render_template, request, url_for, session
+from common.blueprint import create_blueprint
 from auth import auth
 from common.blob_store import BlobStore
 import os
 from common.fitness.home_page_view import render_finishing_workout_page, render_home_page_workout
-from common.fitness.hx_common import hx_render_fitness_template
+from common.template_renderer import hx_render_fitness_template
 from common.member_entity import MembershipRegistry, get_member_detail_from_user_context, get_member_email_from_user_context, get_member_id_from_user_context, get_member_name_from_user_context, FirstTimeUserException, UnregisteredMemberException
 from common.fitness.programs import get_members_current_active_program, get_program_workouts
 from common.fitness.workout_state import get_active_workout_state
 
-bp = Blueprint('/', __name__, template_folder='templates')  
+bp = create_blueprint('/', __name__)  
 
 @bp.route("/about")
 def about():
@@ -157,7 +158,7 @@ def api_upload_photo(context, container_name):
 @auth.login_required
 def select_team(context=None):
     """Allow coaches to select their active team"""
-    from common.fitness.roles_service import set_primary_team_id_for_context, get_member_role, get_teams_managed_by_coach
+    from common.roles_service import set_primary_team_id_for_context, get_member_role, get_teams_managed_by_coach
     import json
     from flask import make_response
     
@@ -193,7 +194,7 @@ def select_team(context=None):
 @auth.login_required
 def members_page(context=None):
     """Show team members based on user's role and team context"""
-    from common.fitness.roles_service import get_accessible_members_for_context, get_current_team_context
+    from common.roles_service import get_accessible_members_for_context, get_current_team_context
     
     member_id = get_member_id_from_user_context(context)
     accessible_members = get_accessible_members_for_context(member_id)

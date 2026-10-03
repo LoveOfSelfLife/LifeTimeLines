@@ -5,12 +5,12 @@ Calendar Page Routes for the LifeTimeLines application
 All routes use HTMX for dynamic updates and follow the existing authentication patterns.
 """
 
-from flask import Blueprint
+from common.blueprint import create_blueprint
 from auth import auth
 from common.template_renderer import hx_render_template
 
 # bp = Blueprint('calendar', __name__, template_folder='../../templates')
-bp = Blueprint('calendar', __name__)
+bp = create_blueprint('calendar', __name__)
 
 @bp.route("/")
 @auth.login_required  

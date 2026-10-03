@@ -1,9 +1,9 @@
 import sys
-from common.fitness.entities_getter import get_filtered_entities
-from common.fitness.favorites_entity import FavoritesEntity, get_all_favorite_entity_ids
+from common.entities_getter import get_filtered_entities
+from common.favorites_entity import FavoritesEntity, get_all_favorite_entity_ids
 from common.fitness.member_program_entity import MemberProgramsEntity
 from datetime import datetime as dt
-from common.fitness.roles_service import get_member_role, get_team_coaches_with_details, get_team_for_client
+from common.roles_service import get_member_role, get_team_coaches_with_details, get_team_for_client
 
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity
 

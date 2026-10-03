@@ -1,4 +1,30 @@
+JSONEditor.defaults.callbacks.upload = {
+  "realUploadHandler": function (jseditor, pointer, fileBlob, callback) {
+    var formData = new FormData();
+    formData.append('file', fileBlob);
 
+    fetch(jseditor.jsoneditor.options.upload_end_point,
+      {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin'
+      })
+      .then(function (res) {
+        if (!res.ok) throw new Error("status " + res.status);
+        return res.json();
+      })
+      .then(function (json) {
+        if (!json.url) throw new Error("No URL returned");
+        callback.success(json.url);
+      })
+      .catch(function (err) {
+        console.error(err);
+        callback.failure("failure on upload: " + err.message);
+      });
+  }
+};
+JSONEditor.defaults.iconlibs.fontawesome5.iconClass = 'fas';
+JSONEditor.defaults.options.theme = 'bootstrap5';
 
 document.addEventListener('htmx:load', function (event) {
   console.log('htmx:load event triggered');

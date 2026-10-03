@@ -2,8 +2,7 @@ from datetime import datetime
 
 from common.entity_store import EntityObject
 from common.entity_store import EntityStore
-from common.fitness.member_team_entity import get_team_members
-from common.fitness.utils import generate_id
+from common.member_team_entity import get_team_members
 from common.utils import IDGenerator
 
 class CoachTeamEntity(EntityObject):

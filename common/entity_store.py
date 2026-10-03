@@ -335,3 +335,7 @@ class EntityStore :
             if k in eobj.get_fields() and k != eobj.get_partition_field() and k != eobj.get_key_field():
                 vals[k] = json.dumps(v) if type(v) is not str else v  # don't double encode strings, otherwise they will have extra quotes
         return vals
+
+
+def get_entity_obj_from_entity_name(entity_name):
+    return EntityObject.get_entity_class_from_table_name(entity_name)()

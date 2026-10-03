@@ -1,21 +1,23 @@
 import copy
-from flask import Blueprint, abort, make_response, render_template, request, session, url_for
-from common.fitness.hx_common import hx_render_fitness_template
+from flask import abort, make_response, render_template, request, session, url_for
+from common.blueprint import create_blueprint
+from common.app_info import get_current_app_id
+from common.template_renderer import hx_render_fitness_template
 from datetime import datetime, timezone
 import json
 
 import pytz
 import uuid
-from flask import Blueprint, abort, current_app, make_response, redirect, render_template, request, session, url_for
+from flask import abort, current_app, make_response, redirect, render_template, request, session, url_for
 from common.entity_store import EntityObject, EntityStore
 from common.fitness import workout_entity
 from common.fitness.active_fitness_registry import get_fitnessclub_listing_fields_for_entity
-from common.fitness.cacher import delete_from_cache, get_cache_value, set_cache_value
-from common.fitness.entities_getter import as_bool, delete_entity, get_entity, get_entities, resolve_selected_entity_keys, resolve_selected_workout_keys, clear_selected_workout_keys
-from common.fitness.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
+from common.cacher import delete_from_cache, get_cache_value, set_cache_value
+from common.entities_getter import as_bool, delete_entity, get_entity, get_entities, resolve_selected_entity_keys, resolve_selected_workout_keys, clear_selected_workout_keys
+from common.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
 from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
 from common.fitness.get_calendar_service import get_calendar_service
-from common.fitness.filter_funcs import get_filter_terms_from_request
+from common.filter_funcs import get_filter_terms_from_request
 from common.template_renderer import rm_spaces
 from common.member_entity import MembershipRegistry, get_member_id_from_user_context, is_member_an_admin, member_allows_on_the_fly_workout
 from common.fitness.member_exercise_history import extract_and_load_exercise_events_from_workout_instance
@@ -26,10 +28,10 @@ from common.fitness.workout_state import clear_active_workout_state, get_active_
 from common.fitness.exercise_alternatives import apply_recorded_swaps_to_definition
 from common.fitness.exercise_onthefly import apply_recorded_removals_to_definition, apply_recorded_additions_to_definition
 from common.fitness.edit_workout_object import bring_up_workouts_builder
-from common.fitness.roles_service import get_accessible_members_for_context, get_team_coaches_with_details, get_team_for_client, is_member_client, is_member_coach
-from common.fitness.coach_team_entity import get_coachs_team_members
-from common.fitness.entities_getter import filter_entities_by_member_role
-bp = Blueprint('program', __name__, template_folder='templates')
+from common.roles_service import get_accessible_members_for_context, get_team_coaches_with_details, get_team_for_client, is_member_client, is_member_coach
+from common.coach_team_entity import get_coachs_team_members
+from common.entities_getter import filter_entities_by_member_role
+bp = create_blueprint('program', __name__)
 from auth import auth
 
 def _normalize_form_datetime(value, fallback=None):
@@ -156,11 +158,11 @@ def program_viewer(context=None):
     
     # Get member information
     assigned_member_id = program.get('assigned_to_member_id') or program.get('member_id')
-    member = get_entity('MemberTable', assigned_member_id)
+    member = get_entity('MemberTable', key=assigned_member_id, partition_key=get_current_app_id())
     member_name = member.get('name', 'Unknown Member') if member else 'Unknown Member'
     
     return hx_render_fitness_template(
-        "program_viewer.html",
+        "program/program_viewer.html",
         program=program,
         member_name=member_name,
         standard_workouts=standard_workouts,
@@ -334,16 +336,6 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
     return hx_render_fitness_template(template_file_name, **template_data)
 
 
-# def _build_program_workout_copy(source_workout, current_program, order_index):
-#     copied_workout = source_workout.copy()
-#     copied_workout['id'] = str(uuid.uuid4())
-#     copied_workout['member_program_id'] = current_program['id']
-#     copied_workout['order_index'] = order_index
-
-#     workout_copy = MemberWorkoutDefinitionEntity(copied_workout)
-#     workout_copy['key'] = workout_copy.get_composite_key()
-#     workout_copy['key_str'] = '|'.join(workout_copy.get_composite_key())
-#     return workout_copy
 
 def new_program(name='new-workout-program', member_id=None):
     program_id = str(uuid.uuid4())
@@ -398,7 +390,7 @@ def builder(context=None):
         accessible_members = get_accessible_members_for_context(member_id)
         
         # Get role context for template conditional rendering
-        from common.fitness.roles_service import get_member_role_context
+        from common.roles_service import get_member_role_context
         role_context = get_member_role_context(member_id)
         
         # Debug: Check program member_id and accessible members
@@ -406,7 +398,7 @@ def builder(context=None):
         print(f"DEBUG - Accessible members: {[(m.get('id'), m.get('name')) for m in accessible_members]}")
         print(f"DEBUG - Member IDs types: {[type(m.get('id')) for m in accessible_members]}")
         
-        return hx_render_fitness_template('program_builder.html', 
+        return hx_render_fitness_template('program/program_builder.html', 
                                 program=current_program, 
                                 accessible_members=accessible_members,
                                 role_context=role_context,
@@ -446,7 +438,7 @@ def program_workouts_canvas(context=None, program_id=None):
             workouts_list = get_cache_value('current_program_workouts')
 
         if p['id'] == program_id:
-            return hx_render_fitness_template('_program_workouts.html',
+            return hx_render_fitness_template('program/_program_workouts.html',
                                         program=p,
                                         workouts=workouts_list,
                                         context=context)
@@ -477,7 +469,7 @@ def view_workout2(context=None, workout_id=None):
     workout_sections = workout['workout_sections']
     
     return render_template(
-        "workout_view2.html",
+        "workouts/workout_view2.html",
         program=None,  # No program context in this view
         workout=workout,
         exercises=exercises,
@@ -1032,7 +1024,7 @@ def start_workout(context=None):
     workout_view_preference = session.get('workout_view_preference', 'accordion')
     keep_screen_awake = current_workout_state.get('keep_screen_awake', True) if current_workout_state else False
     return render_template(
-        "workout_view.html",
+        "workouts/workout_view.html",
         workout=workout_instance,
         workout_sections=workout_sections,
         exercises=exercises,

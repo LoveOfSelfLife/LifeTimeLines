@@ -5,9 +5,9 @@ This service provides a centralized API for managing roles and team relationship
 
 from flask import session
 from common.member_entity import get_user_profile
-from common.fitness.team_entity import get_team_by_id, get_teams_list
-from common.fitness.member_team_entity import get_members_teams, get_team_members
-from common.fitness.coach_team_entity import get_coachs_teams, get_team_coaches
+from common.team_entity import get_team_by_id, get_teams_list
+from common.member_team_entity import get_members_teams, get_team_members
+from common.coach_team_entity import get_coachs_teams, get_team_coaches
 
 # Session key for storing selected team
 SELECTED_TEAM_SESSION_KEY = 'selected_team_id'

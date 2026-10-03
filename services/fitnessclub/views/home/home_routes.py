@@ -9,12 +9,13 @@ Handles the new three-section home page dashboard:
 All routes use HTMX for dynamic updates and follow the existing authentication patterns.
 """
 
-from flask import Blueprint, abort, make_response, render_template, request, jsonify, session, redirect, url_for
+from flask import abort, make_response, render_template, request, jsonify, session, redirect, url_for
+from common.blueprint import create_blueprint
 from auth import auth
-from common.fitness.entities_getter import get_entity
-from common.fitness.favorites_entity import get_all_favorite_entity_ids
+from common.entities_getter import get_entity
+from common.favorites_entity import get_all_favorite_entity_ids
 from common.fitness.get_calendar_service import get_calendar_service
-from common.fitness.hx_common import hx_render_fitness_template
+from common.template_renderer import hx_render_fitness_template
 from common.member_entity import get_member_id_from_user_context, get_member_detail_from_user_context, get_user_profile
 from common.fitness.home_data_service import HomePageDataService, format_seconds, get_program_workout_options
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity
@@ -24,8 +25,7 @@ from common.entity_store import EntityStore
 from datetime import datetime, timezone, date
 import json
 
-bp = Blueprint('home', __name__, template_folder='../../templates')
-
+bp = create_blueprint('home', __name__)
 
 @bp.route("/scheduled-workouts")
 @auth.login_required  

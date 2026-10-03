@@ -1,0 +1,48 @@
+<!-- Team listing page for admin -->
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-people-fill"></i> Team Management</h2>
+        <button class="btn btn-primary" hx-get="/admin/teams/create" hx-target="#content" hx-swap="innerHTML">
+            <i class="bi bi-plus-circle"></i> Create New Team
+        </button>
+    </div>
+
+    {% if teams %}
+    <div class="row">
+        {% for team in teams %}
+        <div class="col-md-6 col-lg-4 mb-3">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ team.name }}</h5>
+                    <p class="card-text">
+                        {% if team.location %}
+                            <i class="bi bi-geo-alt"></i> {{ team.location }}<br>
+                        {% endif %}
+                        {% if team.description %}
+                            {{ team.description }}
+                        {% endif %}
+                    </p>
+                    <div class="mt-auto">
+                        <span class="badge {% if team.status == 'active' %}bg-success{% else %}bg-secondary{% endif %}">
+                            {{ team.status|title }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-primary btn-sm" 
+                            hx-get="/admin/teams/{{ team.id }}/manage" 
+                            hx-target="#content" 
+                            hx-swap="innerHTML">
+                        <i class="bi bi-people"></i> Manage Members
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> No teams have been created yet. Click "Create New Team" to get started.
+    </div>
+    {% endif %}
+</div>

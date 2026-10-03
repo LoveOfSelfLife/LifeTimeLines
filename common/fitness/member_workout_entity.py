@@ -2,8 +2,8 @@
 from flask import request
 
 from common.entity_store import EntityObject
-from common.fitness.entities_getter import get_entity
-from common.fitness.hx_common import hx_render_fitness_template
+from common.entities_getter import get_entity
+from common.template_renderer import hx_render_fitness_template
 
 
 class MemberWorkoutDefinitionEntity (EntityObject):

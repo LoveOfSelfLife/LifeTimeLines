@@ -14,13 +14,13 @@ from datetime import datetime, timedelta, timezone
 
 import pytz
 from common.entity_store import EntityStore
-from common.fitness.coach_team_entity import get_team_coaches
+from common.coach_team_entity import get_team_coaches
 from common.member_entity import get_member_name_from_member_id
-from common.fitness.member_team_entity import get_members_team_members, get_team_members
+from common.member_team_entity import get_members_team_members, get_team_members
 from common.fitness.programs import get_members_current_active_program, get_next_workout_in_program
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity
 from common.fitness.get_calendar_service import get_calendar_service
-from common.fitness.roles_service import get_current_team_context
+from common.roles_service import get_current_team_context
 from common.fitness.workouts import get_scheduled_workouts
 from typing import Dict, List, Optional, Tuple
 

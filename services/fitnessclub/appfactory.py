@@ -16,7 +16,7 @@ from views.program.programs_routes import bp as program_bp
 from views.exercises.exercise_routes import bp as exercises_bp
 from views.profile.profile_routes import bp as profile_bp
 from views.admin.admin_routes import bp as admin_bp
-from views.members.exercises_routes import bp as members_bp
+from services.fitnessclub.views.members.members_routes import bp as members_bp
 from views.workouts.workout_routes import bp as workouts_bp
 from common.env_init import initialize_environment
 from common.env_context import Env

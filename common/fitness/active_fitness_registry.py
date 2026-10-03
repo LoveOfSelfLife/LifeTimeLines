@@ -1,7 +1,6 @@
 from ast import literal_eval
 from datetime import datetime
 from flask import url_for
-from common.entity_store import EntityObject, EntityStore
 
 from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME, WORKOUT_INSTANCE_ENTITY_NAME
 from common.member_entity import get_member_name_from_member_id
@@ -159,16 +158,13 @@ def simple_date(date_str):
 def get_program_name_from_program_id(program_id):
     if not program_id:
         return None
-    from common.fitness.entities_getter import get_entity
+    from common.entities_getter import get_entity
     program_entity = get_entity(MemberProgramsEntity.table_name, program_id)
     if program_entity:
         return program_entity.get('name', None)
     return None
 def get_fitnessclub_entity_names():
     return list(editable_entities.keys())
-
-def get_entity_obj_from_entity_name(entity_name):
-    return EntityObject.get_entity_class_from_table_name(entity_name)()
 
 def get_fitnessclub_listing_fields_for_entity(entity_name):
     entry = editable_entities.get(entity_name, None)

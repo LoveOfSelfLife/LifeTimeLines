@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 import unittest
 from common.entity_store import EntityStore
-from common.fitness.coach_team_entity import CoachTeamEntity
+from common.coach_team_entity import CoachTeamEntity
 from common.table_store import TableStore
 
 class TestEntityStore(unittest.TestCase):

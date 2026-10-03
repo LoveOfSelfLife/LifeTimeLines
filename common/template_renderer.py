@@ -1,7 +1,8 @@
-from common.member_entity import FirstTimeUserException, MembershipRegistry, UnregisteredMemberException, get_member_email_from_user_context, get_member_name_from_user_context, is_member_an_admin
+from common.member_entity import FirstTimeUserException, MembershipRegistry, UnregisteredMemberException, get_member_email_from_user_context, get_member_id_from_user_context, get_member_name_from_user_context, is_member_an_admin
 from common.app_info import get_current_app_metadata
 from common.impersonation import get_impersonated_member_id
 from flask import abort, render_template, render_template_string, request
+from common.roles_service import get_member_role_context
 
 
 def hx_render_template(template_file=None, template_string=None, **kwargs):
@@ -56,3 +57,13 @@ def _render_template_string_or_file(template_file=None, template_string=None, **
 
 def rm_spaces(s):
     return s.replace(' ', '_').lower() if s else s
+
+
+def hx_render_fitness_template(template_file=None, template_string=None, **kwargs):
+    context = kwargs.get('context', None)
+    if context:
+        member_id = get_member_id_from_user_context(context)
+        role_context = get_member_role_context(member_id)
+        kwargs['member_id'] = member_id
+        kwargs['role_context'] = role_context
+    return hx_render_template(template_file=template_file, template_string=template_string, **kwargs)

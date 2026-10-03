@@ -1,9 +1,9 @@
 from hashlib import sha256
 from common.entity_store import EntityObject
-from common.fitness.filter_funcs import get_filter_terms_from_request
-from common.fitness.hx_common import hx_render_fitness_template
+from common.filter_funcs import get_filter_terms_from_request
+from common.template_renderer import hx_render_fitness_template
 from common.member_entity import get_member_id_from_user_context
-from common.fitness.utils import convert_to_alphanumeric
+from common.utils import convert_to_alphanumeric
 import json
 from common.fitness.exercise_schema import exercise_schema
 from common.fitness.exercise_schema import exercise_review_schema
@@ -380,7 +380,7 @@ def gen_exercise_id(exercise):
 
 def exercise_was_reviewed(exercise):
     """Check if an exercise was reviewed by looking it up in the ExerciseReviewTable."""
-    from common.fitness.entities_getter import get_entity
+    from common.entities_getter import get_entity
     review = get_entity("ExerciseReviewTable", exercise.get("id", ""))
     if review is not None:
         # check if the review has a disposition

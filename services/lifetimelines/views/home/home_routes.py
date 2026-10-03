@@ -5,12 +5,12 @@ Home Page Routes for the LifeTimeLines application
 All routes use HTMX for dynamic updates and follow the existing authentication patterns.
 """
 
-from flask import Blueprint
+from common.blueprint import create_blueprint
 from auth import auth
 from common.template_renderer import hx_render_template
 from common.member_entity import get_member_id_from_user_context, get_members_list
 
-bp = Blueprint('home', __name__, template_folder='../../templates')
+bp = create_blueprint('home', __name__)
 
 @bp.route("/")
 @auth.login_required  

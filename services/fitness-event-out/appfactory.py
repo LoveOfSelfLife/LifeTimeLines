@@ -12,8 +12,8 @@ from common.table_store import TableStore
 from common.graceful_exit import GracefulExit
 from common.auth_requestor import AuthRequestor
 
-from common.fitness.outbound_event_queue import OutboundEventQueue
-from common.fitness.message_processor import process_fitness_message
+from common.outbound_event_queue import OutboundEventQueue
+from common.message_processor import process_fitness_message
 
 def main() -> None:
 

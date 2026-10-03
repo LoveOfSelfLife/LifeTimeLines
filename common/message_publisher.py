@@ -1,4 +1,4 @@
-from common.fitness.outbound_event_queue import OutboundEventQueue
+from common.outbound_event_queue import OutboundEventQueue
 import json
 
 class MessagePublisher:

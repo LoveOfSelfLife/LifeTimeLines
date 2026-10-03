@@ -1,4 +1,4 @@
-from common.fitness.cacher import get_cache_value, set_cache_value
+from common.cacher import get_cache_value, set_cache_value
 from flask import redirect, url_for
 
 def bring_up_workouts_builder(workout_obj):

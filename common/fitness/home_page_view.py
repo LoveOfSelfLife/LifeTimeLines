@@ -2,7 +2,7 @@ import json
 
 import pytz
 from common.entity_store import EntityStore
-from common.fitness.hx_common import hx_render_fitness_template
+from common.template_renderer import hx_render_fitness_template
 from common.fitness.programs import get_members_current_active_program, get_next_workout_in_program
 from common.fitness.member_workout_entity import MemberWorkoutInstanceEntity, get_exercises_from_workout
 from common.fitness.workout_state import get_active_workout_state, get_last_section, get_exercise_parameters
@@ -75,7 +75,7 @@ def render_home_page_workout(member, current_state):
                 break
         
     return hx_render_fitness_template(
-        "workout_view.html",
+        "workouts/workout_view.html",
         workout=workout_instance,
         workout_sections=workout_sections,
         exercises=exercises,

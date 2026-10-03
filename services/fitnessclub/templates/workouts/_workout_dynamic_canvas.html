@@ -280,7 +280,7 @@
               {% set timer = namespace(has_timer=False, timer_value=None, timer_units=None) %}
               {% set param_ns.param_list = exercise_parameters[sec.name] %}
               <div class="mt-auto pt-2">
-                {% include "_dynamic_parameter.html" %}
+                {% include "workouts/_dynamic_parameter.html" %}
               </div>
               <div class="workout-alt-list mt-2 ps-3 border-start">
                 <div class="text small mb-1">Alternatives</div>
@@ -303,7 +303,7 @@
                         {% set timer = namespace(has_timer=False, timer_value=None, timer_units=None) %}
                         {% set param_ns.param_list = exercise_parameters[sec.name] %}
                         {% with ex = alt_ex %}
-                          {% include "_dynamic_parameter.html" %}
+                          {% include "workouts/_dynamic_parameter.html" %}
                         {% endwith %}
                       </div>
                     </div>

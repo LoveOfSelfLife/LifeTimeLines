@@ -166,7 +166,7 @@ def entity_matches_special_term(entity, term_type, pattern):
     # If term_type is "^related", then the pattern will be the exercise id, so we check if the entity is related to that exercise
     # Return True if it matches, False otherwise
 
-    from common.fitness.entities_getter import get_entity
+    from common.entities_getter import get_entity
     from common.fitness.exercise_entity import does_exercise_belong_in_section
     if term_type == "^section":
         section_type = pattern.strip()

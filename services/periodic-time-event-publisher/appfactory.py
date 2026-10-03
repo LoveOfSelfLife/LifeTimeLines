@@ -4,7 +4,7 @@ import sys
 import logging
 
 from datetime import datetime
-from common.fitness.outbound_event_queue import OutboundEventQueue
+from common.outbound_event_queue import OutboundEventQueue
 
 def main() -> None:
 

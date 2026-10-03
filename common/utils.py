@@ -1,7 +1,10 @@
+from datetime import datetime
+from hashlib import sha256
 import random
 import hashlib
 import datetime
 from sonyflake import SonyFlake
+
 
 def generate_unique_id(table='', partition=''):
     iso = datetime.datetime.now().isoformat()
@@ -38,4 +41,19 @@ class IDGenerator :
     def gen_id():
         n = IDGenerator.generator.next_id()
         return to_base62(n)
+
+
+def convert_to_alphanumeric(s):
+    """Convert a string to alphanumeric characters only."""
+    return "".join([c for c in s if c.isalnum()])
+
+
+def generate_id(context):
+    t = datetime.now()
+    hash = sha256()
+    hash.update(bytes(t.strftime("%Y%m%d%H%M%S-%f"), 'utf-8'))
+    h = hash.hexdigest()
+    alphanum = convert_to_alphanumeric(context)
+    id = f'{alphanum}{h[0:16]}'
+    return id
     

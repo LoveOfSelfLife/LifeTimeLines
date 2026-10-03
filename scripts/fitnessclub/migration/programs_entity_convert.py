@@ -10,7 +10,7 @@ from common.blob_store import BlobStore
 
 
 from common.entity_store import EntityObject
-from common.fitness.entities_getter import get_entity
+from common.entities_getter import get_entity
 from common.fitness.hx_common import hx_render_template
 
 

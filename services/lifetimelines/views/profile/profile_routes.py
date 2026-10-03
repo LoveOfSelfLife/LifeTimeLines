@@ -1,7 +1,8 @@
-from flask import Blueprint, redirect, render_template, request, url_for
-from common.fitness.hx_common import hx_render_fitness_template
+from flask import redirect, render_template, request, url_for
+from common.template_renderer import hx_render_fitness_template
 from common.member_entity import get_member_id_from_user_context, get_user_profile, save_user_profile
-bp = Blueprint('profile', __name__, template_folder='templates')
+from common.blueprint import create_blueprint
+bp = create_blueprint('profile', __name__)
 from auth import auth
 
 @bp.route('/')
@@ -19,7 +20,7 @@ def profile(context=None):
 
     profile = get_user_profile(member_id)
 
-    return hx_render_fitness_template('profile.html', 
+    return hx_render_fitness_template('profile/profile.html', 
                               context=context, 
                               profile=profile,
                               hx_push_url="/profile/update",
@@ -67,8 +68,8 @@ def update_profile(context=None):
 @auth.login_required
 def settings(context=None):
 
-    return hx_render_fitness_template('settings.html', 
+    return hx_render_fitness_template('profile/settings.html', 
                               context=context, 
-                              profile=profile,
+                              profile=get_user_profile(get_member_id_from_user_context(context)),
                               hx_push_url="/profile/update",
                               update_url="/profile/update")

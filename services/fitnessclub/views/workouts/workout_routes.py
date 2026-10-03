@@ -1,19 +1,20 @@
-import copy
+from common.fitness.exercise_parameters import get_editor_type_for_unit_parameter, get_editor_type_for_value_parameter
+from common.blueprint import create_blueprint
 from datetime import datetime
 from ast import literal_eval
 from flask import Blueprint, jsonify, make_response, render_template, request, current_app
-from common.entity_store import EntityStore
-from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
-from common.fitness.cacher import get_cache_value, set_cache_value, delete_from_cache
-from common.fitness.entities_getter import resolve_selected_workout_keys, clear_selected_workout_keys, clear_selected_entity_keys, delete_entity, get_entities, as_bool
-from common.fitness.entities_getter import filter_entities_by_member_role
+from common.entity_store import EntityStore, get_entity_obj_from_entity_name
+from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_listing_fields_for_entity
+from common.cacher import get_cache_value, set_cache_value, delete_from_cache
+from common.entities_getter import resolve_selected_workout_keys, clear_selected_workout_keys, clear_selected_entity_keys, delete_entity, get_entities, as_bool
+from common.entities_getter import filter_entities_by_member_role
 from common.fitness.exercise_entity import ExerciseEntity, show_exercise_viewer
 from common.fitness.exercise_parameters import get_editor_type_for_unit_parameter, get_editor_type_for_value_parameter
-from common.fitness.filter_funcs import get_filter_terms_from_request
-from common.fitness.hx_common import hx_render_fitness_template
+from common.filter_funcs import get_filter_terms_from_request
+from common.template_renderer import hx_render_fitness_template
 from common.template_renderer import rm_spaces
 from common.member_entity import get_member_id_from_user_context, is_member_an_admin
-from common.fitness.roles_service import get_accessible_members_for_context, get_member_role_context
+from common.roles_service import get_accessible_members_for_context, get_member_role_context
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout, map_exercise_to_sections
 from common.fitness.edit_workout_object import bring_up_workouts_builder
 from common.fitness.programs import get_last_workout_instance_for_workout
@@ -22,16 +23,16 @@ from common.fitness.home_page_view import render_home_page_workout
 from common.fitness.workout_state import get_active_workout_state, update_active_workout_state, get_last_section, set_last_section as set_last_section_cache, clear_last_section, get_last_exercise_index, set_last_exercise_index as set_last_exercise_index_cache, get_exercise_parameters, set_exercise_parameter, member_id_from_workout_instance_key
 from common.fitness.exercise_alternatives import find_slot, perform_exercise_swap, record_exercise_swap
 from common.fitness.exercise_onthefly import record_exercise_removal, record_exercise_addition
-from common.fitness.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
+from common.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
 
-bp = Blueprint('workouts', __name__, template_folder='templates')
+bp = create_blueprint('workouts', __name__)
 from auth import auth
 from flask import Flask, render_template, request, redirect, url_for, session, abort
 import uuid
 import json
 from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity
 
-from common.fitness.entities_getter import get_entities, get_entity, get_filtered_entities
+from common.entities_getter import get_entities, get_entity, get_filtered_entities
 from common.fitness.entity_constants import WORKOUT_ENTITY_NAME, WORKOUT_INSTANCE_ENTITY_NAME, WORKOUT_SECTIONS
 
 def new_workout(name='New Workout'):
@@ -169,46 +170,6 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
 
     return hx_render_fitness_template(template_file_name, **template_data)
 
-# def workouts_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities, allow_multi_select=True, selected_entity_keys=[], modal_mode=False):
-#     page_size = 100
-#     total_pages = (len(entities) + page_size - 1) // page_size
-#     start = (page - 1) * page_size
-#     end = start + page_size
-#     current = entities[start:end]
-
-#     if request.headers.get('HX-Target') == 'results-area':
-#         template_file_name = 'entity_results_partial.html'
-#     else:
-#         template_file_name = 'entity_list_component.html'
-
-#     # Set results_target_container based on target parameter
-#     results_target_container = target if target else 'results-area'
-#     target = target if target else 'results-area'
-#     # displays workouts at the top level
-#     return hx_render_template(
-#         template_file_name,
-#         entity_name=entity_name,
-#         title="Workouts Library",
-#         main_content_container="entities-container",        
-#         fields_to_display=fields_to_display,
-#         entities=current,
-#         filter_terms=filter_terms,
-#         args=request.args,
-#         page=page,
-#         view=view,
-#         total_pages=total_pages,
-#         entity_add_route=f"{url_for('workouts.builder_new')}?x=1",
-#         entities_listing_route=f'/workouts/workouts-listing?entity_table={entity_name}&target={target}',
-#         entity_view_route=f'/workouts/viewer/workout?entity_table={entity_name}',
-#         entity_action_route=f'/workouts/edit?entity_table={entity_name}',
-#         entity_action_icon='bi-pencil-square',  
-#         entity_action_label='Edit Workout',
-#         favorite_toggle_route='/admin/toggle-favorite',
-#         results_target_container=results_target_container,
-#         entity_card_view_html='workout_card_view.html',        
-#         modal_mode=modal_mode,
-#         context=context)
-
 @bp.route('/filter-dialog')
 @auth.login_required
 def filter_dialog(context=None):
@@ -316,7 +277,7 @@ def builder(context=None, workout_id=None):
                 can_delete_workout = True
 
             
-        return hx_render_fitness_template('workout_builder2.html', 
+        return hx_render_fitness_template('workouts/workout_builder2.html', 
                                 workout=workout,
                                 workout_type=workout_type,
                                 context=context, 
@@ -595,7 +556,7 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
 
     if workout_view_preference not in ['accordion', 'carousel']:
         workout_view_preference = 'accordion'        
-    workout_section_view_template = "_section_dynamic_view.html" if workout_view_preference == 'accordion' else "_section_dynamic_carousel_view.html"
+    workout_section_view_template = "workouts/_section_dynamic_view.html" if workout_view_preference == 'accordion' else "workouts/_section_dynamic_carousel_view.html"
 
     return render_template(
         workout_section_view_template,
@@ -789,7 +750,7 @@ def workout_dynamic_canvas2(context=None, workout_id=None):
                     if alt_ex:
                         exercises[alt_id] = alt_ex
     exercise_parameters_map = extract_workout_parameters_for_workout(workout_id, w, exercises, {}, url_for('workouts.update_param_in_cache'))
-    return hx_render_fitness_template('_workout_dynamic_canvas.html',
+    return hx_render_fitness_template('workouts/_workout_dynamic_canvas.html',
                                 workout=w,
                                 exercises=exercises,
                                 exercise_parameters = exercise_parameters_map,
@@ -1755,7 +1716,7 @@ def view_workout(context=None):
     }
         
     return render_template(
-        "popup_workout_view.html",
+        "workouts/popup_workout_view.html",
         workout=workout,
         workout_sections=workout_sections,
         exercises=exercises,
@@ -1768,7 +1729,7 @@ def view_workout(context=None):
         is_modal=is_modal
     )
 
-from common.fitness.entities_getter import get_entity
+from common.entities_getter import get_entity
 
 
 @bp.route("/viewer/workout/<workout_id>/set_section/<section_name>", methods=["POST"])
@@ -1848,7 +1809,7 @@ def view_workout_detail(context):
     workout['Timestamp'] = datetime.fromisoformat(workout['Timestamp'])
     # {{ workout.Timestamp.strftime('%A, %B %d, %Y at %-I:%M %p') }}
     return render_template(
-        'workout_detail.html',
+        'workouts/workout_detail.html',
         workout=workout,
         exercises=exercises
     )
@@ -1933,7 +1894,7 @@ def save_exercise_parameters(context=None):
     update_active_workout_state(current_workout_state)
     
     # Return updated parameter display HTML
-    return render_template("_exercise_parameters_display.html",
+    return render_template("workouts/_exercise_parameters_display.html",
                            exercise_id=exercise_id,
                            workout_id=workout_id,
                            workout_instance_key=workout_instance_key,
@@ -2005,7 +1966,7 @@ def save_future_exercise_parameters(context=None):
     update_active_workout_state(current_workout_state)
 
 
-    return render_template("_exercise_parameters_nexttime_display.html",
+    return render_template("workouts/_exercise_parameters_nexttime_display.html",
                            exercise_id=exercise_id,
                            workout_id=workout_id,
                            workout_instance_key=workout_instance_key,
@@ -2037,7 +1998,7 @@ def show_exercise_alternatives(context=None, section_name=None, slot_index=None)
         if alt_exercise:
             alternative_exercises.append(alt_exercise)
 
-    return render_template("_exercise_alternatives_modal.html",
+    return render_template("workouts/_exercise_alternatives_modal.html",
                            current_exercise=current_exercise,
                            alternative_exercises=alternative_exercises,
                            workout_instance_key=workout_instance_key,
