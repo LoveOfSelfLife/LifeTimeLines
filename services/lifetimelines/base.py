@@ -90,21 +90,7 @@ def index(context = None):
             context=context
         )    
      
-    # try:    
-    #     # For the main dashboard, we load the template with placeholders
-    #     # Each section will load its content via HTMX
-    #     return hx_render_template(
-    #         template_string="hello from lifetimelines",
-    #         context=context)
-        
-   
-    # except Exception as e:
-    #     print(f"Error loading home dashboard: {e}")
-    #     return hx_render_template(
-    #         template_string='<div class="alert alert-danger">Error loading dashboard</div>',
-    #         context=context
-    #     )    
-    
+  
 @bp.route("/logout2")
 def logout():
     print("logout")

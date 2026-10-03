@@ -44,7 +44,7 @@
       "kind": "link",
       "label": "Calendar",
       "icon": "bi bi-list-check",
-      "action": { "hx_get": "/home", "hx_target": "#content", "hx_swap": "innerHTML" }
+      "action": { "hx_get": "/calendar", "hx_target": "#content", "hx_swap": "innerHTML" }
     },
     {
       "kind": "dropdown",
@@ -52,8 +52,8 @@
       "label": "History",
       "icon": "bi bi-info-circle",
       "children": [
-        { "kind": "link", "label": "Overview", "icon": "bi bi-list-check", "action": { "hx_get": "/home", "hx_target": "#content", "hx_swap": "innerHTML" } },
-        { "kind": "link", "label": "Details", "icon": "bi bi-list-check", "action": { "hx_get": "/home", "hx_target": "#content", "hx_swap": "innerHTML" } }
+        { "kind": "link", "label": "Overview", "icon": "bi bi-list-check", "action": { "hx_get": "/history/home", "hx_target": "#content", "hx_swap": "innerHTML" } },
+        { "kind": "link", "label": "Details", "icon": "bi bi-list-check", "action": { "hx_get": "/history/details", "hx_target": "#content", "hx_swap": "innerHTML" } }
       ]
     },
     {
@@ -62,8 +62,8 @@
       "label": "About",
       "icon": "bi bi-info-circle",
       "children": [
-        { "kind": "link", "label": "Club", "icon": "bi bi-info-circle", "action": { "hx_get": "/home", "hx_target": "#content", "hx_swap": "innerHTML" } },
-        { "kind": "link", "label": "Members", "icon": "bi bi-people", "action": { "hx_get": "/home", "hx_target": "#content", "hx_swap": "innerHTML" } }
+        { "kind": "link", "label": "Club", "icon": "bi bi-info-circle", "action": { "hx_get": "/home/club", "hx_target": "#content", "hx_swap": "innerHTML" } },
+        { "kind": "link", "label": "Members", "icon": "bi bi-people", "action": { "hx_get": "/home/members", "hx_target": "#content", "hx_swap": "innerHTML" } }
       ]
     },
     {
@@ -72,11 +72,11 @@
       "icon": "bi bi-person",
       "menu_align": "end",
       "children": [
-        { "kind": "link", "label": "Profile", "icon": "bi bi-gear", "action": { "hx_get": "/home", "hx_target": "#content", "hx_swap": "innerHTML" } },
+        { "kind": "link", "label": "Profile", "icon": "bi bi-gear", "action": { "hx_get": "/profile", "hx_target": "#content", "hx_swap": "innerHTML" } },
         { "kind": "divider", "visible_when": "member_admin" },
         { "kind": "header", "label": "Admin Functions", "visible_when": "member_admin" },
-        { "kind": "link", "label": "Members", "icon": "bi bi-people", "visible_when": "member_admin", "action": { "hx_get": "/home", "hx_target": "#content", "hx_swap": "innerHTML" } },
-        { "kind": "link", "label": "Impersonate", "icon": "bi bi-person-vcard", "visible_when": "member_admin", "action": { "hx_get": "/home", "hx_target": "#modals-here", "hx_swap": "innerHTML" } },
+        { "kind": "link", "label": "Members", "icon": "bi bi-people", "visible_when": "member_admin", "action": { "hx_get": "/admin/members", "hx_target": "#content", "hx_swap": "innerHTML" } },
+        { "kind": "link", "label": "Impersonate", "icon": "bi bi-person-vcard", "visible_when": "member_admin", "action": { "hx_get": "/admin/impersonate", "hx_target": "#modals-here", "hx_swap": "innerHTML" } },
         { "kind": "divider" },
         { "kind": "link", "label": "Logout", "icon": "bi bi-box-arrow-right", "action": { "href": "/logout2" } }
       ]
