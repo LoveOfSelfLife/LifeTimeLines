@@ -1,7 +1,7 @@
 from hashlib import sha256
 from common.entity_store import EntityObject
 from common.filter_funcs import get_filter_terms_from_request
-from common.template_renderer import hx_render_fitness_template
+from common.template_renderer import hx_render_template
 from common.member_entity import get_member_id_from_user_context
 from common.utils import convert_to_alphanumeric
 import json
@@ -449,7 +449,7 @@ exercise_filters = [
 
 
 def render_exercise_popup_viewer_html(context, entity, can_edit=False, show_dismiss_btn=False, filter_terms=[]):
-    return hx_render_fitness_template('_exercise_details_form.html',
+    return hx_render_template('_exercise_details_form.html',
                               exercise=entity,
                               errors={},
                               context=context,

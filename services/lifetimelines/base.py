@@ -5,7 +5,7 @@ import os
 from common.app_info import get_current_app_name
 from common.blob_store import BlobStore
 from common.fitness.home_page_view import render_finishing_workout_page, render_home_page_workout
-from common.template_renderer import hx_render_fitness_template
+from common.template_renderer import hx_render_template
 from common.member_entity import FirstTimeUserException, MembershipRegistry, UnregisteredMemberException, get_member_detail_from_user_context, get_member_email_from_user_context, get_member_id_from_user_context, get_member_name_from_user_context
 from common.template_renderer import hx_render_template
 

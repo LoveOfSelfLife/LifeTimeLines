@@ -3,7 +3,7 @@ from flask import request
 
 from common.entity_store import EntityObject
 from common.entities_getter import get_entity
-from common.template_renderer import hx_render_fitness_template
+from common.template_renderer import hx_render_template
 
 
 class MemberWorkoutDefinitionEntity (EntityObject):
@@ -164,7 +164,7 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
     results_target_container = target if target else 'results-area'
 
     # displays workouts at the top level
-    return hx_render_fitness_template(
+    return hx_render_template(
         template_file_name,
         title="Workouts Library",
         fields_to_display=fields_to_display,

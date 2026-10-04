@@ -15,7 +15,7 @@ from common.filter_funcs import get_filter_terms_from_request
 from common.filter_funcs import parse_listing_filter
 from common.entities_getter import get_entities
 from common.fitness.exercise_entity import EQUIPMENT, ExerciseEntity
-from common.template_renderer import hx_render_fitness_template
+from common.template_renderer import hx_render_template
 from common.member_entity import get_member_id_from_user_context
 from common.fitness.exercise_schema import exercise_schema
 from common.fitness.member_exercise_history import get_exercise_history_for_member
@@ -87,7 +87,7 @@ def exercises_listing2(context, member_id, page=1, filter_terms=[], modal_mode=F
             separator = '&' if '?' in multi_select_post_route else '?'
             multi_select_post_route = f"{multi_select_post_route}{separator}preferred_section={preferred_section}"
 
-        return hx_render_fitness_template(
+        return hx_render_template(
             'entity_multi_select_state_oob.html',
             allow_multi_select=allow_multi_select,
             selected_entity_keys=selected_entity_keys,
@@ -178,9 +178,9 @@ def exercise_listing_base(context, entity_name, page, page_size, view, fields_to
     )
 
     if modal_mode:
-        return hx_render_fitness_template('exercises/exercise_listing_modal.html', **template_data)
+        return hx_render_template('exercises/exercise_listing_modal.html', **template_data)
 
-    return hx_render_fitness_template(template_file_name, **template_data)
+    return hx_render_template(template_file_name, **template_data)
 
 
 @bp.route('/modal')
@@ -208,7 +208,7 @@ def filter_dialog(context=None):
     entity_type = get_entity_obj_from_entity_name(entity_name)
     filters = get_fitnessclub_entity_filters_for_entity(entity_name)
     view = request.args.get('view', 'list')
-    return hx_render_fitness_template('filter_dialog.html', 
+    return hx_render_template('filter_dialog.html', 
                               entities_listing_route=f'/exercises/exercises-listing?entity_table={entity_name}',
                               entity_display_name=entity_type.get_display_name(),                              
                               entity_name=entity_name,
@@ -228,7 +228,7 @@ def exercise_history_dialog(context=None):
     if not member_id:
         abort(401)
     ex_history = get_exercise_history_for_member(member_id, exercise_id)
-    return hx_render_fitness_template('exercise_history_dialog.html', 
+    return hx_render_template('exercise_history_dialog.html', 
                               exercise_history=ex_history,
                               context=context)
 
@@ -254,7 +254,7 @@ def new_exercise(context=None):
     # movement_categories is not part of the schema, so default it explicitly
     exercise_data.setdefault('movement_categories', [])
 
-    return hx_render_fitness_template('exercises/exercises/exercise_editor.html',
+    return hx_render_template('exercises/exercises/exercise_editor.html',
                          exercise=exercise_data,
                          is_new=True,
                          schema=exercise_schema,
@@ -369,7 +369,7 @@ def edit_exercise(context=None):
     equipment_types = list(dict.fromkeys(EQUIPMENT + exercise_data['equipment_list']))
     current_listing_page=request.args.get('page', 1)
     current_listing_filter=request.args.get('filter', '')   
-    return hx_render_fitness_template('exercises/exercises/exercise_editor.html',
+    return hx_render_template('exercises/exercises/exercise_editor.html',
                          exercise=exercise_data,
                          is_new=False,
                          schema=exercise_schema,  

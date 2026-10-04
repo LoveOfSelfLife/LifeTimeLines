@@ -2,7 +2,7 @@ import copy
 from flask import abort, make_response, render_template, request, session, url_for
 from common.blueprint import create_blueprint
 from common.app_info import get_current_app_id
-from common.template_renderer import hx_render_fitness_template
+from common.template_renderer import hx_render_template
 from datetime import datetime, timezone
 import json
 
@@ -104,7 +104,7 @@ def program_listing_base(context, entity_name, page, page_size, view, fields_to_
     results_target_container = target if target else 'results-area'
     
     # displays workouts at the top level
-    return hx_render_fitness_template(
+    return hx_render_template(
         template_file_name,
         title="Programs Library",
         entity_name=entity_name,
@@ -161,7 +161,7 @@ def program_viewer(context=None):
     member = get_entity('MemberTable', key=assigned_member_id, partition_key=get_current_app_id())
     member_name = member.get('name', 'Unknown Member') if member else 'Unknown Member'
     
-    return hx_render_fitness_template(
+    return hx_render_template(
         "program/program_viewer.html",
         program=program,
         member_name=member_name,
@@ -331,9 +331,9 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
 
     # displays workouts at the top level
     if modal_mode:
-        return hx_render_fitness_template('workouts_listing_modal.html', **template_data)
+        return hx_render_template('workouts_listing_modal.html', **template_data)
 
-    return hx_render_fitness_template(template_file_name, **template_data)
+    return hx_render_template(template_file_name, **template_data)
 
 
 
@@ -398,7 +398,7 @@ def builder(context=None):
         print(f"DEBUG - Accessible members: {[(m.get('id'), m.get('name')) for m in accessible_members]}")
         print(f"DEBUG - Member IDs types: {[type(m.get('id')) for m in accessible_members]}")
         
-        return hx_render_fitness_template('program/program_builder.html', 
+        return hx_render_template('program/program_builder.html', 
                                 program=current_program, 
                                 accessible_members=accessible_members,
                                 role_context=role_context,
@@ -438,7 +438,7 @@ def program_workouts_canvas(context=None, program_id=None):
             workouts_list = get_cache_value('current_program_workouts')
 
         if p['id'] == program_id:
-            return hx_render_fitness_template('program/_program_workouts.html',
+            return hx_render_template('program/_program_workouts.html',
                                         program=p,
                                         workouts=workouts_list,
                                         context=context)

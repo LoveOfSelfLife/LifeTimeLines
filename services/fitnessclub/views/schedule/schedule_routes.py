@@ -2,7 +2,7 @@ import json
 from flask import abort, make_response, render_template, request
 from common.blueprint import create_blueprint
 from common.coach_team_entity import get_team_coaches
-from common.template_renderer import hx_render_fitness_template
+from common.template_renderer import hx_render_template
 from common.member_entity import get_member_id_from_user_context, get_user_profile
 from common.member_team_entity import get_team_members
 from common.roles_service import get_accessible_members_for_context, get_current_team_context, get_member_role_context
@@ -75,7 +75,7 @@ def _build_hx_trigger_response(message):
 @bp.route('/')
 @auth.login_required
 def index(context = None):
-    return hx_render_fitness_template('schedule/schedule.html', context=context)
+    return hx_render_template('schedule/schedule.html', context=context)
 
 @bp.route('/calendar')
 @auth.login_required
@@ -206,7 +206,7 @@ def create_new_event(context=None):
                 })
             return response
 
-    return hx_render_fitness_template(
+    return hx_render_template(
         'schedule/event_editor.html',
         event=event,
         update_url="/schedule/create_event",
@@ -231,7 +231,7 @@ def recurring_action_choice(context=None):
     if not event['id'] or not event['recurring_event_id']:
         abort(400)
 
-    return hx_render_fitness_template(
+    return hx_render_template(
         'schedule/recurring_action_choice.html',
         action=action,
         event=event
@@ -297,7 +297,7 @@ def create_recurring_event(context=None):
         event['assigned_to_member_id'] = assigned_member_id
 
         if not selected_days:
-            return hx_render_fitness_template(
+            return hx_render_template(
                 'schedule/recurring_event_editor.html',
                 event=event,
                 day_options=WEEKDAY_LABELS,
@@ -311,7 +311,7 @@ def create_recurring_event(context=None):
                 parsed_start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
                 parsed_event_time = datetime.strptime(event_time, "%H:%M").time()
             except ValueError:
-                return hx_render_fitness_template(
+                return hx_render_template(
                     'schedule/recurring_event_editor.html',
                     event=event,
                     day_options=WEEKDAY_LABELS,
@@ -322,7 +322,7 @@ def create_recurring_event(context=None):
 
             first_occurrence_date = _get_first_occurrence_date(parsed_start_date, parsed_event_time, selected_days)
             if not first_occurrence_date:
-                return hx_render_fitness_template(
+                return hx_render_template(
                     'schedule/recurring_event_editor.html',
                     event=event,
                     day_options=WEEKDAY_LABELS,
@@ -353,7 +353,7 @@ def create_recurring_event(context=None):
             })
             return response
 
-    return hx_render_fitness_template(
+    return hx_render_template(
         'schedule/recurring_event_editor.html',
         event=event,
         day_options=WEEKDAY_LABELS,
@@ -408,7 +408,7 @@ def edit_event(context):
             })
             return response
 
-    return hx_render_fitness_template(
+    return hx_render_template(
         'schedule/event_editor.html',
         event=event,
         update_url=f"/schedule/edit_event",
@@ -442,7 +442,7 @@ def edit_recurring_event(context=None):
         else:
             event['assigned_to_member_id'] = member_id
 
-        return hx_render_fitness_template(
+        return hx_render_template(
             'schedule/recurring_event_editor.html',
             event=event,
             day_options=WEEKDAY_LABELS,
@@ -484,7 +484,7 @@ def edit_recurring_event(context=None):
         abort(404)
 
     if not selected_days:
-        return hx_render_fitness_template(
+        return hx_render_template(
             'schedule/recurring_event_editor.html',
             event=event,
             day_options=WEEKDAY_LABELS,
@@ -500,7 +500,7 @@ def edit_recurring_event(context=None):
         datetime.strptime(start_date, "%Y-%m-%d").date()
         datetime.strptime(event_time, "%H:%M").time()
     except (TypeError, ValueError):
-        return hx_render_fitness_template(
+        return hx_render_template(
             'schedule/recurring_event_editor.html',
             event=event,
             day_options=WEEKDAY_LABELS,

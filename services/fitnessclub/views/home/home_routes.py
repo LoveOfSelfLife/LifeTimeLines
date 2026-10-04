@@ -15,7 +15,7 @@ from auth import auth
 from common.entities_getter import get_entity
 from common.favorites_entity import get_all_favorite_entity_ids
 from common.fitness.get_calendar_service import get_calendar_service
-from common.template_renderer import hx_render_fitness_template
+from common.template_renderer import hx_render_template
 from common.member_entity import get_member_id_from_user_context, get_member_detail_from_user_context, get_user_profile
 from common.fitness.home_data_service import HomePageDataService, format_seconds, get_program_workout_options
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity
@@ -45,7 +45,7 @@ def scheduled_workouts_partial2(context=None):
         current_program = get_members_current_active_program(member_id)
         current_prog_workouts = get_program_workout_options(current_program)
         
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_file='home/scheduled_workouts_partial.html',
             data=scheduled_data,
             program_workouts=current_prog_workouts,
@@ -54,7 +54,7 @@ def scheduled_workouts_partial2(context=None):
         
     except Exception as e:
         print(f"Error loading scheduled workouts: {e}")
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading scheduled workouts</div>',
             context=context
         )
@@ -90,7 +90,7 @@ def adhoc_workouts_partial2(context=None):
         unique_workouts = {str(workout['key']): workout for workout in all_workouts}.values()
         prog_workouts = list(unique_workouts)
 
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_file='home/adhoc_workouts_partial.html',
             program_workouts=prog_workouts,
             # program_key = str(current_program.get_composite_key()) if current_program else None,
@@ -100,7 +100,7 @@ def adhoc_workouts_partial2(context=None):
         
     except Exception as e:
         print(f"Error loading adhoc workouts: {e}")
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_string=f'<div class="alert alert-danger">Error loading adhoc workouts: {str(e)}</div>',
             context=context
         )
@@ -115,7 +115,7 @@ def attendance_panel_partial(context=None):
         attendance_data = home_service.get_attendance_panel_data(member_id, datetime.now(timezone.utc))
         # lets pass in the member name into this template so we can show it in the panel
         member_detail = get_member_detail_from_user_context(context)
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_file='home/attendance_panel_partial.html',
             data=attendance_data,
             member=member_detail,
@@ -124,7 +124,7 @@ def attendance_panel_partial(context=None):
 
     except Exception as e:
         print(f"Error loading attendance panel: {e}")
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading attendance panel</div>',
             context=context
         )
@@ -146,7 +146,7 @@ def attendance_respond(context=None):
         home_service = HomePageDataService()
         attendance_data = home_service.get_attendance_panel_data(member_id, datetime.now(timezone.utc))
 
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_file='home/attendance_panel_partial.html',
             data=attendance_data,
             member=member_detail,
@@ -155,7 +155,7 @@ def attendance_respond(context=None):
 
     except Exception as e:
         print(f"Error updating attendance: {e}")
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_string='<div class="alert alert-danger">Error updating attendance</div>',
             context=context
         )
@@ -171,7 +171,7 @@ def completed_workouts_partial(context=None):
         home_service = HomePageDataService()
         completed_data = home_service.get_completed_workouts_data(member_id, datetime.now(timezone.utc))
         
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_file='home/completed_workouts_partial.html',
             data=completed_data,
             context=context
@@ -179,7 +179,7 @@ def completed_workouts_partial(context=None):
         
     except Exception as e:
         print(f"Error loading completed workouts: {e}")
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading completed workouts</div>',
             context=context
         )
@@ -195,7 +195,7 @@ def analytics_partial(context=None):
         home_service = HomePageDataService()
         analytics_data = home_service.get_analytics_data(member_id, datetime.now(timezone.utc))
         
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_file='home/analytics_partial.html', 
             data=analytics_data,
             context=context
@@ -203,7 +203,7 @@ def analytics_partial(context=None):
         
     except Exception as e:
         print(f"Error loading analytics: {e}")
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading analytics</div>',
             context=context
         )
@@ -218,7 +218,7 @@ def start_workout(context=None):
         workout_key = request.form.get('workout_key')
         
         if not workout_key:
-            return hx_render_fitness_template(
+            return hx_render_template(
                 template_string='<div class="alert alert-danger">No workout specified</div>',
                 context=context
             )
@@ -230,7 +230,7 @@ def start_workout(context=None):
         
     except Exception as e:
         print(f"Error starting workout: {e}")
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_string=f'<div class="alert alert-danger">Error starting workout: {str(e)}</div>',
             context=context
         )
@@ -245,7 +245,7 @@ def completed_workout_details_modal(context=None):
             workout_instance_key = request.args.get('workout_instance_key')
 
         if not workout_instance_key:
-            return hx_render_fitness_template(
+            return hx_render_template(
                 template_string='<div class="alert alert-danger">No workout specified</div>',
                 context=context
             )
@@ -256,7 +256,7 @@ def completed_workout_details_modal(context=None):
         workout_instance = entity_store.get_item_by_composite_key(workout_key_parsed)
         
         if not workout_instance:
-            return hx_render_fitness_template(
+            return hx_render_template(
                 template_string='<div class="alert alert-danger">Workout not found</div>',
                 context=context
             )
@@ -314,7 +314,7 @@ def completed_workout_details_modal(context=None):
             workout_instance.get('end_datetime') or workout_instance.get('finished_ts')
         )
         
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_file='home/modals/completed_workout_details_modal.html',
             workout_instance=workout_instance,
             workout_name=workout_name,
@@ -326,7 +326,7 @@ def completed_workout_details_modal(context=None):
         
     except Exception as e:
         print(f"Error loading completed workout details: {e}")
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading workout details</div>',
             context=context
         )
@@ -351,7 +351,7 @@ def reschedule_workout_modal(context=None):
             "member": member_short_name,
             "member_id": member_id
         }
-    return hx_render_fitness_template(
+    return hx_render_template(
         template_file='home/modals/reschedule_workout_modal.html',
         event=event,
         context=context
@@ -395,7 +395,7 @@ def reschedule_workout(context=None):
         
     except Exception as e:
         print(f"Error rescheduling workout: {e}")
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_string=f'<div class="alert alert-danger">Error rescheduling workout: {str(e)}</div>',
             context=context
         )
@@ -427,7 +427,7 @@ def confirm_start_workout(context=None):
         program_key = request.args.get('program_key', '') or request.form.get('program_key', '')
         event_id = request.args.get('event_id', '') or request.form.get('event_id', '')
         
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_file='home/modals/confirm_start_workout.html',
             workout_key=workout_key,
             workout_name=workout_name,
@@ -438,7 +438,7 @@ def confirm_start_workout(context=None):
         
     except Exception as e:
         print(f"Error loading start confirmation: {e}")
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading confirmation</div>',
             context=context
         )
@@ -488,7 +488,7 @@ def update_peek_button(context=None):
         </button>
         '''
     
-    return hx_render_fitness_template(
+    return hx_render_template(
         template_string=button_html,
         context=context
     )
@@ -501,7 +501,7 @@ def workout_preview_modal(context=None):
     try:
         workout_key = request.args.get('key')
         if not workout_key:
-            return hx_render_fitness_template(
+            return hx_render_template(
                 template_string='<div class="alert alert-danger">No workout specified</div>',
                 context=context
             )
@@ -509,7 +509,7 @@ def workout_preview_modal(context=None):
         entity_store = EntityStore()
         workout = entity_store.get_item_by_composite_key(eval(workout_key))
         if not workout:
-            return hx_render_fitness_template(
+            return hx_render_template(
                 template_string='<div class="alert alert-danger">Workout not found</div>',
                 context=context
             )
@@ -546,7 +546,7 @@ def workout_preview_modal(context=None):
                     'items': section_items
                 })
 
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_file='home/modals/workout_preview_modal.html',
             workout_name=workout.get('name') or workout.get('workout_name') or 'Workout Preview',
             workout_sections=populated_sections,
@@ -554,7 +554,7 @@ def workout_preview_modal(context=None):
         )
     except Exception as e:
         print(f"Error loading workout preview: {e}")
-        return hx_render_fitness_template(
+        return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading workout preview</div>',
             context=context
         )

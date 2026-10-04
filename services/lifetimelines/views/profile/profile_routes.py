@@ -1,5 +1,5 @@
 from flask import redirect, render_template, request, url_for
-from common.template_renderer import hx_render_fitness_template
+from common.template_renderer import hx_render_template
 from common.member_entity import get_member_id_from_user_context, get_user_profile, save_user_profile
 from common.blueprint import create_blueprint
 bp = create_blueprint('profile', __name__)
@@ -20,7 +20,7 @@ def profile(context=None):
 
     profile = get_user_profile(member_id)
 
-    return hx_render_fitness_template('profile/profile.html', 
+    return hx_render_template('profile/profile.html', 
                               context=context, 
                               profile=profile,
                               hx_push_url="/profile/update",
@@ -68,7 +68,7 @@ def update_profile(context=None):
 @auth.login_required
 def settings(context=None):
 
-    return hx_render_fitness_template('profile/settings.html', 
+    return hx_render_template('profile/settings.html', 
                               context=context, 
                               profile=get_user_profile(get_member_id_from_user_context(context)),
                               hx_push_url="/profile/update",
