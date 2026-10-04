@@ -78,7 +78,7 @@
         { "kind": "link", "label": "Members", "icon": "bi bi-people", "visible_when": "member_admin", "action": { "hx_get": "/admin/members", "hx_target": "#content", "hx_swap": "innerHTML" } },
         { "kind": "link", "label": "Impersonate", "icon": "bi bi-person-vcard", "visible_when": "member_admin", "action": { "hx_get": "/impersonate", "hx_target": "#modals-here", "hx_swap": "innerHTML" } },
         { "kind": "divider" },
-        { "kind": "link", "label": "Logout", "icon": "bi bi-box-arrow-right", "action": { "href": "/logout2" } }
+        { "kind": "link", "label": "Logout", "icon": "bi bi-box-arrow-right", "action": { "href": "/sys/logout" } }
       ]
     }
   ],

@@ -15,6 +15,7 @@ from common.routes.members_routes import bp as members_bp
 from common.routes.impersonate_routes import bp as impersonate_bp
 from common.routes.teams_routes import bp as teams_bp
 from common.routes.favorites_routes import bp as favorites_bp
+from common.routes.system_routes import bp as system_bp
 from common.env_init import initialize_environment
 from common.env_context import Env
 from common.auth import auth
@@ -61,7 +62,8 @@ def create_app():
                members_bp,
                impersonate_bp,
                teams_bp,
-               favorites_bp]:
+               favorites_bp,
+               system_bp]:
         app.register_blueprint(bp, url_prefix=f'/{bp.name}')
 
     CORS(app)  

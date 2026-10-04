@@ -1,5 +1,5 @@
 from common.member_entity import FirstTimeUserException, MembershipRegistry, UnregisteredMemberException, get_member_email_from_user_context, get_member_id_from_user_context, get_member_name_from_user_context, is_member_an_admin
-from common.app_info import get_current_app_metadata
+from common.app_info import get_current_app_metadata, get_current_app_name
 from common.impersonation import get_impersonated_member_id
 from flask import abort, render_template, render_template_string, request
 from common.roles_service import get_member_role_context
@@ -36,6 +36,7 @@ def hx_render_template(template_file=None, template_string=None, **kwargs):
                 print(f"User not registered exception: {e}")
                 member = members_registry.get_member(member_id)
                 kwargs['member'] = member
+                kwargs['app_name'] = get_current_app_name()
                 return render_template("unregistered_member.html", 
                                        **kwargs)
 
@@ -46,7 +47,8 @@ def hx_render_template(template_file=None, template_string=None, **kwargs):
                 members_registry.add_member(member_id, member_email, member_name)
                 member = members_registry.get_member(member_id)
                 kwargs['member'] = member
-                return render_template("first_time_user.html", 
+                kwargs['app_name'] = get_current_app_name()
+                return render_template("unregistered_member.html", 
                                        **kwargs)
         else:
             abort(401)

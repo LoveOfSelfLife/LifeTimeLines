@@ -55,19 +55,14 @@ def admin_partial2(context=None):
 @bp.route('/members', methods=['GET', 'POST'])
 @auth.login_required
 def members(context=None):
-    return members_listing(context=context)
-
-def members_listing(context=None):
     page = int(request.args.get('page', 1))
     page_size = 100
 
     # Handle view preference
     view = (request.form.get('view') if request.method == 'POST' 
             else request.args.get('view')) or session.get('view_preference', 'list')
-    
     if view != session.get('view_preference'):
         session['view_preference'] = view
-
 
     fields_to_display = { 
                       "listing_view": [ "name",
@@ -92,9 +87,7 @@ def members_listing(context=None):
 
     
     filter_terms = get_filter_terms_from_request()
-
     member_id = get_member_id_from_user_context(context)
-
     entities = get_entities('MemberTable', fields_to_display, filter_terms, partition_key=get_current_app_id(), member_id=member_id)
     return render_member_listing_template(context, 'MemberTable', page, view, page_size, fields_to_display, filter_terms, entities)
 
@@ -126,7 +119,7 @@ def render_member_listing_template(context, entity_name, page, view, page_size, 
         entity_add_route=f'/admin/add/{entity_name}',
         filter_dialog_route=f'/admin/filter-dialog?entity_table={entity_name}',
         entities_listing_route=f'/admin/members?entity_table={entity_name}',
-        entity_view_route=f'/admin/view?entity_table={entity_name}',
+        entity_view_route=None,
         entity_action_route=f'/admin/edit?entity_table={entity_name}',
         entity_action_icon='bi-pencil-square',
         entity_action_label='Edit',
@@ -164,7 +157,7 @@ def edit_entity(context=None):
                               schema=schema,
                               table_id=table_id, 
                               errors={},
-                              upload_file_url=f'/api/upload/{table_id}',
+                              upload_file_url=f'/sys/upload/{table_id}',
                               update_entity_url=f'/admin/update/{table_id}?key={composite_key}',
                               delete_entity_url=f'/admin/delete/{table_id}?key={composite_key}',
                               context=context)

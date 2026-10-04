@@ -15,7 +15,18 @@ class UnregisteredMemberException(Exception):
 
 class MemberEntity (EntityObject):
     table_name="MemberTable"
-    fields=["id", "app", "name", "level", "short_name", "email", "mobile", "sms_consent", "email_consent", "image_url", "role", "on_the_fly_workout"]
+    fields=["id", 
+            "app", 
+            "name", 
+            "level", 
+            "short_name", 
+            "email", 
+            "mobile", 
+            "sms_consent", 
+            "email_consent", 
+            "image_url", 
+            "role", 
+            "on_the_fly_workout"]
     key_field="id"
     partition_field="app"
     schema = member_schema
@@ -84,12 +95,12 @@ def get_member_detail_from_user_context(user_context):
 def is_member_an_admin(member_id):
     members_registry = MembershipRegistry()
     member = members_registry.get_member(member_id)
-    return member.get('level') >= 10
+    return member.get('level',0) >= 10 if member else False
 
 def is_member_advanced(member_id):
     members_registry = MembershipRegistry()
     member = members_registry.get_member(member_id)
-    return member.get('level') == 5
+    return member.get('level',0) == 5 if member else False
 
 def member_allows_on_the_fly_workout(member_id):
     # admins always have access; otherwise it's an opt-in per-member flag, defaulting to False
@@ -102,12 +113,12 @@ def member_allows_on_the_fly_workout(member_id):
 def get_member_email_from_member_id(member_id):
     member_registry = MembershipRegistry()
     member = member_registry.get_member(member_id)
-    return member.get('email', None)
+    return member.get('email', None) if member else None
 
 def get_member_name_from_member_id(member_id):
     member_registry = MembershipRegistry()
     member = member_registry.get_member(member_id)
-    return member.get('name', None)
+    return member.get('name', None) if member else None
 
 def get_member_id_from_user_context(context):
     return get_member_detail_from_user_context(context).get('id', None)
