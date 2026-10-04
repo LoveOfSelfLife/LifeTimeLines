@@ -6,7 +6,7 @@ All routes use HTMX for dynamic updates and follow the existing authentication p
 """
 
 from common.blueprint import create_blueprint
-from auth import auth
+from common.auth import auth
 from common.template_renderer import hx_render_template
 
 # bp = Blueprint('calendar', __name__, template_folder='../../templates')

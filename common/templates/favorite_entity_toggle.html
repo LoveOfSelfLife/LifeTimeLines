@@ -4,7 +4,7 @@
 <span id="{{ favorite_button_id }}" class="d-inline-flex align-items-center">
     <button type="button"
             class="btn btn-link btn-sm p-0 border-0 text-danger"
-            hx-post="{{ favorite_toggle_route or '/admin/toggle-favorite' }}"
+            hx-post="{{ favorite_toggle_route or '/favorites/toggle' }}"
             hx-target="#{{ favorite_button_id }}"
             hx-swap="outerHTML"
             hx-include="[name='search'], [name='view'], [name='favorites_only']"

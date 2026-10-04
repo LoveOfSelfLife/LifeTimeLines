@@ -11,7 +11,7 @@ All routes use HTMX for dynamic updates and follow the existing authentication p
 
 from flask import abort, make_response, render_template, request, jsonify, session, redirect, url_for
 from common.blueprint import create_blueprint
-from auth import auth
+from common.auth import auth
 from common.entities_getter import get_entity
 from common.favorites_entity import get_all_favorite_entity_ids
 from common.fitness.get_calendar_service import get_calendar_service

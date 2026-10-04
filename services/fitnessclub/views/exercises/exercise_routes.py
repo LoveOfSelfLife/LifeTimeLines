@@ -23,7 +23,7 @@ from common.utils import generate_id
 
 bp = create_blueprint('exercises', __name__)
 
-from auth import auth
+from common.auth import auth
 @bp.route('/')
 @auth.login_required
 def root(context=None):
@@ -172,7 +172,7 @@ def exercise_listing_base(context, entity_name, page, page_size, view, fields_to
         entity_action_route=entity_action_route,
         entity_action_icon='bi-pencil-square',
         entity_action_label='Edit Exercise',
-        favorite_toggle_route='/admin/toggle-favorite',
+        favorite_toggle_route='/favorites/toggle',
         results_target_container=results_target_container,
         entity_card_view_html='exercise_card_view.html'        
     )

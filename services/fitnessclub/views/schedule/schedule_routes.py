@@ -10,7 +10,7 @@ from common.fitness.workout_sessions import WorkoutSessionEntity, EventTypes, cr
 from common.fitness.get_calendar_service import get_calendar_service
 from common.utils import generate_id
 bp = create_blueprint('schedule', __name__)
-from auth import auth
+from common.auth import auth
 from datetime import datetime, timedelta
 
 WEEKDAY_LABELS = [

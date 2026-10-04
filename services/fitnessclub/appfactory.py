@@ -16,11 +16,12 @@ from views.program.programs_routes import bp as program_bp
 from views.exercises.exercise_routes import bp as exercises_bp
 from views.profile.profile_routes import bp as profile_bp
 from views.admin.admin_routes import bp as admin_bp
+from common.routes.favorites_routes import bp as favorites_bp
 from services.fitnessclub.views.members.members_routes import bp as members_bp
 from views.workouts.workout_routes import bp as workouts_bp
 from common.env_init import initialize_environment
 from common.env_context import Env
-from auth import auth
+from common.auth import auth
 from datetime import timedelta
 from version import get_version_info
 import redis
@@ -65,7 +66,8 @@ def create_app():
                profile_bp,
                exercises_bp,
                members_bp,
-               workouts_bp]:
+               workouts_bp,
+               favorites_bp]:
         app.register_blueprint(bp, url_prefix=f'/{bp.name}')
 
     CORS(app)  

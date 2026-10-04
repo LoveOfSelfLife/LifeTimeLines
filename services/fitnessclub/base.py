@@ -1,7 +1,7 @@
 import uuid
 from flask import redirect, render_template, request, url_for, session
 from common.blueprint import create_blueprint
-from auth import auth
+from common.auth import auth
 from common.blob_store import BlobStore
 import os
 from common.fitness.home_page_view import render_finishing_workout_page, render_home_page_workout

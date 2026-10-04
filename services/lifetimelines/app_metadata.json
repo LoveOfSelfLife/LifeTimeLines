@@ -53,7 +53,7 @@
       "icon": "bi bi-info-circle",
       "children": [
         { "kind": "link", "label": "Club", "icon": "bi bi-info-circle", "action": { "hx_get": "/about", "hx_target": "#content", "hx_swap": "innerHTML" } },
-        { "kind": "link", "label": "Members", "icon": "bi bi-people", "action": { "hx_get": "/home/members", "hx_target": "#content", "hx_swap": "innerHTML" } }
+        { "kind": "link", "label": "Members", "icon": "bi bi-people", "action": { "hx_get": "/members", "hx_target": "#content", "hx_swap": "innerHTML" } }
       ]
     },
     {
@@ -63,7 +63,7 @@
       "empty_label": "Select Team",
       "icon": "bi bi-people-fill",
       "visible_when": "can_select_team",
-      "action": { "hx_post": "/admin/teams/select", "team_id_field": "team_id", "hx_target": "#content", "hx_swap": "innerHTML show:top" }
+      "action": { "hx_post": "/teams/select", "team_id_field": "team_id", "hx_target": "#content", "hx_swap": "innerHTML show:top" }
     },    
     {
       "kind": "dropdown",
@@ -74,9 +74,9 @@
         { "kind": "link", "label": "Profile", "icon": "bi bi-gear", "action": { "hx_get": "/profile", "hx_target": "#content", "hx_swap": "innerHTML" } },
         { "kind": "divider", "visible_when": "member_admin" },
         { "kind": "header", "label": "Admin Functions", "visible_when": "member_admin" },
-        { "kind": "link", "label": "Teams", "icon": "bi bi-people-fill", "visible_when": "member_admin", "action": { "hx_get": "/admin/teams", "hx_target": "#content", "hx_swap": "innerHTML" } },
+        { "kind": "link", "label": "Teams", "icon": "bi bi-people-fill", "visible_when": "member_admin", "action": { "hx_get": "/teams", "hx_target": "#content", "hx_swap": "innerHTML" } },
         { "kind": "link", "label": "Members", "icon": "bi bi-people", "visible_when": "member_admin", "action": { "hx_get": "/admin/members", "hx_target": "#content", "hx_swap": "innerHTML" } },
-        { "kind": "link", "label": "Impersonate", "icon": "bi bi-person-vcard", "visible_when": "member_admin", "action": { "hx_get": "/admin/impersonate", "hx_target": "#modals-here", "hx_swap": "innerHTML" } },
+        { "kind": "link", "label": "Impersonate", "icon": "bi bi-person-vcard", "visible_when": "member_admin", "action": { "hx_get": "/impersonate", "hx_target": "#modals-here", "hx_swap": "innerHTML" } },
         { "kind": "divider" },
         { "kind": "link", "label": "Logout", "icon": "bi bi-box-arrow-right", "action": { "href": "/logout2" } }
       ]
@@ -90,7 +90,7 @@
     "message_prefix": "You are currently impersonating",
     "button_class": "btn btn-sm btn-outline-dark ms-2",
     "button_label": "Stop Impersonation",
-    "action": { "hx_post": "/admin/stop_impersonation", "hx_target": "body" }
+    "action": { "hx_post": "/impersonate/stop", "hx_target": "body" }
   },
   "content": {
     "class": "container-fluid pt-4",

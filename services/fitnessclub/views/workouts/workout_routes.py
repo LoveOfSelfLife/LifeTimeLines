@@ -26,7 +26,7 @@ from common.fitness.exercise_onthefly import record_exercise_removal, record_exe
 from common.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
 
 bp = create_blueprint('workouts', __name__)
-from auth import auth
+from common.auth import auth
 from flask import Flask, render_template, request, redirect, url_for, session, abort
 import uuid
 import json
@@ -151,7 +151,7 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
         entity_action_route_target=entity_action_route_target,
         entity_action_icon=entity_action_icon,
         entity_action_label=entity_action_label,
-        favorite_toggle_route='/admin/toggle-favorite',
+        favorite_toggle_route='/favorites/toggle',
         results_target_container=results_target_container,
         entity_card_view_html='workout_card_view.html',
         allow_multi_select=allow_multi_select,
@@ -2340,7 +2340,7 @@ def workouts_history_listing_base(context, entity_name, page, target, view, fiel
         entity_action_route=f'/workouts/edit?entity_table={entity_name}',
         entity_action_icon='bi-pencil-square',  
         entity_action_label='Edit Workout',
-        favorite_toggle_route='/admin/toggle-favorite',
+        favorite_toggle_route='/favorites/toggle',
         results_target_container=results_target_container,
         entity_card_view_html='workout_card_view.html',        
         modal_mode=False,

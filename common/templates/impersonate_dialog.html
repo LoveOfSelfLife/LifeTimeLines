@@ -12,7 +12,7 @@
         </div>
       {% endif %}
       
-      <form hx-post="/admin/start_impersonation" hx-target="body">
+      <form hx-post="/impersonate/start" hx-target="body">
         <div class="mb-3">
           <label for="member_id" class="form-label">Select Member to Impersonate:</label>
           <select class="form-select" id="member_id" name="member_id" required>
@@ -30,7 +30,7 @@
           
           {% if current_impersonated_member %}
             <button type="button" class="btn btn-secondary" 
-                    hx-post="/admin/stop_impersonation" 
+                    hx-post="/impersonate/stop" 
                     hx-target="body"
                     data-bs-dismiss="modal">
               Stop Impersonation

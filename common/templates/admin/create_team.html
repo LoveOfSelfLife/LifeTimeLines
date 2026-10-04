@@ -13,7 +13,7 @@
                     </div>
                     {% endif %}
 
-                    <form hx-post="/admin/teams/create" hx-target="#content" hx-swap="innerHTML">
+                    <form hx-post="/teams/create" hx-target="#content" hx-swap="innerHTML">
                         <div class="mb-3">
                             <label for="name" class="form-label">Team Name <span class="text-danger">*</span></label>
                             <input type="text" 
@@ -46,7 +46,7 @@
                         <div class="d-flex justify-content-between">
                             <button type="button" 
                                     class="btn btn-secondary" 
-                                    hx-get="/admin/teams" 
+                                    hx-get="/teams" 
                                     hx-target="#content" 
                                     hx-swap="innerHTML">
                                 <i class="bi bi-arrow-left"></i> Back to Teams

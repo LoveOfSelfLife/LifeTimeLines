@@ -1,7 +1,10 @@
 from identity.flask import Auth
 import os
-from dotenv import load_dotenv
-load_dotenv()
+from dotenv import load_dotenv, find_dotenv
+
+# Search upward from the working directory (the service folder), not from this
+# file's directory (common/), which is what a bare load_dotenv() would use.
+load_dotenv(find_dotenv(usecwd=True))
 
 auth = Auth(
     None,

@@ -2,7 +2,7 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="bi bi-people-fill"></i> Team Management</h2>
-        <button class="btn btn-primary" hx-get="/admin/teams/create" hx-target="#content" hx-swap="innerHTML">
+        <button class="btn btn-primary" hx-get="/teams/create" hx-target="#content" hx-swap="innerHTML">
             <i class="bi bi-plus-circle"></i> Create New Team
         </button>
     </div>
@@ -30,7 +30,7 @@
                 </div>
                 <div class="card-footer">
                     <button class="btn btn-primary btn-sm" 
-                            hx-get="/admin/teams/{{ team.id }}/manage" 
+                            hx-get="/teams/{{ team.id }}/manage" 
                             hx-target="#content" 
                             hx-swap="innerHTML">
                         <i class="bi bi-people"></i> Manage Members

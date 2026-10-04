@@ -11,4 +11,4 @@ def members(context=None):
     member_id = get_member_id_from_user_context(context)
     members_list = get_members_list()
     view_type='card'
-    return hx_render_template('members/membership_list.html', members_list=members_list, current_member_id=member_id, view=view_type)
+    return hx_render_template('membership_list.html', members_list=members_list, current_member_id=member_id, view=view_type)

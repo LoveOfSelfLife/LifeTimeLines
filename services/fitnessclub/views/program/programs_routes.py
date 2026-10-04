@@ -32,7 +32,7 @@ from common.roles_service import get_accessible_members_for_context, get_team_co
 from common.coach_team_entity import get_coachs_team_members
 from common.entities_getter import filter_entities_by_member_role
 bp = create_blueprint('program', __name__)
-from auth import auth
+from common.auth import auth
 
 def _normalize_form_datetime(value, fallback=None):
     if not value:
@@ -122,7 +122,7 @@ def program_listing_base(context, entity_name, page, page_size, view, fields_to_
         entity_action_route=f'/program/edit?entity_table={entity_name}',
         entity_action_icon='bi-pencil-square',  
         entity_action_label='Edit Program',
-        favorite_toggle_route='/admin/toggle-favorite',
+        favorite_toggle_route='/favorites/toggle',
         results_target_container=results_target_container,
         entity_card_view_html='program_card_view.html',
         context=context)
@@ -316,7 +316,7 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
         entity_action_route_target=entity_action_route_target,
         entity_action_icon='bi-plus',
         entity_action_label='Add Workout',
-        favorite_toggle_route='/admin/toggle-favorite',
+        favorite_toggle_route='/favorites/toggle',
         results_target_container=results_target_container,
         entity_card_view_html='workout_card_view.html',
         allow_multi_select=allow_multi_select,

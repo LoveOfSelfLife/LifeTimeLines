@@ -6,7 +6,7 @@ All routes use HTMX for dynamic updates and follow the existing authentication p
 """
 
 from common.blueprint import create_blueprint
-from auth import auth
+from common.auth import auth
 from common.template_renderer import hx_render_template
 from common.member_entity import get_member_id_from_user_context, get_members_list
 
@@ -33,13 +33,3 @@ def home_partial2(context=None):
             context=context
         )
 
-@bp.route("/members")
-@auth.login_required  
-def about_members(context=None):
-    return members_view(context)
-
-def members_view(context=None):
-    member_id = get_member_id_from_user_context(context)
-    members_list = get_members_list()
-    view_type='card'
-    return hx_render_template('membership_list.html', members_list=members_list, current_member_id=member_id, view=view_type)

@@ -4,7 +4,7 @@
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item">
-                    <a href="#" hx-get="/admin/teams" hx-target="#content" hx-swap="innerHTML">Teams</a>
+                    <a href="#" hx-get="/teams" hx-target="#content" hx-swap="innerHTML">Teams</a>
                 </li>
                 <li class="breadcrumb-item active">{{ team.name }}</li>
             </ol>
@@ -33,7 +33,7 @@
                 <div class="card-body">
                     <!-- Add Member Form (Collapsed) -->
                     <div class="collapse mb-3" id="addMemberForm">
-                        <form hx-post="/admin/teams/{{ team.id }}/add_member" 
+                        <form hx-post="/teams/{{ team.id }}/add_member" 
                               hx-target="#content" 
                               hx-swap="innerHTML">
                             <div class="input-group">
@@ -63,7 +63,7 @@
                                     <br><small class="text-muted">Joined: {{ member.team_joined_date }}</small>
                                 {% endif %}
                             </div>
-                            <form hx-post="/admin/teams/{{ team.id }}/remove_member" 
+                            <form hx-post="/teams/{{ team.id }}/remove_member" 
                                   hx-target="#content" 
                                   hx-swap="innerHTML"
                                   hx-confirm="Remove {{ member.name }} from this team?">
@@ -98,7 +98,7 @@
                 <div class="card-body">
                     <!-- Add Coach Form (Collapsed) -->
                     <div class="collapse mb-3" id="addCoachForm">
-                        <form hx-post="/admin/teams/{{ team.id }}/add_coach" 
+                        <form hx-post="/teams/{{ team.id }}/add_coach" 
                               hx-target="#content" 
                               hx-swap="innerHTML">
                             <div class="input-group">
@@ -127,7 +127,7 @@
                                     <br><small class="text-muted">Assigned: {{ coach.team_assigned_date }}</small>
                                 {% endif %}
                             </div>
-                            <form hx-post="/admin/teams/{{ team.id }}/remove_coach" 
+                            <form hx-post="/teams/{{ team.id }}/remove_coach" 
                                   hx-target="#content" 
                                   hx-swap="innerHTML"
                                   hx-confirm="Remove {{ coach.name }} from coaching this team?">

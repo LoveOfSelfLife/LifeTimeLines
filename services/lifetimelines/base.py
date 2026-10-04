@@ -1,6 +1,6 @@
 import uuid
 from flask import redirect, render_template, request, Blueprint, url_for, session
-from auth import auth
+from common.auth import auth
 import os
 from common.app_info import get_current_app_name
 from common.blob_store import BlobStore

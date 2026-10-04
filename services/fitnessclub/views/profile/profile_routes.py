@@ -3,7 +3,7 @@ from common.blueprint import create_blueprint
 from common.template_renderer import hx_render_template
 from common.member_entity import get_member_id_from_user_context, get_user_profile, save_user_profile
 bp = create_blueprint('profile', __name__)
-from auth import auth
+from common.auth import auth
 
 @bp.route('/')
 @auth.login_required
