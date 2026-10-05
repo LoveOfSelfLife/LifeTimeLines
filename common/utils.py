@@ -49,7 +49,7 @@ def convert_to_alphanumeric(s):
 
 
 def generate_id(context):
-    t = datetime.now()
+    t = datetime.datetime.now()
     hash = sha256()
     hash.update(bytes(t.strftime("%Y%m%d%H%M%S-%f"), 'utf-8'))
     h = hash.hexdigest()

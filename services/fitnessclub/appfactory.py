@@ -16,8 +16,11 @@ from views.program.programs_routes import bp as program_bp
 from views.exercises.exercise_routes import bp as exercises_bp
 from views.profile.profile_routes import bp as profile_bp
 from views.admin.admin_routes import bp as admin_bp
+from common.routes.teams_routes import bp as teams_bp
 from common.routes.favorites_routes import bp as favorites_bp
-from services.fitnessclub.views.members.members_routes import bp as members_bp
+from common.routes.members_routes import bp as members_bp
+from common.routes.impersonate_routes import bp as impersonate_bp
+from common.routes.system_routes import bp as system_bp
 from views.workouts.workout_routes import bp as workouts_bp
 from common.env_init import initialize_environment
 from common.env_context import Env
@@ -67,7 +70,10 @@ def create_app():
                exercises_bp,
                members_bp,
                workouts_bp,
-               favorites_bp]:
+               favorites_bp,
+               teams_bp,
+               impersonate_bp,
+               system_bp]:
         app.register_blueprint(bp, url_prefix=f'/{bp.name}')
 
     CORS(app)  

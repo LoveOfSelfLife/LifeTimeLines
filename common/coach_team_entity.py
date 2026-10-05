@@ -4,12 +4,13 @@ from common.entity_store import EntityObject
 from common.entity_store import EntityStore
 from common.member_team_entity import get_team_members
 from common.utils import IDGenerator
+from common.app_info import get_current_app_id
 
 class CoachTeamEntity(EntityObject):
     table_name = "CoachTeamTable"
-    fields = ["id", "coach_id", "team_id", "assigned_date"]
+    fields = ["id", "app", "coach_id", "team_id", "assigned_date"]
     key_field = "id"
-    partition_field = "team_id"
+    partition_field = "app"
 
     def __init__(self, d={}):
         super().__init__(d)
@@ -18,7 +19,7 @@ def get_coachs_teams(coach_id):
     """Get all teams that a coach is assigned to"""
     es = EntityStore()
     coachs_teams = []
-    for ct in es.list_items(CoachTeamEntity()):
+    for ct in es.list_items(CoachTeamEntity({"app": get_current_app_id()})):
         if ct.get("coach_id") == coach_id:
             coachs_teams.append(ct)
     return coachs_teams
@@ -27,8 +28,9 @@ def get_team_coaches(team_id):
     """Get all coaches assigned to a specific team"""
     es = EntityStore()
     all_coach_teams = []
-    for ct in es.list_items(CoachTeamEntity({ "team_id": team_id })):
-        all_coach_teams.append(ct)
+    for ct in es.list_items(CoachTeamEntity({"app": get_current_app_id()})):
+        if ct.get("team_id") == team_id:
+            all_coach_teams.append(ct)
     return all_coach_teams
 
 def get_coachs_team_members(coach_id):
@@ -49,15 +51,16 @@ def assign_coach_to_team(coach_id, team_id):
     es = EntityStore()
     
     # Check if coach is already assigned to the team
-    existing = es.list_items(CoachTeamEntity({"team_id": team_id}))
+    existing = es.list_items(CoachTeamEntity({"app": get_current_app_id()}))
     for ct in existing:
-        if ct.get("coach_id") == coach_id:
+        if ct.get("team_id") == team_id and ct.get("coach_id") == coach_id:
             return ct
 
     # Create new assignment
     # set the assigned_date field to the current timestamp when creating the assignment
     assignment = CoachTeamEntity({
         "id": IDGenerator.gen_id(),
+        "app": get_current_app_id(),
         "coach_id": coach_id,
         "team_id": team_id,
         "assigned_date": datetime.now().isoformat()
@@ -71,9 +74,9 @@ def remove_coach_from_team(coach_id, team_id):
     from common.entity_store import EntityStore
     es = EntityStore()
     
-    coach_teams = es.list_items(CoachTeamEntity({"team_id": team_id}))
+    coach_teams = es.list_items(CoachTeamEntity({"app": get_current_app_id()}))
     for ct in coach_teams:
-        if ct.get("coach_id") == coach_id:
+        if ct.get("team_id") == team_id and ct.get("coach_id") == coach_id:
             es.delete_item(CoachTeamEntity(ct))
             return True
 

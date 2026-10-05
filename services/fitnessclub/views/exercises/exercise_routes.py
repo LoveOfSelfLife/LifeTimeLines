@@ -166,7 +166,6 @@ def exercise_listing_base(context, entity_name, page, page_size, view, fields_to
         multi_select_button_icon=multi_select_button_icon,
         preferred_section=preferred_section,
         entity_add_route=entity_add_route,
-        filter_dialog_route=f'/exercises/filter-dialog?entity_table={entity_name}',        
         entities_listing_route=entities_listing_route,
         entity_view_route=f'/exercises/view?entity_table={entity_name}',
         entity_action_route=entity_action_route,
@@ -201,21 +200,7 @@ def view_exercise_details(context=None):
 
     return show_exercise_viewer(entity_to_view, context, show_dismiss_btn=True)
 
-@bp.route('/filter-dialog')
-@auth.login_required
-def filter_dialog(context=None):
-    entity_name = "ExerciseTable"
-    entity_type = get_entity_obj_from_entity_name(entity_name)
-    filters = get_fitnessclub_entity_filters_for_entity(entity_name)
-    view = request.args.get('view', 'list')
-    return hx_render_template('filter_dialog.html', 
-                              entities_listing_route=f'/exercises/exercises-listing?entity_table={entity_name}',
-                              entity_display_name=entity_type.get_display_name(),                              
-                              entity_name=entity_name,
-                              filters=filters,
-                              view=view,
-                              args=request.args,
-                              context=context)
+
 @bp.route('/exercise-history-dialog')
 @auth.login_required
 def exercise_history_dialog(context=None):

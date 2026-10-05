@@ -102,11 +102,11 @@
         { "kind": "link", "label": "Profile", "icon": "bi bi-gear", "action": { "hx_get": "/profile/profile2", "hx_target": "#content", "hx_swap": "innerHTML" } },
         { "kind": "divider", "visible_when": "member_admin" },
         { "kind": "header", "label": "Admin Functions", "visible_when": "member_admin" },
-        { "kind": "link", "label": "Teams", "icon": "bi bi-people-fill", "visible_when": "member_admin", "action": { "hx_get": "/admin/teams", "hx_target": "#content", "hx_swap": "innerHTML" } },
+        { "kind": "link", "label": "Teams", "icon": "bi bi-people-fill", "visible_when": "member_admin", "action": { "hx_get": "/teams", "hx_target": "#content", "hx_swap": "innerHTML" } },
         { "kind": "link", "label": "Members", "icon": "bi bi-people", "visible_when": "member_admin", "action": { "hx_get": "/admin/members", "hx_target": "#content", "hx_swap": "innerHTML" } },
-        { "kind": "link", "label": "Impersonate", "icon": "bi bi-person-vcard", "visible_when": "member_admin", "action": { "hx_get": "/admin/impersonate_dialog", "hx_target": "#modals-here", "hx_swap": "innerHTML" } },
+        { "kind": "link", "label": "Impersonate", "icon": "bi bi-person-vcard", "visible_when": "member_admin", "action": { "hx_get": "/impersonate", "hx_target": "#modals-here", "hx_swap": "innerHTML" } },
         { "kind": "divider" },
-        { "kind": "link", "label": "Logout", "icon": "bi bi-box-arrow-right", "action": { "href": "/logout2" } }
+        { "kind": "link", "label": "Logout", "icon": "bi bi-box-arrow-right", "action": { "href": "/sys/logout" } }
       ]
     }
   ],
@@ -118,7 +118,7 @@
     "message_prefix": "You are currently impersonating",
     "button_class": "btn btn-sm btn-outline-dark ms-2",
     "button_label": "Stop Impersonation",
-    "action": { "hx_post": "/admin/stop_impersonation", "hx_target": "body" }
+    "action": { "hx_post": "/impersonate/stop", "hx_target": "body" }
   },
   "content": {
     "class": "container-fluid pt-4",

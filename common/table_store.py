@@ -28,7 +28,8 @@ class TableStore():
             self.table_client.create_table()
             print("Created table")
         except ResourceExistsError:
-            print("Table already exists")
+            # print("Table already exists")
+            pass
 
     def insert(self, partition_key, row_key, vals):
         keys = {"PartitionKey": partition_key, "RowKey": str(row_key)}
@@ -49,8 +50,6 @@ class TableStore():
         else:
             filter_str = ts_filter
 
-        #print(f"xyztable={self.table_name}, query_filter='{filter_str}', params={params}")
-        # result = self.table_client.query_entities(query_filter=filter, parameters=params, select=select)
         result = self.table_client.query_entities(query_filter=filter_str, select=select, parameters=params)
 
         return result

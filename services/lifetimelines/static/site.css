@@ -484,11 +484,11 @@ footer {
     text-align: left; /* Ensure labels are left-justified */
   }
 
-/* Glass morphism select element styling */
 .form-select {
   background: rgba(255, 255, 255, 0.1) !important;
   border: 1px solid rgba(255, 255, 255, 0.25) !important;
-  color: white !important;
+  color: rgb(24, 97, 57) !important;
+  -webkit-text-fill-color: rgb(24, 97, 57) !important;
   backdrop-filter: blur(10px);
 }
 
@@ -496,12 +496,13 @@ footer {
   background: rgba(255, 255, 255, 0.15) !important;
   border-color: rgba(76, 161, 175, 0.8) !important;
   box-shadow: 0 0 0 0.25rem rgba(76, 161, 175, 0.25) !important;
-  color: white !important;
-}
+  color: rgb(24, 97, 57) !important;
+  -webkit-text-fill-color: rgb(24, 97, 57) !important;
+}  
 
 .form-select option {
-  background-color: #212529 !important;
-  color: white !important;
+  background-color: #799ec3 !important;
+  color: rgb(12, 1, 1) !important;
   padding: 8px 12px;
 }
 
@@ -521,11 +522,11 @@ footer {
     font-weight: bold;
     text-align: left; /* Ensure labels are left-justified */
 }
-.form-control {
+/* .form-control {
     border-color: black;
     border-radius: 5px;
-    font-size: x-small;
-}
+    font-size: medium;
+} */
 .form-check-label {
     margin: 0px;
     margin-left: 5px;

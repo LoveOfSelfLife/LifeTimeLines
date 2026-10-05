@@ -84,7 +84,6 @@ def members(context=None):
                                               "description" : lambda e: f"{e['email']} ({e.get('role', 'client')})" if 'email' in e else ""
                                              },
                     }
-
     
     filter_terms = get_filter_terms_from_request()
     member_id = get_member_id_from_user_context(context)
@@ -116,8 +115,7 @@ def render_member_listing_template(context, entity_name, page, view, page_size, 
         page=page,
         view=view,
         total_pages=total_pages,
-        entity_add_route=f'/admin/add/{entity_name}',
-        filter_dialog_route=f'/admin/filter-dialog?entity_table={entity_name}',
+        entity_add_route=None,
         entities_listing_route=f'/admin/members?entity_table={entity_name}',
         entity_view_route=None,
         entity_action_route=f'/admin/edit?entity_table={entity_name}',
@@ -130,7 +128,6 @@ def render_member_listing_template(context, entity_name, page, view, page_size, 
 
 
 # below was added for editing entities:
-
 
 @bp.route('/edit')
 @auth.login_required
@@ -161,80 +158,6 @@ def edit_entity(context=None):
                               update_entity_url=f'/admin/update/{table_id}?key={composite_key}',
                               delete_entity_url=f'/admin/delete/{table_id}?key={composite_key}',
                               context=context)
-
-@bp.route('/view')
-@auth.login_required
-def view_entity(context=None):
-    table_id = request.args.get('entity_table', None)
-    if not table_id:
-        return "No table id provided", 404
-
-    entity_instance = get_entity_obj_from_entity_name(table_id)
-    
-    schema = entity_instance.get_schema()
-
-    composite_key_str = request.args.get('key', None)
-    composite_key = eval(composite_key_str) if composite_key_str else None
-    es = EntityStore()
-    entity_to_view = es.get_item_by_composite_key(composite_key)
-    
-    return hx_render_template('admin/entity_viewer.html',
-                              entity=entity_to_view,
-                              schema=entity_instance.get_schema(),
-                              table_id=table_id,
-                              context=context)
-
-@bp.route('/delete/<table_id>', methods=['POST'])
-@auth.login_required
-def delete_entity_from_table(context=None, table_id=None):
-    if not table_id:
-        return "No table id provided", 404
-
-    entity = get_entity_obj_from_entity_name(table_id)    
-
-
-    schema = entity.get_schema()
-
-    composite_key_str = request.args.get('key', None)
-    composite_key = eval(composite_key_str) if composite_key_str else None
-
-    es = EntityStore()
-    entity_to_delete = es.get_item_by_composite_key(composite_key)
-    
-    if not entity_to_delete:
-        return "Entity not found", 404
-
-    delete_entity(entity_to_delete)
-    # es.delete_items([entity_to_delete])
-
-    response = make_response('')
-    response.headers['HX-Trigger'] = json.dumps({
-        "eventListChanged": None,
-        "showMessage": { "value" : f"selected item was deleted.", "target": "body" }
-    })
-    # return response
-    return redirect(f'/admin?entity_table={table_id}', 302, response)
-
-@bp.route('/add/<table_id>', methods=['GET'])
-@auth.login_required
-def existing_entity_editor(context=None, table_id=None):
-    if not table_id:
-        return "No table id provided", 404
-
-    entity = get_entity_obj_from_entity_name(table_id)
-    es = EntityStore()
-    entity_to_edit = {}
-    schema = entity.get_schema()
-    composite_key = (entity_to_edit.get('id', None), entity_to_edit.get('partition_value', None), table_id)
-    return hx_render_template('admin/admin/entity_editor.html', 
-                            entity=entity_to_edit, 
-                            schema=schema,
-                            table_id=table_id, 
-                            errors={},
-                            upload_file_url=f'/api/upload/{table_id}',
-                            update_entity_url=f'/admin/update/{table_id}',
-                            delete_entity_url=f'/admin/delete/{table_id}?key={composite_key}',
-                            context=context)
         
 @bp.route('/update/<table_id>', methods=['POST'])
 @auth.login_required
@@ -274,7 +197,7 @@ def update_entity_save_json(context=None, table_id=None):
     entity.initialize(data)
     es.upsert_item(entity)
     response=make_response('Item saved successfully.')
-    # response = make_response(entities_listing2(context=context, entity_name=table_id))
+    
     response.headers['HX-Trigger'] = json.dumps({
         "showMessage": { "value" : f"item was saved.", "target": "body" }
     })

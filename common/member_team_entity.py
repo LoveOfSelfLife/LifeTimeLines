@@ -2,12 +2,13 @@ from common.entity_store import EntityObject
 from common.utils import IDGenerator
 from datetime import datetime
 from common.entity_store import EntityStore
+from common.app_info import get_current_app_id
 
 class MemberTeamEntity(EntityObject):
     table_name = "MemberTeamTable"
-    fields = ["id", "member_id", "team_id", "joined_date"]
+    fields = ["id", "app", "member_id", "team_id", "joined_date"]
     key_field = "id"
-    partition_field = "team_id"
+    partition_field = "app"
 
     def __init__(self, d={}):
         super().__init__(d)
@@ -16,7 +17,7 @@ def get_members_teams(member_id):
     """Get all teams that a member belongs to - should only be one for clients, can be multiple for coaches/admins"""
     es = EntityStore()
     member_teams = []
-    for mt in es.list_items(MemberTeamEntity()):
+    for mt in es.list_items(MemberTeamEntity({"app": get_current_app_id()})):
         if mt.get("member_id") == member_id:
             member_teams.append(mt)
     return member_teams
@@ -24,10 +25,10 @@ def get_members_teams(member_id):
 def get_team_members(team_id):
     """Get all members of a specific team"""
     es = EntityStore()
-    # Need to scan all partitions to find members of this team
     all_members_of_team = []
-    for mt in es.list_items(MemberTeamEntity({ "team_id": team_id })):
-        all_members_of_team.append(mt)
+    for mt in es.list_items(MemberTeamEntity({"app": get_current_app_id()})):
+        if mt.get("team_id") == team_id:
+            all_members_of_team.append(mt)
     return all_members_of_team
 
 def get_members_team_members(member_id):
@@ -47,14 +48,15 @@ def add_member_to_team(member_id, team_id):
     es = EntityStore()
     
     # Check if member is already on the team
-    existing = es.list_items(MemberTeamEntity({"team_id": team_id}))
+    existing = es.list_items(MemberTeamEntity({"app": get_current_app_id()}))
     for mt in existing:
-        if mt.get("member_id") == member_id:
-            return mt                        
+        if mt.get("team_id") == team_id and mt.get("member_id") == member_id:
+            return mt
     
     # Create new membership
     membership = MemberTeamEntity({
         "id": IDGenerator.gen_id(),
+        "app": get_current_app_id(),
         "member_id": member_id,
         "team_id": team_id,
         "joined_date": datetime.now().isoformat()
@@ -67,10 +69,10 @@ def remove_member_from_team(member_id, team_id):
     """Remove a member from a team by deleting the membership record"""
     es = EntityStore()
     
-    member_teams = es.list_items(MemberTeamEntity({"team_id": team_id}))
+    member_teams = es.list_items(MemberTeamEntity({"app": get_current_app_id()}))
     
     for mt in member_teams:
-        if mt.get("member_id") == member_id:
+        if mt.get("team_id") == team_id and mt.get("member_id") == member_id:
             es.delete_item(MemberTeamEntity(mt))
             return True
     

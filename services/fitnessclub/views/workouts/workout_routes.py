@@ -170,23 +170,6 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
 
     return hx_render_template(template_file_name, **template_data)
 
-@bp.route('/filter-dialog')
-@auth.login_required
-def filter_dialog(context=None):
-    target = request.args.get('target', None)
-    workout_id = request.args.get('workout_id', None)
-    entity_name = "ExerciseTable"
-    entity_type = get_entity_obj_from_entity_name(entity_name)
-    filters = get_fitnessclub_entity_filters_for_entity(entity_name)
-
-    return hx_render_template('filter_dialog.html', 
-                              entities_listing_route=f'/workouts/builder/exercises?target={target}&workout_id={workout_id}',
-                              filter_results_target=target,
-                              entity_display_name=entity_type.get_display_name(),                              
-                              entity_name=entity_name,
-                              filters=filters,
-                              args=request.args,
-                              context=context)
 
 
 @bp.route('/edit')
@@ -1556,7 +1539,6 @@ def exercise_listing(context=None):
                               page=page,
                               view=view,
                               total_pages=total_pages,
-                              filter_dialog_route=f'/workouts/filter-dialog?entity_table={entity_name}&target={target}&workout_id={workout_id}',
                               entities_listing_route=f'/workouts/builder/exercises?entity_table={entity_name}&target={target}&workout_id={workout_id}',
                               entity_view_route=f'/exercises/view?entity_table={entity_name}',
                               entity_action_route=f'/workouts/builder/{workout_id}/add?entity_table={entity_name}',

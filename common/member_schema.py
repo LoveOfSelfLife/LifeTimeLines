@@ -10,7 +10,9 @@ member_schema = {
         "mobile",
         "sms_consent",
         "email_consent",
-        "image_url"
+        "image_url", 
+        "role",
+        "app"
 	],
 	"properties": {
 		"id": {
@@ -34,7 +36,12 @@ member_schema = {
 			"propertyOrder": 10,
 			"default": "client",
 			"enum": ["client", "coach"]
-
+		},
+        "app": {
+			"type": "string",
+            "readOnly": True,
+            "default": "",
+            "propertyOrder": 11
 		},
         "short_name": {
             "type": "string",
