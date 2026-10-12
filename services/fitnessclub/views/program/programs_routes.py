@@ -781,7 +781,10 @@ def save_copy_of_program(context=None, program_id=None):
     # create a copy of the program with a new id
     new_program_id = str(uuid.uuid4())
     current_program['id'] = new_program_id
-    current_program['name'] = f"{current_program['name']} (copy)"
+    new_name = (request.headers.get('HX-Prompt') or request.form.get('name') or '').strip()
+    if not new_name:
+        abort(400)    
+    current_program['name'] = new_name
     current_program['member_id'] = member_id
     current_program['assigned_to_member_id'] = member_id
     current_program['created_by'] = member_id
@@ -814,10 +817,6 @@ def save_copy_of_program(context=None, program_id=None):
     delete_from_cache('current_program_workouts')
     delete_from_cache('workouts_to_remove')
 
-
-    member_id = get_member_id_from_user_context(context)
-    if not member_id:
-        abort(401)
     
     response = make_response(programs_listing2(context))
     response.headers['HX-Trigger'] = json.dumps({
