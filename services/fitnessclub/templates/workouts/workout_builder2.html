@@ -59,7 +59,7 @@
                     <button class="btn btn-success"
                         hx-post="{{ url_for('workouts.save_workout_copy', workout_id=workout.id) }}"
                         hx-target="#entities-container" hx-swap="show:top"
-                        hx-confirm="Create a copy of '{{ workout.name }}'?">
+                        hx-prompt="Enter a name for the copy of '{{ workout.name }}':">
                         <i class="bi bi-copy"></i> Copy
                     </button>
                     {% endif %}

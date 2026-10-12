@@ -24,6 +24,7 @@ from common.fitness.workout_state import get_active_workout_state, update_active
 from common.fitness.exercise_alternatives import find_slot, perform_exercise_swap, record_exercise_swap
 from common.fitness.exercise_onthefly import record_exercise_removal, record_exercise_addition
 from common.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
+import copy
 
 bp = create_blueprint('workouts', __name__)
 from common.auth import auth
@@ -1463,7 +1464,10 @@ def save_workout_copy(context=None, workout_id=None):
     print('Saving workout copy')
     es = EntityStore()
     workout['id'] = str(uuid.uuid4())
-    workout['name'] = f"Copy of {workout['name']}"
+    new_name = (request.headers.get('HX-Prompt') or request.form.get('name') or '').strip()
+    if not new_name:
+        abort(400)
+    workout['name'] = new_name
     workout['created_by'] = member_id
     workout['created_ts'] = datetime.now().isoformat()
     workout_definition.initialize(workout)
