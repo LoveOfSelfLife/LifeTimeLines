@@ -1459,6 +1459,10 @@ def save_workout_copy(context=None, workout_id=None):
         abort(404)
 
     workout_definition = MemberWorkoutDefinitionEntity()
+    # when we copy a workout that is part of a program,
+    # we don't want the copy to also be part of that program,
+    # so we clear the member_program_id field
+    workout['member_program_id'] = None
 
     # this is where we save the newly created workout
     print('Saving workout copy')
@@ -1475,10 +1479,6 @@ def save_workout_copy(context=None, workout_id=None):
 
     delete_from_cache('current_workout')
 
-    member_id = get_member_id_from_user_context(context)
-    if not member_id:
-        abort(401)
-    
     response = make_response(workouts_listing2(context))
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": { "target": "body" },
