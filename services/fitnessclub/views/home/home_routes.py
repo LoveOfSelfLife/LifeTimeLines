@@ -73,6 +73,10 @@ def adhoc_workouts_partial2(context=None):
         prog_workouts = []
         all_workouts = []
 
+        # Get scheduled workouts data
+        home_service = HomePageDataService()
+        scheduled_data = home_service.get_scheduled_workouts_data(member_id, datetime.now(timezone.utc))
+
         workouts_ids = get_all_favorite_entity_ids(MemberWorkoutDefinitionEntity.table_name, member_id)
         favorite_workouts = [get_entity(MemberWorkoutDefinitionEntity.table_name, fid) for fid in workouts_ids]
         favorite_workouts = [w for w in favorite_workouts if w is not None]
@@ -90,10 +94,19 @@ def adhoc_workouts_partial2(context=None):
         unique_workouts = {str(workout['key']): workout for workout in all_workouts}.values()
         prog_workouts = list(unique_workouts)
 
+        # if there is an workout event for today, then we need to pass the event ID into this template
+        # so that if the member does the workout, then we can mark the workout event today as done
+        today_event_id = None
+        if scheduled_data.get('has_today_events', False):
+            for today_event in scheduled_data.get('todays_events', []):
+                if today_event.get('is_completed', True) is False:
+                    today_event_id = today_event.get('event_id', None)
+                    break
+
         return hx_render_template(
             template_file='home/adhoc_workouts_partial.html',
             program_workouts=prog_workouts,
-            # program_key = str(current_program.get_composite_key()) if current_program else None,
+            event_id=today_event_id,
             program_key = None,
             context=context
         )
