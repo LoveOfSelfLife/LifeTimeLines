@@ -29,7 +29,7 @@ def get_editor_type_for_value_parameter(value_parameter, unit_parameter_value, e
         if unit_parameter_value in ["kg", "lbs"]:
             return { "type": "numeric" }
         elif unit_parameter_value == "bands":
-            return { "type": "choice", "options": ["yellow", "green", "black"] }
+            return { "type": "choice", "options": ["yellow", "orange", "green", "red", "black"] }
     elif value_parameter == 'T':
         if unit_parameter_value in ["sec", "min", "hour"]:
             return { "type": "numeric" }
