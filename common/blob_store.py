@@ -16,9 +16,8 @@ class BlobStore():
         self.container_client = self.blob_service_client.get_container_client(container_name.lower())
         try:
             self.container_client.create_container()
-            print("Created container")
         except ResourceExistsError:
-            print("Container already exists")
+            pass
 
     def upload_file(self, local_file_path, blob_name):
         with open(local_file_path, "rb") as data:
@@ -31,4 +30,8 @@ class BlobStore():
 
     def get_blob_client(self, blob_name):
         return self.container_client.get_blob_client(blob=blob_name)
+
+    def blob_exists(self, blob_name):
+        blob_client = self.container_client.get_blob_client(blob=blob_name)
+        return blob_client.exists()
     
