@@ -28,7 +28,7 @@
     "icon": "🏋️",
     "text": "LifeTimelines",
     "show_version": true,
-    "action": { "hx_get": "/home", "hx_target": "#content", "hx_swap": "innerHTML" }
+    "action": { "hx_get": "/home" }
   },
   "member_badge": {
     "enabled": true,
@@ -37,14 +37,14 @@
     "icon_class": "bi bi-person-circle-fill me-2",
     "onmouseover": "this.style.backgroundColor='#0a58ca'; this.style.transform='scale(1.05)'",
     "onmouseout": "this.style.backgroundColor=''; this.style.transform='scale(1)'",
-    "action": { "hx_get": "/home", "hx_target": "#content", "hx_swap": "innerHTML" }
+    "action": { "hx_get": "/home"}
   },
   "navigation": [
     {
       "kind": "link",
       "label": "Calendar",
       "icon": "bi bi-list-check",
-      "action": { "hx_get": "/calendar", "hx_target": "#content", "hx_swap": "innerHTML" }
+      "action": { "hx_get": "/calendar" }
     },
     {
       "kind": "dropdown",
@@ -52,8 +52,8 @@
       "label": "About",
       "icon": "bi bi-info-circle",
       "children": [
-        { "kind": "link", "label": "Club", "icon": "bi bi-info-circle", "action": { "hx_get": "/about", "hx_target": "#content", "hx_swap": "innerHTML" } },
-        { "kind": "link", "label": "Members", "icon": "bi bi-people", "action": { "hx_get": "/members", "hx_target": "#content", "hx_swap": "innerHTML" } }
+        { "kind": "link", "label": "Club", "icon": "bi bi-info-circle", "action": { "hx_get": "/about" } },
+        { "kind": "link", "label": "Members", "icon": "bi bi-people", "action": { "hx_get": "/members" } }
       ]
     },
     {
@@ -63,7 +63,7 @@
       "empty_label": "Select Team",
       "icon": "bi bi-people-fill",
       "visible_when": "can_select_team",
-      "action": { "hx_post": "/teams/select", "team_id_field": "team_id", "hx_target": "#content", "hx_swap": "innerHTML show:top" }
+      "action": { "hx_post": "/teams/select", "team_id_field": "team_id", "hx_swap": "innerHTML show:top" }
     },    
     {
       "kind": "dropdown",
@@ -71,12 +71,12 @@
       "icon": "bi bi-person",
       "menu_align": "end",
       "children": [
-        { "kind": "link", "label": "Profile", "icon": "bi bi-gear", "action": { "hx_get": "/profile", "hx_target": "#content", "hx_swap": "innerHTML" } },
+        { "kind": "link", "label": "Profile", "icon": "bi bi-gear", "action": { "hx_get": "/profile" } },
         { "kind": "divider", "visible_when": "member_admin" },
         { "kind": "header", "label": "Admin Functions", "visible_when": "member_admin" },
-        { "kind": "link", "label": "Teams", "icon": "bi bi-people-fill", "visible_when": "member_admin", "action": { "hx_get": "/teams", "hx_target": "#content", "hx_swap": "innerHTML" } },
-        { "kind": "link", "label": "Members", "icon": "bi bi-people", "visible_when": "member_admin", "action": { "hx_get": "/admin/members", "hx_target": "#content", "hx_swap": "innerHTML" } },
-        { "kind": "link", "label": "Impersonate", "icon": "bi bi-person-vcard", "visible_when": "member_admin", "action": { "hx_get": "/impersonate", "hx_target": "#modals-here", "hx_swap": "innerHTML" } },
+        { "kind": "link", "label": "Teams", "icon": "bi bi-people-fill", "visible_when": "member_admin", "action": { "hx_get": "/teams" } },
+        { "kind": "link", "label": "Members", "icon": "bi bi-people", "visible_when": "member_admin", "action": { "hx_get": "/admin/members" } },
+        { "kind": "link", "label": "Impersonate", "icon": "bi bi-person-vcard", "visible_when": "member_admin", "action": { "hx_get": "/impersonate", "hx_target": "#modals-here" } },
         { "kind": "divider" },
         { "kind": "link", "label": "Logout", "icon": "bi bi-box-arrow-right", "action": { "href": "/sys/logout" } }
       ]
