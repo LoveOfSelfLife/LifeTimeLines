@@ -16,7 +16,9 @@ class ExerciseEntity (EntityObject):
             "setCompletionMeasure", 
             "resistance_doubled", # has a boolean value
             "only_one_set", # has a boolean value
-            "udf1", "udf2", 
+            "is_unilateral", # boolean, default False (bi-lateral)
+            "is_alternating", # boolean, only meaningful when is_unilateral; default False (non-alternating)
+            "udf1", "udf2",
             "physical_fitness_components", 
             "movement_categories", 
             "hide"]
@@ -41,6 +43,12 @@ class ExerciseEntity (EntityObject):
         if self.get("only_one_set", None) is not None:
             return self.get("only_one_set")
         return False
+
+    def is_exercise_unilateral(self):
+        return bool(self.get("is_unilateral", False))
+
+    def is_exercise_alternating(self):
+        return self.is_exercise_unilateral() and bool(self.get("is_alternating", False))
 
     def get_set_completion_measure(self):
         # the setCompletionMeasure field indicates what measure is used to determine if a set of the exercise is completed, e.g. "reps", "time", "distance", "other"

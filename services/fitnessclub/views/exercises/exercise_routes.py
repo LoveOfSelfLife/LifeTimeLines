@@ -410,6 +410,8 @@ def save_exercise(exercise_id=None, context=None):
             
         # Handle boolean fields
         exercise_data['hide'] = 'hide' in request.form
+        exercise_data['is_unilateral'] = 'is_unilateral' in request.form
+        exercise_data['is_alternating'] = exercise_data['is_unilateral'] and 'is_alternating' in request.form
         
         # Generate ID for new exercise or use existing
         if exercise_id:

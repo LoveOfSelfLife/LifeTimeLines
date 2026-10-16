@@ -17,6 +17,11 @@
                             {{ loop.index }} of {{ section.exercises|length }}
                         </div>
                         <h5 class="card-title mb-3">{{ ex.name }}</h5>
+                        {% if ex.is_unilateral %}
+                        <div class="mb-1">
+                            <span class="badge text-bg-secondary text-wrap text-start">{{ 'alternate each rep' if ex.is_alternating else 'do all on one side, then repeat on the other' }}</span>
+                        </div>
+                        {% endif %}
 
                         <div class="mb-3 text-center">
                             {% if ex.videos and ex.videos|length > 0 %}

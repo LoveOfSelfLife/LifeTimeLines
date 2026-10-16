@@ -9,7 +9,7 @@
   }
 
   .workout-exercise-item .exercise-content-column {
-    flex: 1 1 auto;
+    flex: 1 1 0;
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -34,6 +34,9 @@
 
   .workout-exercise-item .exercise-image-column {
     margin-left: auto;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: stretch;
     display: flex;
     align-items: stretch;
     justify-content: flex-end;

@@ -33,8 +33,12 @@
           <h6 class="mb-1 font-weight-bold exercise-name">
             {{ ex.name }}
           </h6>
-
         </div>
+        {% if ex.is_unilateral %}
+          <div class="mb-1">
+            <span class="badge text-bg-secondary text-wrap text-start">{{ 'alternate each rep' if ex.is_alternating else 'do all on one side, then repeat on the other' }}</span>
+          </div>
+        {% endif %}
         <div id="parameters" class="exercise-parameters">
           {% set timer = namespace(has_timer=False, timer_value=None, timer_units=None) %}      
           {% set param_ns = namespace(unit_param_id=None, param_list=[]) %}          

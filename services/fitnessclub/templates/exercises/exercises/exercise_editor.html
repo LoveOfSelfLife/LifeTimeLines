@@ -183,6 +183,27 @@
                   <div class="form-text">Weight is per hand (so total = 2x weight)</div>
                 </div>
               </div>
+
+              <div class="col-md-4">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" role="switch" id="is_unilateral" name="is_unilateral"
+                         {% if exercise.is_unilateral %}checked{% endif %}
+                         onchange="document.getElementById('alternating_wrapper').style.display = this.checked ? '' : 'none';">
+                  <label class="form-check-label fw-bold" for="is_unilateral">
+                    Uni-lateral
+                  </label>
+                  <div class="form-text">Movement describes one side of the body only</div>
+                </div>
+                <div class="form-check form-switch mt-2" id="alternating_wrapper"
+                     style="{% if not exercise.is_unilateral %}display:none;{% endif %}">
+                  <input class="form-check-input" type="checkbox" role="switch" id="is_alternating" name="is_alternating"
+                         {% if exercise.is_alternating %}checked{% endif %}>
+                  <label class="form-check-label fw-bold" for="is_alternating">
+                    Alternating
+                  </label>
+                  <div class="form-text">Switch sides each rep (off = all reps on one side, then repeat on the other)</div>
+                </div>
+              </div>
             </div>
 
             <!-- Physical Fitness Components -->
