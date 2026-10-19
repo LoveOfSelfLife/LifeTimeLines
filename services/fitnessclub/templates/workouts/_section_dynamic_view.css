@@ -26,6 +26,8 @@
   }
 
   .workout-exercise-item .exercise-thumbnail {
+    min-width: 0;
+    max-width: 100%;
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -34,7 +36,9 @@
 
   .workout-exercise-item .exercise-image-column {
     margin-left: auto;
-    flex: 0 0 auto;
+    flex: 0 1 auto;
+    max-width: 45%;
+    min-width: 0;
     display: flex;
     align-items: stretch;
     display: flex;
@@ -45,6 +49,7 @@
 
   .workout-exercise-item .exercise-preview-image {
     max-height: 100px;
+    max-width: 100%;
     width: auto;
     object-fit: contain;
   }
