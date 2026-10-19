@@ -350,7 +350,7 @@ def toggle_carousel_view(context=None):
     current_workout_state = get_active_workout_state()
     if not current_workout_state:
         abort(404)
-    return render_home_page_workout(None, current_workout_state)
+    return render_home_page_workout(None, current_workout_state, context)
 
 @bp.route('/toggle_keep_awake', methods=['POST'])
 @auth.login_required
@@ -362,7 +362,7 @@ def toggle_keep_awake(context=None):
     update_active_workout_state(current_workout_state)
 
     # Re-render the active workout panel so the wake-lock script picks up the new preference.
-    return render_home_page_workout(None, current_workout_state)
+    return render_home_page_workout(None, current_workout_state, context)
 
 @bp.route('/update_param_in_session', methods=['POST'])
 @auth.login_required
@@ -1307,7 +1307,13 @@ def save_data(workout_id, exercise_id, param, context=None):
                 set_cache_value('current_workout', w)
 
     # Return the updated content to replace the form
-    return  get_initial_editable_text2(workout_id, exercise_id, param, new_value, active_workout=is_active_workout, purpose_of_parameter_edit=purpose_of_parameter_edit)
+    html = get_initial_editable_text2(workout_id, exercise_id, param, new_value, active_workout=is_active_workout, purpose_of_parameter_edit=purpose_of_parameter_edit)
+    response = make_response(html)
+    if param in ('T', 'Tu'):
+        response.headers['HX-Trigger'] = json.dumps({
+            "timerParamChanged": {"exerciseId": exercise_id, "param": param, "value": new_value}
+        })
+    return response
 
 @bp.route('/builder/<workout_id>/save', methods=['POST'])
 @auth.login_required

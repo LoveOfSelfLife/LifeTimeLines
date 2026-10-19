@@ -52,7 +52,7 @@
             {% set timer_unit = timer.timer_units or 'sec' %}
             <div class="timer-container d-inline-block">
               <div class="timer-ring-wrapper" data-exercise-id="{{ ex.id }}" data-duration="{{ timer_duration }}" data-unit="{{ timer_unit }}"
-                onclick="startExerciseTimer('{{ ex.id }}', Number('{{ timer_duration }}'), '{{ timer_unit }}')"
+                onclick="startExerciseTimer('{{ ex.id }}')"
                 title="Start {{ timer_duration }} {{ timer_unit }} timer">
                 <svg class="timer-ring-svg" viewBox="0 0 44 44">
                   <circle class="timer-ring-bg" cx="22" cy="22" r="19"></circle>

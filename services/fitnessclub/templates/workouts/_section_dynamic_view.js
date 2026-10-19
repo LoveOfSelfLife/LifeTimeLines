@@ -6,6 +6,7 @@
     activeTimers: (window.ExerciseTimer && window.ExerciseTimer.activeTimers) || {},
     completionResetTimers: (window.ExerciseTimer && window.ExerciseTimer.completionResetTimers) || {},
     RING_RADIUS: 19,
+    overlayState: (window.ExerciseTimer && window.ExerciseTimer.overlayState) || null,
 
     // Converts a duration value expressed in the exercise's configured time unit (Tu) into seconds.
     toSeconds: function (value, unit) {
@@ -46,65 +47,121 @@
       }
 
       const timeUnit = unit || timerWrapper.getAttribute('data-unit') || 'sec';
+      duration = duration !== undefined ? duration : timerWrapper.getAttribute('data-duration');
       const totalSeconds = this.toSeconds(duration, timeUnit);
-      const progressCircle = timerWrapper.querySelector('.timer-ring-progress');
-      const circumference = 2 * Math.PI * this.RING_RADIUS;
-
-      if (progressCircle) {
-        progressCircle.style.strokeDasharray = `${circumference}`;
-        progressCircle.style.strokeDashoffset = '0';
+      if (totalSeconds <= 0) {
+        return;
       }
 
-      // Start new timer
-      let remainingTime = totalSeconds;
-      timerWrapper.classList.add('running');
-      timerWrapper.classList.remove('completed');
-      timerWrapper.setAttribute('title', 'Click to stop timer');
+      this.removeOverlay();
+      const overlay = this.buildOverlay(exerciseId, totalSeconds);
+      const state = {
+        exerciseId: exerciseId,
+        remaining: totalSeconds,
+        total: totalSeconds,
+        paused: false,
+        overlay: overlay,
+        interval: null
+      };
+      this.overlayState = state;
+      this.renderOverlay(state);
 
-      // Update display immediately
-      timerDisplay.textContent = this.formatTime(remainingTime);
-
-      this.activeTimers[exerciseId] = setInterval(() => {
-        remainingTime--;
-        timerDisplay.textContent = this.formatTime(remainingTime);
-
-        if (progressCircle && totalSeconds > 0) {
-          const elapsedFraction = Math.min(1, 1 - (remainingTime / totalSeconds));
-          progressCircle.style.strokeDashoffset = `${circumference * elapsedFraction}`;
+      // Pressing the timer card pauses/resumes; pressing anywhere else dismisses.
+      overlay.addEventListener('click', (event) => {
+        event.stopPropagation();
+        if (event.target.closest('.exercise-timer-card')) {
+          this.togglePause(state);
+        } else {
+          this.stop(exerciseId);
         }
+      });
 
-        if (remainingTime <= 0) {
-          // Timer completed
-          clearInterval(this.activeTimers[exerciseId]);
-          delete this.activeTimers[exerciseId];
-
-          timerWrapper.classList.remove('running');
-          timerWrapper.classList.add('completed');
-          timerWrapper.setAttribute('title', 'Timer completed! Click to restart');
-
-          // Play completion sound with multiple fallbacks
-          this.playCompletionSound();
-
-          // Reset the ring and label back to idle after a brief celebration
-          this.completionResetTimers[exerciseId] = setTimeout(() => {
-            delete this.completionResetTimers[exerciseId];
-            timerWrapper.classList.remove('completed');
-            if (progressCircle) {
-              progressCircle.style.strokeDashoffset = '0';
-            }
-            timerDisplay.textContent = this.formatDuration(duration, timeUnit);
-            timerWrapper.setAttribute('title', `Start ${duration} ${timeUnit} timer`);
-          }, 3000);
-
+      timerWrapper.classList.add('running');
+      state.interval = setInterval(() => {
+        if (state.paused) {
           return;
         }
+        state.remaining--;
+        this.renderOverlay(state);
+        if (state.remaining <= 0) {
+          this.playCompletionSound();
+          this.stop(exerciseId);
+        }
       }, 1000);
+      this.activeTimers[exerciseId] = state.interval;
+    },
+
+    togglePause: function (state) {
+      state.paused = !state.paused;
+      this.renderOverlay(state);
+    },
+
+    buildOverlay: function (exerciseId, totalSeconds) {
+      if (!document.getElementById('exercise-timer-styles')) {
+        const style = document.createElement('style');
+        style.id = 'exercise-timer-styles';
+        style.textContent = `
+          .exercise-timer-overlay { position: fixed; inset: 0; z-index: 2000; display: flex;
+            align-items: center; justify-content: center; background: rgba(0,0,0,0.75); }
+          .exercise-timer-card { position: relative; width: min(80vw, 380px); aspect-ratio: 1;
+            border-radius: 50%; background: #fff; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; cursor: pointer; user-select: none;
+            -webkit-tap-highlight-color: transparent; box-shadow: 0 0 40px rgba(0,0,0,0.5); }
+          .exercise-timer-card svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+          .exercise-timer-card .et-bg { fill: none; stroke: #e9ecef; stroke-width: 4; }
+          .exercise-timer-card .et-progress { fill: none; stroke: #0d6efd; stroke-width: 4; stroke-linecap: round;
+            transition: stroke-dashoffset 1s linear; }
+          .exercise-timer-card.paused .et-progress { stroke: #fd7e14; }
+          .exercise-timer-time { position: relative; font-size: clamp(3.5rem, 20vw, 6rem); font-weight: 700;
+            font-variant-numeric: tabular-nums; line-height: 1; color: #212529; }
+          .exercise-timer-hint { position: relative; margin-top: .5rem; font-size: 1rem; color: #6c757d; }
+        `;
+        document.head.appendChild(style);
+      }
+      const circumference = 2 * Math.PI * 46;
+      const overlay = document.createElement('div');
+      overlay.className = 'exercise-timer-overlay';
+      overlay.innerHTML = `
+        <div class="exercise-timer-card">
+          <svg viewBox="0 0 100 100">
+            <circle class="et-bg" cx="50" cy="50" r="46"></circle>
+            <circle class="et-progress" cx="50" cy="50" r="46"
+              stroke-dasharray="${circumference}" stroke-dashoffset="0"></circle>
+          </svg>
+          <div class="exercise-timer-time"></div>
+          <div class="exercise-timer-hint"></div>
+        </div>`;
+      document.body.appendChild(overlay);
+      return overlay;
+    },
+
+    renderOverlay: function (state) {
+      const remaining = Math.max(0, state.remaining);
+      const card = state.overlay.querySelector('.exercise-timer-card');
+      const progress = state.overlay.querySelector('.et-progress');
+      const circumference = 2 * Math.PI * 46;
+      state.overlay.querySelector('.exercise-timer-time').textContent = this.formatTime(remaining);
+      state.overlay.querySelector('.exercise-timer-hint').textContent =
+        state.paused ? 'Paused – tap to resume' : 'Tap to pause';
+      card.classList.toggle('paused', state.paused);
+      progress.style.strokeDashoffset = `${circumference * (1 - remaining / state.total)}`;
+    },
+
+    removeOverlay: function () {
+      if (this.overlayState) {
+        clearInterval(this.overlayState.interval);
+        this.overlayState.overlay.remove();
+        this.overlayState = null;
+      }
     },
 
     stop: function (exerciseId) {
       if (this.activeTimers[exerciseId]) {
         clearInterval(this.activeTimers[exerciseId]);
         delete this.activeTimers[exerciseId];
+      }
+      if (this.overlayState && this.overlayState.exerciseId === exerciseId) {
+        this.removeOverlay();
       }
       if (this.completionResetTimers[exerciseId]) {
         clearTimeout(this.completionResetTimers[exerciseId]);
@@ -118,30 +175,17 @@
       }
       const duration = timerWrapper.getAttribute('data-duration');
       const timeUnit = timerWrapper.getAttribute('data-unit') || 'sec';
-      const progressCircle = timerWrapper.querySelector('.timer-ring-progress');
 
       timerWrapper.classList.remove('running', 'completed');
       timerWrapper.setAttribute('title', `Start ${duration} ${timeUnit} timer`);
-      if (progressCircle) {
-        progressCircle.style.strokeDashoffset = '0';
-      }
       timerDisplay.textContent = this.formatDuration(duration, timeUnit);
     },
 
+    // Always minutes:seconds (e.g. 0:45, 1:30, 65:00 for long durations).
     formatTime: function (seconds) {
-      if (seconds < 0) return '0s';
-
-      if (seconds < 60) {
-        return `${seconds}s`;
-      } else if (seconds < 3600) {
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-      } else {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        return `${hours}:${minutes.toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
-      }
+      const total = Math.max(0, Math.floor(seconds));
+      const minutes = Math.floor(total / 60);
+      return `${minutes}:${(total % 60).toString().padStart(2, '0')}`;
     },
 
     cleanup: function () {
@@ -287,6 +331,29 @@
   function formatTime(seconds) {
     return window.ExerciseTimer.formatTime(seconds);
   }
+
+  // Applies an edited T/Tu parameter to the timer button (HX-Trigger from the server).
+  if (window.exerciseTimerParamHandler) {
+    document.body.removeEventListener('timerParamChanged', window.exerciseTimerParamHandler);
+  }
+  window.exerciseTimerParamHandler = function (event) {
+    const detail = event.detail || {};
+    const wrapper = document.querySelector(`.timer-ring-wrapper[data-exercise-id="${detail.exerciseId}"]`);
+    if (!wrapper) {
+      return;
+    }
+    window.ExerciseTimer.stop(detail.exerciseId);
+    const value = (detail.value || '').toString().trim();
+    if (detail.param === 'T' && /^\d+(\.\d+)?$/.test(value)) {
+      wrapper.setAttribute('data-duration', value);
+    } else if (detail.param === 'Tu' && value) {
+      wrapper.setAttribute('data-unit', value);
+    } else {
+      return;
+    }
+    window.ExerciseTimer.stop(detail.exerciseId);
+  };
+  document.body.addEventListener('timerParamChanged', window.exerciseTimerParamHandler);
 
   // Clean up timers when page unloads or when HTMX loads new content
   window.addEventListener('beforeunload', () => {

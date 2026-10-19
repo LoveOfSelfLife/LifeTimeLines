@@ -49,7 +49,7 @@ def index(context = None):
         if current_workout_session_state:
             if current_workout_session_state.get('state', None) == 'workout_started':
                 # render the workout that is in progress
-                return render_home_page_workout(member_detail, current_workout_session_state)
+                return render_home_page_workout(member_detail, current_workout_session_state, context=context)
             elif current_workout_session_state.get('state', None) == 'finishing_workout':
                 # render the finishing workout screen
                 return render_finishing_workout_page(member_detail, current_workout_session_state)

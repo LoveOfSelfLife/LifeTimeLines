@@ -41,7 +41,7 @@ def format_seconds(N: int) -> str:
         return ", ".join(parts[:-1]) + " and " + parts[-1] + " from now"
     return parts[0] + " from now"
 
-def render_home_page_workout(member, current_state):
+def render_home_page_workout(member, current_state, context=None):
 
     # render the workout that is in progress
     workout_instance_key = current_state.get('workout_instance_key', None)
@@ -96,7 +96,8 @@ def render_home_page_workout(member, current_state):
         workout_view_preference=workout_view_preference,
         keep_screen_awake=keep_screen_awake,
         allow_on_the_fly_workout=allow_on_the_fly_workout,
-        rs=rm_spaces
+        rs=rm_spaces,
+        context=context
     )
 
 def render_finishing_workout_page(member, current_state):
