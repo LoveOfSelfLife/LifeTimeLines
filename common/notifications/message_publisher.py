@@ -1,4 +1,4 @@
-from common.outbound_event_queue import OutboundEventQueue
+from common.notifications.outbound_event_queue import OutboundEventQueue
 import json
 
 class MessagePublisher:

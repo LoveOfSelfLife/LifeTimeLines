@@ -15,12 +15,13 @@ class QueueStore():
         self.queue_client = QueueClient.from_connection_string(conn_str=QueueStore.connection_string, queue_name=queue_name)
         try:
             self.queue_client.create_queue()
-            print(f"Created queue: {queue_name}")
+            # print(f"Created queue: {queue_name}")
         except ResourceExistsError:
-            print(f"Queue {queue_name} already exists")
+            # print(f"Queue {queue_name} already exists")
+            pass
 
-    def enque_msg(self, msg:str):
-        self.queue_client.send_message(msg)
+    def enque_msg(self, msg:str, visibility_timeout:int=None):
+        self.queue_client.send_message(msg, visibility_timeout=visibility_timeout)
 
     def deque_msg(self):
         msg: QueueMessage = self.queue_client.receive_message()

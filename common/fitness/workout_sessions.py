@@ -6,7 +6,7 @@ from common.blob_store import BlobStore
 from common.entity_store import EntityObject, EntityStore
 from common.member_entity import MemberEntity
 from common.utils import generate_id
-from common.message_publisher import MessagePublisher
+from common.notifications.message_publisher import MessagePublisher
 
 class EventTypes:
     EVENT_CREATED = "event_created"

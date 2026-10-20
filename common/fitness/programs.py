@@ -63,6 +63,8 @@ def get_members_current_active_program(member_id, current_date_dt=None):
     # currrent_date_dt is a datetime object with timezone info as UTC, we need to convert it to local timezone for comparison with the program start and end dates, which are in local timezone
     import pytz
     current_date_dt = current_date_dt.astimezone(pytz.timezone('US/Eastern'))
+    # remove the time portion, keeping only the date (midnight local time)
+    current_date_dt = current_date_dt.replace(hour=0, minute=0, second=0, microsecond=0)
     
     active_programs = []
     for program in programs:
