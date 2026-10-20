@@ -1,6 +1,7 @@
 import os
 import uuid
-from flask import redirect, request, session, url_for
+from flask import make_response, redirect, request, session, url_for
+from opentelemetry import context
 from common.auth import auth
 from common.blob_store import BlobStore
 from common.blueprint import create_blueprint
@@ -56,3 +57,17 @@ def api_upload_photo(context, container_name):
         "filename": blob_name,
         "content_type": file.content_type
     }
+
+
+@bp.route("/test-job-run", methods=["POST"])
+@auth.login_required
+def test_job_run(context):
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        response = make_response('{"error": "not authorized"}', 401)
+        response.headers["Content-Type"] = "application/json"
+    else:
+        print(f"Job run triggered by member_id: {member_id}")
+        response = make_response('{"message": "Job run triggered"}', 200)
+        response.headers["Content-Type"] = "application/json"
+    return response
