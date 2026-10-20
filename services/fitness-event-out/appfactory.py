@@ -50,14 +50,16 @@ def main() -> None:
     scope = [f"api://{Env.AZURE_CLIENT_ID}/.default"]
     auth = AuthRequestor(Env.TENANT_ID, Env.AZURE_CLIENT_ID, Env.AZURE_CLIENT_SECRET, scope)
 
+    logger.info(f'Starting fitness-event-out service')
     while not exitor.should_exit():
 
         outbound_event_messages = outbound_event_queue_client.receive_messages()
         for event_message in outbound_event_messages:
             logger.info(f'Dequeueing: {event_message.content}')
-            outbound_event_queue_client.delete_message(event_message.id, event_message.pop_receipt)
-            if event_message.content is not None:
-                event_message_content_obj = json.loads(event_message.content)
+            # let’s make a copy of the message content before deleting the message from the queue
+            message_content_copy = event_message.content
+            if message_content_copy is not None:
+                event_message_content_obj = json.loads(message_content_copy)
                 try:
                     logger.info(f'START: processing outbound event message: {event_message_content_obj}')
                     result = process_fitness_message(event_message_content_obj, auth.get_auth_token())
@@ -66,10 +68,11 @@ def main() -> None:
                     logger.error(f'ERROR: processing outbound event message: {e}')
             else:
                 logger.info(f'no outbound event message to process (message.content is empty)')
-
+            outbound_event_queue_client.delete_message(event_message.id, event_message.pop_receipt)
         logger.info(f'finished iterating over messages, will sleep 5 sec')
         time.sleep(5)
 
+    logger.info(f'Exiting fitness-event-out service')
     logger.info(f'exiting container gracefully')
     exit(0)
 
