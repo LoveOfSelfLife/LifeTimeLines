@@ -6,7 +6,8 @@ from common.auth import auth
 from common.blob_store import BlobStore
 from common.blueprint import create_blueprint
 from common.member_entity import get_member_id_from_user_context
-
+import logging
+logger = logging.getLogger(__name__)
 bp = create_blueprint('sys', __name__) 
 
 @bp.route("/logout")
@@ -66,8 +67,9 @@ def test_job_run(context):
     if not member_id:
         response = make_response('{"error": "not authorized"}', 401)
         response.headers["Content-Type"] = "application/json"
+        logger.warning(f"Unauthorized access attempt to test-job-run by context: {context}")
     else:
-        print(f"Job run triggered by member_id: {member_id}")
+        logger.info(f"Job run triggered by member_id: {member_id}")
         response = make_response('{"message": "Job run triggered"}', 200)
         response.headers["Content-Type"] = "application/json"
     return response
