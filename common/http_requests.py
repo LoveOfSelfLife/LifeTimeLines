@@ -6,12 +6,13 @@ import logging
 def send_internal_request(container_app, auth_token=None):
 
     logger = logging.getLogger(__name__)
-    
+
     # 1. Use the target Container App's name as the hostname
     # 2. Traffic is sent over HTTP (port 80) within the environment
     target_app_name = container_app
-    url = f"http://{target_app_name}/sys/test-job-run"
+    url = f"https://{target_app_name}/sys/test-job-run"
     
+
     # Retrieve your secured token (ideally injected via environment variables)
     if not auth_token:
         auth_token = os.environ.get("INTERNAL_API_TOKEN", "your_secret_token_here")
@@ -27,7 +28,7 @@ def send_internal_request(container_app, auth_token=None):
     }
     
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=5)
+        response = requests.post(url, json=payload, headers=headers, verify=False, timeout=5)
         response.raise_for_status()
         response_string = str(response.text)
         logger.info(f"Success: {response_string[:100]}")
