@@ -59,7 +59,7 @@ def api_upload_photo(context, container_name):
     }
 
 
-@bp.route("/test-job-run", methods=["POST"])
+@bp.route("/test-job-run", methods=["POST", "GET"])
 @auth.login_required
 def test_job_run(context):
     member_id = get_member_id_from_user_context(context)
