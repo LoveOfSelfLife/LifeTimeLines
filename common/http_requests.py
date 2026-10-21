@@ -24,6 +24,6 @@ def send_internal_request(container_app, auth_token=None):
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=5)
         response.raise_for_status()
-        print("Success:", response.json())
+        print(f"Success: {response.text}")
     except requests.exceptions.RequestException as e:
         print("Internal communication failed:", e)
