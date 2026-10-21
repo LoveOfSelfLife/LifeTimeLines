@@ -10,7 +10,7 @@ def send_internal_request(container_app, auth_token=None):
     # 1. Use the target Container App's name as the hostname
     # 2. Traffic is sent over HTTP (port 80) within the environment
     target_app_name = container_app
-    url = f"https://{target_app_name}/sys/test-job-run"
+    url = f"http://{target_app_name}/sys/test-job-run"
     
 
     # Retrieve your secured token (ideally injected via environment variables)
