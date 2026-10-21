@@ -1,7 +1,12 @@
 import os
+import string
 import requests
+import logging
 
 def send_internal_request(container_app, auth_token=None):
+
+    logger = logging.getLogger(__name__)
+    
     # 1. Use the target Container App's name as the hostname
     # 2. Traffic is sent over HTTP (port 80) within the environment
     target_app_name = container_app
@@ -24,6 +29,9 @@ def send_internal_request(container_app, auth_token=None):
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=5)
         response.raise_for_status()
-        print(f"Success: {response.text}")
+        response_string = str(response.text)
+        logger.info(f"Success: {response_string[:100]}")
+        return response_string
     except requests.exceptions.RequestException as e:
-        print("Internal communication failed:", e)
+        logger.error("Internal communication failed:", exc_info=e)
+        return None
