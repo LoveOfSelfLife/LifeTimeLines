@@ -7,6 +7,11 @@ from common.blob_store import BlobStore
 from common.blueprint import create_blueprint
 from common.member_entity import get_member_id_from_user_context
 import logging
+import sys
+logging.basicConfig(
+    level=logging.INFO,
+    stream=sys.stdout
+)
 logger = logging.getLogger(__name__)
 bp = create_blueprint('sys', __name__) 
 
