@@ -90,7 +90,12 @@ def service_or_user_auth(f):
 def test_job_run(context):
     if context is None:
         # requires_auth already validated signature, audience and app role
-        logger.info("Job run triggered by service caller")
+        # include the currrent time in Eastern Time in the log message
+        from datetime import datetime
+        import pytz
+        eastern = pytz.timezone('US/Eastern')
+        now_eastern = datetime.now(eastern)
+        logger.info(f"Job run triggered by service caller at {now_eastern}")
         response = make_response('{"message": "Job run triggered"}', 200)
         response.headers["Content-Type"] = "application/json"
         return response
