@@ -1,5 +1,7 @@
 import os
 import uuid
+from functools import wraps
+from common.jwt_auth import requires_auth
 from flask import make_response, redirect, request, session, url_for
 from opentelemetry import context
 from common.auth import auth
@@ -65,9 +67,34 @@ def api_upload_photo(context, container_name):
     }
 
 
+def service_or_user_auth(f):
+    """Bearer token (Entra app-only, service-to-service) when an Authorization
+    header is present; otherwise the interactive B2C login. The wrapped
+    function receives context=None for service callers."""
+    user_auth_f = auth.login_required(f)
+
+    @requires_auth
+    def service_f():
+        return f(context=None)
+
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if request.headers.get("Authorization", "").lower().startswith("bearer "):
+            return service_f()
+        return user_auth_f(*args, **kwargs)
+    return decorated
+
+
 @bp.route("/test-job-run", methods=["POST", "GET"])
-@auth.login_required
+@service_or_user_auth
 def test_job_run(context):
+    if context is None:
+        # requires_auth already validated signature, audience and app role
+        logger.info("Job run triggered by service caller")
+        response = make_response('{"message": "Job run triggered"}', 200)
+        response.headers["Content-Type"] = "application/json"
+        return response
+
     member_id = get_member_id_from_user_context(context)
     if not member_id:
         response = make_response('{"error": "not authorized"}', 401)

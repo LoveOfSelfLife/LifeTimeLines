@@ -25,6 +25,7 @@ from views.workouts.workout_routes import bp as workouts_bp
 from common.env_init import initialize_environment
 from common.env_context import Env
 from common.auth import auth
+from common.jwt_auth import AuthHandler, AuthError
 from datetime import timedelta
 from version import get_version_info
 import redis
@@ -55,6 +56,13 @@ def create_app():
     Session(app)
 
     auth.init_app(app)
+
+    # Bearer-token validation for service-to-service calls (see system_routes)
+    AuthHandler(Env.TENANT_ID, Env.AZURE_CLIENT_ID)
+
+    @app.errorhandler(AuthError)
+    def handle_auth_error(ex):
+        return {'message': ex.error['code'], 'description': ex.error['description']}, ex.status_code
 
     # Make version information available to all templates
     @app.context_processor
