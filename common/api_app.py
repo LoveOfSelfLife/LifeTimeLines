@@ -21,6 +21,7 @@ def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescriptio
     app.logger.setLevel(logging.INFO)
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)  # Adjust level as needed (e.g., DEBUG, INFO, WARNING)
     logger = logging.getLogger(__name__)
+    logging.getLogger('azure').setLevel(logging.WARNING)
 
     initialize_environment()
 

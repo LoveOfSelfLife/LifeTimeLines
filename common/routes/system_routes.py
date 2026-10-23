@@ -14,8 +14,9 @@ logging.basicConfig(
     level=logging.INFO,
     stream=sys.stdout
 )
+logging.getLogger('azure').setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
-bp = create_blueprint('sys', __name__) 
+bp =  create_blueprint('sys', __name__)
 
 @bp.route("/logout")
 def logout():
