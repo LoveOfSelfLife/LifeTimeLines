@@ -22,6 +22,8 @@ from common.fitness.member_exercise_history import get_exercise_history_for_memb
 from common.utils import generate_id
 
 bp = create_blueprint('exercises', __name__)
+import logging
+logger = logging.getLogger(__name__)
 
 from common.auth import auth
 @bp.route('/')
@@ -259,10 +261,10 @@ def edit_exercise(context=None):
         abort(400, "No exercise key provided")
         
     composite_key = eval(composite_key_str) if composite_key_str else None
-    print(f"DEBUG: Retrieving exercise with composite key: {composite_key}")
+    logger.debug(f"Retrieving exercise with composite key: {composite_key}")
     es = EntityStore()
     exercise_data = es.get_item_by_composite_key(composite_key)
-    print(f"DEBUG: Raw exercise data retrieved: {exercise_data}")
+    logger.debug(f"Raw exercise data retrieved: {exercise_data}")
     
     if not exercise_data:
         abort(404, "Exercise not found")
@@ -300,7 +302,7 @@ def edit_exercise(context=None):
     for media_field in ['images', 'videos']:
         if media_field in exercise_data:
             media_value = exercise_data[media_field]
-            print(f"DEBUG: Processing {media_field} - Type: {type(media_value)}, Value: {repr(media_value)}")
+            logger.debug(f"Processing {media_field} - Type: {type(media_value)}, Value: {repr(media_value)}")
             if isinstance(media_value, str) and media_value.strip():
                 try:
                     # Handle both single-quoted and double-quoted JSON strings
@@ -309,22 +311,22 @@ def edit_exercise(context=None):
                         media_value = media_value.replace("'", '"')
                     parsed_media = json.loads(media_value)
                     exercise_data[media_field] = parsed_media if isinstance(parsed_media, list) else []
-                    print(f"SUCCESS: Parsed {media_field} from string: {len(parsed_media)} items - {parsed_media}")
+                    logger.debug(f"SUCCESS: Parsed {media_field} from string: {len(parsed_media)} items - {parsed_media}")
                 except (json.JSONDecodeError, ValueError) as e:
-                    print(f"ERROR: Could not parse {media_field} field '{media_value}': {e}")
+                    logger.error(f"Could not parse {media_field} field '{media_value}': {e}")
                     exercise_data[media_field] = []
             elif isinstance(media_value, list):
                 # Already an array, keep as-is
                 exercise_data[media_field] = media_value
-                print(f"INFO: {media_field} is already an array: {len(media_value)} items - {media_value}")
+                logger.debug(f"{media_field} is already an array: {len(media_value)} items - {media_value}")
             else:
                 # Empty or invalid, set to empty array
                 exercise_data[media_field] = []
-                print(f"WARNING: {media_field} is empty or invalid type, setting to empty array")
+                logger.warning(f"{media_field} is empty or invalid type, setting to empty array")
         else:
             # Field doesn't exist, set to empty array
             exercise_data[media_field] = []
-            print(f"INFO: {media_field} field doesn't exist, setting to empty array")
+            logger.debug(f"{media_field} field doesn't exist, setting to empty array")
 
     # Parse primary and secondary muscles, and movement categories if they are strings
     for muscle_field in ['primaryMuscles', 'secondaryMuscles', 'movement_categories']:
@@ -338,7 +340,7 @@ def edit_exercise(context=None):
                     parsed_muscles = json.loads(muscle_value)
                     exercise_data[muscle_field] = parsed_muscles if isinstance(parsed_muscles, list) else []
                 except (json.JSONDecodeError, ValueError) as e:
-                    print(f"Warning: Could not parse {muscle_field} field '{muscle_value}': {e}")
+                    logger.warning(f"Warning: Could not parse {muscle_field} field '{muscle_value}': {e}")
                     exercise_data[muscle_field] = []
             elif isinstance(muscle_value, list):
                 exercise_data[muscle_field] = muscle_value
@@ -347,7 +349,7 @@ def edit_exercise(context=None):
         else:
             exercise_data[muscle_field] = []
     
-    print(f"Exercise data prepared - Images: {len(exercise_data.get('images', []))}, Videos: {len(exercise_data.get('videos', []))}")
+    logger.debug(f"Exercise data prepared - Images: {len(exercise_data.get('images', []))}, Videos: {len(exercise_data.get('videos', []))}")
     
     # Get exercise ID from the composite key or the data
     exercise_id = exercise_data.get('id')
@@ -372,7 +374,7 @@ def save_exercise(exercise_id=None, context=None):
     try:
         # Get form data
         exercise_data = dict(request.form)
-        print(f"DEBUG SAVE: Raw form data received: {dict(request.form)}")
+        logger.debug(f"Raw form data received: {dict(request.form)}")
         
         # Handle array fields (checkboxes and multi-selects)
         array_fields = ['primaryMuscles', 'secondaryMuscles', 'physical_fitness_components', 'movement_categories', 'equipment_list']
@@ -385,25 +387,25 @@ def save_exercise(exercise_id=None, context=None):
         
         # Handle images and videos from media manager with safe JSON parsing
         images_data_raw = request.form.get('images_data', '[]').strip()
-        print(f"DEBUG SAVE: Raw images_data received: {repr(images_data_raw)}")
+        logger.debug(f"Raw images_data received: {repr(images_data_raw)}")
         if images_data_raw:
             try:
                 exercise_data['images'] = json.loads(images_data_raw)
-                print(f"DEBUG SAVE: Parsed images data: {exercise_data['images']}")
+                logger.debug(f"Parsed images data: {exercise_data['images']}")
             except (json.JSONDecodeError, ValueError) as e:
-                print(f"ERROR SAVE: Invalid images_data JSON: {images_data_raw}, error: {e}")
+                logger.error(f"Invalid images_data JSON: {images_data_raw}, error: {e}")
                 exercise_data['images'] = []
         else:
             exercise_data['images'] = []
             
         videos_data_raw = request.form.get('videos_data', '[]').strip()
-        print(f"DEBUG SAVE: Raw videos_data received: {repr(videos_data_raw)}")
+        logger.debug(f"Raw videos_data received: {repr(videos_data_raw)}")
         if videos_data_raw:
             try:
                 exercise_data['videos'] = json.loads(videos_data_raw)
-                print(f"DEBUG SAVE: Parsed videos data: {exercise_data['videos']}")
+                logger.debug(f"Parsed videos data: {exercise_data['videos']}")
             except (json.JSONDecodeError, ValueError) as e:
-                print(f"ERROR SAVE: Invalid videos_data JSON: {videos_data_raw}, error: {e}")
+                logger.error(f"Invalid videos_data JSON: {videos_data_raw}, error: {e}")
                 exercise_data['videos'] = []
         else:
             exercise_data['videos'] = []
@@ -435,7 +437,7 @@ def save_exercise(exercise_id=None, context=None):
         
         exercise_data['created_by_member_id'] = get_member_id_from_user_context(context)
 
-        print(f"Saving exercise data: {exercise_data}")
+        logger.info(f"Saving exercise data: {exercise_data}")
         
         # Create and save exercise entity
         exercise = ExerciseEntity(exercise_data)
@@ -465,7 +467,7 @@ def save_exercise(exercise_id=None, context=None):
         return response
     
     except Exception as e:
-        print(f"Error saving exercise: {str(e)}")
+        logger.error(f"Error saving exercise: {str(e)}")
         import traceback
         traceback.print_exc()
         

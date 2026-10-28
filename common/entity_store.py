@@ -5,6 +5,8 @@ import urllib
 from common.entity_filter import Filter
 from common.table_store import TableStore
 from common.id_generator import IDGenerator
+import logging
+logger = logging.getLogger(__name__)
 
   
 class EntityObject (dict):
@@ -55,7 +57,7 @@ class EntityObject (dict):
             
     def set_partition_value(self, partition_value):
         if self.get_static_partition_value():
-            print("Cannot set partition value for this entity, it is static")
+            logger.warning("Cannot set partition value for this entity, it is static")
         self[self.get_partition_field()] = partition_value
 
     def get_key_field(self):

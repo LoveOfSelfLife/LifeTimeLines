@@ -26,6 +26,8 @@ from datetime import datetime, timezone, date
 import json
 
 bp = create_blueprint('home', __name__)
+import logging
+logger = logging.getLogger(__name__)
 
 @bp.route("/scheduled-workouts")
 @auth.login_required  
@@ -53,7 +55,7 @@ def scheduled_workouts_partial2(context=None):
         )
         
     except Exception as e:
-        print(f"Error loading scheduled workouts: {e}")
+        logger.error(f"Error loading scheduled workouts: {e}")
         return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading scheduled workouts</div>',
             context=context
@@ -112,7 +114,7 @@ def adhoc_workouts_partial2(context=None):
         )
         
     except Exception as e:
-        print(f"Error loading adhoc workouts: {e}")
+        logger.error(f"Error loading adhoc workouts: {e}")
         return hx_render_template(
             template_string=f'<div class="alert alert-danger">Error loading adhoc workouts: {str(e)}</div>',
             context=context
@@ -136,7 +138,7 @@ def attendance_panel_partial(context=None):
         )
 
     except Exception as e:
-        print(f"Error loading attendance panel: {e}")
+        logger.error(f"Error loading attendance panel: {e}")
         return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading attendance panel</div>',
             context=context
@@ -167,7 +169,7 @@ def attendance_respond(context=None):
         )
 
     except Exception as e:
-        print(f"Error updating attendance: {e}")
+        logger.error(f"Error updating attendance: {e}")
         return hx_render_template(
             template_string='<div class="alert alert-danger">Error updating attendance</div>',
             context=context
@@ -191,7 +193,7 @@ def completed_workouts_partial(context=None):
         )
         
     except Exception as e:
-        print(f"Error loading completed workouts: {e}")
+        logger.error(f"Error loading completed workouts: {e}")
         return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading completed workouts</div>',
             context=context
@@ -215,7 +217,7 @@ def analytics_partial(context=None):
         )
         
     except Exception as e:
-        print(f"Error loading analytics: {e}")
+        logger.error(f"Error loading analytics: {e}")
         return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading analytics</div>',
             context=context
@@ -242,7 +244,7 @@ def start_workout(context=None):
         return redirect(url_for('program.start_workout', workout_key=workout_key))
         
     except Exception as e:
-        print(f"Error starting workout: {e}")
+        logger.error(f"Error starting workout: {e}")
         return hx_render_template(
             template_string=f'<div class="alert alert-danger">Error starting workout: {str(e)}</div>',
             context=context
@@ -338,7 +340,7 @@ def completed_workout_details_modal(context=None):
         )
         
     except Exception as e:
-        print(f"Error loading completed workout details: {e}")
+        logger.error(f"Error loading completed workout details: {e}")
         return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading workout details</div>',
             context=context
@@ -407,7 +409,7 @@ def reschedule_workout(context=None):
 
         
     except Exception as e:
-        print(f"Error rescheduling workout: {e}")
+        logger.error(f"Error rescheduling workout: {e}")
         return hx_render_template(
             template_string=f'<div class="alert alert-danger">Error rescheduling workout: {str(e)}</div>',
             context=context
@@ -450,7 +452,7 @@ def confirm_start_workout(context=None):
         )
         
     except Exception as e:
-        print(f"Error loading start confirmation: {e}")
+        logger.error(f"Error loading start confirmation: {e}")
         return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading confirmation</div>',
             context=context
@@ -566,7 +568,7 @@ def workout_preview_modal(context=None):
             context=context
         )
     except Exception as e:
-        print(f"Error loading workout preview: {e}")
+        logger.error(f"Error loading workout preview: {e}")
         return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading workout preview</div>',
             context=context

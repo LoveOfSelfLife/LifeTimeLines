@@ -32,6 +32,8 @@ from common.roles_service import get_accessible_members_for_context, get_team_co
 from common.coach_team_entity import get_coachs_team_members
 from common.entities_getter import filter_entities_by_member_role
 bp = create_blueprint('program', __name__)
+import logging
+logger = logging.getLogger(__name__)
 from common.auth import auth
 
 def _normalize_form_datetime(value, fallback=None):
@@ -394,9 +396,9 @@ def builder(context=None):
         role_context = get_member_role_context(member_id)
         
         # Debug: Check program member_id and accessible members
-        print(f"DEBUG - Program member_id: {current_program.get('member_id')} (type: {type(current_program.get('member_id'))})")
-        print(f"DEBUG - Accessible members: {[(m.get('id'), m.get('name')) for m in accessible_members]}")
-        print(f"DEBUG - Member IDs types: {[type(m.get('id')) for m in accessible_members]}")
+        logger.debug(f"Program member_id: {current_program.get('member_id')} (type: {type(current_program.get('member_id'))})")
+        logger.debug(f"Accessible members: {[(m.get('id'), m.get('name')) for m in accessible_members]}")
+        logger.debug(f"Member IDs types: {[type(m.get('id')) for m in accessible_members]}")
         
         return hx_render_template('program/program_builder.html', 
                                 program=current_program, 

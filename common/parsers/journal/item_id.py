@@ -1,3 +1,5 @@
+import logging
+logger = logging.getLogger(__name__)
 
 class ItemId(object):
     '''
@@ -97,7 +99,7 @@ class ItemId(object):
 
     def set_calendar(self, calendar):
         if calendar > self.CALENDAR_BITS:
-            print("error!!! - should be exception - call Rich K")
+            logger.error("error!!! - should be exception - call Rich K")
             #throw new RuntimeException();
         self.key = (self.key & ~self.CALENDAR_MASK); # clear old value
         self.key = (self.key | (calendar << self.CALENDAR_SHIFT)); # set new value
@@ -133,7 +135,7 @@ class ItemId(object):
     def set_event(self, event):
         if event > self.ITEM_BITS:
             # throw new RuntimeException();
-            print("error!!! - should be exception - call Rich K")
+            logger.error("error!!! - should be exception - call Rich K")
         self.key = (self.key & ~self.ITEM_MASK); # clear old value
         self.key = (self.key | (event << self.ITEM_SHIFT)); # set new value
 

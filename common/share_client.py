@@ -9,6 +9,7 @@ from common.entity_store import EntityObject, EntityStore
 from common.google_credentials import GOOGLE_SCOPES, get_credentials
 from common.env_context import Env
 from common.google_drive import GoogleDrive
+logger = logging.getLogger(__name__)
 
 DEFAULT_SHARE_NAME = 'richkhome'
 
@@ -74,21 +75,21 @@ def copy_file_incremental(drive:GoogleDrive, file_share_service:FShareService,
                     retry_count = 0  # Reset retry count on success
 
                 except RequestException as e:
-                    print(f"Retrying upload for offset {start_offset} due to error: {e}")
+                    logger.warning(f"Retrying upload for offset {start_offset} due to error: {e}")
                     retry_count += 1
                     if retry_count > 5:
-                        print(f"Failed to upload chunk at offset {start_offset} after 5 retries. Aborting.")
+                        logger.error(f"Failed to upload chunk at offset {start_offset} after 5 retries. Aborting.")
                         break
                     time.sleep(2 ** (len(num_completed_offsets) % 5))  # Exponential backoff
 
             start_offset += chunk_size
 
         if start_offset >= src_file_size:
-            print(f"Completed {num_completed_offsets} offsets. we are done, we should now delete the progress items")
+            logger.info(f"Completed {num_completed_offsets} offsets. we are done, we should now delete the progress items")
             entity_store.delete_all_in_partition(FileCopyProgress(), str(operation_id))
             return True, num_completed_offsets, src_file_size
         else:
-            print(f"Completed {num_completed_offsets} offsets but not finished. - should keep the progress items")
+            logger.warning(f"Completed {num_completed_offsets} offsets but not finished. - should keep the progress items")
             return False, num_completed_offsets, src_file_size
     except Exception as e:
         logging.exception(f"Error occurred during file copy: {e}")

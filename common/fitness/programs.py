@@ -6,6 +6,8 @@ from datetime import datetime as dt
 from common.roles_service import get_member_role, get_team_coaches_with_details, get_team_for_client
 
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity
+import logging
+logger = logging.getLogger(__name__)
 
 def _parse_program_boundary(boundary_value):
     if not boundary_value:
@@ -88,7 +90,7 @@ def get_members_current_active_program(member_id, current_date_dt=None):
         reverse=True
     )
     selected_program = active_programs[0]
-    print(f"Found active program for member {member_id}: {selected_program}")
+    logger.debug(f"Found active program for member {member_id}: {selected_program}")
     return selected_program
 
 
@@ -181,7 +183,7 @@ def get_next_workout_in_program(program, member_id):
     next_workout = [w for w in workouts_in_program if w['id'] == least_recent_workout_id][0]
     last_workout_intance_key = workout_last_completion[least_recent_workout_id].get('instance_key', None)
     last_workout_adjustments = workout_last_completion[least_recent_workout_id].get('adjustments_for_next_workout', {})
-    print(f"Next workout for member {member_id} in program {program.get('id')}: {next_workout}, last instance key: {last_workout_intance_key}")
+    logger.debug(f"Next workout for member {member_id} in program {program.get('id')}: {next_workout}, last instance key: {last_workout_intance_key}")
 
     return {'next_workout_key' : next_workout.get_composite_key(), 
             'last_workout_instance_key': last_workout_intance_key, 

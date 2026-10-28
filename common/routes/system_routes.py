@@ -18,9 +18,49 @@ logging.getLogger('azure').setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 bp =  create_blueprint('sys', __name__)
 
+ALLOWED_LOG_LEVELS = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+
+
+def _require_admin(context):
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        return make_response({"error": "not authorized"}, 401)
+    from common.roles_service import is_member_admin
+    if not is_member_admin(member_id):
+        logger.warning(f"Non-admin member {member_id} attempted to access log level endpoint")
+        return make_response({"error": "admin access required"}, 403)
+    return None
+
+
+@bp.route("/log-level", methods=["GET"])
+@auth.login_required
+def get_log_level(context=None):
+    denied = _require_admin(context)
+    if denied:
+        return denied
+    return {"level": logging.getLevelName(logging.getLogger().getEffectiveLevel())}
+
+
+@bp.route("/log-level", methods=["POST"])
+@auth.login_required
+def set_log_level(context=None):
+    denied = _require_admin(context)
+    if denied:
+        return denied
+    payload = request.get_json(silent=True) or {}
+    level = payload.get("level") or request.values.get("level") or ""
+    level = str(level).strip().upper()
+    if level not in ALLOWED_LOG_LEVELS:
+        return make_response({"error": f"level must be one of {list(ALLOWED_LOG_LEVELS)}"}, 400)
+    logging.getLogger().setLevel(level)
+    logging.getLogger('azure').setLevel(max(logging.WARNING, logging.getLevelName(level)))
+    logger.warning(f"Log level changed to {level}")
+    return {"level": level}
+
+
 @bp.route("/logout")
 def logout():
-    print("logout")
+    logger.debug("logout")
     session.clear()  # Wipe out user and its token cache from session
     key_list = list(session.keys())
     for key in key_list:

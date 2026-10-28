@@ -3,6 +3,8 @@ from common.blueprint import create_blueprint
 from common.template_renderer import hx_render_template
 from common.member_entity import get_member_id_from_user_context, get_user_profile, save_user_profile
 bp = create_blueprint('profile', __name__)
+import logging
+logger = logging.getLogger(__name__)
 from common.auth import auth
 
 @bp.route('/')
@@ -63,7 +65,7 @@ def update_profile(context=None):
     import base64
     from werkzeug.datastructures import FileStorage
     
-    print(f"Request: {request.form}")
+    logger.debug(f"Request: {request.form}")
     
     # Handle captured photo data from camera
     files = request.files.copy()
@@ -89,7 +91,7 @@ def update_profile(context=None):
             files['profile_photo'] = captured_file
             
         except Exception as e:
-            print(f"Error processing captured photo: {e}")
+            logger.error(f"Error processing captured photo: {e}")
 
     profile = save_user_profile(request.form, files)
     return redirect("/")

@@ -11,6 +11,7 @@ from types import FrameType
 from common.jwt_auth import AuthHandler, AuthError
 from common.env_context import Env
 from common.env_init import initialize_environment
+logger = logging.getLogger(__name__)
 
 def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescription=''):
     app : Flask = Flask(__name__, static_url_path='', static_folder='static', template_folder='../templates')
@@ -55,5 +56,5 @@ def shutdown_handler(signal: int, frame: FrameType) -> None:
     # logger.info("Signal received, safely shutting down.")
     # database.shutdown()
     # middleware.logging_flush()
-    print("Exiting the LifeTimeLines process.", flush=True)
+    logger.info("Exiting the LifeTimeLines process.")
     # sys.exit(0)

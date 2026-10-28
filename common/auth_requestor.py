@@ -1,5 +1,7 @@
 import msal
 import os
+import logging
+logger = logging.getLogger(__name__)
 
 class AuthRequestor() :
     def __init__(self, tenant, client_id, client_secret, scope):
@@ -20,9 +22,9 @@ class AuthRequestor() :
             token = result['access_token']
             return token
         else:
-            print(result.get("error"))
-            print(result.get("error_description"))
-            print(result.get("correlation_id"))  # You may need this when reporting a bug
+            logger.error(result.get("error"))
+            logger.error(result.get("error_description"))
+            logger.error(result.get("correlation_id"))  # You may need this when reporting a bug
             raise Exception(f'cannot get auth token') 
 
 class ApiTokenRequestor():

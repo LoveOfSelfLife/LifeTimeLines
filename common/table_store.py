@@ -2,6 +2,8 @@ from azure.data.tables import TableClient, TableTransactionError
 from azure.core.exceptions import ResourceExistsError
 from common.entity_filter import partition_filter
 from common.entity_filter import create_filter_and_params
+import logging
+logger = logging.getLogger(__name__)
 """
 break up a range into smaller chunks and will return an iterator of sub-ranges 
 where length of each sub-range is <= chunksize
@@ -26,9 +28,8 @@ class TableStore():
         self.table_name = table_name
         try:
             self.table_client.create_table()
-            print("Created table")
+            logger.debug("Created table")
         except ResourceExistsError:
-            # print("Table already exists")
             pass
 
     def insert(self, partition_key, row_key, vals):
@@ -57,7 +58,7 @@ class TableStore():
     def parameters_to_query_string(self, filter_dict=None):
         if filter_dict:
             filter = " and ".join([f"{k} eq @{k}" for k in filter_dict.keys()])
-            print(f"filter={filter}")
+            logger.debug(f"filter={filter}")
             return filter
         return ""
     
@@ -80,9 +81,9 @@ class TableStore():
 
     def delete_all(self):
             self.table_client.delete_table()
-            print("Deleted table")
+            logger.debug("Deleted table")
             self.table_client.create_table()
-            print("Created table")
+            logger.debug("Created table")
             
     def delete(self, partition_value):
         pf = partition_filter(partition_value)
@@ -94,7 +95,7 @@ class TableStore():
             self.batch_delete(to_delete)
             return '', 204
         except:
-            print("error during delete")
+            logger.error("error during delete")
         return '', 404
 
     def batch_delete(self, entities):
@@ -117,7 +118,7 @@ class TableStore():
                 first_item = mapping_list[0] if not first_item else first_item
                 last_item = mapping_list[-1]
             except TableTransactionError as e:
-                print("There was an error with the transaction operation")
-                print(e)
+                logger.error("There was an error with the transaction operation")
+                logger.error(e)
         return first_item, last_item
     

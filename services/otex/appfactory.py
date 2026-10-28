@@ -57,6 +57,10 @@ def main() -> None:
         logger.info(f'iterate over each message in queue')
 
         for message in messages:
+            # do a better job here in this loop, such as putting critical operations in a try-except block to ensure one failing message doesn't stop the processing of others
+            # and keeping track of which messages have been successfully processed and which have failed
+            # making sure to log and handle errors appropriately
+            # consider adding retry logic for transient errors and possibly moving failed messages to a dead-letter queue for later inspection
             logger.info(f'Dequeueing: {message.content}')
             queue_client.delete_message(message.id, message.pop_receipt)
             if message.content is not None:

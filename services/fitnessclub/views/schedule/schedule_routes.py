@@ -10,6 +10,8 @@ from common.fitness.workout_sessions import WorkoutSessionEntity, EventTypes, cr
 from common.fitness.get_calendar_service import get_calendar_service
 from common.utils import generate_id
 bp = create_blueprint('schedule', __name__)
+import logging
+logger = logging.getLogger(__name__)
 from common.auth import auth
 from datetime import datetime, timedelta
 
@@ -108,7 +110,7 @@ def schedule_by_time_slots(context = None):
             profile = get_user_profile(event['member_id'])
             user_profiles[event['member_id']] = profile
             # Debug: print profile info
-            print(f"DEBUG: Member ID: {event['member_id']}, Profile: {profile}")
+            logger.debug(f"Member ID: {event['member_id']}, Profile: {profile}")
     
     return render_template('schedule/schedule_by_time_slots.html', context=context, member_short_name=member_short_name, 
                          events=events, member_id=member_id, user_profiles=user_profiles)
@@ -143,7 +145,7 @@ def create_new_event(context=None):
     if profile:
         member_short_name = profile.get('short_name', assigned_member_id)
     else:
-        print(f"Unable to get profile for member id {assigned_member_id}")
+        logger.warning(f"Unable to get profile for member id {assigned_member_id}")
         abort(404)
 
     event = None
@@ -185,7 +187,7 @@ def create_new_event(context=None):
         if profile:
             member_short_name = profile.get('short_name', assigned_member_id)
         else:
-            print(f"Unable to get profile for member id {assigned_member_id}")
+            logger.warning(f"Unable to get profile for member id {assigned_member_id}")
             abort(404)
 
         event['assigned_to_member_id'] = assigned_member_id
@@ -258,7 +260,7 @@ def create_recurring_event(context=None):
     if profile:
         member_short_name = profile.get('short_name', assigned_member_id)
     else:
-        print(f"Unable to get profile for member id {assigned_member_id}")
+        logger.warning(f"Unable to get profile for member id {assigned_member_id}")
         abort(404)
 
     today_str = datetime.now().strftime("%Y-%m-%d")
@@ -288,7 +290,7 @@ def create_recurring_event(context=None):
         if profile:
             member_short_name = profile.get('short_name', assigned_member_id)
         else:
-            print(f"Unable to get profile for member id {assigned_member_id}")
+            logger.warning(f"Unable to get profile for member id {assigned_member_id}")
             abort(404)
 
         event['start_date'] = start_date
@@ -480,7 +482,7 @@ def edit_recurring_event(context=None):
     if profile:
         member_short_name = profile.get('short_name', assigned_member_id)
     else:
-        print(f"Unable to get profile for member id {assigned_member_id}")
+        logger.warning(f"Unable to get profile for member id {assigned_member_id}")
         abort(404)
 
     if not selected_days:

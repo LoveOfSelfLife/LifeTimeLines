@@ -1,6 +1,8 @@
 import os
 from azure.keyvault.secrets import SecretClient
 from azure.identity import DefaultAzureCredential, ClientSecretCredential
+import logging
+logger = logging.getLogger(__name__)
 
 def get_creds_from_env():
     client_id = os.getenv('AZURE_CLIENT_ID', None)
@@ -24,14 +26,14 @@ class Vault:
             val = self.client.get_secret(secret_name)
             return val.value
         except Exception as e:
-            print(f'exception when attempting to get secret: {e}')
+            logger.error(f'exception when attempting to get secret: {e}')
             return None
 
     def set_secret_to_vault(self, secret_name, secret_value):
         try:
             self.client.set_secret(secret_name, secret_value)
         except Exception as e:
-            print(f'exception when attempting to set secret: {e}')
+            logger.error(f'exception when attempting to set secret: {e}')
 
 
 

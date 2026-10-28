@@ -9,6 +9,8 @@ from common.fitness.abstract_calendar_service import AbstractCalendarService
 from common.member_entity import get_user_profile
 from common.vault import Vault
 from datetime import datetime, timedelta
+import logging
+logger = logging.getLogger(__name__)
 
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
 FITNESS_SECRETS_VAULT = "lifetimelines-secrets-1"
@@ -57,8 +59,8 @@ class GoogleCalendarService (AbstractCalendarService):
                                                        timeMin=time_min, timeMax=time_max).execute()
             return events_result.get('items', [])
         except Exception as error:
-            print(f"An error occurred: {error}")
-            print(f"resetting calendar service and retrying")
+            logger.error(f"An error occurred: {error}")
+            logger.warning(f"resetting calendar service and retrying")
             self._reset_calendar_service()
             try:
                 events_result = self.service.events().list(calendarId=self.calendar_id,  
@@ -67,7 +69,7 @@ class GoogleCalendarService (AbstractCalendarService):
                                                            timeMin=time_min, timeMax=time_max).execute()
                 return events_result.get('items', [])
             except Exception as error:
-                print(f"An error occurred on retry: {error}")
+                logger.error(f"An error occurred on retry: {error}")
                 return []
             
     def get_event(self, event_id:str):
@@ -84,7 +86,7 @@ class GoogleCalendarService (AbstractCalendarService):
             event = self.service.events().get(calendarId=self.calendar_id, eventId=event_id).execute()
             return event
         except Exception as error:
-            print(f"An error occurred: {error}")
+            logger.error(f"An error occurred: {error}")
             return None
 
     def get_recurring_workout_event_details(self, recurring_event_id: str):
@@ -456,10 +458,10 @@ class GoogleCalendarService (AbstractCalendarService):
 
         try:
             event = self.service.events().insert(calendarId=self.calendar_id, body=event).execute()
-            print("Event created: %s" % (event.get("htmlLink")))
+            logger.info("Event created: %s" % (event.get("htmlLink")))
             return event.get('id', None)  # Return the event ID for further processing
         except Exception as error:
-            print(f"An error occurred: {error}")
+            logger.error(f"An error occurred: {error}")
             return None  # Return None if the event creation fails
 
     def add_recurring_workout_event(self, member_short_name, event_date, event_time, frequency, byday, location, metadata, duration_hours=1):
@@ -488,10 +490,10 @@ class GoogleCalendarService (AbstractCalendarService):
 
         try:
             event = self.service.events().insert(calendarId=self.calendar_id, body=event).execute()
-            print("Event created: %s" % (event.get("htmlLink")))
+            logger.info("Event created: %s" % (event.get("htmlLink")))
             return event.get('id', None)  # Return the event ID for further processing
         except Exception as error:
-            print(f"An error occurred: {error}")
+            logger.error(f"An error occurred: {error}")
             return None  # Return None if the event creation fails
              
     def update_workout_event(self, event_id, member_short_name, event_date, event_time, location, metadata, duration_hours=1):
@@ -509,9 +511,9 @@ class GoogleCalendarService (AbstractCalendarService):
 
         try:
             event = self.service.events().update(calendarId=self.calendar_id, eventId=event_id, body=event).execute()
-            print("Event created: %s" % (event.get("htmlLink")))
+            logger.info("Event created: %s" % (event.get("htmlLink")))
         except Exception as error:
-            print(f"An error occurred: {error}")
+            logger.error(f"An error occurred: {error}")
 
     def update_recurring_workout_event(self, recurring_event_id, member_short_name, event_date, event_time, frequency, byday, location, metadata, duration_hours=1):
         event = self._build_workout_event_body(
@@ -526,23 +528,23 @@ class GoogleCalendarService (AbstractCalendarService):
 
         try:
             event = self.service.events().update(calendarId=self.calendar_id, eventId=recurring_event_id, body=event).execute()
-            print("Recurring event updated: %s" % (event.get("htmlLink")))
+            logger.info("Recurring event updated: %s" % (event.get("htmlLink")))
         except Exception as error:
-            print(f"An error occurred: {error}")
+            logger.error(f"An error occurred: {error}")
 
     def delete_workout_event(self, event_id):
         try:
             event = self.service.events().delete(calendarId=self.calendar_id, eventId=event_id).execute()
-            print("Event deleted: %s" % (event.get("htmlLink"))) 
+            logger.info("Event deleted: %s" % (event.get("htmlLink"))) 
         except Exception as error:
-            print(f"An error occurred: {error}")
+            logger.error(f"An error occurred: {error}")
 
     def delete_recurring_workout_event(self, recurring_event_id):
         try:
             event = self.service.events().delete(calendarId=self.calendar_id, eventId=recurring_event_id).execute()
-            print("Recurring event deleted: %s" % (event.get("htmlLink")))
+            logger.info("Recurring event deleted: %s" % (event.get("htmlLink")))
         except Exception as error:
-            print(f"An error occurred: {error}")
+            logger.error(f"An error occurred: {error}")
 
     def update_status_of_workout_event(self, event_id, status, name=None):
         """
@@ -560,7 +562,7 @@ class GoogleCalendarService (AbstractCalendarService):
             # first we get the currrent workout event
             event = calendar_service.get_event(event_id)
             if not event:
-                print(f"Event with ID {event_id} not found.")
+                logger.warning(f"Event with ID {event_id} not found.")
                 return False
             # merge into existing metadata so unrelated tags (e.g. #confirmstatus) are preserved
             metadata = extract_id_and_status(event.get('description', ''))
@@ -572,11 +574,11 @@ class GoogleCalendarService (AbstractCalendarService):
             )
             try:
                 event = self.service.events().update(calendarId=self.calendar_id, eventId=event_id, body=event).execute()
-                print("Calendar event updated")
+                logger.info("Calendar event updated")
                 return True
 
             except Exception as error:
-                print(f"An error occurred attempting to update the status of the calendar event: {error}")
+                logger.error(f"An error occurred attempting to update the status of the calendar event: {error}")
                 retries -= 1
                 if retries == 0:
                     return False
@@ -596,7 +598,7 @@ class GoogleCalendarService (AbstractCalendarService):
             calendar_service = GoogleCalendarService()
             event = calendar_service.get_event(event_id)
             if not event:
-                print(f"Event with ID {event_id} not found.")
+                logger.warning(f"Event with ID {event_id} not found.")
                 return
             metadata = extract_id_and_status(event.get('description', ''))
             event['description'] = _build_event_metadata_string(
@@ -607,14 +609,14 @@ class GoogleCalendarService (AbstractCalendarService):
             )        
             try:
                 event = self.service.events().update(calendarId=self.calendar_id, eventId=event_id, body=event).execute()
-                print("Calendar event updated")
+                logger.info("Calendar event updated")
                 return True
 
             except Exception as error:
-                print(f"An error occurred attempting to update the event: {error}")
+                logger.error(f"An error occurred attempting to update the event: {error}")
                 retries -= 1
                 if retries == 0:
-                    print(f"Failed to update the event with ID {event_id} after multiple attempts.")
+                    logger.error(f"Failed to update the event with ID {event_id} after multiple attempts.")
                     return False
                 sleep(0.25)  # wait for quarter of a second before retrying
 
@@ -672,7 +674,7 @@ def build_calendar_service():
         token = json.loads(token_data)
         creds = Credentials.from_authorized_user_info(token, SCOPES)
     else:
-        print("No token found in vault.")
+        logger.warning("No token found in vault.")
         creds = None
 
     if not creds or not creds.valid:

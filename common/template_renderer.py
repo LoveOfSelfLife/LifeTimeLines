@@ -3,6 +3,8 @@ from common.app_info import get_current_app_metadata, get_current_app_name
 from common.impersonation import get_impersonated_member_id
 from flask import abort, render_template, render_template_string, request
 from common.roles_service import get_member_role_context
+import logging
+logger = logging.getLogger(__name__)
 
 
 def hx_render_template(template_file=None, template_string=None, **kwargs):
@@ -33,7 +35,7 @@ def hx_render_template(template_file=None, template_string=None, **kwargs):
                                     impersonated_member=impersonated_member, **kwargs)
 
             except UnregisteredMemberException as e:
-                print(f"User not registered exception: {e}")
+                logger.info(f"User not registered exception: {e}")
                 member = members_registry.get_member(member_id)
                 kwargs['member'] = member
                 kwargs['app_name'] = get_current_app_name()
@@ -41,7 +43,7 @@ def hx_render_template(template_file=None, template_string=None, **kwargs):
                                        **kwargs)
 
             except FirstTimeUserException as e:
-                print(f"First time user exception: {e}")
+                logger.warning(f"First time user exception: {e}")
                 member_email = get_member_email_from_user_context(context)
                 member_name = get_member_name_from_user_context(context)
                 members_registry.add_member(member_id, member_email, member_name)

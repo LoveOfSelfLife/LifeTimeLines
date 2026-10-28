@@ -11,6 +11,8 @@ from common.fitness.programs import get_members_current_active_program, get_prog
 from common.fitness.workout_state import get_active_workout_state
 
 bp = create_blueprint('/', __name__)  
+import logging
+logger = logging.getLogger(__name__)
 
 @bp.route("/about")
 def about():
@@ -82,13 +84,13 @@ def index(context = None):
         )
         
     except UnregisteredMemberException as e:
-        print(f"User not registered: {e}")
+        logger.info(f"User not registered: {e}")
         # user is in the registry, but they have not yet been approved
         member = member_registry.get_member(member_id)
         return render_template("unregistered_member.html",  member=member)
     
     except FirstTimeUserException as e:
-        print(f"First time user exception: {e}")
+        logger.warning(f"First time user exception: {e}")
         # the member was not previously registered, so we add them to the registry here
         # TODO: consider sending a notification to the admins about the newly registered member, for approval
         member_registry.add_member(member_id, member_email, member_name)
@@ -96,7 +98,7 @@ def index(context = None):
         return render_template("unregistered_member.html", member=member)
     
     except Exception as e:
-        print(f"Error loading home dashboard: {e}")
+        logger.error(f"Error loading home dashboard: {e}")
         return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading dashboard</div>',
             context=context
@@ -104,7 +106,7 @@ def index(context = None):
     
 @bp.route("/logout2")
 def logout():
-    print("logout")
+    logger.debug("logout")
     session.clear()  # Wipe out user and its token cache from session
     key_list = list(session.keys())
     for key in key_list:
@@ -120,6 +122,6 @@ def logout():
 
 @bp.route("/signout_callback")
 def signout_callback():
-    print("signout_callback")
+    logger.debug("signout_callback")
     return redirect(url_for(".index"))
 

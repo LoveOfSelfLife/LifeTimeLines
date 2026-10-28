@@ -23,6 +23,8 @@ from common.fitness.get_calendar_service import get_calendar_service
 from common.roles_service import get_current_team_context
 from common.fitness.workouts import get_scheduled_workouts
 from typing import Dict, List, Optional, Tuple
+import logging
+logger = logging.getLogger(__name__)
 
 
 def format_seconds(N: int) -> str:
@@ -223,7 +225,7 @@ class HomePageDataService:
 
             return data
         except Exception as e:
-            print(f"Error getting attendance panel data: {e}")
+            logger.error(f"Error getting attendance panel data: {e}")
             return {'has_event': False}
 
     def get_home_page_data(self, member_id: str, current_datetime: datetime = None) -> Dict:
@@ -431,7 +433,7 @@ class HomePageDataService:
             }
             
         except Exception as e:
-            print(f"Error getting scheduled workouts data: {e}")
+            logger.error(f"Error getting scheduled workouts data: {e}")
             return {
                 'workouts_on_calendar': [],
                 'has_active_program': False,
@@ -501,7 +503,7 @@ class HomePageDataService:
             }
             
         except Exception as e:
-            print(f"Error getting completed workouts data: {e}")
+            logger.error(f"Error getting completed workouts data: {e}")
             return {
                 'workouts': [],
                 'total_count': 0
@@ -588,7 +590,7 @@ class HomePageDataService:
             }
             
         except Exception as e:
-            print(f"Error getting analytics data: {e}")
+            logger.error(f"Error getting analytics data: {e}")
             return {
                 'weekly_summary': {
                     'workouts_this_week': 0,

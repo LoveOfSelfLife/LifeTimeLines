@@ -27,6 +27,8 @@ from common.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
 import copy
 
 bp = create_blueprint('workouts', __name__)
+import logging
+logger = logging.getLogger(__name__)
 from common.auth import auth
 from flask import Flask, render_template, request, redirect, url_for, session, abort
 import uuid
@@ -1248,13 +1250,13 @@ def save_data(workout_id, exercise_id, param, context=None):
         new_value = orig_value
 
     # Here you would typically save the new value to your database
-    print(f"Saving new value for workout {workout_id}, exercise {exercise_id}, param {param}: '{orig_value}' -> '{new_value}'")
+    logger.debug(f"Saving new value for workout {workout_id}, exercise {exercise_id}, param {param}: '{orig_value}' -> '{new_value}'")
 
     if is_active_workout:
-        print(f"Active workout flag is set. This means the user is currently doing the workout and we should update the workout state in the session with the new parameter value for real-time tracking and analytics purposes.")
+        logger.debug(f"Active workout flag is set. This means the user is currently doing the workout and we should update the workout state in the session with the new parameter value for real-time tracking and analytics purposes.")
         current_workout_state = get_active_workout_state()
         if not current_workout_state:
-            print("No active workout state found in session. This should not happen if the active workout flag is set. Aborting update.")
+            logger.warning("No active workout state found in session. This should not happen if the active workout flag is set. Aborting update.")
             return ('', 400)
 
         # stored as an atomic per-exercise Redis hash field, not in the session blob, so rapid
@@ -1263,12 +1265,12 @@ def save_data(workout_id, exercise_id, param, context=None):
         set_exercise_parameter(member_id, exercise_id, param, new_value)
 
     else:
-        print(f"Active workout flag is not set. This means the user is editing the workout in the workout builder and we should update the workout in the cache with the new parameter value so that it is reflected in the workout builder view.")
+        logger.debug(f"Active workout flag is not set. This means the user is editing the workout in the workout builder and we should update the workout in the cache with the new parameter value so that it is reflected in the workout builder view.")
 
         if purpose_of_parameter_edit == "finishing_workout_next_time":
             current_workout_state = get_active_workout_state()
             if not current_workout_state:
-                print("No active workout state found in session while saving next-time workout adjustments. Aborting update.")
+                logger.warning("No active workout state found in session while saving next-time workout adjustments. Aborting update.")
                 return ('', 400)
 
             adjustments = current_workout_state.get('adjustments', {})
@@ -1282,10 +1284,10 @@ def save_data(workout_id, exercise_id, param, context=None):
             update_active_workout_state(current_workout_state)
 
         elif purpose_of_parameter_edit == "editing_workout_in_program_builder":
-            print(f"Purpose of parameter edit is editing_workout_in_program_builder. This means we are editing a workout that is part of a program in the program builder, so we need to update the workout object that is stored in current_program_workouts in the cache with the new parameter value.")
+            logger.debug(f"Purpose of parameter edit is editing_workout_in_program_builder. This means we are editing a workout that is part of a program in the program builder, so we need to update the workout object that is stored in current_program_workouts in the cache with the new parameter value.")
             current_program_workouts = get_cache_value('current_program_workouts')
             if not current_program_workouts:
-                print("No current program workouts found in cache. This should not happen if we are editing a workout in the program builder. Aborting update.")
+                logger.warning("No current program workouts found in cache. This should not happen if we are editing a workout in the program builder. Aborting update.")
                 return ('', 400)
 
             for wk in current_program_workouts:
@@ -1330,7 +1332,7 @@ def save_workout(context=None, workout_id=None):
     workout_instance = get_entity_obj_from_entity_name(workout_type if workout_type else WORKOUT_ENTITY_NAME)
 
     # this is where we save the newly created workout
-    print(f'Saving workout to {workout_type if workout_type else WORKOUT_ENTITY_NAME}')
+    logger.info(f'Saving workout to {workout_type if workout_type else WORKOUT_ENTITY_NAME}')
     es = EntityStore()
     if workout.get('created_ts') is None:
         workout['created_ts'] = datetime.now().isoformat()
@@ -1372,7 +1374,7 @@ def delete_workout(context=None, workout_id=None):
     workout_instance.initialize(workout)
 
     # this is where we delete the workout
-    print('Deleting workout')
+    logger.info('Deleting workout')
     es = EntityStore()
     es.delete_item(workout_instance)
 
@@ -1471,7 +1473,7 @@ def save_workout_copy(context=None, workout_id=None):
     workout['member_program_id'] = None
 
     # this is where we save the newly created workout
-    print('Saving workout copy')
+    logger.info('Saving workout copy')
     es = EntityStore()
     workout['id'] = str(uuid.uuid4())
     new_name = (request.headers.get('HX-Prompt') or request.form.get('name') or '').strip()
@@ -1728,7 +1730,7 @@ from common.entities_getter import get_entity
 @auth.login_required
 def set_last_section(context=None, workout_id=None, section_name=None):
     # guard: make sure section_name is valid for this workout_id…
-    print(f"Setting last section for workout {workout_id} to {section_name}")
+    logger.debug(f"Setting last section for workout {workout_id} to {section_name}")
     set_last_section_cache(get_member_id_from_user_context(context), workout_id, section_name)
     return ("", 204)
 

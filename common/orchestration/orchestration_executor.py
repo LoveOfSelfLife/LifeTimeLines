@@ -7,6 +7,7 @@ import itertools
 from common.orchestration.orchestration_utils import OrchTaskDefDataStore
 import logging
 import importlib
+logger = logging.getLogger(__name__)
 
 def execute_orchestration(orch_cmd, orch_data=OrchTaskDefDataStore(), token=None, executors=None):
     """this method will execute the indicated orchestration command
@@ -561,7 +562,7 @@ if __name__ == "__main__":
 
     output = get_combinations(input)
     for c in output:
-        print(c)
+        logger.debug(c)
 
 
 

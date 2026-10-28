@@ -6,6 +6,8 @@ from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_
 from common.member_entity import get_member_name_from_member_id
 from common.fitness.exercise_entity import exercise_filters
 from common.fitness.member_program_entity import MemberProgramsEntity
+import logging
+logger = logging.getLogger(__name__)
 
 def extract_image_url(entity):
     # lambda e: e['images'][0]['url'] if 'images' in e and len(e['images']) > 0 else None
@@ -153,7 +155,7 @@ def simple_date(date_str):
     try:
         return datetime.fromisoformat(date_str).strftime("%Y-%m-%d")
     except Exception as e:
-        print(f"Error parsing date: {e}")
+        logger.error(f"Error parsing date: {e}")
         return ""
 def get_program_name_from_program_id(program_id):
     if not program_id:

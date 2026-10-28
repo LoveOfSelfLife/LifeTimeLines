@@ -16,6 +16,8 @@ from common.entities_getter import get_entities
 from common.app_info import get_current_app_id
 
 bp = create_blueprint('admin', __name__)
+import logging
+logger = logging.getLogger(__name__)
 
 # @bp.route('/')
 # @auth.login_required
@@ -138,7 +140,7 @@ def update_entity_save_json(context=None, table_id=None):
     if data is None:
         return jsonify({"error": "Invalid or missing JSON"}), 400
 
-    print(f"Received JSON payload for table {table_id}: {data}")
+    logger.debug(f"Received JSON payload for table {table_id}: {data}")
     entity = get_entity_obj_from_entity_name(table_id)        
 
     es = EntityStore()

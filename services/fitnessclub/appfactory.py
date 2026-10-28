@@ -1,3 +1,4 @@
+import logging
 import os
 import signal
 import json
@@ -90,7 +91,7 @@ def create_app():
     return app
 
 def shutdown_handler(signal: int, frame) -> None:
-    print("Exiting the FitnessClub process.", flush=True)
+    logging.getLogger(__name__).info("Exiting the FitnessClub process.")
 
 if __name__ == '__main__':
     from argparse import ArgumentParser

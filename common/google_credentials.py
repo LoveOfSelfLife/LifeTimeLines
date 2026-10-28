@@ -4,6 +4,8 @@ import google.oauth2.credentials
 import json
 import common.encoder
 from common.vault import Vault
+import logging
+logger = logging.getLogger(__name__)
 
 GOOGLE_SCOPES = ['https://www.googleapis.com/auth/photoslibrary.readonly', \
                  'https://www.googleapis.com/auth/gmail.readonly', \
@@ -19,7 +21,7 @@ def get_config_from_secret():
 def get_credentials(scopes=GOOGLE_SCOPES):
     try:
         if 'credentials' in session and session['credentials'] is not None:
-            print(f'using credentials found in session')
+            logger.debug(f'using credentials found in session')
             session['credentials']['scopes'] = scopes
             if refresh_token := session['credentials']['refresh_token']:
                 store_refresh_token(refresh_token)
@@ -38,23 +40,23 @@ def get_credentials(scopes=GOOGLE_SCOPES):
                 'client_secret': cfg['client_secret'],
                 'scopes': scopes
             }
-            print('using refresh_token found stored in order to refresh credentials')
+            logger.debug('using refresh_token found stored in order to refresh credentials')
             return google.oauth2.credentials.Credentials(**credentials)
 
-    print('credentials not found in session or in file system')
+    logger.warning('credentials not found in session or in file system')
     return None
 
 def get_refresh_token():
     kv = Vault()
     if refresh_token := kv.get_secret_from_vault("refreshtoken"):
-        print("found refresh_token in keyvault")
+        logger.debug("found refresh_token in keyvault")
         return refresh_token
     return None
 
 def store_refresh_token(refresh_token):
     if not refresh_token:
-        print('refresh token is None - cannot store refresh token')
+        logger.warning('refresh token is None - cannot store refresh token')
     else:
-        print('storing refresh token to keyvault')
+        logger.debug('storing refresh token to keyvault')
         kv = Vault()
         kv.set_secret_to_vault("refreshtoken", str(refresh_token))
