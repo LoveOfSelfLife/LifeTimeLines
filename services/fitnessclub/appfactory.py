@@ -15,6 +15,7 @@ from views.home.home_routes import bp as home_bp
 from views.schedule.schedule_routes import bp as schedule_bp
 from views.program.programs_routes import bp as program_bp
 from views.exercises.exercise_routes import bp as exercises_bp
+from views.exercise_history.exercise_history_routes import bp as exercise_history_bp
 from views.profile.profile_routes import bp as profile_bp
 from views.admin.admin_routes import bp as admin_bp
 from common.routes.teams_routes import bp as teams_bp
@@ -77,6 +78,7 @@ def create_app():
                program_bp,
                profile_bp,
                exercises_bp,
+               exercise_history_bp,
                members_bp,
                workouts_bp,
                favorites_bp,

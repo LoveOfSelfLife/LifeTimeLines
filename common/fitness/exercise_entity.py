@@ -21,6 +21,7 @@ class ExerciseEntity (EntityObject):
             "udf1", "udf2",
             "physical_fitness_components", 
             "movement_categories", 
+            "family", # optional, manually assigned name that groups variations of an exercise (e.g. all push-up variations)
             "hide"]
     
     key_field="id"

@@ -392,6 +392,15 @@
               </h5>
             </div>
 
+            <div class="row mb-3">
+              <div class="col-md-12">
+                <label for="family" class="form-label fw-bold">Exercise Family</label>
+                <input type="text" class="form-control" id="family" name="family" 
+                       value="{{ exercise.family or '' }}" placeholder="e.g. Push-up">
+                <div class="form-text">Groups variations of the same exercise in the exercise history view. Leave blank to use the exercise name.</div>
+              </div>
+            </div>
+
             <div class="row mb-4">
               <div class="col-md-4">
                 <label for="origin" class="form-label fw-bold">Origin</label>

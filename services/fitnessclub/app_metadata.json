@@ -22,6 +22,7 @@
     { "url": "https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js" },
     { "static_asset": "dialog.js", "defer": true },
     { "static_asset": "toast.js", "defer": true },
+    { "url": "https://cdn.plot.ly/plotly-2.35.2.min.js" },
     { "url": "https://unpkg.com/alpinejs@3/dist/cdn.min.js", "defer": true }
   ],
   "brand": {
@@ -71,7 +72,7 @@
       "icon": "bi bi-info-circle",
       "children": [
         { "kind": "link", "label": "Workouts", "icon": "bi bi-list-check", "action": { "hx_get": "/workouts/history", "hx_target": "#content", "hx_swap": "innerHTML" } },
-        { "kind": "link", "label": "Exercises", "icon": "bi bi-list-check", "action": { "hx_get": "/workouts/history/exercises", "hx_target": "#content", "hx_swap": "innerHTML" } }
+        { "kind": "link", "label": "Exercises", "icon": "bi bi-list-check", "action": { "hx_get": "/exercise_history/", "hx_target": "#content", "hx_swap": "innerHTML" } }
       ]
     },
     {

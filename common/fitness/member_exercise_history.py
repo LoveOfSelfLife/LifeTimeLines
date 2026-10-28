@@ -1,5 +1,7 @@
+from common.entity_filter import Filter
 from common.entity_store import EntityObject, EntityStore
 from common.fitness.exercise_entity import ExerciseEntity
+from common.fitness.member_workout_entity import MemberWorkoutInstanceEntity
 
 class MemberPerformsExerciseEntity (EntityObject):
     """
@@ -88,6 +90,33 @@ def get_exercise_history_for_member(member_id, exercise_id):
     exercise_entity = es.get_item(ExerciseEntity({'id': exercise_id}))
     exercise_history = format_exercise_history(events, exercise_entity)
     return exercise_history
+
+def list_exercise_events_for_member(member_id):
+    """return all exercise events recorded for the member, across every exercise"""
+    es = EntityStore()
+    return list(es.list_items(MemberExerciseEventHistoryEntity(), filter1=[Filter("member_id", member_id)]))
+
+def sync_exercise_history_for_member(member_id):
+    """
+    incremental top-up of the member's exercise event history.  Any finished workout instance that has no
+    events recorded yet (older workouts that predate the history table, or ones that were saved without
+    recording events) gets its events extracted.  Re-running is cheap and idempotent.
+    returns the member's full list of events, after the top-up.
+    """
+    es = EntityStore()
+    events = list_exercise_events_for_member(member_id)
+    known_instance_ids = {e.get('member_workout_instance_id') for e in events}
+    added = False
+    for instance in es.list_items(MemberWorkoutInstanceEntity({'member_id': member_id})):
+        if instance.get('id') in known_instance_ids:
+            continue
+        if not instance.get('started_ts') or not instance.get('finished_ts'):
+            continue
+        extract_and_load_exercise_events_from_workout_instance(instance)
+        added = True
+    if added:
+        events = list_exercise_events_for_member(member_id)
+    return events
 
 def format_exercise_history(events, exercise_entity):
     """function that uses infor from the exercise_entity to better format a list of prior exercises performed by a member

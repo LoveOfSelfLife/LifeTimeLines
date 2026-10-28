@@ -1,0 +1,20 @@
+{% if not groups %}
+<p class="text-muted">No exercise history yet. Finish a workout and it will show up here.</p>
+{% else %}
+<div class="list-group">
+  {% for g in groups %}
+  <a href="#" class="list-group-item list-group-item-action"
+     hx-get="/exercise_history/group" hx-target="#eh-detail" hx-swap="innerHTML"
+     hx-vals='{{ {"group": g.group, "group_by": group_by} | tojson | forceescape }}'>
+    <div class="d-flex justify-content-between">
+      <strong>{{ g.group }}</strong>
+      <small class="text-muted">{{ g.workout_count }} workout{{ '' if g.workout_count == 1 else 's' }}</small>
+    </div>
+    <small class="text-muted">
+      {{ g.exercise_count }} exercise{{ '' if g.exercise_count == 1 else 's' }} &middot; last {{ g.last_date }}
+      {% for v in g.volumes %} &middot; {{ v.value }} {{ v.label }}{% endfor %}
+    </small>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}

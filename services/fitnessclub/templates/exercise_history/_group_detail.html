@@ -1,0 +1,20 @@
+<h4>{{ group }}</h4>
+{% set chart_url = '/exercise_history/group' %}
+{% set chart_vals = {'group': group, 'group_by': group_by} %}
+{% include 'exercise_history/_chart.html' %}
+
+<h6 class="mt-3">Exercises</h6>
+<table class="table table-sm">
+  <thead><tr><th>Exercise</th><th>Workouts</th><th>Last done</th><th>Volume</th></tr></thead>
+  <tbody>
+    {% for e in exercises %}
+    <tr>
+      <td><a href="#" hx-get="/exercise_history/exercise" hx-target="#eh-detail" hx-swap="innerHTML"
+             hx-vals='{{ {"exercise_id": e.exercise_id, "group": group, "group_by": group_by} | tojson | forceescape }}'>{{ e.exercise_name }}</a></td>
+      <td>{{ e.workout_count }}</td>
+      <td>{{ e.last_date }}</td>
+      <td>{% for v in e.volumes %}{{ v.value }} {{ v.label }}{% if not loop.last %}, {% endif %}{% endfor %}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
