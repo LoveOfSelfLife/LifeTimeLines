@@ -5,7 +5,7 @@ import json
 
 # from cachelib import FileSystemCache
 from cachelib import RedisCache
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS   
 from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
@@ -86,6 +86,19 @@ def create_app():
         app.register_blueprint(bp, url_prefix=f'/{bp.name}')
 
     CORS(app)  
+
+    # werkzeug's own access log runs after the request context is gone, so it can't
+    # know the member; log our own access line instead.
+    logging.getLogger('werkzeug').setLevel(logging.WARNING)
+    access_logger = logging.getLogger('access')
+
+    @app.after_request
+    def log_access(response):
+        user = session.get('_logged_in_user') or {}
+        member_id = str(session.get('impersonating_member_id') or user.get('sub') or '-')[:8]
+        access_logger.info('%s member=%s "%s %s" %s', request.remote_addr, member_id,
+                           request.method, request.full_path.rstrip('?'), response.status_code)
+        return response
 
     signal.signal(signal.SIGTERM, shutdown_handler)
     return app

@@ -2,7 +2,8 @@ import os
 import uuid
 from functools import wraps
 from common.jwt_auth import requires_auth
-from flask import make_response, redirect, request, session, url_for
+from flask import make_response, redirect, render_template, request, session, url_for
+import json
 from opentelemetry import context
 from common.auth import auth
 from common.blob_store import BlobStore
@@ -10,10 +11,20 @@ from common.blueprint import create_blueprint
 from common.member_entity import get_member_id_from_user_context
 import logging
 import sys
-logging.basicConfig(
-    level=logging.INFO,
-    stream=sys.stdout
-)
+from datetime import datetime
+import pytz
+
+
+class NewYorkFormatter(logging.Formatter):
+    _tz = pytz.timezone('America/New_York')
+
+    def formatTime(self, record, datefmt=None):
+        return datetime.fromtimestamp(record.created, self._tz).strftime(datefmt or '%Y-%m-%d %H:%M:%S %Z')
+
+
+_handler = logging.StreamHandler(sys.stdout)
+_handler.setFormatter(NewYorkFormatter('%(asctime)s %(levelname)s:%(name)s:%(message)s'))
+logging.basicConfig(level=logging.INFO, handlers=[_handler])
 logging.getLogger('azure').setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 bp =  create_blueprint('sys', __name__)
@@ -41,6 +52,17 @@ def get_log_level(context=None):
     return {"level": logging.getLevelName(logging.getLogger().getEffectiveLevel())}
 
 
+@bp.route("/log-level/dialog", methods=["GET"])
+@auth.login_required
+def log_level_dialog(context=None):
+    denied = _require_admin(context)
+    if denied:
+        return denied
+    return render_template('log_level_dialog.html',
+                           current_level=logging.getLevelName(logging.getLogger().getEffectiveLevel()),
+                           levels=ALLOWED_LOG_LEVELS)
+
+
 @bp.route("/log-level", methods=["POST"])
 @auth.login_required
 def set_log_level(context=None):
@@ -55,6 +77,11 @@ def set_log_level(context=None):
     logging.getLogger().setLevel(level)
     logging.getLogger('azure').setLevel(max(logging.WARNING, logging.getLevelName(level)))
     logger.warning(f"Log level changed to {level}")
+    if request.headers.get("HX-Request"):
+        response = make_response('')
+        response.headers['HX-Trigger'] = json.dumps(
+            {"showMessage": {"value": f"Log level set to {level}", "target": "body"}})
+        return response
     return {"level": level}
 
 

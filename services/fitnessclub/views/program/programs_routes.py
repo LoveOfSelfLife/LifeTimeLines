@@ -5,7 +5,7 @@ from common.app_info import get_current_app_id
 from common.template_renderer import hx_render_template
 from datetime import datetime, timezone
 import json
-
+from ast import literal_eval
 import pytz
 import uuid
 from flask import abort, current_app, make_response, redirect, render_template, request, session, url_for
@@ -933,6 +933,7 @@ def add_multiple_workouts(context=None, program_id=None):
     errmsg = ""
     for composite_key_str in selected_keys:
         try:
+            
             composite_key = literal_eval(composite_key_str)
         except (ValueError, SyntaxError):
             continue
