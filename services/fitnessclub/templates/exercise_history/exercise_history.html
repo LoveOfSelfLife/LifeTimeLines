@@ -1,21 +1,13 @@
 <div class="container-fluid py-3">
   <h3 class="mb-3">Exercise History</h3>
-  <div class="row g-3">
-    <div class="col-lg-4">
-      <label for="group_by" class="form-label fw-bold">Group by</label>
-      <select id="group_by" name="group_by" class="form-select mb-3"
-              hx-get="/exercise_history/groups" hx-target="#eh-groups" hx-swap="innerHTML"
-              hx-on::before-request="document.getElementById('eh-detail').innerHTML=''">
-        {% for key, label in group_by_options.items() %}
-        <option value="{{ key }}" {% if key == group_by %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-      <div id="eh-groups">
-        {% include 'exercise_history/_groups.html' %}
-      </div>
-    </div>
-    <div class="col-lg-8">
-      <div id="eh-detail"><p class="text-muted">Select a group to see its exercises and how volume has changed over time.</p></div>
-    </div>
+  <label for="group_by" class="form-label fw-bold">Group by</label>
+  <select id="group_by" name="group_by" class="form-select mb-3"
+          hx-get="/exercise_history/groups" hx-target="#eh-groups" hx-swap="innerHTML">
+    {% for key, label in group_by_options.items() %}
+    <option value="{{ key }}" {% if key == group_by %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <div id="eh-groups">
+    {% include 'exercise_history/_groups.html' %}
   </div>
 </div>

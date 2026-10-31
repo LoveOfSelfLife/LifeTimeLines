@@ -4,7 +4,7 @@
 <div class="list-group">
   {% for g in groups %}
   <a href="#" class="list-group-item list-group-item-action"
-     hx-get="/exercise_history/group" hx-target="#eh-detail" hx-swap="innerHTML"
+     hx-get="/exercise_history/group" hx-target="#modals-here" hx-swap="innerHTML"
      hx-vals='{{ {"group": g.group, "group_by": group_by} | tojson | forceescape }}'>
     <div class="d-flex justify-content-between">
       <strong>{{ g.group }}</strong>
