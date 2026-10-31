@@ -8,6 +8,7 @@ import logging
 import sqlite3
 from datetime import datetime, timezone
 
+from common.env_context import Env
 from common.fitness.exercise_entity import MOVEMENT_CATEGORIES, MUSCLES, PHYSICAL_FITNESS_COMPONENTS
 
 logger = logging.getLogger(__name__)
@@ -131,9 +132,16 @@ CREATE INDEX IF NOT EXISTS ix_bem_muscle           ON bridge_exercise_muscle (mu
 """
 
 
-def connect(db_path):
-    """opens the analytics db, creating the schema and the static dimensions if needed"""
-    conn = sqlite3.connect(db_path, timeout=30)
+DEFAULT_DB_PATH = "/share/FitnessClub/Analytics/workouts.sqlite"
+
+
+def get_db_path():
+    return getattr(Env, 'ANALYTICS_DB_PATH', None) or DEFAULT_DB_PATH
+
+
+def connect(db_path=None):
+    """opens the analytics db (default: the file on the share), creating the schema and static dimensions if needed"""
+    conn = sqlite3.connect(db_path or get_db_path(), timeout=30)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     conn.executescript(SCHEMA)
@@ -320,7 +328,7 @@ def upsert_workout_instance(conn, workout_instance, exercises_by_id):
         exercise_keys = {}
         count = 0
         for section_seq, section in enumerate(workout_instance.get('workout_sections') or []):
-            section_type = section.get('type') or section.get('section_type') or section.get('name')
+            section_type = section.get('name')
             for exercise_seq, item in enumerate(section.get('exercises') or []):
                 exercise_id = item.get('id')
                 if not exercise_id:

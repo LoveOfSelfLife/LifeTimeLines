@@ -164,6 +164,15 @@ def test_family_trend_weekly_and_monthly(conn):
     assert [(r['period'], r['total_reps']) for r in monthly] == [('2025-01-01', 54)]
 
 
+def test_section_type_comes_from_section_name(conn):
+    db.upsert_workout_instance(conn, W1, EXERCISES)
+    assert {r['section_type'] for r in q.workout_exercises(conn, 'w1')} == {'main'}
+
+
+def test_default_db_path():
+    assert db.get_db_path() == "/share/FitnessClub/Analytics/workouts.sqlite"
+
+
 def test_foreign_keys_enforced(conn):
     with pytest.raises(sqlite3.IntegrityError):
         conn.execute("INSERT INTO fact_exercise_performance (workout_key, member_key, exercise_key, date_key,"
