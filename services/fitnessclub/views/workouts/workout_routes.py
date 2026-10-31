@@ -36,6 +36,7 @@ import json
 from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity
 
 from common.entities_getter import get_entities, get_entity, get_filtered_entities
+from common.fitness.exercise_analytics_db import on_workout_instance_deleted, on_workout_instance_saved
 from common.fitness.entity_constants import WORKOUT_ENTITY_NAME, WORKOUT_INSTANCE_ENTITY_NAME, WORKOUT_SECTIONS
 
 def new_workout(name='New Workout'):
@@ -1343,6 +1344,9 @@ def save_workout(context=None, workout_id=None):
 
     workout_instance.initialize(workout)
     es.upsert_item(workout_instance)
+    if workout_type == WORKOUT_INSTANCE_ENTITY_NAME:
+        # an edited workout instance is refreshed in the analytics db
+        on_workout_instance_saved(workout)
 
     delete_from_cache('current_workout')
 
@@ -1377,6 +1381,8 @@ def delete_workout(context=None, workout_id=None):
     logger.info('Deleting workout')
     es = EntityStore()
     es.delete_item(workout_instance)
+    if workout_type == WORKOUT_INSTANCE_ENTITY_NAME:
+        on_workout_instance_deleted(workout_id)
 
     delete_from_cache('current_workout')
 

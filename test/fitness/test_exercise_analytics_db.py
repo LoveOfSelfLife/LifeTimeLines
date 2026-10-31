@@ -177,3 +177,56 @@ def test_foreign_keys_enforced(conn):
     with pytest.raises(sqlite3.IntegrityError):
         conn.execute("INSERT INTO fact_exercise_performance (workout_key, member_key, exercise_key, date_key,"
                      " performed_ts, section_seq, exercise_seq) VALUES (999,999,999,20250101,'x',0,0)")
+
+
+# ---------- equipment, build state and page queries ----------
+
+EX_EQ = dict(EXERCISES, pushup=dict(EXERCISES['pushup'], equipment_list=['bodyweight']),
+             bench=dict(EXERCISES['bench'], equipment_list=['barbell', 'bench']))
+
+
+def test_equipment_bridge_and_grouping(conn):
+    db.upsert_workout_instance(conn, W1, EX_EQ)
+    rows = {r['group']: r for r in q.group_summaries(conn, 'm1', 'equipment')}
+    assert set(rows) == {'bodyweight', 'barbell', 'bench', q.NO_GROUP}
+    assert rows['barbell']['exercise_count'] == 1
+
+
+def test_member_build_state(conn):
+    assert not db.is_member_built(conn, 'm1')
+    conn.execute("INSERT INTO member_build_state (member_id, rebuilt_at) VALUES ('m1', 'x')")
+    assert db.is_member_built(conn, 'm1')
+    assert db.ensure_member_built(conn, 'm1') is False
+
+
+def test_group_summaries_and_exercises(conn):
+    for w in (W1, W2):
+        db.upsert_workout_instance(conn, w, EXERCISES)
+    fam = {r['group']: r for r in q.group_summaries(conn, 'm1', 'family')}
+    assert fam['Push-up']['workout_count'] == 2
+    assert fam['Bench press']['exercise_count'] == 1
+    mov = {r['group']: r for r in q.group_summaries(conn, 'm1', 'movement')}
+    assert mov['PUSH-HORZ']['exercise_count'] == 2
+    assert mov['PUSH-HORZ']['workout_count'] == 2
+    ex = q.group_exercises(conn, 'm1', 'movement', 'PUSH-HORZ')
+    assert [e['exercise_id'] for e in ex] == ['pushup', 'bench']
+
+
+def test_time_series(conn):
+    for w in (W1, W2):
+        db.upsert_workout_instance(conn, w, EXERCISES)
+    s = q.time_series(conn, 'm1', 'reps', 'workout', exercise_id='pushup')
+    assert [r['value'] for r in s] == [30, 24]
+    s = q.time_series(conn, 'm1', 'volume', 'month', group_by='family', group='Push-up')
+    assert len(s) == 1 and s[0]['value'] == 54
+    assert q.time_series(conn, 'm1', 'sets', 'week', exercise_id='pushup')[0]['value'] == 3
+
+
+def test_page_helpers(conn):
+    from common.fitness import exercise_history_analytics as h
+    db.upsert_workout_instance(conn, W1, EXERCISES)
+    rows = h.workout_rows(q.exercise_history(conn, 'm1', 'plank'))
+    assert rows[0]['volume'] == '60' and rows[0]['volume_label'] == 'seconds'
+    chart = h.build_chart_json(q.time_series(conn, 'm1', 'volume', 'workout', exercise_id='pushup'))
+    assert '</' not in chart
+    assert h.build_chart_json([]) is None

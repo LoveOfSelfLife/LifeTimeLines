@@ -9,7 +9,7 @@ def exercise_history(conn, member_id, exercise_id):
     """Q1: each time the member performed the exercise, with its parameters, most recent first"""
     return _rows(conn, """
         SELECT f.performed_ts, f.sets, f.reps, f.weight_raw, f.weight_unit, f.weight_kg, f.time_sec, f.tempo,
-               f.total_reps, f.volume_kg, f.volume_kind, w.workout_instance_id
+               f.total_reps, f.total_time_sec, f.volume_kg, f.volume_kind, w.workout_instance_id
         FROM fact_exercise_performance f
         JOIN dim_member m   ON m.member_key = f.member_key
         JOIN dim_exercise e ON e.exercise_key = f.exercise_key
@@ -110,3 +110,142 @@ def family_trend(conn, member_id, family, period='week_start'):
         JOIN dim_date d     ON d.date_key = f.date_key
         WHERE m.member_id = :member_id AND COALESCE(e.family, e.name) = :family
         GROUP BY d.{period} ORDER BY d.{period}""", {'member_id': member_id, 'family': family})
+
+
+# ---------- queries behind the Exercise History page ----------
+
+NO_GROUP = '(none)'
+
+GROUP_BY_OPTIONS = {
+    'family': 'Exercise family',
+    'movement': 'Movement pattern',
+    'muscle': 'Primary muscle',
+    'equipment': 'Equipment',
+    'exercise': 'Individual exercise',
+}
+
+# group_by -> (extra joins, expression naming the group). Left joins put exercises lacking the
+# classification into NO_GROUP; an exercise with several values counts fully in each of its groups.
+_GROUPINGS = {
+    'family': ("", "COALESCE(e.family, e.name)"),
+    'exercise': ("", "e.name"),
+    'movement': ("LEFT JOIN bridge_exercise_movement_category gb ON gb.exercise_key = f.exercise_key"
+                 " LEFT JOIN dim_movement_category gd ON gd.movement_category_key = gb.movement_category_key",
+                 f"COALESCE(gd.code, '{NO_GROUP}')"),
+    'muscle': ("LEFT JOIN bridge_exercise_muscle gb ON gb.exercise_key = f.exercise_key"
+               " LEFT JOIN dim_muscle gd ON gd.muscle_key = gb.muscle_key",
+               f"COALESCE(gd.muscle, '{NO_GROUP}')"),
+    'equipment': ("LEFT JOIN bridge_exercise_equipment gb ON gb.exercise_key = f.exercise_key"
+                  " LEFT JOIN dim_equipment gd ON gd.equipment_key = gb.equipment_key",
+                  f"COALESCE(gd.equipment, '{NO_GROUP}')"),
+}
+
+# the natural volume of a fact row depends on what was recorded for it
+VOLUME_EXPR = ("CASE f.volume_kind WHEN 'load' THEN f.volume_kg WHEN 'reps' THEN f.total_reps"
+               " WHEN 'time' THEN f.total_time_sec END")
+
+_FROM = ("FROM fact_exercise_performance f"
+         " JOIN dim_member m ON m.member_key = f.member_key"
+         " JOIN dim_exercise e ON e.exercise_key = f.exercise_key"
+         " JOIN dim_workout w ON w.workout_key = f.workout_key"
+         " JOIN dim_date d ON d.date_key = f.date_key")
+
+PERIOD_EXPR = {'workout': 'w.started_ts', 'week': 'd.week_start', 'month': 'd.month_start'}
+
+
+def _grouping(group_by):
+    if group_by not in _GROUPINGS:
+        raise ValueError(f"unknown group_by: {group_by}")
+    return _GROUPINGS[group_by]
+
+
+def _volumes(rows_by_kind):
+    return [{'kind': kind, 'value': round(value, 1)} for kind, value in rows_by_kind if kind and value]
+
+
+def group_summaries(conn, member_id, group_by):
+    """one row per group: exercises and workouts it covers, last performed, and total volume per volume kind"""
+    joins, expr = _grouping(group_by)
+    base = _rows(conn, f"""
+        SELECT {expr} AS grp, COUNT(DISTINCT f.exercise_key) AS exercise_count,
+               COUNT(DISTINCT f.workout_key) AS workout_count, MAX(w.started_ts) AS last_ts
+        {_FROM} {joins} WHERE m.member_id = :member_id GROUP BY grp""", {'member_id': member_id})
+    kinds = _rows(conn, f"""
+        SELECT {expr} AS grp, f.volume_kind AS kind, SUM({VOLUME_EXPR}) AS value
+        {_FROM} {joins} WHERE m.member_id = :member_id GROUP BY grp, f.volume_kind""", {'member_id': member_id})
+    by_group = {}
+    for k in kinds:
+        by_group.setdefault(k['grp'], []).append((k['kind'], k['value']))
+    out = [{'group': r['grp'], 'exercise_count': r['exercise_count'], 'workout_count': r['workout_count'],
+            'last_date': r['last_ts'][:10], 'volumes': _volumes(by_group.get(r['grp'], []))} for r in base]
+    out.sort(key=lambda s: (s['group'] == NO_GROUP, -s['workout_count'], s['group']))
+    return out
+
+
+def group_exercises(conn, member_id, group_by, group):
+    """the exercises within one group, most frequently done first"""
+    joins, expr = _grouping(group_by)
+    params = {'member_id': member_id, 'grp': group}
+    base = _rows(conn, f"""
+        SELECT e.exercise_id, e.name AS exercise_name, COUNT(DISTINCT f.workout_key) AS workout_count,
+               MAX(w.started_ts) AS last_ts
+        {_FROM} {joins} WHERE m.member_id = :member_id AND {expr} = :grp
+        GROUP BY e.exercise_id, e.name""", params)
+    kinds = _rows(conn, f"""
+        SELECT e.exercise_id, f.volume_kind AS kind, SUM({VOLUME_EXPR}) AS value
+        {_FROM} {joins} WHERE m.member_id = :member_id AND {expr} = :grp
+        GROUP BY e.exercise_id, f.volume_kind""", params)
+    by_ex = {}
+    for k in kinds:
+        by_ex.setdefault(k['exercise_id'], []).append((k['kind'], k['value']))
+    out = [{'exercise_id': r['exercise_id'], 'exercise_name': r['exercise_name'],
+            'workout_count': r['workout_count'], 'last_date': r['last_ts'][:10],
+            'volumes': _volumes(by_ex.get(r['exercise_id'], []))} for r in base]
+    out.sort(key=lambda r: (-r['workout_count'], r['exercise_name']))
+    return out
+
+
+def exercise_name(conn, exercise_id):
+    row = conn.execute("SELECT name FROM dim_exercise WHERE exercise_id = ?", (exercise_id,)).fetchone()
+    return row[0] if row else exercise_id
+
+
+def time_series(conn, member_id, metric='volume', resolution='workout', group_by=None, group=None,
+                exercise_id=None):
+    """
+    rows of {period, series, value} for charting, for one group or one exercise.
+    volume gets one series per volume kind (kg x reps, reps and seconds can't be added together).
+    resolution: workout (one point per workout), week or month.
+    """
+    if resolution not in PERIOD_EXPR:
+        raise ValueError(f"unknown resolution: {resolution}")
+    period = PERIOD_EXPR[resolution]
+    params = {'member_id': member_id}
+    joins, where = "", "m.member_id = :member_id"
+    if exercise_id:
+        where += " AND e.exercise_id = :exercise_id"
+        params['exercise_id'] = exercise_id
+    elif group_by:
+        joins, expr = _grouping(group_by)
+        where += f" AND {expr} = :grp"
+        params['grp'] = group
+
+    if metric == 'reps':
+        select, extra, series = "SUM(f.total_reps)", "AND f.total_reps IS NOT NULL", "'Total reps'"
+    elif metric == 'sets':
+        select, extra, series = "SUM(f.sets)", "", "'Total sets'"
+    elif metric == 'max_weight':
+        select, extra, series = "MAX(f.weight_kg)", "AND f.weight_kg IS NOT NULL", "'Max weight (kg)'"
+    else:
+        select, extra = f"SUM({VOLUME_EXPR})", "AND f.volume_kind IS NOT NULL"
+        series = ("CASE f.volume_kind WHEN 'load' THEN 'Volume (kg x reps)' WHEN 'reps' THEN 'Volume (bodyweight reps)'"
+                  " ELSE 'Volume (seconds)' END")
+    return _rows(conn, f"""
+        SELECT {period} AS period, {series} AS series, {select} AS value
+        {_FROM} {joins} WHERE {where} {extra}
+        GROUP BY period, series ORDER BY period""", params)
+
+
+def exercise_workouts(conn, member_id, exercise_id):
+    """the individual workout entries of an exercise, most recent first, ready for display"""
+    return exercise_history(conn, member_id, exercise_id)

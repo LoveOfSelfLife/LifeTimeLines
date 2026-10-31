@@ -5,10 +5,10 @@ from flask import abort, request
 
 from common.auth import auth
 from common.blueprint import create_blueprint
+from common.fitness import exercise_analytics_db as adb
+from common.fitness import exercise_analytics_queries as aq
 from common.fitness.exercise_history_analytics import (
-    GROUP_BY_OPTIONS, METRIC_OPTIONS, RESOLUTION_OPTIONS,
-    build_chart_json, exercise_events, group_events, load_member_history,
-    summarize_exercises, summarize_groups, workout_rows)
+    GROUP_BY_OPTIONS, METRIC_OPTIONS, RESOLUTION_OPTIONS, build_chart_json, label_volumes, workout_rows)
 from common.member_entity import get_member_id_from_user_context
 from common.template_renderer import hx_render_template
 
@@ -40,16 +40,25 @@ def _view_args():
     }
 
 
+def _connect(member_id, build=False):
+    conn = adb.connect()
+    if build:
+        # the first time a member opens the page, their whole history is loaded from the entity store
+        adb.ensure_member_built(conn, member_id)
+    return conn
+
+
 @bp.route('/')
 @auth.login_required
 def root(context=None):
-    """the page; each visit also tops up the member's exercise history from any workouts not yet recorded"""
     member_id = _member_id(context)
     args = _view_args()
-    df = load_member_history(member_id, sync=True)
-    return hx_render_template('exercise_history/exercise_history.html',
-                              groups=summarize_groups(df, args['group_by']),
-                              context=context, **args)
+    conn = _connect(member_id, build=True)
+    try:
+        groups = label_volumes(aq.group_summaries(conn, member_id, args['group_by']))
+    finally:
+        conn.close()
+    return hx_render_template('exercise_history/exercise_history.html', groups=groups, context=context, **args)
 
 
 @bp.route('/groups')
@@ -57,10 +66,12 @@ def root(context=None):
 def groups(context=None):
     member_id = _member_id(context)
     args = _view_args()
-    df = load_member_history(member_id)
-    return hx_render_template('exercise_history/_groups.html',
-                              groups=summarize_groups(df, args['group_by']),
-                              context=context, **args)
+    conn = _connect(member_id)
+    try:
+        groups = label_volumes(aq.group_summaries(conn, member_id, args['group_by']))
+    finally:
+        conn.close()
+    return hx_render_template('exercise_history/_groups.html', groups=groups, context=context, **args)
 
 
 @bp.route('/group')
@@ -71,13 +82,16 @@ def group_detail(context=None):
     group = request.args.get('group')
     if not group:
         abort(400, "No group provided")
-    df = group_events(load_member_history(member_id), args['group_by'], group)
-    return hx_render_template('exercise_history/_group_detail.html',
-                              group=group,
-                              exercises=summarize_exercises(df) if not df.empty else [],
-                              chart_json=build_chart_json(df, args['metric'], args['resolution']),
-                              chart_id=f"chart_{uuid.uuid4().hex[:8]}",
-                              context=context, **args)
+    conn = _connect(member_id)
+    try:
+        exercises = label_volumes(aq.group_exercises(conn, member_id, args['group_by'], group))
+        series = aq.time_series(conn, member_id, args['metric'], args['resolution'],
+                                group_by=args['group_by'], group=group)
+    finally:
+        conn.close()
+    return hx_render_template('exercise_history/_group_detail.html', group=group, exercises=exercises,
+                              chart_json=build_chart_json(series, args['metric']),
+                              chart_id=f"chart_{uuid.uuid4().hex[:8]}", context=context, **args)
 
 
 @bp.route('/exercise')
@@ -88,12 +102,14 @@ def exercise_detail(context=None):
     exercise_id = request.args.get('exercise_id')
     if not exercise_id:
         abort(400, "No exercise id provided")
-    df = exercise_events(load_member_history(member_id), exercise_id)
-    return hx_render_template('exercise_history/_exercise_detail.html',
-                              exercise_id=exercise_id,
-                              group=request.args.get('group', ''),
-                              exercise_name=df['exercise_name'].iloc[0] if not df.empty else exercise_id,
-                              workouts=workout_rows(df) if not df.empty else [],
-                              chart_json=build_chart_json(df, args['metric'], args['resolution']),
-                              chart_id=f"chart_{uuid.uuid4().hex[:8]}",
-                              context=context, **args)
+    conn = _connect(member_id)
+    try:
+        name = aq.exercise_name(conn, exercise_id)
+        workouts = workout_rows(aq.exercise_history(conn, member_id, exercise_id))
+        series = aq.time_series(conn, member_id, args['metric'], args['resolution'], exercise_id=exercise_id)
+    finally:
+        conn.close()
+    return hx_render_template('exercise_history/_exercise_detail.html', exercise_id=exercise_id,
+                              group=request.args.get('group', ''), exercise_name=name, workouts=workouts,
+                              chart_json=build_chart_json(series, args['metric']),
+                              chart_id=f"chart_{uuid.uuid4().hex[:8]}", context=context, **args)

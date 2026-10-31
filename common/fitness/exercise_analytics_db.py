@@ -101,6 +101,23 @@ CREATE TABLE IF NOT EXISTS bridge_exercise_movement_category (
     PRIMARY KEY (exercise_key, movement_category_key)
 );
 
+CREATE TABLE IF NOT EXISTS dim_equipment (
+    equipment_key INTEGER PRIMARY KEY,
+    equipment     TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS bridge_exercise_equipment (
+    exercise_key  INTEGER NOT NULL REFERENCES dim_exercise(exercise_key) ON DELETE CASCADE,
+    equipment_key INTEGER NOT NULL REFERENCES dim_equipment(equipment_key),
+    PRIMARY KEY (exercise_key, equipment_key)
+);
+
+-- operational, not part of the star: records that a member's history has been loaded from the entity store
+CREATE TABLE IF NOT EXISTS member_build_state (
+    member_id  TEXT PRIMARY KEY,
+    rebuilt_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS fact_exercise_performance (
     fact_id        INTEGER PRIMARY KEY,
     workout_key    INTEGER NOT NULL REFERENCES dim_workout(workout_key) ON DELETE CASCADE,
@@ -264,8 +281,13 @@ def upsert_exercise(conn, exercise_id, exercise):
     key = conn.execute("SELECT exercise_key FROM dim_exercise WHERE exercise_id = ?", (exercise_id,)).fetchone()[0]
 
     for table in ('bridge_exercise_muscle', 'bridge_exercise_fitness_component',
-                  'bridge_exercise_movement_category'):
+                  'bridge_exercise_movement_category', 'bridge_exercise_equipment'):
         conn.execute(f"DELETE FROM {table} WHERE exercise_key = ?", (key,))
+
+    for item in set(_as_list(ex.get('equipment_list'))):
+        conn.execute("INSERT OR IGNORE INTO dim_equipment (equipment) VALUES (?)", (item,))
+        conn.execute("INSERT INTO bridge_exercise_equipment (exercise_key, equipment_key)"
+                     " SELECT ?, equipment_key FROM dim_equipment WHERE equipment = ?", (key, item))
 
     for muscle in set(_as_list(ex.get('primaryMuscles'))):
         conn.execute("INSERT INTO bridge_exercise_muscle (exercise_key, muscle_key, role)"
@@ -403,4 +425,50 @@ def rebuild_member_from_entity_store(conn, member_id):
     from common.entity_store import EntityStore
     from common.fitness.member_workout_entity import MemberWorkoutInstanceEntity
     instances = list(EntityStore().list_items(MemberWorkoutInstanceEntity({'member_id': member_id})))
-    return rebuild_member(conn, member_id, instances, _load_exercises(instances))
+    result = rebuild_member(conn, member_id, instances, _load_exercises(instances))
+    with conn:
+        conn.execute("INSERT INTO member_build_state (member_id, rebuilt_at) VALUES (?, ?)"
+                     " ON CONFLICT(member_id) DO UPDATE SET rebuilt_at = excluded.rebuilt_at", (member_id, _now()))
+    return result
+
+
+def is_member_built(conn, member_id):
+    return conn.execute("SELECT 1 FROM member_build_state WHERE member_id = ?", (member_id,)).fetchone() is not None
+
+
+def ensure_member_built(conn, member_id):
+    """the first time a member's history is needed, loads all of it from the entity store. Returns True if it did."""
+    if is_member_built(conn, member_id):
+        return False
+    rebuild_member_from_entity_store(conn, member_id)
+    return True
+
+
+# ---------- hooks for the app: never let a reporting failure break a workout save ----------
+
+def _run_safely(description, fn):
+    try:
+        conn = connect()
+        try:
+            return fn(conn)
+        finally:
+            conn.close()
+    except Exception:
+        logger.exception(f"exercise analytics db: failed to {description}")
+        return None
+
+
+def on_workout_instance_saved(workout_instance):
+    """call after a workout instance is finished or edited. Members not yet built are loaded in full on first view."""
+    member_id, wid = workout_instance.get('member_id'), workout_instance.get('id')
+    if not member_id or not wid:
+        return None
+    return _run_safely(f"sync workout instance {wid}",
+                       lambda conn: upsert_workout_instance(conn, workout_instance, _load_exercises([workout_instance])))
+
+
+def on_workout_instance_deleted(workout_instance_id):
+    if not workout_instance_id:
+        return None
+    return _run_safely(f"delete workout instance {workout_instance_id}",
+                       lambda conn: delete_workout_instance(conn, workout_instance_id))

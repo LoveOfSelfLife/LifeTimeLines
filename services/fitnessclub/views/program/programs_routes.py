@@ -20,7 +20,7 @@ from common.fitness.get_calendar_service import get_calendar_service
 from common.filter_funcs import get_filter_terms_from_request
 from common.template_renderer import rm_spaces
 from common.member_entity import MembershipRegistry, get_member_id_from_user_context, is_member_an_admin, member_allows_on_the_fly_workout
-from common.fitness.member_exercise_history import extract_and_load_exercise_events_from_workout_instance
+from common.fitness.exercise_analytics_db import on_workout_instance_deleted, on_workout_instance_saved
 from common.fitness.member_program_entity import MemberProgramsEntity
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout
 from common.fitness.programs import get_last_workout_instance_for_workout, get_next_workout_in_program, get_workouts_from_program
@@ -1185,8 +1185,8 @@ def really_finish_workout(context=None, workout_instance_key=None):
     workout_instance['member_feedback'] = member_feedback.strip()
     es.upsert_item(workout_instance)
     
-    # store the parameters of the current workout exercises away 
-    extract_and_load_exercise_events_from_workout_instance(workout_instance)
+    # record the finished workout in the analytics db
+    on_workout_instance_saved(workout_instance)
 
     clear_active_workout_state(workout_instance.get('member_id'))
     # session.pop('current_workout_instance_state', None)
@@ -1240,6 +1240,7 @@ def cancel_workout(context=None, workout_instance_key=None):
 
     # remove the workout_instance from the entity store
     es.delete_item(workout_instance)
+    on_workout_instance_deleted(workout_instance['id'])
 
     return redirect('/', 302)
 
