@@ -206,9 +206,38 @@ def _as_list(value):
     return [str(value)]
 
 
+TIME_UNIT_SECONDS = {'s': 1, 'sec': 1, 'secs': 1, 'second': 1, 'seconds': 1,
+                     'm': 60, 'min': 60, 'mins': 60, 'minute': 60, 'minutes': 60,
+                     'h': 3600, 'hr': 3600, 'hour': 3600, 'hours': 3600}
+
+
+def normalize_parameters(parameters):
+    """
+    The app stores exercise parameters as S, R, F/Fu (force, unit), T/Tu (time, unit), P/Pu (pace);
+    older and sample data use sets, reps, weight/weight_unit, time, tempo. Returns the long-name form,
+    with time converted to seconds.
+    """
+    p = parameters or {}
+
+    def pick(*names):
+        for n in names:
+            if p.get(n) not in (None, ''):
+                return p.get(n)
+        return None
+
+    time_value = _num(pick('T', 'time'))
+    if time_value is not None:
+        time_unit = str(pick('Tu', 'time_unit') or 'sec').strip().lower()
+        time_value *= TIME_UNIT_SECONDS.get(time_unit, 1)
+    pace_unit = str(pick('Pu') or '').strip().lower()
+    return {'sets': pick('S', 'sets'), 'reps': pick('R', 'reps'), 'weight': pick('F', 'weight'),
+            'weight_unit': pick('Fu', 'weight_unit'), 'time': time_value,
+            'tempo': pick('tempo') or (pick('P') if pace_unit == 'tempo' else None)}
+
+
 def compute_measures(parameters):
     """raw exercise parameters -> the stored measures, including the derived ones"""
-    p = parameters or {}
+    p = normalize_parameters(parameters)
     sets = _num(p.get('sets'))
     reps = _num(p.get('reps'))
     time_sec = _num(p.get('time'))
@@ -357,8 +386,8 @@ def upsert_workout_instance(conn, workout_instance, exercises_by_id):
                     continue
                 if exercise_id not in exercise_keys:
                     exercise_keys[exercise_id] = upsert_exercise(conn, exercise_id, exercises_by_id.get(exercise_id))
-                params = item.get('parameters') or {}
-                m = compute_measures(params)
+                params = normalize_parameters(item.get('parameters'))
+                m = compute_measures(item.get('parameters'))
                 conn.execute(
                     "INSERT INTO fact_exercise_performance (workout_key, member_key, exercise_key, date_key,"
                     " performed_ts, section_type, section_seq, exercise_seq, sets, reps, weight_raw, weight_unit,"

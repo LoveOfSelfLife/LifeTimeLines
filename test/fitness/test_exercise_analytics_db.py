@@ -230,3 +230,15 @@ def test_page_helpers(conn):
     chart = h.build_chart_json(q.time_series(conn, 'm1', 'volume', 'workout', exercise_id='pushup'))
     assert '</' not in chart
     assert h.build_chart_json([]) is None
+
+
+def test_app_parameter_keys_are_understood(conn):
+    wi = workout('w9', '2025-02-03T10:00:00Z', '2025-02-03T11:00:00Z', [
+        ('bench', {'S': '3', 'R': '5', 'T': '', 'Tu': 'secs', 'F': '100', 'Fu': 'lbs', 'P': '', 'Pu': ''}),
+        ('plank', {'S': '2', 'R': '', 'T': '1', 'Tu': 'min', 'F': '', 'Fu': 'lbs'}),
+    ])
+    db.upsert_workout_instance(conn, wi, EXERCISES)
+    bench, plank = q.workout_exercises(conn, 'w9')
+    assert bench['reps'] == 5 and bench['weight_kg'] == pytest.approx(100 * db.LBS_TO_KG)
+    assert bench['volume_kg'] == pytest.approx(15 * 100 * db.LBS_TO_KG)
+    assert plank['time_sec'] == 60
