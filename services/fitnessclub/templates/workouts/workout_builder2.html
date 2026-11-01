@@ -26,6 +26,25 @@
                     {% endif %}
                 </div>
 
+                {% if workout_type == 'workout_instance' %}
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="started_ts" class="form-label">Started:</label>
+                        <input type="datetime-local" id="started_ts" name="started_ts" class="form-control"
+                            value="{{ (workout.started_ts or '')[:16] }}" hx-trigger="change"
+                            hx-post="{{ url_for('workouts.update_workout_times', workout_id=workout.id) }}"
+                            hx-swap="none">
+                    </div>
+                    <div class="col-md-6 mt-3 mt-md-0">
+                        <label for="finished_ts" class="form-label">Finished:</label>
+                        <input type="datetime-local" id="finished_ts" name="finished_ts" class="form-control"
+                            value="{{ (workout.finished_ts or '')[:16] }}" hx-trigger="change"
+                            hx-post="{{ url_for('workouts.update_workout_times', workout_id=workout.id) }}"
+                            hx-swap="none">
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Action Buttons Row -->
                 <div class="d-flex flex-wrap gap-2 justify-content-end workout-builder-actions">
 

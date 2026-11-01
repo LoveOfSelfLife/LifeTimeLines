@@ -4,11 +4,7 @@ Version information for the Active Friends Club application
 import os
 from datetime import datetime
 from zoneinfo import ZoneInfo
-
-# Version information
-VERSION_MAJOR = 2
-VERSION_MINOR = 2
-VERSION_PATCH = 0
+from current_version import VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH
 VERSION_BUILD = os.getenv('BUILD_NUMBER', 'dev')
 
 # Build information

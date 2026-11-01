@@ -6,8 +6,8 @@
     </div>
     <div class="modal-body">
       {% if group %}
-      <a href="#" class="small d-inline-block mb-2" hx-get="/exercise_history/group" hx-target="#modals-here" hx-swap="innerHTML"
-         hx-vals='{{ {"group": group, "group_by": group_by} | tojson | forceescape }}'>&larr; {{ group }}</a>
+      <a href="#" class="inline-block mb-2 fw-bold text-white" hx-get="/exercise_history/group" hx-target="#modals-here" hx-swap="innerHTML"
+         hx-vals='{{ {"group": group, "group_by": group_by} | tojson | forceescape }}'>&larr; Back</a>
       {% endif %}
       {% set chart_url = '/exercise_history/exercise' %}
       {% set chart_vals = {'exercise_id': exercise_id, 'group': group, 'group_by': group_by} %}

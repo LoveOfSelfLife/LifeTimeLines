@@ -214,3 +214,4 @@ scripts/fitnessclub/exercise_reviewer/*.txt
 scripts/fitnessclub/exercise_reviewer/*.csv
 
 scripts/fitnessclub/exercise_history/results.json
+services/fitnessclub/analytics.sqlite

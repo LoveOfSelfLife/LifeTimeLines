@@ -1160,6 +1160,40 @@ def update_workout_name(context=None, workout_id=None):
     set_cache_value('current_workout', w)
     return workout_canvas2(context, workout_id)
 
+@bp.route('/builder/<workout_id>/update_times', methods=['POST'])
+@auth.login_required
+def update_workout_times(context=None, workout_id=None):
+    import pytz
+    w = get_cache_value('current_workout')
+    if not w or w.get('id') != workout_id:
+        abort(404)
+    if get_cache_value('workout_type') != WORKOUT_INSTANCE_ENTITY_NAME:
+        abort(400)
+
+    eastern = pytz.timezone('US/Eastern')
+    parsed = {}
+    for form_key, field in (('started_ts', 'started_ts'), ('finished_ts', 'finished_ts')):
+        value = request.form.get(form_key)
+        if not value:
+            continue
+        try:
+            dt = datetime.fromisoformat(value)
+        except ValueError:
+            return ('Invalid date/time', 400)
+        if dt.tzinfo is None:
+            dt = eastern.localize(dt)
+        parsed[field] = dt
+
+    started = parsed.get('started_ts') or (datetime.fromisoformat(w['started_ts']) if w.get('started_ts') else None)
+    finished = parsed.get('finished_ts') or (datetime.fromisoformat(w['finished_ts']) if w.get('finished_ts') else None)
+    if started and finished and started.tzinfo and finished.tzinfo and finished < started:
+        return ('End must not be before start', 400)
+
+    for field, dt in parsed.items():
+        w[field] = dt.isoformat()
+    set_cache_value('current_workout', w)
+    return ('', 204)
+
 @bp.route('/builder/<workout_id>/update_assigned_member', methods=['POST'])
 @auth.login_required
 def update_assigned_member(context=None, workout_id=None):
@@ -1347,6 +1381,9 @@ def save_workout(context=None, workout_id=None):
     if workout_type == WORKOUT_INSTANCE_ENTITY_NAME:
         # an edited workout instance is refreshed in the analytics db
         on_workout_instance_saved(workout)
+        return_to_workout_listing_fn = workouts_history_listing2
+    else:
+        return_to_workout_listing_fn = workouts_listing2
 
     delete_from_cache('current_workout')
 
@@ -1354,7 +1391,7 @@ def save_workout(context=None, workout_id=None):
     if not member_id:
         abort(401)
 
-    response = make_response(workouts_listing2(context))
+    response = make_response(return_to_workout_listing_fn(context))
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": { "target": "body" },
             "showMessage": { 
@@ -1383,6 +1420,9 @@ def delete_workout(context=None, workout_id=None):
     es.delete_item(workout_instance)
     if workout_type == WORKOUT_INSTANCE_ENTITY_NAME:
         on_workout_instance_deleted(workout_id)
+        return_to_workout_listing_fn = workouts_history_listing2
+    else:
+        return_to_workout_listing_fn = workouts_listing2
 
     delete_from_cache('current_workout')
 
@@ -1393,11 +1433,7 @@ def delete_workout(context=None, workout_id=None):
 
     # if we are deleting a workout definition, then we go back to the workouts_listing2 view,
     # but if we are deleting a workout instance, then we go to the workouts instance listing view
-    if workout_type == WORKOUT_INSTANCE_ENTITY_NAME:
-        response = make_response(workouts_history_listing2(context))
-    else:
-        response = make_response(workouts_listing2(context))
-    
+    response = make_response(return_to_workout_listing_fn(context))
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": { "target": "body" },
             "showMessage": { 
