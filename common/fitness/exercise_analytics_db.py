@@ -5,7 +5,10 @@ The entity store remains the source of truth; these tables are derived and repor
 Everything here can be rebuilt from workout instances (see rebuild_member).
 """
 import logging
+import os
 import sqlite3
+import sys
+import urllib.parse
 from datetime import datetime, timezone
 
 from common.env_context import Env
@@ -151,18 +154,35 @@ CREATE INDEX IF NOT EXISTS ix_bem_muscle           ON bridge_exercise_muscle (mu
 
 DEFAULT_DB_PATH = "/share/FitnessClub/Analytics/workouts.sqlite"
 
+# bump when SCHEMA or the seeded static dimensions change, so existing files are brought up to date once
+SCHEMA_VERSION = 1
+
+# SQLite's default byte-range file locks are not supported on SMB/Azure Files mounts ("database is locked").
+# The dotfile VFS locks with a ".lock" file instead, which works there; the db has a single writer.
+NETWORK_SAFE_VFS = "unix-dotfile"
+
 
 def get_db_path():
     return getattr(Env, 'ANALYTICS_DB_PATH', None) or DEFAULT_DB_PATH
 
 
+def _open(db_path):
+    if db_path == ':memory:' or sys.platform == 'win32':
+        return sqlite3.connect(db_path, timeout=30)
+    uri = f"file:{urllib.parse.quote(os.path.abspath(db_path))}?vfs={NETWORK_SAFE_VFS}"
+    return sqlite3.connect(uri, timeout=30, uri=True)
+
+
 def connect(db_path=None):
     """opens the analytics db (default: the file on the share), creating the schema and static dimensions if needed"""
-    conn = sqlite3.connect(db_path or get_db_path(), timeout=30)
+    conn = _open(db_path or get_db_path())
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
-    conn.executescript(SCHEMA)
-    _seed_static_dimensions(conn)
+    if conn.execute("PRAGMA user_version").fetchone()[0] != SCHEMA_VERSION:
+        conn.executescript(SCHEMA)
+        _seed_static_dimensions(conn)
+        conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+        conn.commit()
     return conn
 
 
