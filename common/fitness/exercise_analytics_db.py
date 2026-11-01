@@ -501,6 +501,7 @@ def _run_safely(description, fn):
         try:
             return fn(conn)
         finally:
+            logger.info(f"exercise analytics db: finished {description}")
             conn.close()
     except Exception:
         logger.exception(f"exercise analytics db: failed to {description}")

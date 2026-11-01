@@ -52,6 +52,7 @@ def build_chart_json(series_rows, metric='volume', title=None):
         margin=dict(l=50, r=20, t=50 if title else 20, b=40),
         legend=dict(orientation='h', y=-0.2),
         yaxis_title=METRIC_OPTIONS.get(metric, metric),
+        yaxis_rangemode='tozero',
         height=380,
     )
     return pio.to_json(fig).replace('</', '<\\/')
