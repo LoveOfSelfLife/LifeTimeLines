@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 import hashlib
 
+from common.fitness.exercise_history_analytics import ANALYTICS_DB_PATH
 class Env :
     def initialize():
 
@@ -13,7 +14,7 @@ class Env :
         Env.ORCH_TESTING_MODE = os.getenv("ORCH_TESTING_MODE", None)
         Env.GOOGLE_CLIENT_SECRET_BASE64 = os.getenv("GOOGLE_CLIENT_SECRET_BASE64", None)
         Env.SESSION_DIR = os.getenv("SESSION_DIR", None)
-        Env.ANALYTICS_DB_PATH = os.getenv("ANALYTICS_DB_PATH", None)
+        Env.ANALYTICS_DB_PATH = os.getenv("ANALYTICS_DB_PATH", ANALYTICS_DB_PATH)
         
         # Version and build information
         Env.BUILD_NUMBER = os.getenv("BUILD_NUMBER", "dev")

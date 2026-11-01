@@ -4,6 +4,9 @@ import plotly.io as pio
 
 from common.fitness.exercise_analytics_queries import GROUP_BY_OPTIONS  # noqa: F401  (re-exported for the routes)
 
+# perhaps this should be configurable or moved to a settings file ???? TBD
+ANALYTICS_DB_PATH = '/share/FitnessClub/workouts.sqlite'
+
 METRIC_OPTIONS = {
     'volume': 'Volume',
     'reps': 'Total reps',
