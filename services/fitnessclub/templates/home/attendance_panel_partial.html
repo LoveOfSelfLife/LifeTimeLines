@@ -15,9 +15,10 @@
 
             {% if data.attendance_status == 'attending' %}
                 <p class="text-light mb-2">
-                <span class="badge bg-success me-1">
+                {# <span class="badge bg-success me-1">
                     <i class="bi bi-check-circle-fill me-1"></i>{{ member.name }}
-                </span> will attend
+                </span> #}
+                You indicated that you will attend
                 </p>
 
                 <button class="btn btn-outline-light btn-sm"
@@ -28,10 +29,10 @@
                 </button>
             {% elif data.attendance_status == 'declined' %}
                 <p class="text-light mb-2">
-                <span class="badge bg-danger me-1">
-                    <i class="bi bi-check-circle-fill me-1"></i>{{ member.name }}
-                </span> will NOT attend
-                    
+                {# <span class="badge bg-danger me-1">
+                    <i class="bi bi-x-circle-fill me-1"></i>{{ member.name }}
+                </span>  #}
+                You indicated that you will NOT attend
                 </p>
                 <button class="btn btn-outline-light btn-sm"
                     hx-post="{{ url_for('home.attendance_respond') }}"

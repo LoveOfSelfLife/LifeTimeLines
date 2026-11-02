@@ -189,7 +189,7 @@ class HomePageDataService:
                     'attendance_status': e['confirmstatus'],
                 }
                 for e in events_by_date.get(attention_event['event_date'], [])
-                if e['member_id'] != current_member_id_str
+                # if e['member_id'] != current_member_id_str
             ]
 
             data = {
@@ -357,7 +357,7 @@ class HomePageDataService:
             def _team_members_for_event(event_row: Dict) -> List[Dict]:
                 others = [
                     e for e in events_by_date.get(event_row['event_date'], [])
-                    if e['member_id'] != current_member_id_str
+                    # if e['member_id'] != current_member_id_str
                 ]
                 return [
                     {

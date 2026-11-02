@@ -692,6 +692,6 @@ def build_calendar_service():
     vault.set_secret_to_vault(FITNESS_SECRETS_VAULT_TOKEN, creds.to_json())
 
     # Build the service
-    service = build("calendar", "v3", credentials=creds)
+    service = build("calendar", "v3", credentials=creds, cache_discovery=False)
     return service
 
