@@ -209,7 +209,7 @@ def test_group_summaries_and_exercises(conn):
     assert mov['PUSH-HORZ']['exercise_count'] == 2
     assert mov['PUSH-HORZ']['workout_count'] == 2
     ex = q.group_exercises(conn, 'm1', 'movement', 'PUSH-HORZ')
-    assert [e['exercise_id'] for e in ex] == ['pushup', 'bench']
+    assert [e['exercise_id'] for e in ex] == ['bench', 'pushup']
 
 
 def test_time_series(conn):

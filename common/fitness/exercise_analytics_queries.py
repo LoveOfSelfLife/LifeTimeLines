@@ -178,7 +178,7 @@ def group_summaries(conn, member_id, group_by):
         by_group.setdefault(k['grp'], []).append((k['kind'], k['value']))
     out = [{'group': r['grp'], 'exercise_count': r['exercise_count'], 'workout_count': r['workout_count'],
             'last_date': r['last_ts'][:10], 'volumes': _volumes(by_group.get(r['grp'], []))} for r in base]
-    out.sort(key=lambda s: (s['group'] == NO_GROUP, -s['workout_count'], s['group']))
+    out.sort(key=lambda s: (s['group'] == NO_GROUP, s['group'].lower()))
     return out
 
 
@@ -201,7 +201,7 @@ def group_exercises(conn, member_id, group_by, group):
     out = [{'exercise_id': r['exercise_id'], 'exercise_name': r['exercise_name'],
             'workout_count': r['workout_count'], 'last_date': r['last_ts'][:10],
             'volumes': _volumes(by_ex.get(r['exercise_id'], []))} for r in base]
-    out.sort(key=lambda r: (-r['workout_count'], r['exercise_name']))
+    out.sort(key=lambda r: r['exercise_name'].lower())
     return out
 
 
