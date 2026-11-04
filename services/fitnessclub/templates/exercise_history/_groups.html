@@ -1,3 +1,6 @@
+{% if rebuilt %}
+<div class="alert alert-success py-2 small">Rebuilt: {{ rebuilt[0] }} workout{{ '' if rebuilt[0] == 1 else 's' }}, {{ rebuilt[1] }} exercise rows.</div>
+{% endif %}
 {% if not groups %}
 <p class="text-muted">No exercise history yet. Finish a workout and it will show up here.</p>
 {% else %}

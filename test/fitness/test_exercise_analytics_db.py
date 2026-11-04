@@ -242,3 +242,19 @@ def test_app_parameter_keys_are_understood(conn):
     assert bench['reps'] == 5 and bench['weight_kg'] == pytest.approx(100 * db.LBS_TO_KG)
     assert bench['volume_kg'] == pytest.approx(15 * 100 * db.LBS_TO_KG)
     assert plank['time_sec'] == 60
+
+
+def test_hidden_workouts_are_excluded(conn):
+    hidden = dict(W1, id='wh', hide_workout=True)
+    shown = dict(W2, hide_workout=False)
+    str_hidden = dict(W2, id='wh2', hide_workout='true')
+    assert db.upsert_workout_instance(conn, hidden, EXERCISES) == 0
+    assert db.upsert_workout_instance(conn, str_hidden, EXERCISES) == 0
+    assert db.upsert_workout_instance(conn, shown, EXERCISES) == 1
+    assert count(conn, 'dim_workout') == 1
+
+
+def test_flagging_a_loaded_workout_hidden_removes_it_on_rebuild(conn):
+    db.upsert_workout_instance(conn, W1, EXERCISES)
+    assert db.rebuild_member(conn, 'm1', [dict(W1, hide_workout=True), W2], EXERCISES) == (1, 1)
+    assert [r['workout_instance_id'] for r in conn.execute("SELECT workout_instance_id FROM dim_workout")] == ['w2']

@@ -45,7 +45,8 @@ class MemberWorkoutInstanceEntity (EntityObject):
             "member_program_name",            # name of the member program this workout instance is part of, if any
             "next_time_workout_sections",     # this field is used to store the workout sections with adjustments for the next time already applied.
             "updated_ts",                     # timestamp of the last update to this workout definition
-            "updated_by"                      # member_id of the user who last updated this workout definition
+            "updated_by",                     # member_id of the user who last updated this workout definition
+            "hide_workout"                    # flag to indicate if this workout instance should be hidden - this is useful during testing
             ]
     key_field="id"
     partition_field="member_id"

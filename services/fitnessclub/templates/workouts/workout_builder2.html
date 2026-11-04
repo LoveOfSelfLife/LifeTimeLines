@@ -43,6 +43,16 @@
                             hx-swap="none">
                     </div>
                 </div>
+                <div class="row mb-3">
+                    <div class="col-md-6 mt-3 mt-md-0">
+                        <label for="hide_workout" class="form-label">Hide workout::</label>
+                        <input type="checkbox" id="hide_workout" name="hide_workout" class="form-check-input"
+                            {% if workout.hide_workout %} checked {% endif %}
+                            hx-trigger="change"
+                            hx-post="{{ url_for('workouts.update_hide_workout', workout_id=workout.id) }}"
+                            hx-swap="none">
+                    </div>
+                </div>
                 {% endif %}
 
                 <!-- Action Buttons Row -->

@@ -61,6 +61,23 @@ def root(context=None):
     return hx_render_template('exercise_history/exercise_history.html', groups=groups, context=context, **args)
 
 
+@bp.route('/rebuild', methods=['POST'])
+@auth.login_required
+def rebuild(context=None):
+    """reloads the current member's analytics data from the entity store, then returns the refreshed group list"""
+    member_id = _member_id(context)
+    args = _view_args()
+    conn = _connect(member_id)
+    try:
+        workouts, facts = adb.rebuild_member_from_entity_store(conn, member_id)
+        logger.info(f"rebuilt analytics for member {member_id}: {workouts} workouts, {facts} exercise rows")
+        groups = label_volumes(aq.group_summaries(conn, member_id, args['group_by']))
+    finally:
+        conn.close()
+    return hx_render_template('exercise_history/_groups.html', groups=groups, context=context,
+                              rebuilt=(workouts, facts), **args)
+
+
 @bp.route('/groups')
 @auth.login_required
 def groups(context=None):

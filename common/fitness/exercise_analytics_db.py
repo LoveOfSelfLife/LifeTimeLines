@@ -358,10 +358,23 @@ def upsert_exercise(conn, exercise_id, exercise):
 
 # ---------- maintenance operations ----------
 
+def is_hidden(workout_instance):
+    """the hide_workout flag excludes a workout instance from analytics (stored as a bool or a string)"""
+    value = workout_instance.get('hide_workout')
+    if isinstance(value, str):
+        return value.strip().lower() in ('true', '1', 'yes', 'on')
+    return bool(value)
+
+
+def is_loadable(workout_instance):
+    return bool(workout_instance.get('started_ts') and workout_instance.get('finished_ts')
+                and not is_hidden(workout_instance))
+
+
 def upsert_workout_instance(conn, workout_instance, exercises_by_id):
     """
     Idempotent: replaces everything stored for the workout instance with the facts computed from it.
-    Unfinished instances (no started_ts or finished_ts) are removed from the db rather than loaded.
+    Unfinished or hidden (hide_workout) instances are removed from the db rather than loaded.
     Returns the number of fact rows written.
     exercises_by_id maps exercise id -> ExerciseEntity-like dict (or None).
     """
@@ -369,7 +382,7 @@ def upsert_workout_instance(conn, workout_instance, exercises_by_id):
     member_id = workout_instance.get('member_id')
     if not wid or not member_id:
         raise ValueError("workout instance needs an id and a member_id")
-    if not workout_instance.get('started_ts') or not workout_instance.get('finished_ts'):
+    if not is_loadable(workout_instance):
         delete_workout_instance(conn, wid)
         return 0
 
@@ -438,7 +451,7 @@ def rebuild_member(conn, member_id, workout_instances, exercises_by_id):
     loaded_ids, facts = set(), 0
     for wi in workout_instances:
         n = upsert_workout_instance(conn, wi, exercises_by_id)
-        if wi.get('started_ts') and wi.get('finished_ts'):
+        if is_loadable(wi):
             loaded_ids.add(wi['id'])
             facts += n
     existing = conn.execute("SELECT w.workout_instance_id FROM dim_workout w JOIN dim_member m"

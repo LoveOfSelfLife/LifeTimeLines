@@ -1160,6 +1160,14 @@ def update_workout_name(context=None, workout_id=None):
     set_cache_value('current_workout', w)
     return workout_canvas2(context, workout_id)
 
+@bp.route('/builder/<workout_id>/update_hide_workout', methods=['POST'])
+@auth.login_required
+def update_hide_workout(context=None, workout_id=None):
+    w = get_cache_value('current_workout')
+    w['hide_workout'] = 'hide_workout' in request.form
+    set_cache_value('current_workout', w)
+    return workout_canvas2(context, workout_id)
+
 @bp.route('/builder/<workout_id>/update_times', methods=['POST'])
 @auth.login_required
 def update_workout_times(context=None, workout_id=None):
