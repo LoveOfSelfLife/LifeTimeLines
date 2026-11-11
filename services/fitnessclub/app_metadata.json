@@ -62,12 +62,12 @@
     {
       "kind": "dropdown",
       "id": "clubDropdown",
-      "label": "Analysis",
+      "label": "Analytics",
       "icon": "bi bi-info-circle",
       "children": [
         { "kind": "link", "label": "Workout History", "icon": "bi bi-list-check", "action": { "hx_get": "/workouts/history", "hx_target": "#content", "hx_swap": "innerHTML" } },
         { "kind": "link", "label": "Exercise History", "icon": "bi bi-list-check", "action": { "hx_get": "/exercise_history/", "hx_target": "#content", "hx_swap": "innerHTML" } },
-        { "kind": "link", "label": "Program Objectives", "icon": "bi bi-bullseye", "action": { "hx_get": "/program_analysis/objectives", "hx_target": "#content", "hx_swap": "innerHTML" } }
+        { "kind": "link", "label": "Program Objectives", "icon": "bi bi-bullseye", "action": { "hx_get": "/program_analysis/objectives", "hx_target": "#content", "hx_swap": "innerHTML" }, "visible_when": "member_admin" }
       ]
     },
     {
