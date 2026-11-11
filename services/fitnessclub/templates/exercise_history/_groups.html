@@ -7,14 +7,15 @@
 <div class="list-group">
   {% for g in groups %}
   <a href="#" class="list-group-item list-group-item-action"
-     hx-get="/exercise_history/group" hx-target="#modals-here" hx-swap="innerHTML"
-     hx-vals='{{ {"group": g.group, "group_by": group_by} | tojson | forceescape }}'>
+     hx-get="{{ '/exercise_history/exercise' if group_by == 'exercise' else '/exercise_history/group' }}"
+     hx-target="#modals-here" hx-swap="innerHTML"
+     hx-vals='{{ ({"exercise_id": g.exercise_id, "group_by": group_by} if group_by == "exercise" else {"group": g.group, "group_by": group_by}) | tojson | forceescape }}'>
     <div class="d-flex justify-content-between">
-      <strong>{{ g.group }}</strong>
+      <strong>{{ g.exercise_name if group_by == 'exercise' else g.group }}</strong>
       <small class="text-muted">{{ g.workout_count }} workout{{ '' if g.workout_count == 1 else 's' }}</small>
     </div>
     <small class="text-muted">
-      {{ g.exercise_count }} exercise{{ '' if g.exercise_count == 1 else 's' }} &middot; last {{ g.last_date }}
+      {% if group_by != 'exercise' %}{{ g.exercise_count }} exercise{{ '' if g.exercise_count == 1 else 's' }} &middot; {% endif %}last {{ g.last_date }}
       {% for v in g.volumes %} &middot; {{ v.value }} {{ v.label }}{% endfor %}
     </small>
   </a>

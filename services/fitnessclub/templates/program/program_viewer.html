@@ -121,6 +121,11 @@
 
     </div>
     <div class="modal-footer">
+      <button type="button" class="btn btn-outline-primary"
+              hx-get="{{ url_for('program_analysis.report', program_id=program.id) }}"
+              hx-target="#modals-here" hx-swap="innerHTML">
+        <i class="bi bi-bar-chart-line me-1"></i> Analyze program
+      </button>
       <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
     </div>
   </div>

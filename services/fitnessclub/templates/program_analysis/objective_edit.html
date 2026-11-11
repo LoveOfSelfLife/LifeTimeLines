@@ -1,0 +1,123 @@
+<div class="container-fluid" style="max-width: 1100px;">
+  <h3><i class="bi bi-bullseye me-2"></i>{{ 'View' if read_only else ('Edit' if objective.id else 'New') }} objective</h3>
+  {% if read_only %}<div class="alert alert-info">This objective can't be edited by you. Use <em>Copy</em> on the list to make your own version.</div>{% endif %}
+
+  <form id="objective-form" hx-post="{{ url_for('program_analysis.objective_save') }}" hx-target="#content" hx-swap="innerHTML"
+        hx-on::config-request="event.detail.parameters['rules_json'] = window.paSerializeRules()">
+    <input type="hidden" name="id" value="{{ objective.id or '' }}">
+    <input type="hidden" name="rules_json" id="rules_json">
+    <div class="row g-3 mb-3">
+      <div class="col-md-6">
+        <label class="form-label" for="obj-name">Name</label>
+        <input class="form-control" id="obj-name" name="name" value="{{ objective.name }}" {{ 'disabled' if read_only }} required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="obj-weight">Secondary muscle weight</label>
+        <input class="form-control" id="obj-weight" name="secondary_muscle_weight" type="number" step="0.05" min="0" max="1"
+               value="{{ objective.secondary_muscle_weight }}" {{ 'disabled' if read_only }}>
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="obj-desc">Description</label>
+        <textarea class="form-control" id="obj-desc" name="description" rows="2" {{ 'disabled' if read_only }}>{{ objective.description }}</textarea>
+      </div>
+    </div>
+
+    <h5>Rules</h5>
+    <p class="small text-muted mb-2">
+      Key: one key, a comma-separated list, or <code>ALL</code> for every key of the dimension (one check per key).
+      Give a <em>min</em>, a <em>max</em> or a <em>target ± tolerance</em>. Metric defaults to exercises (or % of sets with a target).
+      Muscle <em>purpose</em> defaults to strength, so mobility work doesn't count as strengthening.
+    </p>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle" id="rules-table">
+        <thead><tr><th>Dimension</th><th>Key(s)</th><th>Purpose</th><th>Metric</th><th>Min</th><th>Max</th><th>Target</th><th>± Tol.</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    {% if not read_only %}<button type="button" class="btn btn-sm btn-outline-secondary mb-3" onclick="window.paAddRule()"><i class="bi bi-plus"></i> Add rule</button>{% endif %}
+
+    <div id="objective-errors"></div>
+    <div class="d-flex gap-2">
+      {% if not read_only %}<button type="submit" class="btn btn-success"><i class="bi bi-check-circle"></i> Save</button>{% endif %}
+      <button type="button" class="btn btn-secondary" hx-get="{{ url_for('program_analysis.objectives_listing') }}" hx-target="#content" hx-swap="innerHTML">
+        {{ 'Back' if read_only else 'Cancel' }}
+      </button>
+    </div>
+  </form>
+
+  {% for dim, keys in key_options.items() %}<datalist id="keys-{{ dim }}">{% for k in keys %}<option value="{{ k }}">{% endfor %}{% if keys %}<option value="ALL">{% endif %}</datalist>{% endfor %}
+
+  <script>
+    (function () {
+      var DIMENSIONS = {{ dimensions | tojson }};
+      var METRICS = {{ metrics | tojson }};
+      var PURPOSES = {{ purposes | tojson }};
+      var READ_ONLY = {{ 'true' if read_only else 'false' }};
+      var tbody = document.querySelector("#rules-table tbody");
+
+      function select(cls, options, value, blank) {
+        var html = '<select class="form-select form-select-sm ' + cls + '"' + (READ_ONLY ? ' disabled' : '') + '>';
+        if (blank) { html += '<option value="">' + blank + '</option>'; }
+        Object.keys(options).forEach(function (k) {
+          html += '<option value="' + k + '"' + (k === value ? ' selected' : '') + '>' + options[k] + '</option>';
+        });
+        return html + '</select>';
+      }
+      function num(cls, value) {
+        return '<input type="number" step="any" class="form-control form-control-sm ' + cls + '" value="' +
+               (value === undefined || value === null ? '' : value) + '"' + (READ_ONLY ? ' disabled' : '') + '>';
+      }
+      function keyText(rule) {
+        if (rule.keys === "ALL") { return "ALL"; }
+        if (Array.isArray(rule.keys)) { return rule.keys.join(", "); }
+        return rule.key || "";
+      }
+      function refreshDatalist(tr) {
+        tr.querySelector(".r-key").setAttribute("list", "keys-" + tr.querySelector(".r-dim").value);
+        var muscle = tr.querySelector(".r-dim").value === "muscle";
+        tr.querySelector(".r-purpose").disabled = READ_ONLY || !muscle;
+      }
+
+      window.paAddRule = function (rule) {
+        rule = rule || {dimension: "pattern", min: 1};
+        var purposes = {}; PURPOSES.forEach(function (p) { purposes[p] = p; });
+        var tr = document.createElement("tr");
+        tr.innerHTML =
+          '<td>' + select("r-dim", DIMENSIONS, rule.dimension) + '</td>' +
+          '<td><input class="form-control form-control-sm r-key" value="' + keyText(rule).replace(/"/g, "&quot;") + '"' + (READ_ONLY ? ' disabled' : '') + '></td>' +
+          '<td>' + select("r-purpose", purposes, rule.purpose || "strength") + '</td>' +
+          '<td>' + select("r-metric", METRICS, rule.metric || "", "(auto)") + '</td>' +
+          '<td>' + num("r-min", rule.min) + '</td><td>' + num("r-max", rule.max) + '</td>' +
+          '<td>' + num("r-target", rule.target) + '</td><td>' + num("r-tol", rule.tolerance) + '</td>' +
+          '<td>' + (READ_ONLY ? '' : '<button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest(\'tr\').remove()"><i class="bi bi-x"></i></button>') + '</td>';
+        tr.querySelector(".r-dim").addEventListener("change", function () { refreshDatalist(tr); });
+        tbody.appendChild(tr);
+        refreshDatalist(tr);
+      };
+
+      window.paSerializeRules = function () {
+        var rules = [];
+        tbody.querySelectorAll("tr").forEach(function (tr) {
+          var dim = tr.querySelector(".r-dim").value;
+          var parts = tr.querySelector(".r-key").value.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+          var rule = {dimension: dim};
+          if (parts.length === 1 && parts[0].toUpperCase() !== "ALL") { rule.key = parts[0]; }
+          else if (parts.length === 1) { rule.keys = "ALL"; }
+          else if (parts.length > 1) { rule.keys = parts; }
+          if (dim === "muscle") { rule.purpose = tr.querySelector(".r-purpose").value; }
+          var metric = tr.querySelector(".r-metric").value;
+          if (metric) { rule.metric = metric; }
+          [["min", ".r-min"], ["max", ".r-max"], ["target", ".r-target"], ["tolerance", ".r-tol"]].forEach(function (f) {
+            var v = tr.querySelector(f[1]).value;
+            if (v !== "") { rule[f[0]] = parseFloat(v); }
+          });
+          rules.push(rule);
+        });
+        return JSON.stringify(rules);
+      };
+
+      var existing = {{ (objective.rules or []) | tojson }};
+      if (existing.length) { existing.forEach(window.paAddRule); } else if (!READ_ONLY) { window.paAddRule(); }
+    })();
+  </script>
+</div>

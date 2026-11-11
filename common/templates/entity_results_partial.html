@@ -1,5 +1,8 @@
-
-
+<style>
+    .entity-action-spinner { visibility: hidden; }
+    .entity-action-loading.htmx-request > .entity-action-spinner { visibility: visible; }
+    .entity-action-loading.htmx-request > .entity-action-icon { visibility: hidden; }
+</style>
 <input type="hidden" name="view" value="{{ view }}">
 {% set allow_multi_select = allow_multi_select|default(false) %}
 {% set multi_select_checkbox_name = multi_select_checkbox_name|default('selected_entity_keys') %}
@@ -40,6 +43,9 @@
                     {% endfor %}
                     {% if entity_action_route and not allow_multi_select %}
                     <th scope="col" class="text-center">{{ entity_action_label }}</th>
+                    {% endif %}
+                    {% if entity_action2_route and not allow_multi_select %}
+                    <th scope="col" class="text-center">{{ entity_action2_label }}</th>
                     {% endif %}
                 </tr>
             </thead>
@@ -109,13 +115,41 @@
                         {% set action_target = main_content_container %}
                     {% endif %}
 
+                    {% if entity_action2_route_method %}
+                            {% set action2_method = entity_action2_route_method %}
+                    {% else %}
+                        {% set action2_method = "get" %}
+                    {% endif %}
+
+                    {% if entity_action2_route_target %}
+                            {% set action2_target = entity_action2_route_target %}
+                    {% else %}
+                        {% set action2_target = main_content_container %}
+                    {% endif %}
+
                     {% if entity_action_route and not allow_multi_select %}
                     <td class="text-center">
-                        <button class="btn btn-sm btn-outline-light"
+                        <button type="button" class="btn btn-sm btn-outline-light {% if action_target in ['modals-here', 'dialog'] %}position-relative entity-action-loading{% endif %}"
                             hx-{{ action_method }}="{{ entity_action_route }}&key={{ entity.key }}&page={{ page }}&filter={{ filter_terms }}"
                             hx-target="#{{ action_target }}"
+                            {% if action_target in ['modals-here', 'dialog'] %}hx-disabled-elt="this"{% endif %}
+                            aria-label="{{ entity_action_label or 'Action' }}"
                             hx-swap="innerHTML show:top">
-                            <i class="bi {{ entity_action_icon}}"></i>
+                            <i class="bi {{ entity_action_icon}} entity-action-icon" aria-hidden="true"></i>
+                            {% if action_target in ['modals-here', 'dialog'] %}{% include '_entity_action_spinner.html' %}{% endif %}
+                        </button>
+                    </td>
+                    {% endif %}
+                    {% if entity_action2_route and not allow_multi_select %}
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-outline-light {% if action2_target in ['modals-here', 'dialog'] %}position-relative entity-action-loading{% endif %}"
+                            hx-{{ action2_method }}="{{ entity_action2_route }}&key={{ entity.key }}&page={{ page }}&filter={{ filter_terms }}"
+                            hx-target="#{{ action2_target }}"
+                            {% if action2_target in ['modals-here', 'dialog'] %}hx-disabled-elt="this"{% endif %}
+                            aria-label="{{ entity_action2_label or 'Action' }}"
+                            hx-swap="innerHTML show:top">
+                            <i class="bi {{ entity_action2_icon}} entity-action-icon" aria-hidden="true"></i>
+                            {% if action2_target in ['modals-here', 'dialog'] %}{% include '_entity_action_spinner.html' %}{% endif %}
                         </button>
                     </td>
                     {% endif %}
@@ -199,4 +233,3 @@
     {% endfor %}
 </div>
 {% endif %}
-

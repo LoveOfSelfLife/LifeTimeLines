@@ -117,11 +117,11 @@ def family_trend(conn, member_id, family, period='week_start'):
 NO_GROUP = '(none)'
 
 GROUP_BY_OPTIONS = {
-    'family': 'Exercise family',
+    'exercise': 'No grouping (individual exercises)',
+    # 'family': 'Exercise family',
     'movement': 'Movement pattern',
     'muscle': 'Primary muscle',
     'equipment': 'Equipment',
-    'exercise': 'Individual exercise',
 }
 
 # group_by -> (extra joins, expression naming the group). Left joins put exercises lacking the
@@ -182,18 +182,15 @@ def group_summaries(conn, member_id, group_by):
     return out
 
 
-def group_exercises(conn, member_id, group_by, group):
-    """the exercises within one group, most frequently done first"""
-    joins, expr = _grouping(group_by)
-    params = {'member_id': member_id, 'grp': group}
+def _exercise_summaries(conn, joins, where, params):
     base = _rows(conn, f"""
         SELECT e.exercise_id, e.name AS exercise_name, COUNT(DISTINCT f.workout_key) AS workout_count,
                MAX(w.started_ts) AS last_ts
-        {_FROM} {joins} WHERE m.member_id = :member_id AND {expr} = :grp
+        {_FROM} {joins} WHERE {where}
         GROUP BY e.exercise_id, e.name""", params)
     kinds = _rows(conn, f"""
         SELECT e.exercise_id, f.volume_kind AS kind, SUM({VOLUME_EXPR}) AS value
-        {_FROM} {joins} WHERE m.member_id = :member_id AND {expr} = :grp
+        {_FROM} {joins} WHERE {where}
         GROUP BY e.exercise_id, f.volume_kind""", params)
     by_ex = {}
     for k in kinds:
@@ -203,6 +200,18 @@ def group_exercises(conn, member_id, group_by, group):
             'volumes': _volumes(by_ex.get(r['exercise_id'], []))} for r in base]
     out.sort(key=lambda r: r['exercise_name'].lower())
     return out
+
+
+def exercise_summaries(conn, member_id):
+    """All individual exercises performed by the member."""
+    return _exercise_summaries(conn, "", "m.member_id = :member_id", {'member_id': member_id})
+
+
+def group_exercises(conn, member_id, group_by, group):
+    """The exercises within one group, sorted by name."""
+    joins, expr = _grouping(group_by)
+    return _exercise_summaries(conn, joins, f"m.member_id = :member_id AND {expr} = :grp",
+                               {'member_id': member_id, 'grp': group})
 
 
 def exercise_name(conn, exercise_id):

@@ -212,6 +212,25 @@ def test_group_summaries_and_exercises(conn):
     assert [e['exercise_id'] for e in ex] == ['bench', 'pushup']
 
 
+def test_individual_exercise_summaries_are_member_scoped_and_keep_distinct_ids(conn):
+    exercises = dict(EXERCISES, other_pushup=dict(EXERCISES['pushup']))
+    same_name = workout('w3', '2025-02-01T10:00:00Z', '2025-02-01T11:00:00Z',
+                        [('other_pushup', {'sets': 1, 'reps': 5})])
+    other_member = workout('w4', '2025-02-02T10:00:00Z', '2025-02-02T11:00:00Z',
+                           [('squat', {'sets': 1, 'reps': 1})], member='m2')
+    for w in (W1, W2, same_name, other_member):
+        db.upsert_workout_instance(conn, w, exercises)
+
+    rows = q.exercise_summaries(conn, 'm1')
+    assert [r['exercise_id'] for r in rows] == ['bench', 'plank', 'other_pushup', 'pushup', 'squat']
+    pushup = next(r for r in rows if r['exercise_id'] == 'pushup')
+    assert pushup['workout_count'] == 2
+    assert pushup['last_date'] == '2025-01-13'
+    assert pushup['volumes'] == [{'kind': 'reps', 'value': 54.0}]
+    assert [r['exercise_id'] for r in q.exercise_summaries(conn, 'm2')] == ['squat']
+    assert q.exercise_summaries(conn, 'unknown') == []
+
+
 def test_time_series(conn):
     for w in (W1, W2):
         db.upsert_workout_instance(conn, w, EXERCISES)

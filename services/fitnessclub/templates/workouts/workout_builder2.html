@@ -89,7 +89,7 @@
                         hx-post="{{ url_for('workouts.save_workout_copy', workout_id=workout.id) }}"
                         hx-target="#entities-container" hx-swap="show:top"
                         hx-prompt="Enter a name for the copy of '{{ workout.name }}':">
-                        <i class="bi bi-copy"></i> Copy
+                        <i class="bi bi-files"></i> Copy
                     </button>
                     {% endif %}
 

@@ -31,7 +31,7 @@ def _member_id(context):
 
 def _view_args():
     return {
-        'group_by': _arg('group_by', GROUP_BY_OPTIONS, 'family'),
+        'group_by': _arg('group_by', GROUP_BY_OPTIONS, 'exercise'),
         'metric': _arg('metric', METRIC_OPTIONS, 'volume'),
         'resolution': _arg('resolution', RESOLUTION_OPTIONS, 'workout'),
         'group_by_options': GROUP_BY_OPTIONS,
@@ -48,6 +48,12 @@ def _connect(member_id, build=False):
     return conn
 
 
+def _listing(conn, member_id, group_by):
+    if group_by == 'exercise':
+        return label_volumes(aq.exercise_summaries(conn, member_id))
+    return label_volumes(aq.group_summaries(conn, member_id, group_by))
+
+
 @bp.route('/')
 @auth.login_required
 def root(context=None):
@@ -55,7 +61,7 @@ def root(context=None):
     args = _view_args()
     conn = _connect(member_id, build=True)
     try:
-        groups = label_volumes(aq.group_summaries(conn, member_id, args['group_by']))
+        groups = _listing(conn, member_id, args['group_by'])
     finally:
         conn.close()
     return hx_render_template('exercise_history/exercise_history.html', groups=groups, context=context, **args)
@@ -71,7 +77,7 @@ def rebuild(context=None):
     try:
         workouts, facts = adb.rebuild_member_from_entity_store(conn, member_id)
         logger.info(f"rebuilt analytics for member {member_id}: {workouts} workouts, {facts} exercise rows")
-        groups = label_volumes(aq.group_summaries(conn, member_id, args['group_by']))
+        groups = _listing(conn, member_id, args['group_by'])
     finally:
         conn.close()
     return hx_render_template('exercise_history/_groups.html', groups=groups, context=context,
@@ -85,7 +91,7 @@ def groups(context=None):
     args = _view_args()
     conn = _connect(member_id)
     try:
-        groups = label_volumes(aq.group_summaries(conn, member_id, args['group_by']))
+        groups = _listing(conn, member_id, args['group_by'])
     finally:
         conn.close()
     return hx_render_template('exercise_history/_groups.html', groups=groups, context=context, **args)

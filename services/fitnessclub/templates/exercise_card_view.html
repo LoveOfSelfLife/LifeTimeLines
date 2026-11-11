@@ -110,12 +110,14 @@
                                 {% else %}
                                     {% set action_target = main_content_container %}
                                 {% endif %}
-                                <button class="btn btn-sm btn-outline-secondary"
+                                <button type="button" class="btn btn-sm btn-outline-secondary {% if action_target in ['modals-here', 'dialog'] %}position-relative entity-action-loading{% endif %}"
                                     hx-{{ action_method }}="{{ entity_action_route }}&key={{ entity.key }}&page={{ page }}&filter={{ filter_terms }}"
                                     hx-target="#{{ action_target }}"
+                                    {% if action_target in ['modals-here', 'dialog'] %}hx-disabled-elt="this"{% endif %}
                                     hx-swap="innerHTML show:top"
-                                    title="Edit Exercise">
-                                    <i class="bi {{ entity_action_icon}}"></i>
+                                    title="Edit Exercise" aria-label="{{ entity_action_label or 'Action' }}">
+                                    <i class="bi {{ entity_action_icon}} entity-action-icon" aria-hidden="true"></i>
+                                    {% if action_target in ['modals-here', 'dialog'] %}{% include '_entity_action_spinner.html' %}{% endif %}
                                 </button>
                             {% endif %}
                         </div>

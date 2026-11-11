@@ -1,22 +1,28 @@
 <div class="container-fluid py-3">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h3 class="mb-0">Exercise History</h3>
-    <button type="button" class="btn btn-outline-secondary btn-sm"
+    {# <button type="button" class="btn btn-outline-secondary btn-sm"
             hx-post="/exercise_history/rebuild" hx-target="#eh-groups" hx-swap="innerHTML"
             hx-include="#group_by" hx-indicator="#eh-rebuild-spinner"
             hx-disabled-elt="this"
             hx-confirm="Rebuild your exercise history from your saved workouts?">
       <span id="eh-rebuild-spinner" class="spinner-border spinner-border-sm htmx-indicator" role="status"></span>
       <i class="bi bi-arrow-repeat"></i> Rebuild
-    </button>
+    </button> #}
   </div>
-  <label for="group_by" class="form-label fw-bold">Group by</label>
-  <select id="group_by" name="group_by" class="form-select mb-3"
-          hx-get="/exercise_history/groups" hx-target="#eh-groups" hx-swap="innerHTML">
-    {% for key, label in group_by_options.items() %}
-    <option value="{{ key }}" {% if key == group_by %}selected{% endif %}>{{ label }}</option>
-    {% endfor %}
-  </select>
+  <div class="mb-3" style="max-width: 20rem;">
+    <label for="group_by" class="form-label small mb-1">Group by (optional)</label>
+    <div class="position-relative">
+      <select id="group_by" name="group_by" class="form-select form-select-sm pe-5"
+              hx-get="/exercise_history/groups" hx-target="#eh-groups" hx-swap="innerHTML">
+        {% for key, label in group_by_options.items() %}
+        <option value="{{ key }}" {% if key == group_by %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <i class="bi bi-caret-down-fill position-absolute top-50 end-0 translate-middle-y me-3"
+         aria-hidden="true" style="pointer-events: none;"></i>
+    </div>
+  </div>
   <div id="eh-groups">
     {% include 'exercise_history/_groups.html' %}
   </div>

@@ -4,22 +4,22 @@
 <!-- <h2 class="mb-4 text-center">{{ workout.name }}</h2> -->
 {% set counter = namespace(first_time=True) %}
 
-<div class="accordion" id="sectionsAccordion">
+<div class="accordion" id="sectionsAccordion-{{ workout.id }}">
   {% for section in workout_sections %}
     {% if section.exercises|length  == 0 %}
       
     {% else %}
 
     <div class="accordion-item">
-      <h2 class="accordion-header" id="hdr-{{ section.name }}">
+      <h2 class="accordion-header" id="hdr-{{ workout.id }}-{{ loop.index }}">
 
       <button
         class="accordion-button {% if counter.first_time %}  {% else %} collapsed {% endif %}"
         type="button"
         data-bs-toggle="collapse"
-        data-bs-target="#collapse-{{ section.name }}"
+        data-bs-target="#collapse-{{ workout.id }}-{{ loop.index }}"
         aria-expanded="{{ 'true' if counter.first_time else 'false' }}"
-        aria-controls="collapse-{{ section.name }}"
+        aria-controls="collapse-{{ workout.id }}-{{ loop.index }}"
       >
         <span class="accordion-header-icon">
           <!-- simple chevron icon: you can also use FontAwesome or similar -->
@@ -34,9 +34,9 @@
 
       </h2>
       <div
-        id="collapse-{{ section.name }}"
+        id="collapse-{{ workout.id }}-{{ loop.index }}"
         class="accordion-collapse collapse {% if counter.first_time %} show {% endif %}"
-        data-bs-parent="#sectionsAccordion"
+        data-bs-parent="#sectionsAccordion-{{ workout.id }}"
       >
         <div class="accordion-body p-0">
           <div class="list-group">
