@@ -41,6 +41,7 @@
                                 <i class="bi bi-calendar-check me-1"></i>{{ entity_action_label }}
                             </small> #}
                             <small class="text-bold">{{ entity.card_view_fields.member_name }}</small>
+                            <div class="d-flex gap-2">
                             {% if entity_action_route %}
                                 {% if entity_action_route_method %}
                                     {% set action_method = entity_action_route_method %}
@@ -62,6 +63,20 @@
                                     {% if action_target in ['modals-here', 'dialog'] %}{% include '_entity_action_spinner.html' %}{% endif %}
                                 </button>
                             {% endif %}
+                            {% if entity_action2_route and not allow_multi_select %}
+                                {% set action2_method = entity_action2_route_method or 'get' %}
+                                {% set action2_target = entity_action2_route_target or main_content_container %}
+                                <button type="button" class="btn btn-sm btn-outline-secondary {% if action2_target in ['modals-here', 'dialog'] %}position-relative entity-action-loading{% endif %}"
+                                    hx-{{ action2_method }}="{{ entity_action2_route }}&key={{ entity.key }}&page={{ page }}&filter={{ filter_terms }}"
+                                    hx-target="#{{ action2_target }}"
+                                    {% if action2_target in ['modals-here', 'dialog'] %}hx-disabled-elt="this"{% endif %}
+                                    hx-swap="innerHTML show:top"
+                                    title="{{ entity_action2_label or 'Action' }}" aria-label="{{ entity_action2_label or 'Action' }}">
+                                    <i class="bi {{ entity_action2_icon }} entity-action-icon" aria-hidden="true"></i>
+                                    {% if action2_target in ['modals-here', 'dialog'] %}{% include '_entity_action_spinner.html' %}{% endif %}
+                                </button>
+                            {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>

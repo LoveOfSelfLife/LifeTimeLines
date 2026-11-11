@@ -81,3 +81,57 @@ def test_second_list_action_gets_its_own_modal_spinner():
     assert not actions['Edit']['spinner']
     assert actions['Analyze']['spinner']
     assert actions['Analyze']['attrs']['hx-disabled-elt'] == 'this'
+
+
+@pytest.mark.parametrize('card_template', [None, 'program_card_view.html'])
+@pytest.mark.parametrize('method,target', [
+    (None, None), ('post', 'dialog'), ('get', 'modals-here'),
+])
+def test_second_card_action_respects_configuration(card_template, method, target):
+    app = Flask(__name__)
+    app.jinja_loader = ChoiceLoader([
+        FileSystemLoader(str(ROOT / 'services' / 'fitnessclub' / 'templates')),
+        FileSystemLoader(str(ROOT / 'common' / 'templates')),
+    ])
+    with app.test_request_context():
+        html = render_template(
+            'entity_results_partial.html', view='card', entity_card_view_html=card_template,
+            entities=[{'entity_id': 'one', 'key': 'one', 'is_favorite': False,
+                       'card_view_fields': {'title': 'One', 'subtitle': '', 'description': '', 'member_name': ''}}],
+            entity_name='test', filter_terms=[], entity_action_route='/edit?', entity_action_label='Edit',
+            entity_action_icon='bi-pencil', entity_action2_route='/analyze?', entity_action2_label='Analyze',
+            entity_action2_icon='bi-bar-chart', entity_action2_route_method=method,
+            entity_action2_route_target=target, main_content_container='entities-container',
+            entities_listing_route='/list?', page=2, total_pages=2,
+        )
+    parser = ButtonParser()
+    parser.feed(html)
+    actions = {b['attrs'].get('aria-label'): b for b in parser.buttons}
+    action = actions['Analyze']
+    assert actions['Edit']
+    assert action['attrs']['hx-' + (method or 'get')] == '/analyze?&key=one&page=2&filter=[]'
+    assert action['attrs']['hx-target'] == '#' + (target or 'entities-container')
+    assert action['spinner'] is (target in ('dialog', 'modals-here'))
+    assert ('hx-disabled-elt' in action['attrs']) is action['spinner']
+
+
+@pytest.mark.parametrize('card_template', [None, 'program_card_view.html'])
+@pytest.mark.parametrize('enabled,multi_select', [(False, False), (True, True)])
+def test_second_card_action_is_hidden_when_unavailable(card_template, enabled, multi_select):
+    app = Flask(__name__)
+    app.jinja_loader = ChoiceLoader([
+        FileSystemLoader(str(ROOT / 'services' / 'fitnessclub' / 'templates')),
+        FileSystemLoader(str(ROOT / 'common' / 'templates')),
+    ])
+    with app.test_request_context():
+        html = render_template(
+            'entity_results_partial.html', view='card', entity_card_view_html=card_template,
+            entities=[{'entity_id': 'one', 'key': 'one', 'is_favorite': False,
+                       'card_view_fields': {'title': 'One', 'subtitle': '', 'description': '', 'member_name': ''}}],
+            entity_name='test', filter_terms=[], entity_action2_route='/analyze?' if enabled else None,
+            entity_action2_label='Analyze', allow_multi_select=multi_select,
+            main_content_container='entities-container', entities_listing_route='/list?', page=1, total_pages=1,
+        )
+    parser = ButtonParser()
+    parser.feed(html)
+    assert not any(b['attrs'].get('aria-label') == 'Analyze' for b in parser.buttons)
