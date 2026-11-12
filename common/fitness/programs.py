@@ -1,11 +1,13 @@
 import sys
-from common.fitness.entities_getter import get_filtered_entities
-from common.fitness.favorites_entity import FavoritesEntity, get_all_favorite_entity_ids
+from common.entities_getter import get_filtered_entities
+from common.favorites_entity import FavoritesEntity, get_all_favorite_entity_ids
 from common.fitness.member_program_entity import MemberProgramsEntity
 from datetime import datetime as dt
-from common.fitness.roles_service import get_member_role, get_team_coaches_with_details, get_team_for_client
+from common.roles_service import get_member_role, get_team_coaches_with_details, get_team_for_client
 
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity
+import logging
+logger = logging.getLogger(__name__)
 
 def _parse_program_boundary(boundary_value):
     if not boundary_value:
@@ -63,6 +65,8 @@ def get_members_current_active_program(member_id, current_date_dt=None):
     # currrent_date_dt is a datetime object with timezone info as UTC, we need to convert it to local timezone for comparison with the program start and end dates, which are in local timezone
     import pytz
     current_date_dt = current_date_dt.astimezone(pytz.timezone('US/Eastern'))
+    # remove the time portion, keeping only the date (midnight local time)
+    current_date_dt = current_date_dt.replace(hour=0, minute=0, second=0, microsecond=0)
     
     active_programs = []
     for program in programs:
@@ -86,7 +90,7 @@ def get_members_current_active_program(member_id, current_date_dt=None):
         reverse=True
     )
     selected_program = active_programs[0]
-    print(f"Found active program for member {member_id}: {selected_program}")
+    logger.debug(f"Found active program for member {member_id}: {selected_program}")
     return selected_program
 
 
@@ -179,7 +183,7 @@ def get_next_workout_in_program(program, member_id):
     next_workout = [w for w in workouts_in_program if w['id'] == least_recent_workout_id][0]
     last_workout_intance_key = workout_last_completion[least_recent_workout_id].get('instance_key', None)
     last_workout_adjustments = workout_last_completion[least_recent_workout_id].get('adjustments_for_next_workout', {})
-    print(f"Next workout for member {member_id} in program {program.get('id')}: {next_workout}, last instance key: {last_workout_intance_key}")
+    logger.debug(f"Next workout for member {member_id} in program {program.get('id')}: {next_workout}, last instance key: {last_workout_intance_key}")
 
     return {'next_workout_key' : next_workout.get_composite_key(), 
             'last_workout_instance_key': last_workout_intance_key, 

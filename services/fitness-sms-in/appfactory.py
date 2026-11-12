@@ -12,8 +12,8 @@ from common.table_store import TableStore
 from common.graceful_exit import GracefulExit
 from common.auth_requestor import AuthRequestor
 
-from common.fitness.inbound_sms_queue import InboundSMSQueue
-from common.fitness.sms_processor import process_sms_message, parse_sms_message
+from common.notifications.inbound_sms_queue import InboundSMSQueue
+from common.notifications.sms_processor import process_sms_message, parse_sms_message
 
 def main() -> None:
 

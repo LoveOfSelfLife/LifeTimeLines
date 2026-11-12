@@ -10,6 +10,10 @@ on:
               type: string
               description: Container app to provision
               required: true
+          input_redirect_uri:
+              type: string
+              description: Redirect URI for the container app
+              required: false
 jobs:
 
   call-provision-container-app:
@@ -23,6 +27,7 @@ jobs:
       containerapp_template: $ACA_TEMPLATE
       containerapp_location: East US 2
       queue_name: $QUEUE_NAME
+      input_redirect_uri: ${{ github.event.inputs.input_redirect_uri }}
     secrets:
       container_registry: ${{ secrets.container_registry }}
       container_registry_id: ${{ secrets.container_registry_id }}

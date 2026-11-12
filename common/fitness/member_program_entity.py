@@ -12,7 +12,8 @@ from common.entity_store import EntityObject
 
 class MemberProgramsEntity (EntityObject):
     table_name="MemberProgramsTable"
-    fields=["id", "name", "created_by", "created_ts", "description", "start_date", "end_date", "assigned_to_member_id"]
+    fields=["id", "name", "created_by", "created_ts", "description", "start_date", "end_date", "assigned_to_member_id",
+            "objective_ids"]   # ids of the program objectives this program is measured against
     key_field="id"
     partition_value="programs"
 

@@ -2,8 +2,8 @@
 from flask import request
 
 from common.entity_store import EntityObject
-from common.fitness.entities_getter import get_entity
-from common.fitness.hx_common import hx_render_template
+from common.entities_getter import get_entity
+from common.template_renderer import hx_render_template
 
 
 class MemberWorkoutDefinitionEntity (EntityObject):
@@ -45,7 +45,8 @@ class MemberWorkoutInstanceEntity (EntityObject):
             "member_program_name",            # name of the member program this workout instance is part of, if any
             "next_time_workout_sections",     # this field is used to store the workout sections with adjustments for the next time already applied.
             "updated_ts",                     # timestamp of the last update to this workout definition
-            "updated_by"                      # member_id of the user who last updated this workout definition
+            "updated_by",                     # member_id of the user who last updated this workout definition
+            "hide_workout"                    # flag to indicate if this workout instance should be hidden - this is useful during testing
             ]
     key_field="id"
     partition_field="member_id"
@@ -183,7 +184,7 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
         entity_action_route_target="program-canvas",
         entity_action_icon='bi-plus',  
         entity_action_label='Add Workout',
-        favorite_toggle_route='/admin/toggle-favorite',
+        favorite_toggle_route='/favorites/toggle',
         results_target_container=results_target_container,
         entity_card_view_html='workout_card_view.html',
         context=context)

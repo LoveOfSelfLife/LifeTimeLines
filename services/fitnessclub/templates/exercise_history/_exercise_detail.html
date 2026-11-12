@@ -1,0 +1,32 @@
+<div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable modal-fullscreen-sm-down" role="document">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title">{{ exercise_name }}</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+      {% if group %}
+      <a href="#" class="inline-block mb-2 fw-bold text-white" hx-get="/exercise_history/group" hx-target="#modals-here" hx-swap="innerHTML"
+         hx-vals='{{ {"group": group, "group_by": group_by} | tojson | forceescape }}'>&larr; Back</a>
+      {% endif %}
+      {% set chart_url = '/exercise_history/exercise' %}
+      {% set chart_vals = {'exercise_id': exercise_id, 'group': group, 'group_by': group_by} %}
+      {% include 'exercise_history/_chart.html' %}
+
+      <h6 class="mt-3">Workouts</h6>
+      <div class="table-responsive">
+        <table class="table table-sm text-nowrap">
+          <thead><tr><th>Date</th><th>Sets</th><th>Reps</th><th>Weight (kg)</th><th>Time (s)</th><th>Volume</th></tr></thead>
+          <tbody>
+            {% for w in workouts %}
+            <tr>
+              <td>{{ w.date }}</td><td>{{ w.sets }}</td><td>{{ w.reps }}</td><td>{{ w.weight }}</td><td>{{ w.time }}</td>
+              <td>{{ w.volume }} <small class="text-muted">{{ w.volume_label }}</small></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>

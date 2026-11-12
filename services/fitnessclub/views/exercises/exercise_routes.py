@@ -1,25 +1,31 @@
 from ast import literal_eval
 import json
 from urllib import response
-from flask import Blueprint, abort, make_response, redirect, render_template, request, session, url_for, jsonify
-from common.entity_store import EntityStore
-from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
-from common.fitness.entities_getter import resolve_selected_entity_keys, clear_selected_entity_keys
-from common.fitness.entities_getter import as_bool
-from common.fitness.entities_getter import MULTI_SELECT_SESSION_KEY
-from common.fitness.cacher import get_cache_value, set_cache_value
+from flask import abort, make_response, redirect, render_template, request, session, url_for, jsonify
+from common.blueprint import create_blueprint
+from common.entity_store import EntityStore, get_entity_obj_from_entity_name
+from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_listing_fields_for_entity
+from common.entities_getter import resolve_selected_entity_keys, clear_selected_entity_keys
+from common.entities_getter import as_bool
+from common.entities_getter import MULTI_SELECT_SESSION_KEY
+from common.cacher import get_cache_value, set_cache_value
 from common.fitness.exercise_entity import show_exercise_viewer
 from common.fitness.exercise_entity import movement_category_definitions
-from common.fitness.hx_common import parse_listing_filter
-from common.fitness.entities_getter import get_entities
+from common.filter_funcs import get_filter_terms_from_request
+from common.filter_funcs import parse_listing_filter
+from common.entities_getter import get_entities
 from common.fitness.exercise_entity import EQUIPMENT, ExerciseEntity
-from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
-from common.fitness.member_entity import get_member_id_from_user_context
+from common.template_renderer import hx_render_template
+from common.member_entity import get_member_id_from_user_context
 from common.fitness.exercise_schema import exercise_schema
 from common.fitness.member_exercise_history import get_exercise_history_for_member
-from common.fitness.utils import generate_id
-bp = Blueprint('exercises', __name__, template_folder='templates')
-from auth import auth
+from common.utils import generate_id
+
+bp = create_blueprint('exercises', __name__)
+import logging
+logger = logging.getLogger(__name__)
+
+from common.auth import auth
 @bp.route('/')
 @auth.login_required
 def root(context=None):
@@ -29,7 +35,7 @@ def root(context=None):
     page = int(request.args.get('page', 1))
     filter_terms = get_filter_terms_from_request()
 
-    return exercises_listing2(member_id, page=page, filter_terms=filter_terms)
+    return exercises_listing2(context, member_id, page=page, filter_terms=filter_terms)
 
 @bp.route('/exercises-listing', methods=['GET', 'POST'])
 @auth.login_required
@@ -40,7 +46,7 @@ def exercises_listing(context=None):
     page = int(request.args.get('page', 1))
     filter_terms = get_filter_terms_from_request()   
     # modal_mode = as_bool(request.args.get('modal_mode', None), False) if request.method == 'GET' else as_bool(request.form.get('modal_mode', None), False)     
-    return exercises_listing2(member_id, page=page, filter_terms=filter_terms, modal_mode=False)
+    return exercises_listing2(context, member_id, page=page, filter_terms=filter_terms, modal_mode=False)
 
 
 @bp.route('/listing-modal', methods=['GET'])
@@ -53,9 +59,9 @@ def exercises_listing_modal(context=None):
     filter_terms = get_filter_terms_from_request()
     if as_bool(request.args.get('allow_multi_select', None), False):
         clear_selected_entity_keys(member_id)
-    return exercises_listing2(member_id, page=page, filter_terms=filter_terms, modal_mode=True)
+    return exercises_listing2(context, member_id, page=page, filter_terms=filter_terms, modal_mode=True)
 
-def exercises_listing2(member_id, page=1, filter_terms=[], modal_mode=False):
+def exercises_listing2(context, member_id, page=1, filter_terms=[], modal_mode=False):
     entity_name = "ExerciseTable"
 
     page_size = 100
@@ -90,9 +96,11 @@ def exercises_listing2(member_id, page=1, filter_terms=[], modal_mode=False):
             multi_select_checkbox_name='selected_entity_keys',
             multi_select_post_route=multi_select_post_route,
             preferred_section=preferred_section,
+            context=context,
         )
 
     return exercise_listing_base(
+        context,
         entity_name,
         int(page),
         page_size,
@@ -106,7 +114,7 @@ def exercises_listing2(member_id, page=1, filter_terms=[], modal_mode=False):
     )
 
 
-def exercise_listing_base(entity_name, page, page_size, view, fields_to_display, filter_terms, entities, allow_multi_select=False, selected_entity_keys=None, modal_mode=False):
+def exercise_listing_base(context, entity_name, page, page_size, view, fields_to_display, filter_terms, entities, allow_multi_select=False, selected_entity_keys=None, modal_mode=False):
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
     end = start + page_size
@@ -141,6 +149,7 @@ def exercise_listing_base(entity_name, page, page_size, view, fields_to_display,
         entities_listing_route += '&allow_multi_select=true'
 
     template_data = dict(
+        context=context,
         title="Exercises Library",
         entity_name=entity_name,
         main_content_container="entities-container",        
@@ -159,19 +168,18 @@ def exercise_listing_base(entity_name, page, page_size, view, fields_to_display,
         multi_select_button_icon=multi_select_button_icon,
         preferred_section=preferred_section,
         entity_add_route=entity_add_route,
-        filter_dialog_route=f'/exercises/filter-dialog?entity_table={entity_name}',        
         entities_listing_route=entities_listing_route,
         entity_view_route=f'/exercises/view?entity_table={entity_name}',
         entity_action_route=entity_action_route,
         entity_action_icon='bi-pencil-square',
         entity_action_label='Edit Exercise',
-        favorite_toggle_route='/admin/toggle-favorite',
+        favorite_toggle_route='/favorites/toggle',
         results_target_container=results_target_container,
         entity_card_view_html='exercise_card_view.html'        
     )
 
     if modal_mode:
-        return hx_render_template('exercise_listing_modal.html', **template_data)
+        return hx_render_template('exercises/exercise_listing_modal.html', **template_data)
 
     return hx_render_template(template_file_name, **template_data)
 
@@ -194,21 +202,7 @@ def view_exercise_details(context=None):
 
     return show_exercise_viewer(entity_to_view, context, show_dismiss_btn=True)
 
-@bp.route('/filter-dialog')
-@auth.login_required
-def filter_dialog(context=None):
-    entity_name = "ExerciseTable"
-    entity_type = get_entity_obj_from_entity_name(entity_name)
-    filters = get_fitnessclub_entity_filters_for_entity(entity_name)
-    view = request.args.get('view', 'list')
-    return hx_render_template('filter_dialog.html', 
-                              entities_listing_route=f'/exercises/exercises-listing?entity_table={entity_name}',
-                              entity_display_name=entity_type.get_display_name(),                              
-                              entity_name=entity_name,
-                              filters=filters,
-                              view=view,
-                              args=request.args,
-                              context=context)
+
 @bp.route('/exercise-history-dialog')
 @auth.login_required
 def exercise_history_dialog(context=None):
@@ -247,7 +241,7 @@ def new_exercise(context=None):
     # movement_categories is not part of the schema, so default it explicitly
     exercise_data.setdefault('movement_categories', [])
 
-    return hx_render_template('exercises/exercise_editor.html',
+    return hx_render_template('exercises/exercises/exercise_editor.html',
                          exercise=exercise_data,
                          is_new=True,
                          schema=exercise_schema,
@@ -267,10 +261,10 @@ def edit_exercise(context=None):
         abort(400, "No exercise key provided")
         
     composite_key = eval(composite_key_str) if composite_key_str else None
-    print(f"DEBUG: Retrieving exercise with composite key: {composite_key}")
+    logger.debug(f"Retrieving exercise with composite key: {composite_key}")
     es = EntityStore()
     exercise_data = es.get_item_by_composite_key(composite_key)
-    print(f"DEBUG: Raw exercise data retrieved: {exercise_data}")
+    logger.debug(f"Raw exercise data retrieved: {exercise_data}")
     
     if not exercise_data:
         abort(404, "Exercise not found")
@@ -292,13 +286,13 @@ def edit_exercise(context=None):
             can_edit = True
         else:
             # check if the member is an admin
-            from common.fitness.member_entity import is_member_an_admin
+            from common.member_entity import is_member_an_admin
             if is_member_an_admin(member_id):
                 can_edit = True
     if not can_edit:
         current_listing_page=request.args.get('page', 1)
         current_listing_filter_terms = get_filter_terms_from_request()
-        response = make_response(exercises_listing2(member_id, page=current_listing_page, filter_terms=current_listing_filter_terms))
+        response = make_response(exercises_listing2(context,member_id, page=current_listing_page, filter_terms=current_listing_filter_terms))
         response.headers['HX-Trigger'] = json.dumps({
             "showMessage": { "value": f"You do not have permission to edit this exercise.", "target": "body" }
         })
@@ -308,7 +302,7 @@ def edit_exercise(context=None):
     for media_field in ['images', 'videos']:
         if media_field in exercise_data:
             media_value = exercise_data[media_field]
-            print(f"DEBUG: Processing {media_field} - Type: {type(media_value)}, Value: {repr(media_value)}")
+            logger.debug(f"Processing {media_field} - Type: {type(media_value)}, Value: {repr(media_value)}")
             if isinstance(media_value, str) and media_value.strip():
                 try:
                     # Handle both single-quoted and double-quoted JSON strings
@@ -317,22 +311,22 @@ def edit_exercise(context=None):
                         media_value = media_value.replace("'", '"')
                     parsed_media = json.loads(media_value)
                     exercise_data[media_field] = parsed_media if isinstance(parsed_media, list) else []
-                    print(f"SUCCESS: Parsed {media_field} from string: {len(parsed_media)} items - {parsed_media}")
+                    logger.debug(f"SUCCESS: Parsed {media_field} from string: {len(parsed_media)} items - {parsed_media}")
                 except (json.JSONDecodeError, ValueError) as e:
-                    print(f"ERROR: Could not parse {media_field} field '{media_value}': {e}")
+                    logger.error(f"Could not parse {media_field} field '{media_value}': {e}")
                     exercise_data[media_field] = []
             elif isinstance(media_value, list):
                 # Already an array, keep as-is
                 exercise_data[media_field] = media_value
-                print(f"INFO: {media_field} is already an array: {len(media_value)} items - {media_value}")
+                logger.debug(f"{media_field} is already an array: {len(media_value)} items - {media_value}")
             else:
                 # Empty or invalid, set to empty array
                 exercise_data[media_field] = []
-                print(f"WARNING: {media_field} is empty or invalid type, setting to empty array")
+                logger.warning(f"{media_field} is empty or invalid type, setting to empty array")
         else:
             # Field doesn't exist, set to empty array
             exercise_data[media_field] = []
-            print(f"INFO: {media_field} field doesn't exist, setting to empty array")
+            logger.debug(f"{media_field} field doesn't exist, setting to empty array")
 
     # Parse primary and secondary muscles, and movement categories if they are strings
     for muscle_field in ['primaryMuscles', 'secondaryMuscles', 'movement_categories']:
@@ -346,7 +340,7 @@ def edit_exercise(context=None):
                     parsed_muscles = json.loads(muscle_value)
                     exercise_data[muscle_field] = parsed_muscles if isinstance(parsed_muscles, list) else []
                 except (json.JSONDecodeError, ValueError) as e:
-                    print(f"Warning: Could not parse {muscle_field} field '{muscle_value}': {e}")
+                    logger.warning(f"Warning: Could not parse {muscle_field} field '{muscle_value}': {e}")
                     exercise_data[muscle_field] = []
             elif isinstance(muscle_value, list):
                 exercise_data[muscle_field] = muscle_value
@@ -355,14 +349,14 @@ def edit_exercise(context=None):
         else:
             exercise_data[muscle_field] = []
     
-    print(f"Exercise data prepared - Images: {len(exercise_data.get('images', []))}, Videos: {len(exercise_data.get('videos', []))}")
+    logger.debug(f"Exercise data prepared - Images: {len(exercise_data.get('images', []))}, Videos: {len(exercise_data.get('videos', []))}")
     
     # Get exercise ID from the composite key or the data
     exercise_id = exercise_data.get('id')
     equipment_types = list(dict.fromkeys(EQUIPMENT + exercise_data['equipment_list']))
     current_listing_page=request.args.get('page', 1)
     current_listing_filter=request.args.get('filter', '')   
-    return hx_render_template('exercises/exercise_editor.html',
+    return hx_render_template('exercises/exercises/exercise_editor.html',
                          exercise=exercise_data,
                          is_new=False,
                          schema=exercise_schema,  
@@ -380,7 +374,7 @@ def save_exercise(exercise_id=None, context=None):
     try:
         # Get form data
         exercise_data = dict(request.form)
-        print(f"DEBUG SAVE: Raw form data received: {dict(request.form)}")
+        logger.debug(f"Raw form data received: {dict(request.form)}")
         
         # Handle array fields (checkboxes and multi-selects)
         array_fields = ['primaryMuscles', 'secondaryMuscles', 'physical_fitness_components', 'movement_categories', 'equipment_list']
@@ -393,31 +387,33 @@ def save_exercise(exercise_id=None, context=None):
         
         # Handle images and videos from media manager with safe JSON parsing
         images_data_raw = request.form.get('images_data', '[]').strip()
-        print(f"DEBUG SAVE: Raw images_data received: {repr(images_data_raw)}")
+        logger.debug(f"Raw images_data received: {repr(images_data_raw)}")
         if images_data_raw:
             try:
                 exercise_data['images'] = json.loads(images_data_raw)
-                print(f"DEBUG SAVE: Parsed images data: {exercise_data['images']}")
+                logger.debug(f"Parsed images data: {exercise_data['images']}")
             except (json.JSONDecodeError, ValueError) as e:
-                print(f"ERROR SAVE: Invalid images_data JSON: {images_data_raw}, error: {e}")
+                logger.error(f"Invalid images_data JSON: {images_data_raw}, error: {e}")
                 exercise_data['images'] = []
         else:
             exercise_data['images'] = []
             
         videos_data_raw = request.form.get('videos_data', '[]').strip()
-        print(f"DEBUG SAVE: Raw videos_data received: {repr(videos_data_raw)}")
+        logger.debug(f"Raw videos_data received: {repr(videos_data_raw)}")
         if videos_data_raw:
             try:
                 exercise_data['videos'] = json.loads(videos_data_raw)
-                print(f"DEBUG SAVE: Parsed videos data: {exercise_data['videos']}")
+                logger.debug(f"Parsed videos data: {exercise_data['videos']}")
             except (json.JSONDecodeError, ValueError) as e:
-                print(f"ERROR SAVE: Invalid videos_data JSON: {videos_data_raw}, error: {e}")
+                logger.error(f"Invalid videos_data JSON: {videos_data_raw}, error: {e}")
                 exercise_data['videos'] = []
         else:
             exercise_data['videos'] = []
             
         # Handle boolean fields
         exercise_data['hide'] = 'hide' in request.form
+        exercise_data['is_unilateral'] = 'is_unilateral' in request.form
+        exercise_data['is_alternating'] = exercise_data['is_unilateral'] and 'is_alternating' in request.form
         
         # Generate ID for new exercise or use existing
         if exercise_id:
@@ -441,7 +437,7 @@ def save_exercise(exercise_id=None, context=None):
         
         exercise_data['created_by_member_id'] = get_member_id_from_user_context(context)
 
-        print(f"Saving exercise data: {exercise_data}")
+        logger.info(f"Saving exercise data: {exercise_data}")
         
         # Create and save exercise entity
         exercise = ExerciseEntity(exercise_data)
@@ -461,7 +457,7 @@ def save_exercise(exercise_id=None, context=None):
         member_id = get_member_id_from_user_context(context)
         if not member_id:
             abort(401)
-        response = make_response(exercises_listing2(member_id, page=current_listing_page, filter_terms=current_listing_filter))
+        response = make_response(exercises_listing2(context, member_id, page=current_listing_page, filter_terms=current_listing_filter))
         response.headers['HX-Trigger'] = json.dumps({
             "eventListChanged": { "target": "body" },
                 "showMessage": { 
@@ -471,7 +467,7 @@ def save_exercise(exercise_id=None, context=None):
         return response
     
     except Exception as e:
-        print(f"Error saving exercise: {str(e)}")
+        logger.error(f"Error saving exercise: {str(e)}")
         import traceback
         traceback.print_exc()
         
@@ -493,7 +489,7 @@ def cancel_exercise(exercise_id=None, context=None):
     filter_param = request.args.get('filter', '')
     current_listing_filter = parse_listing_filter(filter_param)
         
-    response = make_response(exercises_listing2(member_id, page=current_listing_page, filter_terms=current_listing_filter))
+    response = make_response(exercises_listing2(context, member_id, page=current_listing_page, filter_terms=current_listing_filter))
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": { "target": "body" },
             "showMessage": { 

@@ -202,7 +202,7 @@ async function uploadGifFile(file) {
     formData.append('file', file, file.name);
 
     try {
-        const response = await fetch('/api/upload/fitness-media', {
+        const response = await fetch('/sys/upload/fitness-media', {
             method: 'POST',
             body: formData,
             credentials: 'same-origin'
@@ -306,7 +306,7 @@ async function uploadMediaFile(blob, filename, mediaType, subType, description) 
     
     try {
         // Use existing upload handler
-        const response = await fetch('/api/upload/fitness-media', {
+        const response = await fetch('/sys/upload/fitness-media', {
             method: 'POST',
             body: formData,
             credentials: 'same-origin'

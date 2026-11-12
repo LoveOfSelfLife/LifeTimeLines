@@ -1,0 +1,56 @@
+<style>
+  .program-analysis-dialog .pa-chart {
+    width: calc(100% - 2rem);
+    margin-inline: 1rem;
+  }
+</style>
+<div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-lg-down program-analysis-dialog" role="document">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title"><i class="bi bi-bar-chart-line me-2"></i>Program analysis — {{ program.name or 'Unnamed program' }}</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+      <form id="pa-controls" class="row g-2 align-items-end mb-3"
+            hx-get="{{ url_for('program_analysis.report') }}" hx-target="#modals-here" hx-swap="innerHTML" hx-trigger="change">
+        <input type="hidden" name="program_id" value="{{ program.id }}">
+        <div class="col-auto">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" role="switch" id="pa-ramp" name="include_ramp" value="1" {{ 'checked' if include_ramp }}>
+            <label class="form-check-label" for="pa-ramp">Include warm-up (RAMP)</label>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label small mb-0" for="pa-objective">Measure against objective</label>
+          <select id="pa-objective" name="objective_id" class="form-select form-select-sm">
+            <option value="">— none —</option>
+            {% for o in objectives %}<option value="{{ o.id }}" {{ 'selected' if o.id == objective_id }}>{{ o.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-auto d-flex gap-2">
+          <button type="button" class="btn btn-sm btn-outline-secondary"
+                  hx-post="{{ url_for('program_analysis.apply_objective') }}" hx-include="#pa-controls" hx-swap="none"
+                  title="Remember this objective for the program">
+            <i class="bi bi-pin-angle"></i> Apply to program
+          </button>
+          <div class="btn-group">
+            <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-download"></i> Export</button>
+            <ul class="dropdown-menu">
+              {% set q = {'program_id': program.id, 'include_ramp': '1' if include_ramp else '0', 'objective_id': objective_id} %}
+              <li><a class="dropdown-item" href="{{ url_for('program_analysis.export_report', format='xlsx', **q) }}">Excel (.xlsx)</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('program_analysis.export_report', format='csv', **q) }}">Exercise rows (.csv)</a></li>
+              <li><a class="dropdown-item" href="{{ url_for('program_analysis.export_report', format='json', **q) }}">Analysis (.json)</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" target="_blank" href="{{ url_for('program_analysis.print_view', **q) }}">Printable page / PDF</a></li>
+            </ul>
+          </div>
+        </div>
+      </form>
+      {% if objective %}<p class="small text-muted">{{ objective.description }}</p>{% endif %}
+      {% include 'program_analysis/_report_body.html' %}
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+    </div>
+  </div>
+</div>

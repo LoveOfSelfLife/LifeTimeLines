@@ -1,0 +1,39 @@
+<div class="container-fluid">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <h3 class="mb-0"><i class="bi bi-bullseye me-2"></i>Program objectives</h3>
+      <div class="text-muted small">Shared with all coaches. Apply one to a program from its analysis report. Copy an objective to customize it.</div>
+    </div>
+    {% if can_manage %}
+    <button class="btn btn-primary" hx-get="{{ url_for('program_analysis.objective_edit') }}" hx-target="#content" hx-swap="innerHTML">
+      <i class="bi bi-plus-circle"></i> New objective
+    </button>
+    {% endif %}
+  </div>
+
+  <div class="list-group">
+    {% for o in objectives %}
+    <div class="list-group-item">
+      <div class="d-flex justify-content-between align-items-start gap-2">
+        <div>
+          <div class="fw-semibold">{{ o.name }}{% if o.builtin %} <span class="badge bg-secondary">built-in</span>{% endif %}</div>
+          {% if o.description %}<div class="small text-muted">{{ o.description }}</div>{% endif %}
+          <div class="small">{{ o.rules | length }} rule group(s) · secondary muscle weight {{ o.secondary_muscle_weight }}</div>
+        </div>
+        {% if can_manage %}
+        <div class="d-flex gap-1 flex-shrink-0">
+          <button class="btn btn-sm btn-outline-secondary" hx-get="{{ url_for('program_analysis.objective_edit', id=o.id) }}"
+                  hx-target="#content" hx-swap="innerHTML">{{ 'Edit' if o.id in editable else 'View' }}</button>
+          <button class="btn btn-sm btn-outline-secondary" hx-post="{{ url_for('program_analysis.objective_copy') }}"
+                  hx-vals='{"id": "{{ o.id }}"}' hx-prompt="Name for the copy:" hx-target="#content" hx-swap="innerHTML">Copy</button>
+          {% if o.id in editable %}
+          <button class="btn btn-sm btn-outline-danger" hx-post="{{ url_for('program_analysis.objective_delete') }}"
+                  hx-vals='{"id": "{{ o.id }}"}' hx-confirm="Delete objective '{{ o.name }}'?" hx-target="#content" hx-swap="innerHTML">Delete</button>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>

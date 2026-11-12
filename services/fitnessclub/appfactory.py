@@ -1,9 +1,11 @@
+import logging
 import os
 import signal
+import json
 
 # from cachelib import FileSystemCache
 from cachelib import RedisCache
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS   
 from werkzeug.middleware.proxy_fix import ProxyFix
 from dotenv import load_dotenv
@@ -13,13 +15,20 @@ from views.home.home_routes import bp as home_bp
 from views.schedule.schedule_routes import bp as schedule_bp
 from views.program.programs_routes import bp as program_bp
 from views.exercises.exercise_routes import bp as exercises_bp
+from views.exercise_history.exercise_history_routes import bp as exercise_history_bp
+from views.program_analysis.program_analysis_routes import bp as program_analysis_bp
 from views.profile.profile_routes import bp as profile_bp
 from views.admin.admin_routes import bp as admin_bp
-from views.members.exercises_routes import bp as members_bp
+from common.routes.teams_routes import bp as teams_bp
+from common.routes.favorites_routes import bp as favorites_bp
+from common.routes.members_routes import bp as members_bp
+from common.routes.impersonate_routes import bp as impersonate_bp
+from common.routes.system_routes import bp as system_bp
 from views.workouts.workout_routes import bp as workouts_bp
 from common.env_init import initialize_environment
 from common.env_context import Env
-from auth import auth
+from common.auth import auth
+from common.jwt_auth import AuthHandler, AuthError
 from datetime import timedelta
 from version import get_version_info
 import redis
@@ -32,6 +41,9 @@ def create_app():
     initialize_environment()
     
     app : Flask = Flask(__name__)
+    with app.open_resource('app_metadata.json') as metadata_file:
+        app.config['APP_METADATA'] = json.load(metadata_file)
+
     # app.config['EXPLAIN_TEMPLATE_LOADING'] = True
     app.wsgi_app = ProxyFix(app.wsgi_app)
     app.secret_key = Env.SECRET_KEY
@@ -48,6 +60,13 @@ def create_app():
 
     auth.init_app(app)
 
+    # Bearer-token validation for service-to-service calls (see system_routes)
+    AuthHandler(Env.TENANT_ID, Env.AZURE_CLIENT_ID)
+
+    @app.errorhandler(AuthError)
+    def handle_auth_error(ex):
+        return {'message': ex.error['code'], 'description': ex.error['description']}, ex.status_code
+
     # Make version information available to all templates
     @app.context_processor
     def inject_version_info():
@@ -60,17 +79,36 @@ def create_app():
                program_bp,
                profile_bp,
                exercises_bp,
+               exercise_history_bp,
+               program_analysis_bp,
                members_bp,
-               workouts_bp]:
+               workouts_bp,
+               favorites_bp,
+               teams_bp,
+               impersonate_bp,
+               system_bp]:
         app.register_blueprint(bp, url_prefix=f'/{bp.name}')
 
     CORS(app)  
+
+    # werkzeug's own access log runs after the request context is gone, so it can't
+    # know the member; log our own access line instead.
+    logging.getLogger('werkzeug').setLevel(logging.WARNING)
+    access_logger = logging.getLogger('access')
+
+    @app.after_request
+    def log_access(response):
+        user = session.get('_logged_in_user') or {}
+        member_id = str(session.get('impersonating_member_id') or user.get('sub') or '-')[:8]
+        access_logger.info('%s member=%s "%s %s" %s', request.remote_addr, member_id,
+                           request.method, request.full_path.rstrip('?'), response.status_code)
+        return response
 
     signal.signal(signal.SIGTERM, shutdown_handler)
     return app
 
 def shutdown_handler(signal: int, frame) -> None:
-    print("Exiting the FitnessClub process.", flush=True)
+    logging.getLogger(__name__).info("Exiting the FitnessClub process.")
 
 if __name__ == '__main__':
     from argparse import ArgumentParser

@@ -11,6 +11,7 @@ from types import FrameType
 from common.jwt_auth import AuthHandler, AuthError
 from common.env_context import Env
 from common.env_init import initialize_environment
+logger = logging.getLogger(__name__)
 
 def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescription=''):
     app : Flask = Flask(__name__, static_url_path='', static_folder='static', template_folder='../templates')
@@ -21,6 +22,7 @@ def create_api_app(namespaces=[], apiname='api', apiversion='1.0', apidescriptio
     app.logger.setLevel(logging.INFO)
     logging.basicConfig(level=logging.INFO, stream=sys.stdout)  # Adjust level as needed (e.g., DEBUG, INFO, WARNING)
     logger = logging.getLogger(__name__)
+    logging.getLogger('azure').setLevel(logging.WARNING)
 
     initialize_environment()
 
@@ -54,5 +56,5 @@ def shutdown_handler(signal: int, frame: FrameType) -> None:
     # logger.info("Signal received, safely shutting down.")
     # database.shutdown()
     # middleware.logging_flush()
-    print("Exiting the LifeTimeLines process.", flush=True)
+    logger.info("Exiting the LifeTimeLines process.")
     # sys.exit(0)

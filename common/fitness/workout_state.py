@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from flask import session
 import json
 import pytz
-from common.fitness.cacher import get_cache_value, set_cache_value, delete_from_cache, get_cache_hash, get_cache_hash_field, set_cache_hash_field
+from common.cacher import get_cache_value, set_cache_value, delete_from_cache, get_cache_hash, get_cache_hash_field, set_cache_hash_field
 
 # last-viewed section/exercise-index bookkeeping is stored directly in the Redis cache (not Flask's
 # session) because it must not share a save-the-whole-blob-per-request cycle with the much more

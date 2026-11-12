@@ -5,6 +5,8 @@ import requests
 import json
 import jwt
 from functools import wraps
+import logging
+logger = logging.getLogger(__name__)
 
 class AuthHandler():
     public_key = None
@@ -103,12 +105,12 @@ def requires_auth(f):
                                 "description": "token is expired"}, 401)
             except jwt.InvalidSignatureError:
                 # The JWT token is invalid
-                print('The JWT token is invalid.')
+                logger.error('The JWT token is invalid.')
                 raise AuthError({"code": "invalid signature",
                                 "description": "token signature is not valid"}, 401)                
             except jwt.DecodeError:
                 # The JWT token could not be decoded
-                print('The JWT token could not be decoded.')             
+                logger.error('The JWT token could not be decoded.')             
                 raise AuthError({"code": "cannot decode",
                                 "description": "token could not be decoded"}, 401)                
             except    jwt.ImmatureSignatureError:

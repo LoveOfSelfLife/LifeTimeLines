@@ -1,18 +1,20 @@
-import copy
+from common.fitness.exercise_parameters import get_editor_type_for_unit_parameter, get_editor_type_for_value_parameter
+from common.blueprint import create_blueprint
 from datetime import datetime
 from ast import literal_eval
 from flask import Blueprint, jsonify, make_response, render_template, request, current_app
-from common.entity_store import EntityStore
-from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_entity_obj_from_entity_name, get_fitnessclub_listing_fields_for_entity
-from common.fitness.cacher import get_cache_value, set_cache_value, delete_from_cache
-from common.fitness.entities_getter import resolve_selected_workout_keys, clear_selected_workout_keys, clear_selected_entity_keys, delete_entity, get_entities, as_bool
-from common.fitness.entities_getter import filter_entities_by_member_role
+from common.entity_store import EntityStore, get_entity_obj_from_entity_name
+from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_listing_fields_for_entity
+from common.cacher import get_cache_value, set_cache_value, delete_from_cache
+from common.entities_getter import resolve_selected_workout_keys, clear_selected_workout_keys, clear_selected_entity_keys, delete_entity, get_entities, as_bool
+from common.entities_getter import filter_entities_by_member_role
 from common.fitness.exercise_entity import ExerciseEntity, show_exercise_viewer
 from common.fitness.exercise_parameters import get_editor_type_for_unit_parameter, get_editor_type_for_value_parameter
-from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
-from common.fitness.hx_common import rm_spaces
-from common.fitness.member_entity import get_member_id_from_user_context, is_member_an_admin
-from common.fitness.roles_service import get_accessible_members_for_context, get_member_role_context
+from common.filter_funcs import get_filter_terms_from_request
+from common.template_renderer import hx_render_template
+from common.template_renderer import rm_spaces
+from common.member_entity import get_member_id_from_user_context, is_member_an_admin
+from common.roles_service import get_accessible_members_for_context, get_member_role_context
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout, map_exercise_to_sections
 from common.fitness.edit_workout_object import bring_up_workouts_builder
 from common.fitness.programs import get_last_workout_instance_for_workout
@@ -21,16 +23,20 @@ from common.fitness.home_page_view import render_home_page_workout
 from common.fitness.workout_state import get_active_workout_state, update_active_workout_state, get_last_section, set_last_section as set_last_section_cache, clear_last_section, get_last_exercise_index, set_last_exercise_index as set_last_exercise_index_cache, get_exercise_parameters, set_exercise_parameter, member_id_from_workout_instance_key
 from common.fitness.exercise_alternatives import find_slot, perform_exercise_swap, record_exercise_swap
 from common.fitness.exercise_onthefly import record_exercise_removal, record_exercise_addition
-from common.fitness.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
+from common.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
+import copy
 
-bp = Blueprint('workouts', __name__, template_folder='templates')
-from auth import auth
+bp = create_blueprint('workouts', __name__)
+import logging
+logger = logging.getLogger(__name__)
+from common.auth import auth
 from flask import Flask, render_template, request, redirect, url_for, session, abort
 import uuid
 import json
 from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity
 
-from common.fitness.entities_getter import get_entities, get_entity, get_filtered_entities
+from common.entities_getter import get_entities, get_entity, get_filtered_entities
+from common.fitness.exercise_analytics_db import on_workout_instance_deleted, on_workout_instance_saved
 from common.fitness.entity_constants import WORKOUT_ENTITY_NAME, WORKOUT_INSTANCE_ENTITY_NAME, WORKOUT_SECTIONS
 
 def new_workout(name='New Workout'):
@@ -149,7 +155,7 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
         entity_action_route_target=entity_action_route_target,
         entity_action_icon=entity_action_icon,
         entity_action_label=entity_action_label,
-        favorite_toggle_route='/admin/toggle-favorite',
+        favorite_toggle_route='/favorites/toggle',
         results_target_container=results_target_container,
         entity_card_view_html='workout_card_view.html',
         allow_multi_select=allow_multi_select,
@@ -168,63 +174,6 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
 
     return hx_render_template(template_file_name, **template_data)
 
-# def workouts_listing_base(context, entity_name, page, target, view, fields_to_display, filter_terms, entities, allow_multi_select=True, selected_entity_keys=[], modal_mode=False):
-#     page_size = 100
-#     total_pages = (len(entities) + page_size - 1) // page_size
-#     start = (page - 1) * page_size
-#     end = start + page_size
-#     current = entities[start:end]
-
-#     if request.headers.get('HX-Target') == 'results-area':
-#         template_file_name = 'entity_results_partial.html'
-#     else:
-#         template_file_name = 'entity_list_component.html'
-
-#     # Set results_target_container based on target parameter
-#     results_target_container = target if target else 'results-area'
-#     target = target if target else 'results-area'
-#     # displays workouts at the top level
-#     return hx_render_template(
-#         template_file_name,
-#         entity_name=entity_name,
-#         title="Workouts Library",
-#         main_content_container="entities-container",        
-#         fields_to_display=fields_to_display,
-#         entities=current,
-#         filter_terms=filter_terms,
-#         args=request.args,
-#         page=page,
-#         view=view,
-#         total_pages=total_pages,
-#         entity_add_route=f"{url_for('workouts.builder_new')}?x=1",
-#         entities_listing_route=f'/workouts/workouts-listing?entity_table={entity_name}&target={target}',
-#         entity_view_route=f'/workouts/viewer/workout?entity_table={entity_name}',
-#         entity_action_route=f'/workouts/edit?entity_table={entity_name}',
-#         entity_action_icon='bi-pencil-square',  
-#         entity_action_label='Edit Workout',
-#         favorite_toggle_route='/admin/toggle-favorite',
-#         results_target_container=results_target_container,
-#         entity_card_view_html='workout_card_view.html',        
-#         modal_mode=modal_mode,
-#         context=context)
-
-@bp.route('/filter-dialog')
-@auth.login_required
-def filter_dialog(context=None):
-    target = request.args.get('target', None)
-    workout_id = request.args.get('workout_id', None)
-    entity_name = "ExerciseTable"
-    entity_type = get_entity_obj_from_entity_name(entity_name)
-    filters = get_fitnessclub_entity_filters_for_entity(entity_name)
-
-    return hx_render_template('filter_dialog.html', 
-                              entities_listing_route=f'/workouts/builder/exercises?target={target}&workout_id={workout_id}',
-                              filter_results_target=target,
-                              entity_display_name=entity_type.get_display_name(),                              
-                              entity_name=entity_name,
-                              filters=filters,
-                              args=request.args,
-                              context=context)
 
 
 @bp.route('/edit')
@@ -315,7 +264,7 @@ def builder(context=None, workout_id=None):
                 can_delete_workout = True
 
             
-        return hx_render_template('workout_builder2.html', 
+        return hx_render_template('workouts/workout_builder2.html', 
                                 workout=workout,
                                 workout_type=workout_type,
                                 context=context, 
@@ -404,7 +353,7 @@ def toggle_carousel_view(context=None):
     current_workout_state = get_active_workout_state()
     if not current_workout_state:
         abort(404)
-    return render_home_page_workout(None, current_workout_state)
+    return render_home_page_workout(None, current_workout_state, context)
 
 @bp.route('/toggle_keep_awake', methods=['POST'])
 @auth.login_required
@@ -416,7 +365,7 @@ def toggle_keep_awake(context=None):
     update_active_workout_state(current_workout_state)
 
     # Re-render the active workout panel so the wake-lock script picks up the new preference.
-    return render_home_page_workout(None, current_workout_state)
+    return render_home_page_workout(None, current_workout_state, context)
 
 @bp.route('/update_param_in_session', methods=['POST'])
 @auth.login_required
@@ -594,7 +543,7 @@ def dynamic_parameters_for_section_viewer(context=None, workout_id=None, section
 
     if workout_view_preference not in ['accordion', 'carousel']:
         workout_view_preference = 'accordion'        
-    workout_section_view_template = "_section_dynamic_view.html" if workout_view_preference == 'accordion' else "_section_dynamic_carousel_view.html"
+    workout_section_view_template = "workouts/_section_dynamic_view.html" if workout_view_preference == 'accordion' else "workouts/_section_dynamic_carousel_view.html"
 
     return render_template(
         workout_section_view_template,
@@ -788,7 +737,7 @@ def workout_dynamic_canvas2(context=None, workout_id=None):
                     if alt_ex:
                         exercises[alt_id] = alt_ex
     exercise_parameters_map = extract_workout_parameters_for_workout(workout_id, w, exercises, {}, url_for('workouts.update_param_in_cache'))
-    return hx_render_template('_workout_dynamic_canvas.html',
+    return hx_render_template('workouts/_workout_dynamic_canvas.html',
                                 workout=w,
                                 exercises=exercises,
                                 exercise_parameters = exercise_parameters_map,
@@ -1211,6 +1160,48 @@ def update_workout_name(context=None, workout_id=None):
     set_cache_value('current_workout', w)
     return workout_canvas2(context, workout_id)
 
+@bp.route('/builder/<workout_id>/update_hide_workout', methods=['POST'])
+@auth.login_required
+def update_hide_workout(context=None, workout_id=None):
+    w = get_cache_value('current_workout')
+    w['hide_workout'] = 'hide_workout' in request.form
+    set_cache_value('current_workout', w)
+    return workout_canvas2(context, workout_id)
+
+@bp.route('/builder/<workout_id>/update_times', methods=['POST'])
+@auth.login_required
+def update_workout_times(context=None, workout_id=None):
+    import pytz
+    w = get_cache_value('current_workout')
+    if not w or w.get('id') != workout_id:
+        abort(404)
+    if get_cache_value('workout_type') != WORKOUT_INSTANCE_ENTITY_NAME:
+        abort(400)
+
+    eastern = pytz.timezone('US/Eastern')
+    parsed = {}
+    for form_key, field in (('started_ts', 'started_ts'), ('finished_ts', 'finished_ts')):
+        value = request.form.get(form_key)
+        if not value:
+            continue
+        try:
+            dt = datetime.fromisoformat(value)
+        except ValueError:
+            return ('Invalid date/time', 400)
+        if dt.tzinfo is None:
+            dt = eastern.localize(dt)
+        parsed[field] = dt
+
+    started = parsed.get('started_ts') or (datetime.fromisoformat(w['started_ts']) if w.get('started_ts') else None)
+    finished = parsed.get('finished_ts') or (datetime.fromisoformat(w['finished_ts']) if w.get('finished_ts') else None)
+    if started and finished and started.tzinfo and finished.tzinfo and finished < started:
+        return ('End must not be before start', 400)
+
+    for field, dt in parsed.items():
+        w[field] = dt.isoformat()
+    set_cache_value('current_workout', w)
+    return ('', 204)
+
 @bp.route('/builder/<workout_id>/update_assigned_member', methods=['POST'])
 @auth.login_required
 def update_assigned_member(context=None, workout_id=None):
@@ -1302,13 +1293,13 @@ def save_data(workout_id, exercise_id, param, context=None):
         new_value = orig_value
 
     # Here you would typically save the new value to your database
-    print(f"Saving new value for workout {workout_id}, exercise {exercise_id}, param {param}: '{orig_value}' -> '{new_value}'")
+    logger.debug(f"Saving new value for workout {workout_id}, exercise {exercise_id}, param {param}: '{orig_value}' -> '{new_value}'")
 
     if is_active_workout:
-        print(f"Active workout flag is set. This means the user is currently doing the workout and we should update the workout state in the session with the new parameter value for real-time tracking and analytics purposes.")
+        logger.debug(f"Active workout flag is set. This means the user is currently doing the workout and we should update the workout state in the session with the new parameter value for real-time tracking and analytics purposes.")
         current_workout_state = get_active_workout_state()
         if not current_workout_state:
-            print("No active workout state found in session. This should not happen if the active workout flag is set. Aborting update.")
+            logger.warning("No active workout state found in session. This should not happen if the active workout flag is set. Aborting update.")
             return ('', 400)
 
         # stored as an atomic per-exercise Redis hash field, not in the session blob, so rapid
@@ -1317,12 +1308,12 @@ def save_data(workout_id, exercise_id, param, context=None):
         set_exercise_parameter(member_id, exercise_id, param, new_value)
 
     else:
-        print(f"Active workout flag is not set. This means the user is editing the workout in the workout builder and we should update the workout in the cache with the new parameter value so that it is reflected in the workout builder view.")
+        logger.debug(f"Active workout flag is not set. This means the user is editing the workout in the workout builder and we should update the workout in the cache with the new parameter value so that it is reflected in the workout builder view.")
 
         if purpose_of_parameter_edit == "finishing_workout_next_time":
             current_workout_state = get_active_workout_state()
             if not current_workout_state:
-                print("No active workout state found in session while saving next-time workout adjustments. Aborting update.")
+                logger.warning("No active workout state found in session while saving next-time workout adjustments. Aborting update.")
                 return ('', 400)
 
             adjustments = current_workout_state.get('adjustments', {})
@@ -1336,10 +1327,10 @@ def save_data(workout_id, exercise_id, param, context=None):
             update_active_workout_state(current_workout_state)
 
         elif purpose_of_parameter_edit == "editing_workout_in_program_builder":
-            print(f"Purpose of parameter edit is editing_workout_in_program_builder. This means we are editing a workout that is part of a program in the program builder, so we need to update the workout object that is stored in current_program_workouts in the cache with the new parameter value.")
+            logger.debug(f"Purpose of parameter edit is editing_workout_in_program_builder. This means we are editing a workout that is part of a program in the program builder, so we need to update the workout object that is stored in current_program_workouts in the cache with the new parameter value.")
             current_program_workouts = get_cache_value('current_program_workouts')
             if not current_program_workouts:
-                print("No current program workouts found in cache. This should not happen if we are editing a workout in the program builder. Aborting update.")
+                logger.warning("No current program workouts found in cache. This should not happen if we are editing a workout in the program builder. Aborting update.")
                 return ('', 400)
 
             for wk in current_program_workouts:
@@ -1361,7 +1352,13 @@ def save_data(workout_id, exercise_id, param, context=None):
                 set_cache_value('current_workout', w)
 
     # Return the updated content to replace the form
-    return  get_initial_editable_text2(workout_id, exercise_id, param, new_value, active_workout=is_active_workout, purpose_of_parameter_edit=purpose_of_parameter_edit)
+    html = get_initial_editable_text2(workout_id, exercise_id, param, new_value, active_workout=is_active_workout, purpose_of_parameter_edit=purpose_of_parameter_edit)
+    response = make_response(html)
+    if param in ('T', 'Tu'):
+        response.headers['HX-Trigger'] = json.dumps({
+            "timerParamChanged": {"exerciseId": exercise_id, "param": param, "value": new_value}
+        })
+    return response
 
 @bp.route('/builder/<workout_id>/save', methods=['POST'])
 @auth.login_required
@@ -1378,7 +1375,7 @@ def save_workout(context=None, workout_id=None):
     workout_instance = get_entity_obj_from_entity_name(workout_type if workout_type else WORKOUT_ENTITY_NAME)
 
     # this is where we save the newly created workout
-    print(f'Saving workout to {workout_type if workout_type else WORKOUT_ENTITY_NAME}')
+    logger.info(f'Saving workout to {workout_type if workout_type else WORKOUT_ENTITY_NAME}')
     es = EntityStore()
     if workout.get('created_ts') is None:
         workout['created_ts'] = datetime.now().isoformat()
@@ -1389,6 +1386,12 @@ def save_workout(context=None, workout_id=None):
 
     workout_instance.initialize(workout)
     es.upsert_item(workout_instance)
+    if workout_type == WORKOUT_INSTANCE_ENTITY_NAME:
+        # an edited workout instance is refreshed in the analytics db
+        on_workout_instance_saved(workout)
+        return_to_workout_listing_fn = workouts_history_listing2
+    else:
+        return_to_workout_listing_fn = workouts_listing2
 
     delete_from_cache('current_workout')
 
@@ -1396,7 +1399,7 @@ def save_workout(context=None, workout_id=None):
     if not member_id:
         abort(401)
 
-    response = make_response(workouts_listing2(context))
+    response = make_response(return_to_workout_listing_fn(context))
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": { "target": "body" },
             "showMessage": { 
@@ -1420,9 +1423,14 @@ def delete_workout(context=None, workout_id=None):
     workout_instance.initialize(workout)
 
     # this is where we delete the workout
-    print('Deleting workout')
+    logger.info('Deleting workout')
     es = EntityStore()
     es.delete_item(workout_instance)
+    if workout_type == WORKOUT_INSTANCE_ENTITY_NAME:
+        on_workout_instance_deleted(workout_id)
+        return_to_workout_listing_fn = workouts_history_listing2
+    else:
+        return_to_workout_listing_fn = workouts_listing2
 
     delete_from_cache('current_workout')
 
@@ -1433,11 +1441,7 @@ def delete_workout(context=None, workout_id=None):
 
     # if we are deleting a workout definition, then we go back to the workouts_listing2 view,
     # but if we are deleting a workout instance, then we go to the workouts instance listing view
-    if workout_type == WORKOUT_INSTANCE_ENTITY_NAME:
-        response = make_response(workouts_history_listing2(context))
-    else:
-        response = make_response(workouts_listing2(context))
-    
+    response = make_response(return_to_workout_listing_fn(context))
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": { "target": "body" },
             "showMessage": { 
@@ -1513,12 +1517,19 @@ def save_workout_copy(context=None, workout_id=None):
         abort(404)
 
     workout_definition = MemberWorkoutDefinitionEntity()
+    # when we copy a workout that is part of a program,
+    # we don't want the copy to also be part of that program,
+    # so we clear the member_program_id field
+    workout['member_program_id'] = None
 
     # this is where we save the newly created workout
-    print('Saving workout copy')
+    logger.info('Saving workout copy')
     es = EntityStore()
     workout['id'] = str(uuid.uuid4())
-    workout['name'] = f"Copy of {workout['name']}"
+    new_name = (request.headers.get('HX-Prompt') or request.form.get('name') or '').strip()
+    if not new_name:
+        abort(400)
+    workout['name'] = new_name
     workout['created_by'] = member_id
     workout['created_ts'] = datetime.now().isoformat()
     workout_definition.initialize(workout)
@@ -1526,10 +1537,6 @@ def save_workout_copy(context=None, workout_id=None):
 
     delete_from_cache('current_workout')
 
-    member_id = get_member_id_from_user_context(context)
-    if not member_id:
-        abort(401)
-    
     response = make_response(workouts_listing2(context))
     response.headers['HX-Trigger'] = json.dumps({
         "eventListChanged": { "target": "body" },
@@ -1594,7 +1601,6 @@ def exercise_listing(context=None):
                               page=page,
                               view=view,
                               total_pages=total_pages,
-                              filter_dialog_route=f'/workouts/filter-dialog?entity_table={entity_name}&target={target}&workout_id={workout_id}',
                               entities_listing_route=f'/workouts/builder/exercises?entity_table={entity_name}&target={target}&workout_id={workout_id}',
                               entity_view_route=f'/exercises/view?entity_table={entity_name}',
                               entity_action_route=f'/workouts/builder/{workout_id}/add?entity_table={entity_name}',
@@ -1754,7 +1760,7 @@ def view_workout(context=None):
     }
         
     return render_template(
-        "popup_workout_view.html",
+        "workouts/popup_workout_view.html",
         workout=workout,
         workout_sections=workout_sections,
         exercises=exercises,
@@ -1767,14 +1773,14 @@ def view_workout(context=None):
         is_modal=is_modal
     )
 
-from common.fitness.entities_getter import get_entity
+from common.entities_getter import get_entity
 
 
 @bp.route("/viewer/workout/<workout_id>/set_section/<section_name>", methods=["POST"])
 @auth.login_required
 def set_last_section(context=None, workout_id=None, section_name=None):
     # guard: make sure section_name is valid for this workout_id…
-    print(f"Setting last section for workout {workout_id} to {section_name}")
+    logger.debug(f"Setting last section for workout {workout_id} to {section_name}")
     set_last_section_cache(get_member_id_from_user_context(context), workout_id, section_name)
     return ("", 204)
 
@@ -1847,7 +1853,7 @@ def view_workout_detail(context):
     workout['Timestamp'] = datetime.fromisoformat(workout['Timestamp'])
     # {{ workout.Timestamp.strftime('%A, %B %d, %Y at %-I:%M %p') }}
     return render_template(
-        'workout_detail.html',
+        'workouts/workout_detail.html',
         workout=workout,
         exercises=exercises
     )
@@ -1932,7 +1938,7 @@ def save_exercise_parameters(context=None):
     update_active_workout_state(current_workout_state)
     
     # Return updated parameter display HTML
-    return render_template("_exercise_parameters_display.html",
+    return render_template("workouts/_exercise_parameters_display.html",
                            exercise_id=exercise_id,
                            workout_id=workout_id,
                            workout_instance_key=workout_instance_key,
@@ -2004,7 +2010,7 @@ def save_future_exercise_parameters(context=None):
     update_active_workout_state(current_workout_state)
 
 
-    return render_template("_exercise_parameters_nexttime_display.html",
+    return render_template("workouts/_exercise_parameters_nexttime_display.html",
                            exercise_id=exercise_id,
                            workout_id=workout_id,
                            workout_instance_key=workout_instance_key,
@@ -2036,7 +2042,7 @@ def show_exercise_alternatives(context=None, section_name=None, slot_index=None)
         if alt_exercise:
             alternative_exercises.append(alt_exercise)
 
-    return render_template("_exercise_alternatives_modal.html",
+    return render_template("workouts/_exercise_alternatives_modal.html",
                            current_exercise=current_exercise,
                            alternative_exercises=alternative_exercises,
                            workout_instance_key=workout_instance_key,
@@ -2378,7 +2384,7 @@ def workouts_history_listing_base(context, entity_name, page, target, view, fiel
         entity_action_route=f'/workouts/edit?entity_table={entity_name}',
         entity_action_icon='bi-pencil-square',  
         entity_action_label='Edit Workout',
-        favorite_toggle_route='/admin/toggle-favorite',
+        favorite_toggle_route='/favorites/toggle',
         results_target_container=results_target_container,
         entity_card_view_html='workout_card_view.html',        
         modal_mode=False,

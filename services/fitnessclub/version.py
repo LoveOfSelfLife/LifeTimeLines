@@ -3,15 +3,12 @@ Version information for the Active Friends Club application
 """
 import os
 from datetime import datetime
-
-# Version information
-VERSION_MAJOR = 2
-VERSION_MINOR = 2
-VERSION_PATCH = 0
+from zoneinfo import ZoneInfo
+from current_version import VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH
 VERSION_BUILD = os.getenv('BUILD_NUMBER', 'dev')
 
 # Build information
-BUILD_DATE = os.getenv('BUILD_DATE', datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC'))
+BUILD_DATE = os.getenv('BUILD_DATE', datetime.now(ZoneInfo('America/New_York')).strftime('%Y-%m-%d %H:%M:%S %Z'))
 BUILD_COMMIT = os.getenv('BUILD_COMMIT', 'unknown')
 BUILD_BRANCH = os.getenv('BUILD_BRANCH', 'development')
 

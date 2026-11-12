@@ -1,8 +1,11 @@
-from flask import Blueprint, redirect, render_template, request, url_for
-from common.fitness.hx_common import hx_render_template
-from common.fitness.member_entity import get_member_id_from_user_context, get_user_profile, save_user_profile
-bp = Blueprint('profile', __name__, template_folder='templates')
-from auth import auth
+from flask import redirect, render_template, request, url_for
+from common.blueprint import create_blueprint
+from common.template_renderer import hx_render_template
+from common.member_entity import get_member_id_from_user_context, get_user_profile, save_user_profile
+bp = create_blueprint('profile', __name__)
+import logging
+logger = logging.getLogger(__name__)
+from common.auth import auth
 
 @bp.route('/')
 @auth.login_required
@@ -19,7 +22,7 @@ def profile(context=None):
 
     profile = get_user_profile(member_id)
 
-    return hx_render_template('profile_nav.html', 
+    return hx_render_template('profile/profile_nav.html', 
                               context=context, 
                               profile=profile,
                               hx_push_url="/profile/update",
@@ -39,7 +42,7 @@ def profile2(context=None):
 
     profile = get_user_profile(member_id)
 
-    return hx_render_template('profile2.html', 
+    return hx_render_template('profile/profile2.html', 
                               context=context, 
                               profile=profile,
                               hx_push_url="/profile/update",
@@ -49,7 +52,7 @@ def profile2(context=None):
 @auth.login_required
 def settings(context=None):
 
-    return hx_render_template('settings.html', 
+    return hx_render_template('profile/settings.html', 
                               context=context, 
                               profile=profile,
                               hx_push_url="/profile/update",
@@ -62,7 +65,7 @@ def update_profile(context=None):
     import base64
     from werkzeug.datastructures import FileStorage
     
-    print(f"Request: {request.form}")
+    logger.debug(f"Request: {request.form}")
     
     # Handle captured photo data from camera
     files = request.files.copy()
@@ -88,7 +91,7 @@ def update_profile(context=None):
             files['profile_photo'] = captured_file
             
         except Exception as e:
-            print(f"Error processing captured photo: {e}")
+            logger.error(f"Error processing captured photo: {e}")
 
     profile = save_user_profile(request.form, files)
     return redirect("/")

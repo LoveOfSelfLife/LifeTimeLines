@@ -9,13 +9,14 @@ Handles the new three-section home page dashboard:
 All routes use HTMX for dynamic updates and follow the existing authentication patterns.
 """
 
-from flask import Blueprint, abort, make_response, render_template, request, jsonify, session, redirect, url_for
-from auth import auth
-from common.fitness.entities_getter import get_entity
-from common.fitness.favorites_entity import get_all_favorite_entity_ids
+from flask import abort, make_response, render_template, request, jsonify, session, redirect, url_for
+from common.blueprint import create_blueprint
+from common.auth import auth
+from common.entities_getter import get_entity
+from common.favorites_entity import get_all_favorite_entity_ids
 from common.fitness.get_calendar_service import get_calendar_service
-from common.fitness.hx_common import hx_render_template
-from common.fitness.member_entity import get_member_id_from_user_context, get_member_detail_from_user_context, get_user_profile
+from common.template_renderer import hx_render_template
+from common.member_entity import get_member_id_from_user_context, get_member_detail_from_user_context, get_user_profile
 from common.fitness.home_data_service import HomePageDataService, format_seconds, get_program_workout_options
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity
 from common.fitness.programs import get_last_workout_instance_for_workout, get_members_current_active_program, get_program_workouts
@@ -24,8 +25,9 @@ from common.entity_store import EntityStore
 from datetime import datetime, timezone, date
 import json
 
-bp = Blueprint('home', __name__, template_folder='../../templates')
-
+bp = create_blueprint('home', __name__)
+import logging
+logger = logging.getLogger(__name__)
 
 @bp.route("/scheduled-workouts")
 @auth.login_required  
@@ -53,7 +55,7 @@ def scheduled_workouts_partial2(context=None):
         )
         
     except Exception as e:
-        print(f"Error loading scheduled workouts: {e}")
+        logger.error(f"Error loading scheduled workouts: {e}")
         return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading scheduled workouts</div>',
             context=context
@@ -73,6 +75,10 @@ def adhoc_workouts_partial2(context=None):
         prog_workouts = []
         all_workouts = []
 
+        # Get scheduled workouts data
+        home_service = HomePageDataService()
+        scheduled_data = home_service.get_scheduled_workouts_data(member_id, datetime.now(timezone.utc))
+
         workouts_ids = get_all_favorite_entity_ids(MemberWorkoutDefinitionEntity.table_name, member_id)
         favorite_workouts = [get_entity(MemberWorkoutDefinitionEntity.table_name, fid) for fid in workouts_ids]
         favorite_workouts = [w for w in favorite_workouts if w is not None]
@@ -90,16 +96,25 @@ def adhoc_workouts_partial2(context=None):
         unique_workouts = {str(workout['key']): workout for workout in all_workouts}.values()
         prog_workouts = list(unique_workouts)
 
+        # if there is an workout event for today, then we need to pass the event ID into this template
+        # so that if the member does the workout, then we can mark the workout event today as done
+        today_event_id = None
+        if scheduled_data.get('has_today_events', False):
+            for today_event in scheduled_data.get('todays_events', []):
+                if today_event.get('is_completed', True) is False:
+                    today_event_id = today_event.get('event_id', None)
+                    break
+
         return hx_render_template(
             template_file='home/adhoc_workouts_partial.html',
             program_workouts=prog_workouts,
-            # program_key = str(current_program.get_composite_key()) if current_program else None,
+            event_id=today_event_id,
             program_key = None,
             context=context
         )
         
     except Exception as e:
-        print(f"Error loading adhoc workouts: {e}")
+        logger.error(f"Error loading adhoc workouts: {e}")
         return hx_render_template(
             template_string=f'<div class="alert alert-danger">Error loading adhoc workouts: {str(e)}</div>',
             context=context
@@ -123,7 +138,7 @@ def attendance_panel_partial(context=None):
         )
 
     except Exception as e:
-        print(f"Error loading attendance panel: {e}")
+        logger.error(f"Error loading attendance panel: {e}")
         return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading attendance panel</div>',
             context=context
@@ -154,7 +169,7 @@ def attendance_respond(context=None):
         )
 
     except Exception as e:
-        print(f"Error updating attendance: {e}")
+        logger.error(f"Error updating attendance: {e}")
         return hx_render_template(
             template_string='<div class="alert alert-danger">Error updating attendance</div>',
             context=context
@@ -178,7 +193,7 @@ def completed_workouts_partial(context=None):
         )
         
     except Exception as e:
-        print(f"Error loading completed workouts: {e}")
+        logger.error(f"Error loading completed workouts: {e}")
         return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading completed workouts</div>',
             context=context
@@ -202,7 +217,7 @@ def analytics_partial(context=None):
         )
         
     except Exception as e:
-        print(f"Error loading analytics: {e}")
+        logger.error(f"Error loading analytics: {e}")
         return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading analytics</div>',
             context=context
@@ -229,7 +244,7 @@ def start_workout(context=None):
         return redirect(url_for('program.start_workout', workout_key=workout_key))
         
     except Exception as e:
-        print(f"Error starting workout: {e}")
+        logger.error(f"Error starting workout: {e}")
         return hx_render_template(
             template_string=f'<div class="alert alert-danger">Error starting workout: {str(e)}</div>',
             context=context
@@ -325,7 +340,7 @@ def completed_workout_details_modal(context=None):
         )
         
     except Exception as e:
-        print(f"Error loading completed workout details: {e}")
+        logger.error(f"Error loading completed workout details: {e}")
         return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading workout details</div>',
             context=context
@@ -394,7 +409,7 @@ def reschedule_workout(context=None):
 
         
     except Exception as e:
-        print(f"Error rescheduling workout: {e}")
+        logger.error(f"Error rescheduling workout: {e}")
         return hx_render_template(
             template_string=f'<div class="alert alert-danger">Error rescheduling workout: {str(e)}</div>',
             context=context
@@ -437,7 +452,7 @@ def confirm_start_workout(context=None):
         )
         
     except Exception as e:
-        print(f"Error loading start confirmation: {e}")
+        logger.error(f"Error loading start confirmation: {e}")
         return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading confirmation</div>',
             context=context
@@ -553,7 +568,7 @@ def workout_preview_modal(context=None):
             context=context
         )
     except Exception as e:
-        print(f"Error loading workout preview: {e}")
+        logger.error(f"Error loading workout preview: {e}")
         return hx_render_template(
             template_string='<div class="alert alert-danger">Error loading workout preview</div>',
             context=context

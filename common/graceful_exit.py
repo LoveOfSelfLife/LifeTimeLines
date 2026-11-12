@@ -1,4 +1,6 @@
 import signal
+import logging
+logger = logging.getLogger(__name__)
 
 class GracefulExit:
   
@@ -18,6 +20,6 @@ if __name__ == '__main__':
     exiter = GracefulExit()
     while not exiter.should_exit():
         time.sleep(1)
-        print("doing something in a loop ...")
+        logger.debug("doing something in a loop ...")
 
-    print("End of the program. I was killed gracefully :)")
+    logger.debug("End of the program. I was killed gracefully :)")

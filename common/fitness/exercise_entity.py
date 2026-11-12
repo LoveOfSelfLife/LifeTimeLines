@@ -1,8 +1,9 @@
 from hashlib import sha256
 from common.entity_store import EntityObject
-from common.fitness.hx_common import get_filter_terms_from_request, hx_render_template
-from common.fitness.member_entity import get_member_id_from_user_context
-from common.fitness.utils import convert_to_alphanumeric
+from common.filter_funcs import get_filter_terms_from_request
+from common.template_renderer import hx_render_template
+from common.member_entity import get_member_id_from_user_context
+from common.utils import convert_to_alphanumeric
 import json
 from common.fitness.exercise_schema import exercise_schema
 from common.fitness.exercise_schema import exercise_review_schema
@@ -15,9 +16,12 @@ class ExerciseEntity (EntityObject):
             "setCompletionMeasure", 
             "resistance_doubled", # has a boolean value
             "only_one_set", # has a boolean value
-            "udf1", "udf2", 
+            "is_unilateral", # boolean, default False (bi-lateral)
+            "is_alternating", # boolean, only meaningful when is_unilateral; default False (non-alternating)
+            "udf1", "udf2",
             "physical_fitness_components", 
             "movement_categories", 
+            "family", # optional, manually assigned name that groups variations of an exercise (e.g. all push-up variations)
             "hide"]
     
     key_field="id"
@@ -40,6 +44,12 @@ class ExerciseEntity (EntityObject):
         if self.get("only_one_set", None) is not None:
             return self.get("only_one_set")
         return False
+
+    def is_exercise_unilateral(self):
+        return bool(self.get("is_unilateral", False))
+
+    def is_exercise_alternating(self):
+        return self.is_exercise_unilateral() and bool(self.get("is_alternating", False))
 
     def get_set_completion_measure(self):
         # the setCompletionMeasure field indicates what measure is used to determine if a set of the exercise is completed, e.g. "reps", "time", "distance", "other"
@@ -108,7 +118,8 @@ MOVEMENT_CATEGORIES = ["CORE",
                        "CORE-AF", 
                        "CORE-AR", 
                        "CORE-HF", 
-                       "CORE-ROT", 
+                       "CORE-ROT",
+                       "HINGE",
                        "HINGE-BRIDGE", 
                        "HINGE-SL", 
                        "HINGE-SYM", 
@@ -156,6 +167,7 @@ movement_category_to_section_map = {
     "CORE-AR": "core",
     "CORE-HF": "core",
     "CORE-ROT": "core",
+    "HINGE": "strength",
     "HINGE-BRIDGE": "strength",
     "HINGE-SL": "strength",
     "HINGE-SYM": "strength",
@@ -178,6 +190,7 @@ movement_category_definitions = {
     "CORE-AR": "Core anti-rotation",
     "CORE-HF": "Core hip-flexion",
     "CORE-ROT": "Core rotational",
+    "HINGE": "Hinge",
     "HINGE-BRIDGE": "Hinge bridge",
     "HINGE-SL": "Single-leg hinge",
     "HINGE-SYM": "Symmetrical (feet parallel) hinge",
@@ -379,7 +392,7 @@ def gen_exercise_id(exercise):
 
 def exercise_was_reviewed(exercise):
     """Check if an exercise was reviewed by looking it up in the ExerciseReviewTable."""
-    from common.fitness.entities_getter import get_entity
+    from common.entities_getter import get_entity
     review = get_entity("ExerciseReviewTable", exercise.get("id", ""))
     if review is not None:
         # check if the review has a disposition
@@ -463,7 +476,7 @@ def show_exercise_viewer(entity_to_view, context, show_dismiss_btn=False):
             can_edit = True
         else:
             # check if the member is an admin
-            from common.fitness.member_entity import is_member_an_admin
+            from common.member_entity import is_member_an_admin
             if is_member_an_admin(member_id):
                 can_edit = True
             else:

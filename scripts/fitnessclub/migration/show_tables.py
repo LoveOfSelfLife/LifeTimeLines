@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 import json
 from common.entity_store import EntityStore
-from common.fitness.entities_getter import get_entity
+from common.entities_getter import get_entity
 from common.fitness.exercise_entity import ExerciseEntity
 from common.fitness.member_program_entity import MemberProgramsEntity
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity

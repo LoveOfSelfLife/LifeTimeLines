@@ -1,0 +1,182 @@
+{# Shared by the modal report and the printable page. Expects: program, analysis, evaluation, objective, charts #}
+{% macro g(v) %}{{ '%g'|format(v) }}{% endmacro %}
+
+{% macro dim_table(title, table, workouts, hide_zero=False) %}
+<h6 class="mt-3">{{ title }}</h6>
+<div class="table-responsive">
+<table class="table table-sm table-striped align-middle pa-table">
+  <thead>
+    <tr>
+      <th></th>
+      {% for w in workouts %}<th class="text-end" title="{{ w.name }}">#{{ loop.index }}</th>{% endfor %}
+      <th class="text-end">Exercises</th><th class="text-end">Sets</th><th class="text-end">% of sets</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for key, c in table.items() | sort(attribute='1.total_sets', reverse=True) %}
+      {% if not (hide_zero and c.total_exercises == 0) %}
+      <tr class="{{ 'table-warning' if c.total_exercises == 0 }}">
+        <td>{{ key }}</td>
+        {% for s in c.sets %}<td class="text-end">{{ g(s) if s else '–' }}</td>{% endfor %}
+        <td class="text-end">{{ g(c.total_exercises) }}</td>
+        <td class="text-end">{{ g(c.total_sets) }}</td>
+        <td class="text-end">{{ c.pct_sets }}%</td>
+      </tr>
+      {% endif %}
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endmacro %}
+
+{% macro chart(name) %}{% if charts.get(name) %}<div id="pa-chart-{{ name }}" class="pa-chart"></div>{% endif %}{% endmacro %}
+
+{% set a = analysis %}
+{% set t = a.tables %}
+
+{% if not a.totals.exercises %}
+  <div class="alert alert-info">This program has no standard-workout exercises to analyze{% if not include_ramp %} (warm-up/RAMP exercises are excluded){% endif %}.</div>
+{% else %}
+
+<div class="row g-2 mb-3 pa-cards">
+  <div class="col-6 col-md-2"><div class="card h-100"><div class="card-body p-2 text-center"><div class="fs-4">{{ a.workouts | length }}</div><small class="text-muted">workouts</small></div></div></div>
+  <div class="col-6 col-md-2"><div class="card h-100"><div class="card-body p-2 text-center"><div class="fs-4">{{ a.totals.exercises }}</div><small class="text-muted">exercises</small></div></div></div>
+  <div class="col-6 col-md-2"><div class="card h-100"><div class="card-body p-2 text-center"><div class="fs-4">{{ g(a.totals.sets) }}</div><small class="text-muted">sets</small></div></div></div>
+  <div class="col-6 col-md-2"><div class="card h-100"><div class="card-body p-2 text-center"><div class="fs-4">{{ g(a.cardio.exercises) }}</div><small class="text-muted">cardio exercises{% if a.cardio.minutes %} · {{ g(a.cardio.minutes) }} min{% endif %}</small></div></div></div>
+  <div class="col-6 col-md-2"><div class="card h-100"><div class="card-body p-2 text-center"><div class="fs-4">{{ g(a.balance.exercises) }}</div><small class="text-muted">balance exercises</small></div></div></div>
+  <div class="col-6 col-md-2"><div class="card h-100"><div class="card-body p-2 text-center">
+    <div class="fs-4">{{ (t.laterality.unilateral.pct_sets + t.laterality.alternating.pct_sets) | round | int }}%</div><small class="text-muted">unilateral sets</small></div></div></div>
+</div>
+<p class="small text-muted mb-1">
+  Push : Pull sets = {{ g(a.ratios.push_pull.push) }} : {{ g(a.ratios.push_pull.pull) }}{% if a.ratios.push_pull.ratio is not none %} ({{ a.ratios.push_pull.ratio }}){% endif %}
+  · Quadriceps : Hamstrings credit = {{ g(a.ratios.quadriceps_hamstrings.quadriceps) }} : {{ g(a.ratios.quadriceps_hamstrings.hamstrings) }}{% if a.ratios.quadriceps_hamstrings.ratio is not none %} ({{ a.ratios.quadriceps_hamstrings.ratio }}){% endif %}
+  · Secondary muscles weighted {{ a.secondary_weight }} · Muscle credit is split by purpose (shoulder mobility is not shoulder strength).
+</p>
+
+{% set dq = a.data_quality %}
+{% if dq.missing_attributes or dq.assumed_sets %}
+<div class="alert alert-warning mt-3">
+  <strong><i class="bi bi-exclamation-triangle me-1"></i>Data quality</strong>
+  — these exercises are only partly counted. Fix them on the exercise to improve the analysis.
+  {% if dq.missing_attributes %}
+  <ul class="mb-1 mt-2">
+    {% for m in dq.missing_attributes %}<li>{{ m.name }} <span class="text-muted">({{ m.workout }})</span>: missing {{ m.missing | join(', ') }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+  {% if dq.assumed_sets %}
+  <div class="mt-2">No set count, 1 set assumed: {% for m in dq.assumed_sets %}{{ m.name }} <span class="text-muted">({{ m.workout }})</span>{% if not loop.last %}, {% endif %}{% endfor %}</div>
+  {% endif %}
+</div>
+{% endif %}
+
+<h5 class="mt-4">Workouts at a glance</h5>
+<div class="list-group mb-3">
+  {% for e in a.essence %}
+  <div class="list-group-item">
+    <div class="fw-semibold">#{{ loop.index }} {{ e.name }} <span class="text-muted small">· {{ a.workouts[loop.index0].exercises }} exercises · {{ g(a.workouts[loop.index0].sets) }} sets</span></div>
+    <div class="small">{{ e.text }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if evaluation %}
+<h5 class="mt-4">Objective: {{ evaluation.objective }}
+  <span class="badge {{ 'bg-success' if evaluation.met == evaluation.total else 'bg-warning text-dark' }}">{{ evaluation.met }} of {{ evaluation.total }} met</span></h5>
+{{ chart('objective') }}
+{% set unmet = evaluation.results | rejectattr('status', 'equalto', 'met') | list %}
+{% if unmet %}
+<div class="table-responsive">
+<table class="table table-sm align-middle">
+  <thead><tr><th>Rule</th><th>Requirement</th><th class="text-end">Actual</th><th>Status</th><th>Suggested change</th></tr></thead>
+  <tbody>
+  {% for r in unmet %}
+    <tr>
+      <td>{{ r.label }}{% if r.purpose %} <span class="text-muted small">({{ r.purpose }})</span>{% endif %}</td>
+      <td>{{ r.requirement }}</td>
+      <td class="text-end">{{ g(r.actual) }}</td>
+      <td><span class="badge {{ 'bg-danger' if r.status == 'over' else 'bg-warning text-dark' }}">{{ r.status }}</span></td>
+      <td class="small">{{ r.suggestion }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}<p class="text-success">Every rule is met.</p>{% endif %}
+{% endif %}
+
+<h5 class="mt-4">Coverage gaps</h5>
+{% set u = a.uncovered %}
+<p class="mb-1"><strong>Not covered anywhere in the program:</strong></p>
+<ul class="small">
+  <li>Movement families: {{ u.parent_pattern | join(', ') or 'none — all covered' }}</li>
+  <li>Movement patterns: {{ u.pattern | join(', ') or 'none — all covered' }}</li>
+  <li>Strengthened muscles: {{ u.muscle | join(', ') or 'none — all covered' }}</li>
+</ul>
+<div class="table-responsive">
+<table class="table table-sm align-top">
+  <thead><tr><th>Workout</th><th>Missing movement patterns</th><th>Missing strengthened muscles</th></tr></thead>
+  <tbody>
+  {% for gp in a.gaps %}
+    <tr>
+      <td>#{{ loop.index }} {{ gp.name }}</td>
+      <td class="small">{% for m in gp.pattern %}<span class="badge {{ 'bg-danger' if m.program_wide else 'bg-light text-dark border' }}">{{ m.key }}</span> {% else %}—{% endfor %}</td>
+      <td class="small">{% for m in gp.muscle %}<span class="badge {{ 'bg-danger' if m.program_wide else 'bg-light text-dark border' }}">{{ m.key }}</span> {% else %}—{% endfor %}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="small text-muted">Red = missing from the whole program; grey = missing here but covered by another workout.</p>
+
+<h5 class="mt-4">Charts</h5>
+<div class="row">
+  <div class="col-lg-6">{{ chart('parents') }}</div>
+  <div class="col-lg-6">{{ chart('patterns') }}</div>
+  <div class="col-lg-6">{{ chart('pattern_heatmap') }}</div>
+  <div class="col-lg-6">{{ chart('muscle_heatmap') }}</div>
+  <div class="col-lg-6">{{ chart('muscles') }}</div>
+  <div class="col-lg-6">{{ chart('pfc') }}</div>
+  <div class="col-lg-6">{{ chart('laterality') }}</div>
+</div>
+
+<h5 class="mt-4">Tables</h5>
+<p class="small text-muted">Columns #1…#{{ a.workouts | length }} are the workouts' set counts, in program order. Highlighted rows have no coverage.</p>
+{{ dim_table('Movement families', t.parent_pattern, a.workouts) }}
+{{ dim_table('Movement patterns', t.pattern, a.workouts) }}
+{{ dim_table('Muscles — strengthening (strength, power, endurance, core)', t.muscle.strength, a.workouts) }}
+{% for bucket in ['mobility', 'flexibility', 'myofascia', 'other', 'unspecified'] %}
+  {% if t.muscle[bucket].values() | selectattr('total_sets') | list %}
+    {{ dim_table('Muscles — ' + bucket, t.muscle[bucket], a.workouts, hide_zero=True) }}
+  {% endif %}
+{% endfor %}
+{{ dim_table('Fitness components', t.pfc, a.workouts) }}
+{{ dim_table('Laterality', t.laterality, a.workouts) }}
+{{ dim_table('Equipment', t.equipment, a.workouts, hide_zero=True) }}
+
+<h5 class="mt-4">Repeated exercises</h5>
+{% if a.repeats.exercises or a.repeats.families %}
+<ul class="small">
+  {% for r in a.repeats.exercises %}<li><strong>{{ r.name }}</strong> ×{{ r.slots }} — {{ r.workouts | join(', ') }}</li>{% endfor %}
+  {% for r in a.repeats.families %}<li>Family <strong>{{ r.family }}</strong> ×{{ r.slots }} ({{ r.exercises | join(', ') }}) — {{ r.workouts | join(', ') }}</li>{% endfor %}
+</ul>
+{% else %}<p class="text-muted small">No exercise or exercise family is repeated.</p>{% endif %}
+
+{% if charts %}
+<script>
+  (function () {
+    var figs = { {% for k, v in charts.items() %}"{{ k }}": {{ v | safe }}{% if not loop.last %},{% endif %}{% endfor %} };
+    function draw() {
+      if (!window.Plotly) { return; }
+      Object.keys(figs).forEach(function (k) {
+        var el = document.getElementById("pa-chart-" + k);
+        if (el) { Plotly.newPlot(el, figs[k].data, figs[k].layout, {responsive: true, displayModeBar: false}); }
+      });
+    }
+    // a hidden modal has no width, so wait until it is visible before drawing
+    var host = document.getElementById("modals-here");
+    if (!host || host.classList.contains("show")) { draw(); }
+    else { host.addEventListener("shown.bs.modal", draw, {once: true}); }
+  })();
+</script>
+{% endif %}
+{% endif %}

@@ -6,6 +6,8 @@ from common.entity_store import EntityStore
 # from azure.storage.blob import BlobServiceClient, BlobClient
 
 from common.fitness.exercise_entity import ExerciseEntity, ExerciseIndexEntity, gen_exercise_id
+import logging
+logger = logging.getLogger(__name__)
 
 def exercise_generator(exercise_dir):
     """A generator that yields exercises from a directory."""
@@ -74,5 +76,5 @@ def load_exercises(exercise_dir):
             src_file = img_id[-5:]
             img_path = f'{exercise_dir}/{exercise["dir"]}/images/{src_file}'
             # blobstore.upload(img_path, img_id)
-            print(f"blobstore.upload({img_path}, {img_id})")
+            logger.debug(f"blobstore.upload({img_path}, {img_id})")
         es.upsert_item(ExerciseEntity(exercise))

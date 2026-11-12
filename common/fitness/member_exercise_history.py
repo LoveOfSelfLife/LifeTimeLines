@@ -1,5 +1,7 @@
+from common.entity_filter import Filter
 from common.entity_store import EntityObject, EntityStore
 from common.fitness.exercise_entity import ExerciseEntity
+from common.fitness.member_workout_entity import MemberWorkoutInstanceEntity
 
 class MemberPerformsExerciseEntity (EntityObject):
     """

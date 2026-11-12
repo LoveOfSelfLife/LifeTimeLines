@@ -27,6 +27,7 @@ vars.txt
 **/workout_builder/**
 **/workout_viewer/**
 FIND_FITNESS.txt
+**/*.sqlite
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -211,3 +212,6 @@ scripts/fitnessclub/Cosgrove/
 scripts/fitnessclub/exercise_reviewer/*.json
 scripts/fitnessclub/exercise_reviewer/*.txt
 scripts/fitnessclub/exercise_reviewer/*.csv
+
+scripts/fitnessclub/exercise_history/results.json
+services/fitnessclub/analytics.sqlite

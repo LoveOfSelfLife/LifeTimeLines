@@ -14,15 +14,17 @@ from datetime import datetime, timedelta, timezone
 
 import pytz
 from common.entity_store import EntityStore
-from common.fitness.coach_team_entity import get_team_coaches
-from common.fitness.member_entity import get_member_name_from_member_id
-from common.fitness.member_team_entity import get_members_team_members, get_team_members
+from common.coach_team_entity import get_team_coaches
+from common.member_entity import get_member_name_from_member_id
+from common.member_team_entity import get_members_team_members, get_team_members
 from common.fitness.programs import get_members_current_active_program, get_next_workout_in_program
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity
 from common.fitness.get_calendar_service import get_calendar_service
-from common.fitness.roles_service import get_current_team_context
+from common.roles_service import get_current_team_context
 from common.fitness.workouts import get_scheduled_workouts
 from typing import Dict, List, Optional, Tuple
+import logging
+logger = logging.getLogger(__name__)
 
 
 def format_seconds(N: int) -> str:
@@ -187,7 +189,7 @@ class HomePageDataService:
                     'attendance_status': e['confirmstatus'],
                 }
                 for e in events_by_date.get(attention_event['event_date'], [])
-                if e['member_id'] != current_member_id_str
+                # if e['member_id'] != current_member_id_str
             ]
 
             data = {
@@ -223,7 +225,7 @@ class HomePageDataService:
 
             return data
         except Exception as e:
-            print(f"Error getting attendance panel data: {e}")
+            logger.error(f"Error getting attendance panel data: {e}")
             return {'has_event': False}
 
     def get_home_page_data(self, member_id: str, current_datetime: datetime = None) -> Dict:
@@ -355,7 +357,7 @@ class HomePageDataService:
             def _team_members_for_event(event_row: Dict) -> List[Dict]:
                 others = [
                     e for e in events_by_date.get(event_row['event_date'], [])
-                    if e['member_id'] != current_member_id_str
+                    # if e['member_id'] != current_member_id_str
                 ]
                 return [
                     {
@@ -431,7 +433,7 @@ class HomePageDataService:
             }
             
         except Exception as e:
-            print(f"Error getting scheduled workouts data: {e}")
+            logger.error(f"Error getting scheduled workouts data: {e}")
             return {
                 'workouts_on_calendar': [],
                 'has_active_program': False,
@@ -501,7 +503,7 @@ class HomePageDataService:
             }
             
         except Exception as e:
-            print(f"Error getting completed workouts data: {e}")
+            logger.error(f"Error getting completed workouts data: {e}")
             return {
                 'workouts': [],
                 'total_count': 0
@@ -588,7 +590,7 @@ class HomePageDataService:
             }
             
         except Exception as e:
-            print(f"Error getting analytics data: {e}")
+            logger.error(f"Error getting analytics data: {e}")
             return {
                 'weekly_summary': {
                     'workouts_this_week': 0,

@@ -119,8 +119,7 @@
                     </div>
                 </div>
             </div>
-
-            {# Analytics Section #}
+            {# 
             <div class="col-12 col-xl-6">
                 <div class="dashboard-section">
                     <div class="section-header d-flex align-items-center mb-3">
@@ -130,7 +129,6 @@
                     </div>
                     <div id="analytics-content" hx-get="{{ url_for('home.analytics_partial') }}" hx-trigger="load"
                         hx-swap="innerHTML">
-                        {# Loading placeholder #}
                         <div class="text-center py-4">
                             <div class="spinner-border text-light" role="status">
                                 <span class="visually-hidden">Loading...</span>
@@ -139,8 +137,8 @@
                         </div>
                     </div>
                 </div>
-            </div>
-
+            </div> 
+            #}
         </div>
     </div>
 </div>

@@ -1,6 +1,8 @@
 
 from datetimerange import DateTimeRange
 import datetime
+import logging
+logger = logging.getLogger(__name__)
 
 def load_date_ranges(ranges_store_iterator):
     ranges = [DateTimeRange(r['startDate'], r['endDate']) for r in ranges_store_iterator]
@@ -90,5 +92,5 @@ def break_up_date_range_into_chunks(start_dt, end_dt, num_days_per_chunk):
 
 
 if __name__ == '__main__':
-    print("in main")
+    logger.debug("in main")
 

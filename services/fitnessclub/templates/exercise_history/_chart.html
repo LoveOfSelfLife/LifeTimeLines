@@ -1,0 +1,39 @@
+{# expects: chart_json, chart_id, metric, resolution, metric_options, resolution_options, and chart_url / chart_vals for the toggles #}
+{% if not chart_json %}
+<p class="text-muted">No chartable data for this selection.</p>
+{% else %}
+<form class="row g-2 mb-2" hx-get="{{ chart_url }}" hx-target="#modals-here" hx-swap="innerHTML" hx-trigger="change">
+  {% for k, v in chart_vals.items() %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+  <div class="col-6">
+    <select name="metric" class="form-select form-select-sm">
+      {% for key, label in metric_options.items() %}<option value="{{ key }}" {% if key == metric %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-6">
+    <select name="resolution" class="form-select form-select-sm">
+      {% for key, label in resolution_options.items() %}<option value="{{ key }}" {% if key == resolution %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+  </div>
+</form>
+<div id="{{ chart_id }}" style="width:100%;min-height:320px;"></div>
+<script>
+  (function () {
+    var fig = {{ chart_json | safe }};
+    var el = document.getElementById("{{ chart_id }}");
+    var host = document.getElementById("modals-here");
+    function draw() {
+      if (window.Plotly) {
+        Plotly.newPlot(el, fig.data, fig.layout, {responsive: true, displayModeBar: false});
+      } else {
+        el.textContent = "Charting library failed to load.";
+      }
+    }
+    // a hidden modal has no width, so wait until it is visible before drawing
+    if (host.classList.contains("show")) {
+      draw();
+    } else {
+      host.addEventListener("shown.bs.modal", draw, {once: true});
+    }
+  })();
+</script>
+{% endif %}
