@@ -46,6 +46,19 @@
                         {% else %}
                             <p class="card-title mb-0 text-wrap fw-semibold" style="font-size: 0.9rem;">{{ entity.card_view_fields.title }}</p>
                         {% endif %}
+                        {% if entity_action2_route and not allow_multi_select|default(false) and not modal_mode|default(false) %}
+                            {% set action2_method = entity_action2_route_method or 'get' %}
+                            {% set action2_target = entity_action2_route_target or main_content_container %}
+                            <button type="button" class="btn btn-sm btn-outline-secondary {% if action2_target in ['modals-here', 'dialog'] %}position-relative entity-action-loading{% endif %}"
+                                hx-{{ action2_method }}="{{ entity_action2_route }}&key={{ entity.key }}&page={{ page }}&filter={{ filter_terms }}"
+                                hx-target="#{{ action2_target }}"
+                                {% if action2_target in ['modals-here', 'dialog'] %}hx-disabled-elt="this"{% endif %}
+                                hx-swap="innerHTML show:top"
+                                title="{{ entity_action2_label }}" aria-label="{{ entity_action2_label }}">
+                                <i class="bi {{ entity_action2_icon }} entity-action-icon" aria-hidden="true"></i>
+                                {% if action2_target in ['modals-here', 'dialog'] %}{% include '_entity_action_spinner.html' %}{% endif %}
+                            </button>
+                        {% endif %}
                             </div>
 
                             {% if entity_action_route and not allow_multi_select|default(false) and not modal_mode|default(false) %}

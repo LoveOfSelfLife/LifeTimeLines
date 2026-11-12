@@ -1,6 +1,7 @@
 import json
 import logging
 import uuid
+from ast import literal_eval
 
 from flask import Response, abort, make_response, render_template, request
 
@@ -8,12 +9,12 @@ from common.auth import auth
 from common.blueprint import create_blueprint
 from common.entities_getter import filter_entities_by_member_role, get_entity, get_filtered_entities
 from common.entity_store import EntityStore
-from common.fitness.entity_constants import PROGRAM_ENTITY_NAME
+from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
 from common.fitness.member_program_entity import MemberProgramsEntity
 from common.fitness.program_analysis import export
 from common.fitness.program_analysis.analyze import DEFAULT_SECONDARY_WEIGHT, analyze, expected_keys
 from common.fitness.program_analysis.charts import build_charts
-from common.fitness.program_analysis.extract import load_program_rows
+from common.fitness.program_analysis.extract import load_program_rows, load_workout_rows
 from common.fitness.program_analysis.objectives import (
     BUILTIN_BALANCED_ID, DIMENSION_LABELS, METRICS, PURPOSES, ProgramObjectiveEntity, balanced_objective, evaluate,
     new_objective_record, validate_rules)
@@ -42,6 +43,33 @@ def _load_program(member_id, program_id):
     return program
 
 
+def _load_workout(member_id, workout_id):
+    workout = get_entity(WORKOUT_ENTITY_NAME, workout_id) if workout_id else None
+    if not workout:
+        abort(404, "Workout not found")
+    if not filter_entities_by_member_role(member_id, [{'key': workout_id, 'entity': workout}]):
+        abort(403)
+    return workout
+
+
+def _report_subject(member_id):
+    program_id = request.args.get('program_id')
+    workout_id = request.args.get('workout_id')
+    scope = request.args.get('scope')
+    if scope not in (None, 'program', 'workout') or (program_id and workout_id):
+        abort(400, "Invalid report subject")
+    if scope == 'workout':
+        if program_id:
+            abort(400, "Invalid report subject")
+        workout_id = workout_id or _get_key_from_composite_key(request.args.get('key'))
+    elif scope == 'program' and workout_id:
+        abort(400, "Invalid report subject")
+    if workout_id:
+        return _load_workout(member_id, workout_id), 'workout'
+    program_id = program_id or _get_key_from_composite_key(request.args.get('key'))
+    return _load_program(member_id, program_id), 'program'
+
+
 def _all_objectives():
     stored = [dict(e) for e in get_filtered_entities(ProgramObjectiveEntity.table_name)]
     return [balanced_objective()] + sorted(stored, key=lambda o: (o.get('name') or '').lower())
@@ -65,8 +93,8 @@ def _report_args(program):
     return include_ramp, objective_id
 
 
-def _build_report(program, include_ramp, objective_id):
-    infos, rows = load_program_rows(program)
+def _build_report(subject, include_ramp, objective_id, scope='program'):
+    infos, rows = load_workout_rows([subject]) if scope == 'workout' else load_program_rows(subject)
     objective = _objective_by_id(objective_id)
     weight = (objective or {}).get('secondary_muscle_weight')
     weight = DEFAULT_SECONDARY_WEIGHT if weight in (None, '') else float(weight)
@@ -75,58 +103,48 @@ def _build_report(program, include_ramp, objective_id):
     return infos, rows, analysis, evaluation, objective
 
 
-def _report_context(program, context=None):
-    include_ramp, objective_id = _report_args(program)
-    infos, rows, analysis, evaluation, objective = _build_report(program, include_ramp, objective_id)
-    return dict(program=program, analysis=analysis, evaluation=evaluation, objective=objective,
+def _report_context(subject, context=None, scope='program'):
+    include_ramp, objective_id = _report_args(subject if scope == 'program' else {})
+    infos, rows, analysis, evaluation, objective = _build_report(subject, include_ramp, objective_id, scope)
+    return dict(program=subject, subject=subject, scope=scope, analysis=analysis, evaluation=evaluation, objective=objective,
                 objective_id=objective_id or '', objectives=_all_objectives(), include_ramp=include_ramp,
                 charts=build_charts(analysis, evaluation), context=context,
-                applied_objective_ids=program.get('objective_ids') or [])
+                applied_objective_ids=subject.get('objective_ids') or [] if scope == 'program' else [])
 
 
 @bp.route('/report')
 @auth.login_required
 def report(context=None):
-    # program_id may also be passed as a query parameter named 'key'
-    # however key will set as the "composite_key" for the program
-    # If 'key' is used, it should be treated as the composite key for the program.
-    # extract the first element from the composite key if it exists
-    program_key = request.args.get('key')
-    program_id = request.args.get('program_id') or _get_key_from_composite_key(program_key)
-    program = _load_program(_member_id(context), program_id)
-    return hx_render_template('program_analysis/report.html', **_report_context(program, context))
+    subject, scope = _report_subject(_member_id(context))
+    return hx_render_template('program_analysis/report.html', **_report_context(subject, context, scope))
 
 def _get_key_from_composite_key(composite_key):
     if composite_key:
         try:
-            composite_key = eval(composite_key)
+            composite_key = literal_eval(composite_key)
             if isinstance(composite_key, (list, tuple)) and composite_key:
                 return composite_key[0]
-        except:
-            pass
+        except (ValueError, SyntaxError):
+            abort(400, "Invalid entity key")
     return None
 
 @bp.route('/print')
 @auth.login_required
 def print_view(context=None):
-    program_key = request.args.get('key')
-    program_id = request.args.get('program_id') or _get_key_from_composite_key(program_key)
-    program = _load_program(_member_id(context), program_id)
-    return render_template('program_analysis/print.html', **_report_context(program, context))
+    subject, scope = _report_subject(_member_id(context))
+    return render_template('program_analysis/print.html', **_report_context(subject, context, scope))
 
 
 @bp.route('/export')
 @auth.login_required
 def export_report(context=None):
-    program_key = request.args.get('key')
-    program_id = request.args.get('program_id') or _get_key_from_composite_key(program_key)
-    program = _load_program(_member_id(context), program_id)
-    include_ramp, objective_id = _report_args(program)
-    infos, rows, analysis, evaluation, _ = _build_report(program, include_ramp, objective_id)
+    subject, scope = _report_subject(_member_id(context))
+    include_ramp, objective_id = _report_args(subject if scope == 'program' else {})
+    infos, rows, analysis, evaluation, _ = _build_report(subject, include_ramp, objective_id, scope)
     fmt = request.args.get('format', 'xlsx')
-    base = ''.join(c if c.isalnum() or c in '-_' else '_' for c in (program.get('name') or 'program')) + '_analysis'
+    base = ''.join(c if c.isalnum() or c in '-_' else '_' for c in (subject.get('name') or scope)) + '_analysis'
     if fmt == 'xlsx':
-        body, mime = export.to_xlsx(export.sheets(analysis, infos, rows, evaluation)), \
+        body, mime = export.to_xlsx(export.sheets(analysis, infos, rows, evaluation, scope=scope)), \
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     elif fmt == 'csv':
         body, mime = export.to_csv(infos, rows), 'text/csv'

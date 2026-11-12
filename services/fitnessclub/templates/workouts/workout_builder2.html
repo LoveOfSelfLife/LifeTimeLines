@@ -58,6 +58,18 @@
                 <!-- Action Buttons Row -->
                 <div class="d-flex flex-wrap gap-2 justify-content-end workout-builder-actions">
 
+                    {% if workout_type != 'workout_instance' %}
+                    <button type="button" class="btn btn-primary"
+                        {% if can_analyze_workout %}
+                        hx-get="{{ url_for('program_analysis.report', workout_id=workout.id) }}"
+                        hx-target="#modals-here" hx-swap="innerHTML"
+                        title="Analyze the last saved workout; {{ 'save the program' if editing_program_workout else 'save the workout' }} first to include changes"
+                        {% else %}
+                        disabled title="{{ 'Save the program' if editing_program_workout else 'Save the workout' }} before analyzing it"
+                        {% endif %}>
+                        <i class="bi bi-bar-chart"></i> Analyze
+                    </button>
+                    {% endif %}
                     <button class="btn btn-success" {% if can_save_workout %} {% if not editing_program_workout %}
                         hx-post="{{ url_for('workouts.save_workout', workout_id=workout.id) }}" {% else %}
                         hx-post="{{ url_for('workouts.save_program_workout', workout_id=workout.id) }}" {% endif %}

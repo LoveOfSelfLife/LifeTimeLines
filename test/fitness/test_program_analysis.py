@@ -54,6 +54,23 @@ def test_ramp_toggle():
     assert on['tables']['parent_pattern']['RAMP']['total_exercises'] == 1
 
 
+def test_load_workout_rows_resolves_only_referenced_exercises(monkeypatch):
+    from common import entity_store
+
+    calls = []
+
+    class Store:
+        def get_item(self, entity):
+            calls.append(entity['id'])
+            return EXERCISES.get(entity['id'])
+
+    monkeypatch.setattr(entity_store, 'EntityStore', Store)
+    infos, rows = extract.load_workout_rows([WORKOUTS[0]])
+    assert infos[0]['name'] == 'Day A'
+    assert {row['exercise_id'] for row in rows} == {'jog', 'bench', 'shoulder_mob', 'bare'}
+    assert set(calls) == {'jog', 'bench', 'shoulder_mob', 'bare'}
+
+
 def test_mobility_does_not_count_as_shoulder_strength():
     _, _, a = run()
     strength = a['tables']['muscle']['strength']['shoulders']
