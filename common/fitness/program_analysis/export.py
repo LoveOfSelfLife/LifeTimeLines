@@ -23,7 +23,7 @@ def _table_sheet(analysis, table, label):
     return [header] + sorted(body, key=lambda r: -r[-2])
 
 
-def sheets(analysis, workout_infos, rows, evaluation=None):
+def sheets(analysis, workout_infos, rows, evaluation=None, scope='program'):
     """sheet name -> list of rows (first row is the header)"""
     t = analysis['tables']
     out = {
@@ -38,7 +38,7 @@ def sheets(analysis, workout_infos, rows, evaluation=None):
     for bucket in BUCKETS:
         if any(c['total_sets'] for c in t['muscle'][bucket].values()):
             out[f'Muscles - {bucket}'] = _table_sheet(analysis, t['muscle'][bucket], 'Muscle')
-    out['Gaps'] = [['Workout', 'Kind', 'Missing', 'Missing from whole program']] + [
+    out['Gaps'] = [['Workout', 'Kind', 'Missing', f'Missing from whole {scope}']] + [
         [g['name'], kind, m['key'], m['program_wide']] for g in analysis['gaps']
         for kind in ('parent_pattern', 'pattern', 'muscle') for m in g[kind]]
     out['Repeats'] = [['Kind', 'Name', 'Slots', 'Workouts']] + \

@@ -155,6 +155,10 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
         entity_action_route_target=entity_action_route_target,
         entity_action_icon=entity_action_icon,
         entity_action_label=entity_action_label,
+        entity_action2_route=f"{url_for('program_analysis.report', scope='workout')}" if not modal_mode and not allow_multi_select else None,
+        entity_action2_icon='bi-bar-chart',
+        entity_action2_label='Analyze Workout',
+        entity_action2_route_target='modals-here',
         favorite_toggle_route='/favorites/toggle',
         results_target_container=results_target_container,
         entity_card_view_html='workout_card_view.html',
@@ -255,6 +259,7 @@ def builder(context=None, workout_id=None):
         else:
             workout_type = 'workout_definition'
 
+        saved_workout = get_entity(WORKOUT_ENTITY_NAME, workout_id) if workout_type == 'workout_definition' else None
         can_delete_workout = True
         if workout.get('member_program_id', None):
             # If the workout is part of a program, we may want to restrict we should prevent deleting the workout
@@ -270,6 +275,7 @@ def builder(context=None, workout_id=None):
                                 context=context, 
                                 source='exercises', 
                                 editing_program_workout=editing_program_workout,
+                                can_analyze_workout=bool(saved_workout),
                                 can_save_workout=can_save_workout,
                                 accessible_members=accessible_members,
                                 role_context=role_context,

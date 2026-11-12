@@ -85,11 +85,17 @@ def flatten_program(workouts, exercises_by_id):
 
 def load_program_rows(program):
     """Loads the program's standard workouts and their exercises from the entity store."""
-    from common.entity_store import EntityStore
-    from common.fitness.exercise_entity import ExerciseEntity
     from common.fitness.programs import get_program_workouts
 
     workouts = get_program_workouts(program, workout_type='standard')
+    return load_workout_rows(workouts)
+
+
+def load_workout_rows(workouts):
+    """Resolve exercises and flatten the supplied workout definitions."""
+    from common.entity_store import EntityStore
+    from common.fitness.exercise_entity import ExerciseEntity
+
     ids = {i.get('id') for w in workouts for s in (w.get('workout_sections') or [])
            for i in (s.get('exercises') or []) if i.get('id')}
     es = EntityStore()

@@ -17,7 +17,7 @@
       <div class="d-flex justify-content-between align-items-start gap-2">
         <div>
           <div class="fw-semibold">{{ o.name }}{% if o.builtin %} <span class="badge bg-secondary">built-in</span>{% endif %}</div>
-          {% if o.description %}<div class="small text-muted">{{ o.description }}</div>{% endif %}
+          {% if o.description %}<div class="small">{{ o.description }}</div>{% endif %}
           <div class="small">{{ o.rules | length }} rule group(s) · secondary muscle weight {{ o.secondary_muscle_weight }}</div>
         </div>
         {% if can_manage %}
