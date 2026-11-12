@@ -45,7 +45,7 @@
   <div class="col-6 col-md-2"><div class="card h-100"><div class="card-body p-2 text-center"><div class="fs-4">{{ g(a.cardio.exercises) }}</div><small class="text">cardio exercises{% if a.cardio.minutes %} · {{ g(a.cardio.minutes) }} min{% endif %}</small></div></div></div>
   <div class="col-6 col-md-2"><div class="card h-100"><div class="card-body p-2 text-center"><div class="fs-4">{{ g(a.balance.exercises) }}</div><small class="text">balance exercises</small></div></div></div>
   <div class="col-6 col-md-2"><div class="card h-100"><div class="card-body p-2 text-center">
-    <div class="fs-4">{{ (t.laterality.unilateral.pct_sets + t.laterality.alternating.pct_sets) | round | int }}%</div><small class="text">unilateral sets</small></div></div></div>
+    <div class="fs-4">{{ (t.laterality.unilateral.pct_sets + t.laterality.alternating.pct_sets) | round | int }}%</div><small class="">unilateral sets</small></div></div></div>
 </div>
 <p class="small mb-1">
   Push : Pull sets = {{ g(a.ratios.push_pull.push) }} : {{ g(a.ratios.push_pull.pull) }}{% if a.ratios.push_pull.ratio is not none %} ({{ a.ratios.push_pull.ratio }}){% endif %}
