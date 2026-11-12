@@ -67,6 +67,9 @@ def test_report_renders_with_objective(client):
     assert 'Add 2 more exercises for PULL-VERT' in html
     assert 'Data quality' in html and 'Mystery move' in html
     assert 'pa-chart-patterns' in html and 'Plotly.newPlot' in html
+    assert 'program-analysis-dialog .pa-chart' in html
+    assert 'width: calc(100% - 2rem)' in html and 'margin-inline: 1rem' in html
+    assert 'pa-chart-objective' in html and 'pa-chart-laterality' in html
 
 
 def test_ramp_toggle_changes_report(client):
@@ -79,6 +82,7 @@ def test_ramp_toggle_changes_report(client):
 def test_print_page_and_exports(client):
     html = client.get('/program_analysis/print?program_id=prog1&objective_id=builtin-balanced').get_data(as_text=True)
     assert '<!doctype html>' in html and 'window.print()' in html
+    assert '.pa-chart { width: 100%; }' in html and 'program-analysis-dialog' not in html
     xlsx = client.get('/program_analysis/export?program_id=prog1&format=xlsx&objective_id=builtin-balanced')
     assert xlsx.status_code == 200 and xlsx.data[:2] == b'PK' and '.xlsx' in xlsx.headers['Content-Disposition']
     assert client.get('/program_analysis/export?program_id=prog1&format=csv').data.startswith(b'workout,')

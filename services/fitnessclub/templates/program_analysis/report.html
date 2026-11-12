@@ -1,4 +1,10 @@
-<div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-lg-down" role="document">
+<style>
+  .program-analysis-dialog .pa-chart {
+    width: calc(100% - 2rem);
+    margin-inline: 1rem;
+  }
+</style>
+<div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-lg-down program-analysis-dialog" role="document">
   <div class="modal-content">
     <div class="modal-header">
       <h5 class="modal-title"><i class="bi bi-bar-chart-line me-2"></i>Program analysis — {{ program.name or 'Unnamed program' }}</h5>
