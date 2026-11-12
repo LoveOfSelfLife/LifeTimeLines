@@ -482,4 +482,4 @@ def show_exercise_viewer(entity_to_view, context, show_dismiss_btn=False):
             else:
                 can_edit = False
 
-    return render_exercise_popup_viewer_html(context, entity_to_view, can_edit=can_edit, show_dismiss_btn=show_dismiss_btn, filter_terms=get_filter_terms_from_request())
+    return render_exercise_popup_viewer_html(context, entity_to_view, can_edit=can_edit, show_dismiss_btn=show_dismiss_btn, filter_terms=get_filter_terms_from_request(ExerciseEntity.table_name))

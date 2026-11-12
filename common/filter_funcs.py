@@ -6,11 +6,15 @@ from flask import request, session
 import ast
 
 
-def get_requested_favorites_only_from_request():
+def get_requested_favorites_only_from_request(entity_table):
     if request.method == 'POST':
-        favorites_only = request.form.get('favorites_only')
+        params = request.form
     else:
-        favorites_only = request.args.get('favorites_only')
+        params = request.args
+
+    favorites_only = params.get('favorites_only')
+    if favorites_only is None:
+        favorites_only = params.get(f'favorites_only_{entity_table}')
 
     if favorites_only is None:
         return None
@@ -18,13 +22,15 @@ def get_requested_favorites_only_from_request():
     return str(favorites_only).lower() == 'true'
 
 
-def resolve_favorites_filter_terms(filter_terms, requested_favorites_only=None, session_favorites_only=False):
+def resolve_favorites_filter_terms(filter_terms, requested_favorites_only=None, session_favorites_only=False, entity_table=None):
     existing_favorites_only = None
     normalized_filter_terms = []
 
     for term in filter_terms:
         if isinstance(term, dict) and term.get('type') == 'favorites':
-            existing_favorites_only = str(term.get('value', '')).lower() == 'true'
+            # Untagged or foreign terms may have been carried over from another list.
+            if entity_table is None or term.get('entity_table') == entity_table:
+                existing_favorites_only = str(term.get('value', '')).lower() == 'true'
             continue
 
         normalized_filter_terms.append(term)
@@ -37,12 +43,29 @@ def resolve_favorites_filter_terms(filter_terms, requested_favorites_only=None, 
         favorites_only = session_favorites_only
 
     if favorites_only:
-        normalized_filter_terms.append({
+        favorites_term = {
             'type': 'favorites',
             'value': 'true'
-        })
+        }
+        if entity_table is not None:
+            favorites_term['entity_table'] = entity_table
+        normalized_filter_terms.append(favorites_term)
 
     return normalized_filter_terms, favorites_only
+
+
+def apply_favorites_preference(filter_terms, entity_table, requested_favorites_only=None):
+    """Resolve and persist the favorites-only preference for one entity table."""
+    favorites_preferences = session.get('favorites_preferences', {})
+    filter_terms, favorites_only = resolve_favorites_filter_terms(
+        filter_terms,
+        requested_favorites_only=requested_favorites_only,
+        session_favorites_only=favorites_preferences.get(entity_table, False),
+        entity_table=entity_table,
+    )
+    if favorites_preferences.get(entity_table) != favorites_only:
+        session['favorites_preferences'] = {**favorites_preferences, entity_table: favorites_only}
+    return filter_terms
 
 
 def add_filter_terms_summary(filter_terms):
@@ -107,7 +130,7 @@ def preprocess_search_term(search_term):
     return [{"type": "text", "value": search_term}]
 
 
-def get_filter_terms_from_request():
+def get_filter_terms_from_request(entity_table):
     """Extract search term from either POST form data or GET query parameters."""
     # Get search term from appropriate source
     search_term = ""
@@ -133,16 +156,11 @@ def get_filter_terms_from_request():
         filter_terms = filter_terms + preprocess_search_term(search_term)
         filter_terms = filter_terms + add_filter_terms_summary(filter_terms)
 
-    requested_favorites_only = get_requested_favorites_only_from_request()
-    session_favorites_only = session.get('favorites_preference', False)
-    filter_terms, favorites_only = resolve_favorites_filter_terms(
+    return apply_favorites_preference(
         filter_terms,
-        requested_favorites_only=requested_favorites_only,
-        session_favorites_only=session_favorites_only,
+        entity_table,
+        requested_favorites_only=get_requested_favorites_only_from_request(entity_table),
     )
-    session['favorites_preference'] = favorites_only
-
-    return filter_terms
 
 
 def parse_listing_filter(filter_param):

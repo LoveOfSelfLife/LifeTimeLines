@@ -85,7 +85,7 @@ def members(context=None):
                                              },
                     }
     
-    filter_terms = get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request('MemberTable')
     member_id = get_member_id_from_user_context(context)
     entities = get_entities('MemberTable', fields_to_display, filter_terms, partition_key=get_current_app_id(), member_id=member_id)
     return render_member_listing_template(context, 'MemberTable', page, view, page_size, fields_to_display, filter_terms, entities)

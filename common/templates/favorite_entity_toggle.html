@@ -7,7 +7,7 @@
             hx-post="{{ favorite_toggle_route or '/favorites/toggle' }}"
             hx-target="#{{ favorite_button_id }}"
             hx-swap="outerHTML"
-            hx-include="[name='search'], [name='view'], [name='favorites_only']"
+            hx-include="[name='search'], [name='view']"
             hx-vals='{{ {
                 "entity_table": favorite_entity_table,
                 "entity_id": favorite_entity_id,

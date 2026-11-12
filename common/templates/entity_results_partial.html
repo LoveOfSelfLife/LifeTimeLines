@@ -66,7 +66,7 @@
                             hx-trigger="change"
                             hx-target="#{{ results_target_container or 'results-area' }}"
                             hx-swap="none"
-                            hx-include="closest td, [name='search'], [name='view'], [name='favorites_only'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
+                            hx-include="closest td, [name='search'], [name='view'], [name='favorites_only_{{ entity_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
                         >
                     </td>
                     {% endif %}
@@ -170,7 +170,7 @@
                 hx-vals='{{ args|tojson }}'
                 {% endif %}
                 hx-target="#{{ results_target_container or 'results-area' }}"
-                hx-include="[name='search'], [name='favorites_only'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
+                hx-include="[name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
             <span aria-hidden="true">&laquo;</span>
             </a>
             </li>
@@ -184,7 +184,7 @@
                 hx-vals='{{ args|tojson }}'
                 {% endif %}
                 hx-target="#{{ results_target_container or 'results-area' }}"
-                hx-include="[name='search'], [name='favorites_only'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
+                hx-include="[name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
             <span aria-hidden="true">&raquo;</span>
             </a>
             </li>
@@ -201,7 +201,7 @@
 {% endif %} 
 
 {# this button is returned out-of-band (OOB), which then updates the favorites toggle in the parent template  #}
-<button id="favorites-toggle" 
+<button id="favorites-toggle-{{ entity_name }}"
         type="button" 
         class="btn btn-outline-secondary favorites-toggle" 
         style="height: 38px;" 
@@ -218,8 +218,8 @@
 
 <input
     type="hidden"
-    id="favorites-only-state"
-    name="favorites_only"
+    id="favorites-only-state-{{ entity_name }}"
+    name="favorites_only_{{ entity_name }}"
     value="{% if favorites_active %}true{% else %}false{% endif %}"
     hx-swap-oob="true">
 

@@ -76,7 +76,7 @@ def programs_listing2(context=None):
         session['view_preference'] = view
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
-    filter_terms = get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request(entity_name)
 
     member_id = get_member_id_from_user_context(context)
     if not member_id:
@@ -195,7 +195,7 @@ def workouts_listing(context=None):
         session['view_preference'] = view
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
-    filter_terms = get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request(entity_name)
 
             
     # mobile = request.args.get('mobile', type=bool, default=False)
@@ -256,7 +256,7 @@ def workouts_listing_modal(context=None):
     target = request.args.get('target')
     view = request.args.get('view', None) or session.get('view_preference', 'list')
     fields_to_display = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
-    filter_terms = get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request(WORKOUT_ENTITY_NAME)
     entities = get_entities(WORKOUT_ENTITY_NAME, fields_to_display, filter_terms, member_id=member_id)
     entities = filter_entities_by_member_role(member_id, entities)
 
@@ -1247,4 +1247,3 @@ def cancel_workout(context=None, workout_instance_key=None):
     on_workout_instance_deleted(workout_instance['id'])
 
     return redirect('/', 302)
-

@@ -11,7 +11,7 @@ from common.entities_getter import MULTI_SELECT_SESSION_KEY
 from common.cacher import get_cache_value, set_cache_value
 from common.fitness.exercise_entity import show_exercise_viewer
 from common.fitness.exercise_entity import movement_category_definitions
-from common.filter_funcs import get_filter_terms_from_request
+from common.filter_funcs import apply_favorites_preference, get_filter_terms_from_request
 from common.filter_funcs import parse_listing_filter
 from common.entities_getter import get_entities
 from common.fitness.exercise_entity import EQUIPMENT, ExerciseEntity
@@ -33,7 +33,7 @@ def root(context=None):
     if not member_id:
         abort(401)
     page = int(request.args.get('page', 1))
-    filter_terms = get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request(ExerciseEntity.table_name)
 
     return exercises_listing2(context, member_id, page=page, filter_terms=filter_terms)
 
@@ -44,7 +44,7 @@ def exercises_listing(context=None):
     if not member_id:
         abort(401)
     page = int(request.args.get('page', 1))
-    filter_terms = get_filter_terms_from_request()   
+    filter_terms = get_filter_terms_from_request(ExerciseEntity.table_name)
     # modal_mode = as_bool(request.args.get('modal_mode', None), False) if request.method == 'GET' else as_bool(request.form.get('modal_mode', None), False)     
     return exercises_listing2(context, member_id, page=page, filter_terms=filter_terms, modal_mode=False)
 
@@ -56,7 +56,7 @@ def exercises_listing_modal(context=None):
     if not member_id:
         abort(401)
     page = int(request.args.get('page', 1))
-    filter_terms = get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request(ExerciseEntity.table_name)
     if as_bool(request.args.get('allow_multi_select', None), False):
         clear_selected_entity_keys(member_id)
     return exercises_listing2(context, member_id, page=page, filter_terms=filter_terms, modal_mode=True)
@@ -291,7 +291,7 @@ def edit_exercise(context=None):
                 can_edit = True
     if not can_edit:
         current_listing_page=request.args.get('page', 1)
-        current_listing_filter_terms = get_filter_terms_from_request()
+        current_listing_filter_terms = get_filter_terms_from_request(ExerciseEntity.table_name)
         response = make_response(exercises_listing2(context,member_id, page=current_listing_page, filter_terms=current_listing_filter_terms))
         response.headers['HX-Trigger'] = json.dumps({
             "showMessage": { "value": f"You do not have permission to edit this exercise.", "target": "body" }
@@ -452,7 +452,7 @@ def save_exercise(exercise_id=None, context=None):
         
         current_listing_page = int(request.args.get('page', 1))
         filter_param = request.args.get('filter', '')
-        current_listing_filter = parse_listing_filter(filter_param)
+        current_listing_filter = apply_favorites_preference(parse_listing_filter(filter_param), ExerciseEntity.table_name)
 
         member_id = get_member_id_from_user_context(context)
         if not member_id:
@@ -487,7 +487,7 @@ def cancel_exercise(exercise_id=None, context=None):
     current_listing_page = int(request.args.get('page', 1))
 
     filter_param = request.args.get('filter', '')
-    current_listing_filter = parse_listing_filter(filter_param)
+    current_listing_filter = apply_favorites_preference(parse_listing_filter(filter_param), ExerciseEntity.table_name)
         
     response = make_response(exercises_listing2(context, member_id, page=current_listing_page, filter_terms=current_listing_filter))
     response.headers['HX-Trigger'] = json.dumps({
@@ -497,4 +497,3 @@ def cancel_exercise(exercise_id=None, context=None):
             "value": "canceled." }
         })
     return response
-

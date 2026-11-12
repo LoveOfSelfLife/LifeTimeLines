@@ -64,7 +64,7 @@ def index(context=None):
     if not member_id:
         abort(401)
     page = int(request.args.get('page', 1))
-    filter_terms = get_filter_terms_from_request()    
+    filter_terms = get_filter_terms_from_request(WORKOUT_ENTITY_NAME)
     return workouts_listing2(context, page, filter_terms)
 
 @bp.route('/workouts-listing', methods=['GET', 'POST'])
@@ -74,7 +74,7 @@ def workouts_listing(context=None):
     if not member_id:
         abort(401)
     page = int(request.args.get('page', 1))
-    filter_terms = get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request(WORKOUT_ENTITY_NAME)
     return workouts_listing2(context, page, filter_terms)
 
 def workouts_listing2(context=None, page=1, filter_terms=None):
@@ -84,7 +84,7 @@ def workouts_listing2(context=None, page=1, filter_terms=None):
         abort(401)
 
     if filter_terms is None:
-        filter_terms = get_filter_terms_from_request()
+        filter_terms = get_filter_terms_from_request(entity_name)
 
     target = request.args.get('target', None)
     # Handle view preference
@@ -1573,7 +1573,7 @@ def exercise_listing(context=None):
     fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
 
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
-    filter_terms = get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request(entity_name)
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
     
     total_pages = (len(entities) + page_size - 1) // page_size
@@ -1630,7 +1630,7 @@ def workouts_listing_modal(context=None):
     target = request.args.get('target')
     view = request.args.get('view', None) or session.get('view_preference', 'list')
     fields_to_display = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
-    filter_terms = get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request(WORKOUT_ENTITY_NAME)
     entities = get_entities(WORKOUT_ENTITY_NAME, fields_to_display, filter_terms, member_id=member_id)
     entities = filter_entities_by_member_role(member_id, entities)
 
@@ -1674,7 +1674,7 @@ def builder_workouts_listing(context=None):
         session['view_preference'] = view
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
-    filter_terms = get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request(entity_name)
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
 
     page_size = 100
@@ -2317,7 +2317,7 @@ def workouts_history_listing(context=None):
     if not member_id:
         abort(401)
     page = int(request.args.get('page', 1))
-    filter_terms = get_filter_terms_from_request()
+    filter_terms = get_filter_terms_from_request(WORKOUT_INSTANCE_ENTITY_NAME)
     return workouts_history_listing2(context, page, filter_terms)
 
 def get_sort_key_fn_for_entity(entity_name):
@@ -2332,7 +2332,7 @@ def workouts_history_listing2(context=None, page=1, filter_terms=None):
         abort(401)
 
     if filter_terms is None:
-        filter_terms = get_filter_terms_from_request()
+        filter_terms = get_filter_terms_from_request(entity_name)
 
     target = request.args.get('target', None)
     # Handle view preference
