@@ -34,7 +34,7 @@
             <i class="bi bi-pin-angle"></i> Apply to program
           </button>{% endif %}
           <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-download"></i> Export</button>
+            <button type="button" class="btn btn-sm btn-primary dropdown-toggle" data-bs-toggle="dropdown"><i class="bi bi-download"></i> Export</button>
             <ul class="dropdown-menu">
               {% set q = {scope ~ '_id': subject.id, 'include_ramp': '1' if include_ramp else '0', 'objective_id': objective_id} %}
               <li><a class="dropdown-item" href="{{ url_for('program_analysis.export_report', format='xlsx', **q) }}">Excel (.xlsx)</a></li>

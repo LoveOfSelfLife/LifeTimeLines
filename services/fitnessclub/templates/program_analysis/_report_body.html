@@ -159,7 +159,7 @@
   {% for r in a.repeats.exercises %}<li><strong>{{ r.name }}</strong> ×{{ r.slots }} — {{ r.workouts | join(', ') }}</li>{% endfor %}
   {% for r in a.repeats.families %}<li>Family <strong>{{ r.family }}</strong> ×{{ r.slots }} ({{ r.exercises | join(', ') }}) — {{ r.workouts | join(', ') }}</li>{% endfor %}
 </ul>
-{% else %}<p class="text-muted small">No exercise or exercise family is repeated.</p>{% endif %}
+{% else %}<p class="small">No exercise or exercise family is repeated.</p>{% endif %}
 
 {% if charts %}
 <script>
