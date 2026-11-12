@@ -1,0 +1,7 @@
+<button type="button" class="btn btn-sm btn-outline-primary"
+  title="View exercise history" aria-label="View history for {{ ex.name }}"
+  hx-get="{{ url_for('workouts.active_workout_exercise_history', workout_id=workout.id) }}"
+  hx-vals='{{ {"exercise_id": ex.id} | tojson | forceescape }}'
+  hx-target="#modals-here" hx-swap="innerHTML">
+  <i class="bi bi-clock-history" aria-hidden="true"></i>
+</button>

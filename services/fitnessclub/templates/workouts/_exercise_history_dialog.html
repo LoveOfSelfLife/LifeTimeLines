@@ -1,0 +1,60 @@
+<style>
+  @media (max-width: 575.98px) {
+    .exercise-history-dialog {
+      --bs-modal-margin: 1rem;
+    }
+  }
+</style>
+<div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable exercise-history-dialog" role="document">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title"><i class="bi bi-clock-history me-2"></i>{{ exercise_name }} History</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+      {% if not history_member_id %}
+      <p class="text-muted mb-0">Assign this workout to a member to view exercise history.</p>
+      {% else %}
+      <p><strong>Member:</strong> {{ history_member_name }}</p>
+      <form class="d-flex align-items-center gap-2 mb-3"
+            hx-get="{{ history_url }}"
+            hx-target="#modals-here" hx-swap="innerHTML" hx-trigger="change">
+        <input type="hidden" name="exercise_id" value="{{ exercise_id }}">
+        <label for="history-weight-unit">Weight unit</label>
+        <div class="position-relative">
+          <select id="history-weight-unit" name="unit" class="form-select form-select-sm w-auto pe-5"
+                  style="background: #fff !important; color: #212529 !important; -webkit-text-fill-color: #212529 !important; border-color: #adb5bd !important;">
+            <option value="lbs" {% if unit == 'lbs' %}selected{% endif %}>lbs</option>
+            <option value="kg" {% if unit == 'kg' %}selected{% endif %}>kg</option>
+          </select>
+          <i class="bi bi-caret-down-fill position-absolute top-50 end-0 translate-middle-y me-3 text-dark"
+             aria-hidden="true" style="pointer-events: none;"></i>
+        </div>
+      </form>
+      {% if workouts %}
+      <div class="table-responsive">
+        <table class="table table-sm table-striped text-nowrap">
+          <thead>
+            <tr><th scope="col">Date</th><th scope="col">Sets</th><th scope="col">Reps</th>
+              <th scope="col">Weight ({{ unit }})</th>{% if has_time %}<th scope="col">Time (seconds)</th>{% endif %}</tr>
+          </thead>
+          <tbody>
+            {% for workout in workouts %}
+            <tr>
+              <td>{{ workout.date }}</td><td>{{ workout.sets or '-' }}</td><td>{{ workout.reps or '-' }}</td>
+              <td>{{ workout.weight or '-' }}</td>{% if has_time %}<td>{{ workout.time or '-' }}</td>{% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="mb-0">No previous workouts found for this exercise.</p>
+      {% endif %}
+      {% endif %}
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+    </div>
+  </div>
+</div>

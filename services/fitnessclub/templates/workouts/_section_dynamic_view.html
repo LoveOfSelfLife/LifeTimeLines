@@ -9,6 +9,7 @@
         </h6>
         {% if active_workout and workout_instance_key %}
         <div class="name-image d-flex align-items-center gap-2">
+          {% include "workouts/_active_exercise_history_button.html" %}
           {% if active_workout and workout_instance_key and item.alternatives and item.alternatives|length > 0 %}
             <button type="button" class="btn btn-sm btn-outline-primary swap-exercise-btn"
               hx-get="{{ url_for('workouts.show_exercise_alternatives', section_name=section.name, slot_index=loop.index0) }}?workout_instance_key={{ workout_instance_key }}"
@@ -91,4 +92,3 @@
   </div>
   {% endfor %}
 </div>
-

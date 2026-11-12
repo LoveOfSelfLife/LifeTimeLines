@@ -48,11 +48,17 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .workout-item-actions > button {
+    flex-shrink: 0;
   }
 
   .workout-item-utility-row {
     display: flex;
     justify-content: flex-start;
+    min-width: 0;
     margin-top: 0.2rem;
     margin-bottom: 0.35rem;
   }
@@ -245,7 +251,7 @@
                 </strong>
               </div>
               <div class="workout-item-utility-row">
-                <div class="workout-item-actions">
+                <div class="workout-item-actions flex-wrap">
                   <button
                     type="button"
                     class="btn btn-link btn-sm p-0 d-inline-flex align-items-center gap-1"
@@ -265,6 +271,17 @@
                     hx-swap="innerHTML">
                     <i class="bi bi-shuffle"></i>
                     <span class="find-related-label">Add Alternative</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-link btn-sm p-0 d-inline-flex align-items-center gap-1"
+                    title="View exercise history"
+                    hx-get="{{ url_for('workouts.workout_exercise_history', workout_id=workout.id) }}"
+                    hx-vals='{{ {"exercise_id": ex.id} | tojson | forceescape }}'
+                    hx-target="#modals-here"
+                    hx-swap="innerHTML">
+                    <i class="bi bi-clock-history"></i>
+                    <span class="find-related-label">History</span>
                   </button>
                   <button
                     class="btn btn-link btn-sm text-danger p-0"

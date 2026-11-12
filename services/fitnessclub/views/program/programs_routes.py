@@ -17,7 +17,7 @@ from common.entities_getter import as_bool, delete_entity, get_entity, get_entit
 from common.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
 from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME
 from common.fitness.get_calendar_service import get_calendar_service
-from common.filter_funcs import get_filter_terms_from_request
+from common.filter_funcs import get_entity_view_from_request, get_filter_terms_from_request
 from common.template_renderer import rm_spaces
 from common.member_entity import MembershipRegistry, get_member_id_from_user_context, is_member_an_admin, member_allows_on_the_fly_workout
 from common.fitness.exercise_analytics_db import on_workout_instance_deleted, on_workout_instance_saved
@@ -68,12 +68,7 @@ def programs_listing2(context=None):
     member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
-    # Handle view preference
-    view = (request.form.get('view') if request.method == 'POST' 
-            else request.args.get('view')) or session.get('view_preference', 'list')
-    
-    if view != session.get('view_preference'):
-        session['view_preference'] = view
+    view = get_entity_view_from_request(entity_name)
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     filter_terms = get_filter_terms_from_request(entity_name)
@@ -187,12 +182,7 @@ def workouts_listing(context=None):
     member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
-    # Handle view preference
-    view = (request.form.get('view') if request.method == 'POST' 
-            else request.args.get('view')) or session.get('view_preference', 'list')
-    
-    if view != session.get('view_preference'):
-        session['view_preference'] = view
+    view = get_entity_view_from_request(entity_name)
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     filter_terms = get_filter_terms_from_request(entity_name)
@@ -254,7 +244,7 @@ def workouts_listing_modal(context=None):
     page = int(request.args.get('page', 1))
     page_size = 100
     target = request.args.get('target')
-    view = request.args.get('view', None) or session.get('view_preference', 'list')
+    view = get_entity_view_from_request(WORKOUT_ENTITY_NAME)
     fields_to_display = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
     filter_terms = get_filter_terms_from_request(WORKOUT_ENTITY_NAME)
     entities = get_entities(WORKOUT_ENTITY_NAME, fields_to_display, filter_terms, member_id=member_id)

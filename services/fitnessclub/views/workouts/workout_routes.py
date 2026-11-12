@@ -10,10 +10,10 @@ from common.entities_getter import resolve_selected_workout_keys, clear_selected
 from common.entities_getter import filter_entities_by_member_role
 from common.fitness.exercise_entity import ExerciseEntity, show_exercise_viewer
 from common.fitness.exercise_parameters import get_editor_type_for_unit_parameter, get_editor_type_for_value_parameter
-from common.filter_funcs import get_filter_terms_from_request
+from common.filter_funcs import get_entity_view_from_request, get_filter_terms_from_request
 from common.template_renderer import hx_render_template
 from common.template_renderer import rm_spaces
-from common.member_entity import get_member_id_from_user_context, is_member_an_admin
+from common.member_entity import get_member_id_from_user_context, get_user_profile, is_member_an_admin
 from common.roles_service import get_accessible_members_for_context, get_member_role_context
 from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, MemberWorkoutInstanceEntity, get_exercises_from_workout, map_exercise_to_sections
 from common.fitness.edit_workout_object import bring_up_workouts_builder
@@ -36,6 +36,9 @@ import json
 from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity
 
 from common.entities_getter import get_entities, get_entity, get_filtered_entities
+from common.fitness import exercise_analytics_db as analytics_db
+from common.fitness import exercise_analytics_queries as analytics_queries
+from common.fitness.exercise_history_analytics import workout_rows
 from common.fitness.exercise_analytics_db import on_workout_instance_deleted, on_workout_instance_saved
 from common.fitness.entity_constants import WORKOUT_ENTITY_NAME, WORKOUT_INSTANCE_ENTITY_NAME, WORKOUT_SECTIONS
 
@@ -87,12 +90,7 @@ def workouts_listing2(context=None, page=1, filter_terms=None):
         filter_terms = get_filter_terms_from_request(entity_name)
 
     target = request.args.get('target', None)
-    # Handle view preference
-    view = (request.form.get('view') if request.method == 'POST' 
-            else request.args.get('view')) or session.get('view_preference', 'list')
-    
-    if view != session.get('view_preference'):
-        session['view_preference'] = view
+    view = get_entity_view_from_request(entity_name)
     allow_multi_select = as_bool(request.form.get('allow_multi_select', None),
                                   as_bool(request.args.get('allow_multi_select', None), False))
     selected_entity_keys = resolve_selected_workout_keys(member_id, allow_multi_select=allow_multi_select)    
@@ -751,6 +749,107 @@ def workout_dynamic_canvas2(context=None, workout_id=None):
                                 purpose_of_parameter_edit='workout_builder',
                                 can_edit_parameters=True,
                                 context=context)
+
+
+@bp.route('/builder/<workout_id>/exercise-history')
+@auth.login_required
+def workout_exercise_history(context=None, workout_id=None):
+    viewer_id = get_member_id_from_user_context(context)
+    if not viewer_id:
+        abort(401)
+
+    workout = get_cache_value('current_workout')
+    if not workout or workout.get('id') != workout_id:
+        abort(404)
+
+    workout_type = get_cache_value('workout_type')
+    if workout_type == WORKOUT_INSTANCE_ENTITY_NAME:
+        member_id = workout.get('assigned_to_member_id') or workout.get('member_id') or workout.get('created_by')
+    else:
+        member_id = workout.get('assigned_to_member_id') or workout.get('created_by') or workout.get('member_id')
+    if member_id and member_id != viewer_id and not is_member_an_admin(viewer_id):
+        role = get_member_role_context(viewer_id)
+        if role.get('role') != 'coach' or not any(
+                member.get('id') == member_id for member in get_accessible_members_for_context(viewer_id)):
+            abort(403)
+
+    return _render_workout_exercise_history(
+        context, workout, member_id,
+        url_for('workouts.workout_exercise_history', workout_id=workout_id),
+        exclude_workout_id=workout_id if workout_type == WORKOUT_INSTANCE_ENTITY_NAME else None)
+
+
+@bp.route('/viewer/<workout_id>/exercise-history')
+@auth.login_required
+def active_workout_exercise_history(context=None, workout_id=None):
+    member_id = get_member_id_from_user_context(context)
+    if not member_id:
+        abort(401)
+
+    state = get_active_workout_state()
+    key = state.get('workout_instance_key') if state else None
+    if not isinstance(key, (list, tuple)) or len(key) != 3 or key[0] != workout_id \
+            or key[2] != WORKOUT_INSTANCE_ENTITY_NAME:
+        abort(404)
+    if key[1] != member_id:
+        abort(403)
+    workout = EntityStore().get_item_by_composite_key(key)
+    if not workout or workout.get('id') != workout_id or workout.get('member_id') != member_id:
+        abort(404)
+
+    return _render_workout_exercise_history(
+        context, workout, member_id,
+        url_for('workouts.active_workout_exercise_history', workout_id=workout_id),
+        exclude_workout_id=workout_id)
+
+
+def _render_workout_exercise_history(context, workout, member_id, history_url, exclude_workout_id=None):
+    exercise_id = request.args.get('exercise_id')
+    if not exercise_id:
+        abort(400, 'No exercise id provided')
+    if not any(item.get('id') == exercise_id
+               for section in workout.get(WORKOUT_SECTIONS, [])
+               for item in section.get('exercises', [])):
+        abort(404)
+
+    unit = request.args.get('unit', 'lbs')
+    if unit not in ('lbs', 'kg'):
+        abort(400, 'Invalid weight unit')
+
+    exercise = get_entity('ExerciseTable', exercise_id)
+    exercise_name = exercise.get('name', exercise_id) if exercise else exercise_id
+    has_time = bool(exercise and exercise.get('setCompletionMeasure') == 'time')
+    workouts = []
+    member_name = None
+    if member_id:
+        profile = get_user_profile(member_id)
+        if profile and profile.get('name'):
+            member_name = profile['name']
+        else:
+            logger.warning('No name found for exercise history member %s', member_id)
+            member_name = f'Name unavailable ({member_id})'
+        conn = analytics_db.connect()
+        try:
+            analytics_db.ensure_member_built(conn, member_id)
+            history = analytics_queries.exercise_history(conn, member_id, exercise_id)
+            if exclude_workout_id:
+                history = [row for row in history if row['workout_instance_id'] != exclude_workout_id]
+            workouts = workout_rows(history)
+            for row, source in zip(workouts, history):
+                weight = source['weight_kg']
+                if weight is not None:
+                    if unit == 'lbs':
+                        weight /= analytics_db.LBS_TO_KG
+                    row['weight'] = f'{weight:.2f}'.rstrip('0').rstrip('.')
+            has_time = has_time or any(row['time_sec'] is not None for row in history)
+        finally:
+            conn.close()
+
+    return hx_render_template('workouts/_exercise_history_dialog.html',
+                              history_url=history_url, exercise_id=exercise_id,
+                              exercise_name=exercise_name, history_member_id=member_id,
+                              history_member_name=member_name, workouts=workouts,
+                              unit=unit, has_time=has_time, context=context)
 
 
 def _add_exercise_to_workout(workout, exercise, preferred_section=None):
@@ -1568,12 +1667,9 @@ def exercise_listing(context=None):
     member_id = get_member_id_from_user_context(context)
     if not member_id:
         abort(401)
-    # Handle view preference
-    view = (request.form.get('view') if request.method == 'POST' 
-            else request.args.get('view')) or session.get('view_preference', 'list')
-    
-    if view != session.get('view_preference'):
-        session['view_preference'] = view
+    view = get_entity_view_from_request(
+        entity_name, member_id=member_id, legacy_cache_key=f'view_preference_{member_id}'
+    )
  
     
     fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
@@ -1634,7 +1730,7 @@ def workouts_listing_modal(context=None):
     page = int(request.args.get('page', 1))
     page_size = 100
     target = request.args.get('target')
-    view = request.args.get('view', None) or session.get('view_preference', 'list')
+    view = get_entity_view_from_request(WORKOUT_ENTITY_NAME)
     fields_to_display = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
     filter_terms = get_filter_terms_from_request(WORKOUT_ENTITY_NAME)
     entities = get_entities(WORKOUT_ENTITY_NAME, fields_to_display, filter_terms, member_id=member_id)
@@ -1665,19 +1761,9 @@ def builder_workouts_listing(context=None):
     page = int(request.args.get('page', 1))
     target = request.args.get('target', None)    
     member_id = get_member_id_from_user_context(context)
-    view = request.args.get('view', None)
-    if view:
-        session['view_preference'] = view
-    else:
-        view = session.get('view_preference', 'list')
     div_id = target
 
-    # Handle view preference
-    view = (request.form.get('view') if request.method == 'POST' 
-            else request.args.get('view')) or session.get('view_preference', 'list')
-    
-    if view != session.get('view_preference'):
-        session['view_preference'] = view
+    view = get_entity_view_from_request(entity_name)
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     filter_terms = get_filter_terms_from_request(entity_name)
@@ -2341,12 +2427,7 @@ def workouts_history_listing2(context=None, page=1, filter_terms=None):
         filter_terms = get_filter_terms_from_request(entity_name)
 
     target = request.args.get('target', None)
-    # Handle view preference
-    view = (request.form.get('view') if request.method == 'POST' 
-            else request.args.get('view')) or session.get('view_preference', 'list')
-    
-    if view != session.get('view_preference'):
-        session['view_preference'] = view
+    view = get_entity_view_from_request(entity_name)
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     sort_key_fn=get_sort_key_fn_for_entity(entity_name)

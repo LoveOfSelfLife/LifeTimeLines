@@ -8,10 +8,9 @@ from common.fitness.active_fitness_registry import get_fitnessclub_entity_filter
 from common.entities_getter import resolve_selected_entity_keys, clear_selected_entity_keys
 from common.entities_getter import as_bool
 from common.entities_getter import MULTI_SELECT_SESSION_KEY
-from common.cacher import get_cache_value, set_cache_value
 from common.fitness.exercise_entity import show_exercise_viewer
 from common.fitness.exercise_entity import movement_category_definitions
-from common.filter_funcs import apply_favorites_preference, get_filter_terms_from_request
+from common.filter_funcs import apply_favorites_preference, get_entity_view_from_request, get_filter_terms_from_request
 from common.filter_funcs import parse_listing_filter
 from common.entities_getter import get_entities
 from common.fitness.exercise_entity import EQUIPMENT, ExerciseEntity
@@ -66,12 +65,9 @@ def exercises_listing2(context, member_id, page=1, filter_terms=[], modal_mode=F
 
     page_size = 100
 
-    # Handle view preference (member-scoped cache, not Flask session - see entities_getter.py note)
-    view = (request.form.get('view') if request.method == 'POST' 
-            else request.args.get('view')) or get_cache_value(f'view_preference_{member_id}') or 'list'
-    
-    if view != get_cache_value(f'view_preference_{member_id}'):
-        set_cache_value(f'view_preference_{member_id}', view)
+    view = get_entity_view_from_request(
+        entity_name, member_id=member_id, legacy_cache_key=f'view_preference_{member_id}'
+    )
     
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     

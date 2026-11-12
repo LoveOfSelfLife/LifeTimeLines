@@ -15,8 +15,12 @@
                         <select name="assigned_member_id" id="assigned_member" class="form-select"
                             style="color: #212529; background-color: #fff;" hx-trigger="change"
                             hx-post="{{ url_for('workouts.update_assigned_member', workout_id=workout.id) }}" hx-swap="none">
+                            <option value="" disabled {% if not workout.assigned_to_member_id %}selected{% endif %}></option>
+                            {% if workout.assigned_to_member_id and workout.assigned_to_member_id not in accessible_members | map(attribute='id') | list %}
+                            <option value="{{ workout.assigned_to_member_id }}" selected disabled>Assigned member unavailable</option>
+                            {% endif %}
                             {% for member in accessible_members %}
-                            <option value="{{ member.id }}" {% if member.id==(workout.assigned_to_member_id or workout.member_id)
+                            <option value="{{ member.id }}" {% if member.id==workout.assigned_to_member_id
                                 %}selected{% endif %}>
                                 {{ member.name }}
                             </option>

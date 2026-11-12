@@ -1,9 +1,38 @@
 
 
-from flask import request, session
+from flask import abort, request, session
+
+from common.cacher import get_cache_value, set_cache_value
 
 
 import ast
+
+
+def get_entity_view_from_request(entity_table, member_id=None, legacy_cache_key=None):
+    """Resolve the requested or stored view for one entity table."""
+    params = request.form if request.method == 'POST' else request.args
+    requested_view = params.get('view')
+    if requested_view is None:
+        requested_view = params.get(f'view_{entity_table}')
+    if requested_view is not None and requested_view not in ('list', 'card'):
+        abort(400, description='Invalid entity list view')
+
+    if member_id is not None:
+        # Exercise modals avoid session writes that could overwrite active workout state.
+        cache_key = f'entity_view_preference_{entity_table}_{member_id}'
+        stored_view = get_cache_value(cache_key)
+        if stored_view is None and legacy_cache_key:
+            stored_view = get_cache_value(legacy_cache_key)
+        view = requested_view or stored_view or 'list'
+        if requested_view is not None and requested_view != (stored_view or 'list'):
+            set_cache_value(cache_key, view)
+        return view
+
+    preferences = session.get('view_preferences', {})
+    view = requested_view or preferences.get(entity_table, 'list')
+    if requested_view is not None and preferences.get(entity_table, 'list') != view:
+        session['view_preferences'] = {**preferences, entity_table: view}
+    return view
 
 
 def get_requested_favorites_only_from_request(entity_table):

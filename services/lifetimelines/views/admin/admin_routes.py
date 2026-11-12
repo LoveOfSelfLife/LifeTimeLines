@@ -15,7 +15,7 @@ from common.coach_team_entity import assign_coach_to_team, remove_coach_from_tea
 from common.entities_getter import delete_entity, get_entities
 from common.entity_store import EntityStore, get_entity_obj_from_entity_name
 from common.favorites_entity import toggle_entity_favorite
-from common.filter_funcs import get_filter_terms_from_request
+from common.filter_funcs import get_entity_view_from_request, get_filter_terms_from_request
 from common.impersonation import get_impersonated_member_id, start_impersonation, stop_impersonation
 from common.member_entity import get_member_id_from_user_context, get_members_list
 from common.roles_service import get_member_role
@@ -58,11 +58,7 @@ def members(context=None):
     page = int(request.args.get('page', 1))
     page_size = 100
 
-    # Handle view preference
-    view = (request.form.get('view') if request.method == 'POST' 
-            else request.args.get('view')) or session.get('view_preference', 'list')
-    if view != session.get('view_preference'):
-        session['view_preference'] = view
+    view = get_entity_view_from_request('MemberTable')
 
     fields_to_display = { 
                       "listing_view": [ "name",

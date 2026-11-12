@@ -26,7 +26,7 @@
                         hx-post="{{ multi_select_post_route }}"
                         hx-target="#modals-here"
                         hx-swap="innerHTML"
-                        hx-include="[name='{{ multi_select_checkbox_name }}'], [name='search'], [name='view'], [name='favorites_only_{{ entity_name }}'], [name='preferred_section']"
+                        hx-include="[name='{{ multi_select_checkbox_name }}'], [name='search'], [name='view_{{ entity_name }}'], [name='favorites_only_{{ entity_name }}'], [name='preferred_section']"
                         {% if multi_select_extra_vals %}
                         hx-vals='{{ multi_select_extra_vals|tojson }}'
                         {% endif %}>
@@ -46,21 +46,17 @@
                 </div>
 
                 <!-- View Toggle Buttons -->
-                <div class="btn-group" id="view-toggle-buttons" role="group">
+                <div class="btn-group view-toggle-buttons" id="view-toggle-buttons-{{ entity_name }}" role="group">
                     <button type="button" class="btn btn-outline-primary {% if view == 'card' %}active{% endif %}" data-view="card"
                         hx-get="{{ entities_listing_route }}&page={{ page }}&filter={{ filter_terms }}&view=card&modal_mode={{ modal_mode }}"
-                        {% if args %}
-                        hx-vals='{{ args|tojson }}'
-                        {% endif %}
+                        hx-vals='{{ dict(args or {}, view="card")|tojson }}'
                         hx-target="#{{ results_target_container or 'results-area' }}"
                         hx-include="[name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
                         <i class="bi bi-grid"></i>
                     </button>
                     <button type="button" class="btn btn-outline-primary {% if view == 'list' %}active{% endif %}" data-view="list"
                         hx-get="{{ entities_listing_route }}&page={{ page }}&filter={{ filter_terms }}&view=list&modal_mode={{ modal_mode }}"
-                        {% if args %}
-                        hx-vals='{{ args|tojson }}'
-                        {% endif %}
+                        hx-vals='{{ dict(args or {}, view="list")|tojson }}'
                         hx-target="#{{ results_target_container or 'results-area' }}"
                         hx-include="[name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
                         <i class="bi bi-list"></i>  
@@ -69,19 +65,12 @@
             </div>
 
             <script>
-                // This script listens for HTMX requests triggered by the view toggle buttons and updates their active state accordingly
                 document.addEventListener('htmx:afterRequest', function(e) {
-                    if (e.target.closest('#view-toggle-buttons')) {
-                        const url = new URL(e.detail.xhr.responseURL || window.location);
-                        const view = url.searchParams.get('view') || 'card';
-                        
-                        document.querySelectorAll('#view-toggle-buttons button').forEach(btn => {
-                            btn.classList.remove('active');
-                            if (btn.dataset.view === view) {
-                                btn.classList.add('active');
-                            }
-                        });
-                    }
+                    const button = e.target.closest('.view-toggle-buttons button[data-view]');
+                    if (!button || !e.detail.successful) return;
+                    button.closest('.view-toggle-buttons').querySelectorAll('button[data-view]').forEach(btn => {
+                        btn.classList.toggle('active', btn === button);
+                    });
                 });
             </script>
 
@@ -96,7 +85,7 @@
                         hx-post="{{ entities_listing_route }}"
                         hx-target="#{{ results_target_container or 'results-area' }}"
                         hx-swap="innerHTML"
-                        hx-include="[name='view'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
+                        hx-include="[name='view_{{ entity_name }}'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
                         {% if modal_mode %}
                         hx-vals='{ "modal_mode": {{ modal_mode|tojson }}}'
                         {% endif %}
@@ -117,7 +106,7 @@
                         hx-post="{{ entities_listing_route }}"
                         hx-target="#{{ results_target_container or 'results-area' }}"
                         hx-swap="innerHTML"
-                        hx-include="[name='search'], [name='view'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
+                        hx-include="[name='search'], [name='view_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
                         {% if modal_mode %}
                         hx-vals='{"favorites_only": {% if favorites_active %}false{% else %}true{% endif %}, "modal_mode": {{ modal_mode|tojson }}}'
                         {% else %}
@@ -155,7 +144,7 @@
             <a class="page-link" href="#"
                 hx-get="{{ entities_listing_route }}&page={{ page - 1 }}&filter={{ filter_terms }}&view={{ view }}&modal_mode={{ modal_mode }}"
                 {% if args %}
-                hx-vals='{{ args|tojson }}'
+                hx-vals='{{ dict(args, view=view)|tojson }}'
                 {% endif %}
                 hx-target="#{{ results_target_container or 'results-area' }}"
                 hx-include="[name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
@@ -169,7 +158,7 @@
             <a class="page-link" href="#"
                 hx-get="{{ entities_listing_route }}&page={{ page + 1 }}&filter={{ filter_terms }}&view={{ view }}&modal_mode={{ modal_mode }}"
                 {% if args %}
-                hx-vals='{{ args|tojson }}'
+                hx-vals='{{ dict(args, view=view)|tojson }}'
                 {% endif %}
                 hx-target="#{{ results_target_container or 'results-area' }}"
                 hx-include="[name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
