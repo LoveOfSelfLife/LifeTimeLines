@@ -7,7 +7,7 @@ from common.auth import auth
 from common.fitness.active_fitness_registry import get_fitnessclub_listing_fields_for_entity, get_fitnessclub_entity_names
 from common.env_context import Env
 from common.entities_getter import delete_entity
-from common.filter_funcs import get_filter_terms_from_request
+from common.filter_funcs import get_entity_view_from_request, get_filter_terms_from_request
 from common.template_renderer import hx_render_template
 from common.member_entity import get_member_id_from_user_context
 from common.utils import generate_id
@@ -31,12 +31,7 @@ def members(context=None):
     page = int(request.args.get('page', 1))
     page_size = 100
 
-    # Handle view preference
-    view = (request.form.get('view') if request.method == 'POST' 
-            else request.args.get('view')) or session.get('view_preference', 'list')
-    
-    if view != session.get('view_preference'):
-        session['view_preference'] = view
+    view = get_entity_view_from_request('MemberTable')
 
 
     fields_to_display = { 

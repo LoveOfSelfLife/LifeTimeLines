@@ -57,7 +57,7 @@
                                     hx-trigger="change"
                                     hx-target="#{{ results_target_container or 'results-area' }}"
                                     hx-swap="none"
-                                    hx-include="closest .card-body, [name='search'], [name='view'], [name='favorites_only_{{ entity_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
+                                    hx-include="closest .card-body, [name='search'], [name='view_{{ entity_name }}'], [name='favorites_only_{{ entity_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
                                 >
                             </div>
                             {% endif %}

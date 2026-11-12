@@ -3,7 +3,7 @@
     .entity-action-loading.htmx-request > .entity-action-spinner { visibility: visible; }
     .entity-action-loading.htmx-request > .entity-action-icon { visibility: hidden; }
 </style>
-<input type="hidden" name="view" value="{{ view }}">
+<input type="hidden" name="view_{{ entity_name }}" value="{{ view }}">
 {% set allow_multi_select = allow_multi_select|default(false) %}
 {% set multi_select_checkbox_name = multi_select_checkbox_name|default('selected_entity_keys') %}
 {% set selected_entity_keys = selected_entity_keys|default([]) %}
@@ -66,7 +66,7 @@
                             hx-trigger="change"
                             hx-target="#{{ results_target_container or 'results-area' }}"
                             hx-swap="none"
-                            hx-include="closest td, [name='search'], [name='view'], [name='favorites_only_{{ entity_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
+                            hx-include="closest td, [name='search'], [name='view_{{ entity_name }}'], [name='favorites_only_{{ entity_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
                         >
                     </td>
                     {% endif %}
@@ -167,7 +167,7 @@
             <a class="page-link" href="#"
                 hx-get="{{ entities_listing_route }}&page={{ page - 1 }}&filter={{ filter_terms }}&view={{ view }}"
                 {% if args %}
-                hx-vals='{{ args|tojson }}'
+                hx-vals='{{ dict(args, view=view)|tojson }}'
                 {% endif %}
                 hx-target="#{{ results_target_container or 'results-area' }}"
                 hx-include="[name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
@@ -181,7 +181,7 @@
             <a class="page-link" href="#"
                 hx-get="{{ entities_listing_route }}&page={{ page + 1 }}&filter={{ filter_terms }}&view={{ view }}"
                 {% if args %}
-                hx-vals='{{ args|tojson }}'
+                hx-vals='{{ dict(args, view=view)|tojson }}'
                 {% endif %}
                 hx-target="#{{ results_target_container or 'results-area' }}"
                 hx-include="[name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
@@ -209,7 +209,7 @@
         hx-post="{{ entities_listing_route }}" 
         hx-target="#{{ results_target_container or 'results-area' }}" 
         hx-swap="innerHTML" 
-        hx-include="[name='search'], [name='view'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']" 
+        hx-include="[name='search'], [name='view_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
         hx-vals='{"favorites_only": {% if favorites_active %}false{% else %}true{% endif %}}'
         title="{% if favorites_active %}Show all items{% else %}Show favorites only{% endif %}"
         hx-swap-oob="true">
