@@ -41,6 +41,14 @@
                 hx-swap="innerHTML">
                 <i class="bi bi-check2-circle me-1"></i>Use this
               </button>
+              <button type="button" class="btn btn-outline-danger btn-sm"
+                title="Delete alternative" aria-label="Delete {{ alt.name }}"
+                hx-post="{{ url_for('workouts.remove_active_alternative', section_name=section_name, slot_index=slot_index) }}"
+                hx-vals='{{ {"workout_instance_key": workout_instance_key, "alternative_exercise_id": alt.id}|tojson }}'
+                hx-confirm="Remove this alternative exercise?"
+                hx-target="#modals-here" hx-swap="innerHTML">
+                <i class="bi bi-trash"></i>
+              </button>
             </div>
           {% endfor %}
         </div>

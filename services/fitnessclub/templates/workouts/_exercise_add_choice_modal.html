@@ -1,0 +1,22 @@
+<div class="modal-dialog modal-dialog-centered" role="document">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title">Add exercises</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+    <div class="modal-body d-grid gap-2">
+      {% set section_route = url_for('workouts.add_active_exercises', workout_instance_key=workout_instance_key, section_name=section_name, slot_index=slot_index) %}
+      {% set alternatives_route = url_for('workouts.add_active_alternatives', section_name=section_name, slot_index=slot_index, workout_instance_key=workout_instance_key) %}
+      <button type="button" class="btn btn-primary"
+        hx-get="{{ url_for('exercises.exercises_listing_modal', allow_multi_select='true', multi_select_post_route=section_route) }}"
+        hx-target="#modals-here" hx-swap="innerHTML">
+        Add exercises after this exercise
+      </button>
+      <button type="button" class="btn btn-primary"
+        hx-get="{{ url_for('exercises.exercises_listing_modal', allow_multi_select='true', multi_select_post_route=alternatives_route) }}"
+        hx-target="#modals-here" hx-swap="innerHTML">
+        Add alternatives to this exercise
+      </button>
+    </div>
+  </div>
+</div>
