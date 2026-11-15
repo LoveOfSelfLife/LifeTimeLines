@@ -22,7 +22,7 @@ from common.fitness.programs import get_last_workout_instance_for_workout
 from common.fitness.home_page_view import render_home_page_workout
 from common.fitness.workout_state import get_active_workout_state, update_active_workout_state, get_last_section, set_last_section as set_last_section_cache, clear_last_section, get_last_exercise_index, set_last_exercise_index as set_last_exercise_index_cache, get_exercise_parameters, set_exercise_parameter, member_id_from_workout_instance_key
 from common.fitness.exercise_alternatives import find_slot, perform_exercise_swap, record_exercise_swap
-from common.fitness.exercise_onthefly import record_exercise_removal, record_exercise_addition
+from common.fitness.exercise_onthefly import record_exercise_removal, record_exercise_addition, record_alternative_changes, shift_alternative_changes
 from common.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
 import copy
 
@@ -2127,6 +2127,10 @@ def show_exercise_alternatives(context=None, section_name=None, slot_index=None)
     if not item:
         abort(404, "Exercise slot not found")
 
+    return render_active_alternatives(item, workout_instance_key, section_name, slot_index)
+
+
+def render_active_alternatives(item, workout_instance_key, section_name, slot_index):
     current_exercise = get_entity("ExerciseTable", item.get("id"))
     alternative_exercises = []
     for alt in item.get("alternatives", []):
@@ -2140,6 +2144,104 @@ def show_exercise_alternatives(context=None, section_name=None, slot_index=None)
                            workout_instance_key=workout_instance_key,
                            section_name=section_name,
                            slot_index=slot_index)
+
+
+def get_active_alternative_slot(workout_instance_key, section_name, slot_index):
+    if not workout_instance_key:
+        abort(400, "workout_instance_key is required")
+    try:
+        key = literal_eval(workout_instance_key)
+    except (ValueError, SyntaxError):
+        abort(400, "Invalid workout instance key")
+    if not isinstance(key, (list, tuple)) or len(key) != 3 or key[2] != MemberWorkoutInstanceEntity.table_name:
+        abort(400, "Invalid workout instance key")
+    es = EntityStore()
+    workout_instance = es.get_item_by_composite_key(key)
+    if not workout_instance:
+        abort(404, "Workout instance not found")
+    item = find_slot(workout_instance, section_name, slot_index)
+    if not item:
+        abort(404, "Exercise slot not found")
+    return es, workout_instance, item
+
+
+@bp.route("/viewer/exercise/add-choice/<section_name>/<int:slot_index>")
+@auth.login_required
+def choose_active_exercise_addition(context=None, section_name=None, slot_index=None):
+    workout_instance_key = request.args.get("workout_instance_key")
+    get_active_alternative_slot(workout_instance_key, section_name, slot_index)
+    return render_template("workouts/_exercise_add_choice_modal.html",
+                           workout_instance_key=workout_instance_key,
+                           section_name=section_name, slot_index=slot_index)
+
+
+@bp.route("/viewer/exercise/alternatives/<section_name>/<int:slot_index>/add", methods=["POST"])
+@auth.login_required
+def add_active_alternatives(context=None, section_name=None, slot_index=None):
+    workout_instance_key = request.args.get("workout_instance_key") or request.form.get("workout_instance_key")
+    es, workout_instance, item = get_active_alternative_slot(workout_instance_key, section_name, slot_index)
+
+    selected_keys = list(dict.fromkeys(key for key in request.form.getlist('selected_entity_keys') if key))
+    if not selected_keys:
+        response = make_response('', 204)
+        response.headers['HX-Trigger'] = json.dumps({
+            "showMessage": {"target": "body", "value": "No exercises selected."}
+        })
+        return response
+
+    selected_exercises = []
+    for key in selected_keys:
+        try:
+            composite_key = literal_eval(key)
+        except (ValueError, SyntaxError):
+            abort(400, "Invalid exercise key")
+        if not isinstance(composite_key, (list, tuple)) or len(composite_key) != 3 or composite_key[2] != ExerciseEntity.table_name:
+            abort(400, "Invalid exercise key")
+        exercise = es.get_item_by_composite_key(composite_key)
+        if not exercise:
+            abort(404, "Selected exercise not found")
+        selected_exercises.append(exercise)
+
+    alternatives = item.setdefault('alternatives', [])
+    existing_ids = {item.get('id')} | {alt.get('id') for alt in alternatives}
+    for exercise in selected_exercises:
+        if exercise['id'] not in existing_ids:
+            alternatives.append({'id': exercise['id'], 'parameters': get_initial_params_for_exercise()})
+            existing_ids.add(exercise['id'])
+    es.upsert_item(workout_instance)
+    current_workout_state = get_active_workout_state() or {}
+    record_alternative_changes(current_workout_state, section_name, slot_index, item)
+    update_active_workout_state(current_workout_state)
+    clear_selected_entity_keys(get_member_id_from_user_context(context))
+
+    response = make_response(render_active_alternatives(item, workout_instance_key, section_name, slot_index))
+    response.headers['HX-Trigger'] = json.dumps({"workoutChanged": {"target": "body"}})
+    return response
+
+
+@bp.route("/viewer/exercise/alternatives/<section_name>/<int:slot_index>/remove", methods=["POST"])
+@auth.login_required
+def remove_active_alternative(context=None, section_name=None, slot_index=None):
+    workout_instance_key = request.form.get("workout_instance_key")
+    alternative_id = request.form.get("alternative_exercise_id")
+    if not workout_instance_key or not alternative_id:
+        abort(400, "workout_instance_key and alternative_exercise_id are required")
+
+    es, workout_instance, item = get_active_alternative_slot(workout_instance_key, section_name, slot_index)
+
+    alternatives = item.get('alternatives', [])
+    index = next((i for i, alt in enumerate(alternatives) if alt.get('id') == alternative_id), None)
+    if index is None:
+        abort(404, "Alternative exercise not found in this slot")
+    alternatives.pop(index)
+    es.upsert_item(workout_instance)
+    current_workout_state = get_active_workout_state() or {}
+    record_alternative_changes(current_workout_state, section_name, slot_index, item)
+    update_active_workout_state(current_workout_state)
+
+    response = make_response(render_active_alternatives(item, workout_instance_key, section_name, slot_index))
+    response.headers['HX-Trigger'] = json.dumps({"workoutChanged": {"target": "body"}})
+    return response
 
 
 @bp.route("/viewer/exercise/alternatives/<section_name>/<int:slot_index>/swap", methods=["POST"])
@@ -2168,6 +2270,9 @@ def swap_exercise_alternative(context=None, section_name=None, slot_index=None):
 
     current_workout_state = get_active_workout_state() or {}
     record_exercise_swap(current_workout_state, section_name, slot_index, swap_info)
+    if any(change['section_name'] == section_name and change['slot_index'] == slot_index
+           for change in current_workout_state.get('alternative_changes', [])):
+        record_alternative_changes(current_workout_state, section_name, slot_index, item)
     update_active_workout_state(current_workout_state)
 
     response = make_response('')
@@ -2203,6 +2308,7 @@ def remove_active_exercise(context=None):
 
     current_workout_state = get_active_workout_state() or {}
     record_exercise_removal(current_workout_state, removed_item.get('id'))
+    shift_alternative_changes(current_workout_state, section_name, slot_index, inserted=False)
     update_active_workout_state(current_workout_state)
 
     response = make_response('')
@@ -2260,6 +2366,7 @@ def add_active_exercises(context=None):
 
         new_item = {'id': ex['id'], 'parameters': get_initial_params_for_exercise(), 'alternatives': []}
         exercises_list.insert(insert_pos, new_item)
+        shift_alternative_changes(current_workout_state, section_name, insert_pos - 1, inserted=True)
         record_exercise_addition(current_workout_state, section_name, anchor_id, new_item['id'], new_item['parameters'])
         anchor_id = new_item['id']
         insert_pos += 1

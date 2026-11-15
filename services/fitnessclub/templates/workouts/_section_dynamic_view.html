@@ -20,8 +20,8 @@
           {% endif %}
           {% if active_workout and workout_instance_key and allow_on_the_fly_workout %}
             <button type="button" class="btn btn-sm btn-outline-primary"
-              title="Add an exercise after this one"
-              hx-get="/exercises/listing-modal?allow_multi_select=true&multi_select_post_route={{ (url_for('workouts.add_active_exercises') ~ '?workout_instance_key=' ~ workout_instance_key ~ '&section_name=' ~ section.name ~ '&slot_index=' ~ loop.index0) | urlencode }}"
+              title="Add exercises or alternatives"
+              hx-get="{{ url_for('workouts.choose_active_exercise_addition', section_name=section.name, slot_index=loop.index0, workout_instance_key=workout_instance_key) }}"
               hx-target="#modals-here" hx-swap="innerHTML"
               data-bs-toggle="modal" data-bs-target="#modals-here">
               <i class="bi bi-plus-lg"></i>

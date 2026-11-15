@@ -26,7 +26,7 @@ from common.fitness.member_workout_entity import MemberWorkoutDefinitionEntity, 
 from common.fitness.programs import get_last_workout_instance_for_workout, get_next_workout_in_program, get_workouts_from_program
 from common.fitness.workout_state import clear_active_workout_state, get_active_workout_state, initialize_active_workout_state, update_active_workout_state, get_last_section, get_last_exercise_index, clear_last_section, get_exercise_parameters
 from common.fitness.exercise_alternatives import apply_recorded_swaps_to_definition
-from common.fitness.exercise_onthefly import apply_recorded_removals_to_definition, apply_recorded_additions_to_definition
+from common.fitness.exercise_onthefly import apply_recorded_removals_to_definition, apply_recorded_additions_to_definition, apply_recorded_alternative_changes
 from common.fitness.edit_workout_object import bring_up_workouts_builder
 from common.roles_service import get_accessible_members_for_context, get_team_coaches_with_details, get_team_for_client, is_member_client, is_member_coach
 from common.coach_team_entity import get_coachs_team_members
@@ -1150,10 +1150,11 @@ def really_finish_workout(context=None, workout_instance_key=None):
     # same rule applies to on-the-fly exercise removals/additions made during the workout
     exercise_removals = current_workout_state.get('exercise_removals', []) if next_time_strategy != 'original' else []
     exercise_additions = current_workout_state.get('exercise_additions', []) if next_time_strategy != 'original' else []
+    alternative_changes = current_workout_state.get('alternative_changes', []) if next_time_strategy != 'original' else []
 
     # get the member workout definition for this workout instance, and update it with the parameter adjustments
     # and/or exercise swaps/removals/additions performed during this workout, but only if there is something to persist
-    if updated_parameters or exercise_swaps or exercise_removals or exercise_additions:
+    if updated_parameters or exercise_swaps or exercise_removals or exercise_additions or alternative_changes:
         member_workout_def_id = workout_instance.get('member_workout_def_id', None)
         workout_definition = es.get_item(MemberWorkoutDefinitionEntity({'id': member_workout_def_id}))
         # apply structural changes (swap/remove/add) first, so the parameter merge below - which is keyed
@@ -1164,6 +1165,8 @@ def really_finish_workout(context=None, workout_instance_key=None):
             apply_recorded_removals_to_definition(workout_definition, exercise_removals)
         if exercise_additions:
             apply_recorded_additions_to_definition(workout_definition, exercise_additions)
+        if alternative_changes:
+            apply_recorded_alternative_changes(workout_definition, alternative_changes)
         if updated_parameters:
             for section in workout_definition.get('workout_sections', []):
                 for exercise in section.get('exercises', []):
