@@ -1335,12 +1335,18 @@ def move_exercise(context=None, workout_id=None):
     exid = request.form['exercise_id']
     to = request.form['to_section']
     # remove from any
+    moved_exercise = None
     for s in w[WORKOUT_SECTIONS]:
+        # first, get a handle on the exercise to be moved
+        for it in s['exercises']:
+            if it['id']==exid:
+                moved_exercise = it
+        # then, remove it from the current section
         s['exercises'] = [it for it in s['exercises'] if it['id']!=exid]
     # add to target
     for s in w[WORKOUT_SECTIONS]:
         if s['name']==to:
-            s['exercises'].append({
+            s['exercises'].append(moved_exercise or {
               'id':exid,
               'parameters':get_initial_params_for_exercise()
             })
