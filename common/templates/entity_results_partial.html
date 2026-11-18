@@ -41,12 +41,13 @@
                     {% for field in fields_to_display.listing_view %}
                     <th scope="col">{{ field }}</th>
                     {% endfor %}
-                    {% if entity_action_route and not allow_multi_select %}
-                    <th scope="col" class="text-center">{{ entity_action_label }}</th>
-                    {% endif %}
                     {% if entity_action2_route and not allow_multi_select %}
                     <th scope="col" class="text-center">{{ entity_action2_label }}</th>
                     {% endif %}
+                    {% if entity_action_route and not allow_multi_select %}
+                    <th scope="col" class="text-center">{{ entity_action_label }}</th>
+                    {% endif %}
+
                 </tr>
             </thead>
             <tbody>
@@ -127,19 +128,6 @@
                         {% set action2_target = main_content_container %}
                     {% endif %}
 
-                    {% if entity_action_route and not allow_multi_select %}
-                    <td class="text-center">
-                        <button type="button" class="btn btn-sm btn-outline-light {% if action_target in ['modals-here', 'dialog'] %}position-relative entity-action-loading{% endif %}"
-                            hx-{{ action_method }}="{{ entity_action_route }}&key={{ entity.key }}&page={{ page }}&filter={{ filter_terms }}"
-                            hx-target="#{{ action_target }}"
-                            {% if action_target in ['modals-here', 'dialog'] %}hx-disabled-elt="this"{% endif %}
-                            aria-label="{{ entity_action_label or 'Action' }}"
-                            hx-swap="innerHTML show:top">
-                            <i class="bi {{ entity_action_icon}} entity-action-icon" aria-hidden="true"></i>
-                            {% if action_target in ['modals-here', 'dialog'] %}{% include '_entity_action_spinner.html' %}{% endif %}
-                        </button>
-                    </td>
-                    {% endif %}
                     {% if entity_action2_route and not allow_multi_select %}
                     <td class="text-center">
                         <button type="button" class="btn btn-sm btn-outline-light {% if action2_target in ['modals-here', 'dialog'] %}position-relative entity-action-loading{% endif %}"
@@ -150,6 +138,19 @@
                             hx-swap="innerHTML show:top">
                             <i class="bi {{ entity_action2_icon}} entity-action-icon" aria-hidden="true"></i>
                             {% if action2_target in ['modals-here', 'dialog'] %}{% include '_entity_action_spinner.html' %}{% endif %}
+                        </button>
+                    </td>
+                    {% endif %}
+                    {% if entity_action_route and not allow_multi_select %}
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-outline-light {% if action_target in ['modals-here', 'dialog'] %}position-relative entity-action-loading{% endif %}"
+                            hx-{{ action_method }}="{{ entity_action_route }}&key={{ entity.key }}&page={{ page }}&filter={{ filter_terms }}"
+                            hx-target="#{{ action_target }}"
+                            {% if action_target in ['modals-here', 'dialog'] %}hx-disabled-elt="this"{% endif %}
+                            aria-label="{{ entity_action_label or 'Action' }}"
+                            hx-swap="innerHTML show:top">
+                            <i class="bi {{ entity_action_icon}} entity-action-icon" aria-hidden="true"></i>
+                            {% if action_target in ['modals-here', 'dialog'] %}{% include '_entity_action_spinner.html' %}{% endif %}
                         </button>
                     </td>
                     {% endif %}
