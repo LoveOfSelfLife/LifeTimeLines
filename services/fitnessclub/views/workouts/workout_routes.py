@@ -124,7 +124,7 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
         entity_action_route_method = None
         entity_action_icon='bi-plus'
         entity_action_route_target = None
-        entity_action_label='Add Workout',
+        entity_action_label='Import Workout',
     else:
         entity_action_route = f'/workouts/edit?entity_table={entity_name}'
         entity_action_icon='bi-pencil-square'
@@ -1804,7 +1804,7 @@ def builder_workouts_listing(context=None):
         entity_action_route_method='post',
         entity_action_route_target="canvas",                              
         entity_action_icon='bi-plus',  
-        entity_action_label='Add Workout',
+        entity_action_label='Import Workout',
         results_target_container=target if target else 'results-area',
         entity_card_view_html='workout_card_view.html',
         modal_mode=False,

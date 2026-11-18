@@ -66,7 +66,7 @@
                             hx-trigger="change"
                             hx-target="#{{ results_target_container or 'results-area' }}"
                             hx-swap="none"
-                            hx-include="closest td, [name='search'], [name='view_{{ entity_name }}'], [name='favorites_only_{{ entity_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
+                            hx-include="closest td, [name^='facet_'], [name='search'], [name='view_{{ entity_name }}'], [name='favorites_only_{{ entity_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
                         >
                     </td>
                     {% endif %}
@@ -170,7 +170,7 @@
                 hx-vals='{{ dict(args, view=view)|tojson }}'
                 {% endif %}
                 hx-target="#{{ results_target_container or 'results-area' }}"
-                hx-include="[name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
+                                hx-include="[name^='facet_'], [name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
             <span aria-hidden="true">&laquo;</span>
             </a>
             </li>
@@ -184,7 +184,7 @@
                 hx-vals='{{ dict(args, view=view)|tojson }}'
                 {% endif %}
                 hx-target="#{{ results_target_container or 'results-area' }}"
-                hx-include="[name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
+                                hx-include="[name^='facet_'], [name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
             <span aria-hidden="true">&raquo;</span>
             </a>
             </li>
@@ -201,6 +201,9 @@
 {% endif %} 
 
 {# this button is returned out-of-band (OOB), which then updates the favorites toggle in the parent template  #}
+{% if facet_groups is defined and facet_oob %}
+    {% include 'entity_facet_oob.html' %}
+{% endif %}
 <button id="favorites-toggle-{{ entity_name }}"
         type="button" 
         class="btn btn-outline-secondary favorites-toggle" 
@@ -209,7 +212,7 @@
         hx-post="{{ entities_listing_route }}" 
         hx-target="#{{ results_target_container or 'results-area' }}" 
         hx-swap="innerHTML" 
-        hx-include="[name='search'], [name='view_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
+        hx-include="[name^='facet_'], [name='search'], [name='view_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
         hx-vals='{"favorites_only": {% if favorites_active %}false{% else %}true{% endif %}}'
         title="{% if favorites_active %}Show all items{% else %}Show favorites only{% endif %}"
         hx-swap-oob="true">

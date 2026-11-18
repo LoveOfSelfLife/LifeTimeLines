@@ -13,6 +13,7 @@ from common.fitness.exercise_entity import movement_category_definitions
 from common.filter_funcs import apply_favorites_preference, get_entity_view_from_request, get_filter_terms_from_request
 from common.filter_funcs import parse_listing_filter
 from common.entities_getter import get_entities
+from common.facets import build_facet_context
 from common.fitness.exercise_entity import EQUIPMENT, ExerciseEntity
 from common.template_renderer import hx_render_template
 from common.member_entity import get_member_id_from_user_context
@@ -72,7 +73,7 @@ def exercises_listing2(context, member_id, page=1, filter_terms=[], modal_mode=F
     fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
     
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
-
+    entities, facet_vars = build_facet_context(entity_name, entities, request.values)
     allow_multi_select = as_bool(request.form.get('allow_multi_select', None),
                                   as_bool(request.args.get('allow_multi_select', None), False))
     selected_entity_keys = resolve_selected_entity_keys(member_id, allow_multi_select=allow_multi_select)
@@ -107,10 +108,11 @@ def exercises_listing2(context, member_id, page=1, filter_terms=[], modal_mode=F
         allow_multi_select=allow_multi_select,
         selected_entity_keys=selected_entity_keys,
         modal_mode=modal_mode,
+        facet_vars=facet_vars,
     )
 
 
-def exercise_listing_base(context, entity_name, page, page_size, view, fields_to_display, filter_terms, entities, allow_multi_select=False, selected_entity_keys=None, modal_mode=False):
+def exercise_listing_base(context, entity_name, page, page_size, view, fields_to_display, filter_terms, entities, allow_multi_select=False, selected_entity_keys=None, modal_mode=False, facet_vars=None):
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
     end = start + page_size
@@ -171,7 +173,9 @@ def exercise_listing_base(context, entity_name, page, page_size, view, fields_to
         entity_action_label='Edit Exercise',
         favorite_toggle_route='/favorites/toggle',
         results_target_container=results_target_container,
-        entity_card_view_html='exercise_card_view.html'        
+        entity_card_view_html='exercise_card_view.html',
+        facet_oob=(template_file_name == 'entity_results_partial.html'),
+        **(facet_vars or {})
     )
 
     if modal_mode:

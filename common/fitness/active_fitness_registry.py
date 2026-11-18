@@ -4,7 +4,7 @@ from flask import url_for
 
 from common.fitness.entity_constants import PROGRAM_ENTITY_NAME, WORKOUT_ENTITY_NAME, WORKOUT_INSTANCE_ENTITY_NAME
 from common.member_entity import get_member_name_from_member_id
-from common.fitness.exercise_entity import exercise_filters
+from common.fitness.exercise_entity import exercise_filters, exercise_facets
 from common.fitness.member_program_entity import MemberProgramsEntity
 import logging
 logger = logging.getLogger(__name__)
@@ -73,9 +73,10 @@ editable_entities = {
                                             "image_url" : lambda e: extract_image_url(e),
                                             "description" : lambda e: ""
                                              },
-                        "filters": exercise_filters
+                        "filters": exercise_filters,
+                        "facets": exercise_facets
                     },
-    PROGRAM_ENTITY_NAME : { 
+    PROGRAM_ENTITY_NAME : {
                         "listing_view_fields": ["name", 
                                                 "start", 
                                                 "end", 
@@ -176,6 +177,12 @@ def get_fitnessclub_listing_fields_for_entity(entity_name):
                 "card_view": entry.get("card_view_fields", None),
                 "field_mapping": entry.get("field_mapping", None)
                 }
+    return None
+
+def get_fitnessclub_facets_for_entity(entity_name):
+    entry = editable_entities.get(entity_name, None)
+    if entry:
+        return entry.get("facets", None)
     return None
 
 def get_fitnessclub_entity_filters_for_entity(entity_name):
