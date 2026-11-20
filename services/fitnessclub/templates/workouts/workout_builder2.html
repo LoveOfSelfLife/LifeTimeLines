@@ -60,20 +60,8 @@
                 {% endif %}
 
                 <!-- Action Buttons Row -->
-                <div class="d-flex flex-wrap gap-2 justify-content-end workout-builder-actions">
+                <div class="d-flex flex-wrap gap-2  workout-builder-actions">
 
-                    {% if workout_type != 'workout_instance' %}
-                    <button type="button" class="btn btn-primary"
-                        {% if can_analyze_workout %}
-                        hx-get="{{ url_for('program_analysis.report', workout_id=workout.id) }}"
-                        hx-target="#modals-here" hx-swap="innerHTML"
-                        title="Analyze the last saved workout; {{ 'save the program' if editing_program_workout else 'save the workout' }} first to include changes"
-                        {% else %}
-                        disabled title="{{ 'Save the program' if editing_program_workout else 'Save the workout' }} before analyzing it"
-                        {% endif %}>
-                        <i class="bi bi-bar-chart"></i> Analyze
-                    </button>
-                    {% endif %}
                     <button class="btn btn-success" {% if can_save_workout %} {% if not editing_program_workout %}
                         hx-post="{{ url_for('workouts.save_workout', workout_id=workout.id) }}" {% else %}
                         hx-post="{{ url_for('workouts.save_program_workout', workout_id=workout.id) }}" {% endif %}
@@ -82,11 +70,22 @@
                         title="Only the workout creator can save changes" {% endif %}>
                         <i class="bi bi-check-circle"></i> Save
                     </button>
+
+                    {% if not editing_program_workout and workout_type != 'workout_instance' %}
+                    <button class="btn btn-success"
+                        hx-post="{{ url_for('workouts.save_workout_copy', workout_id=workout.id) }}"
+                        hx-target="#entities-container" hx-swap="show:top"
+                        hx-prompt="Enter a name for the copy of '{{ workout.name }}':">
+                        <i class="bi bi-files"></i> Copy
+                    </button>
+                    {% endif %}
+
                     {% if not editing_program_workout %}
-                    <button class="btn btn-success" 
+                    <button class="btn btn-danger" 
                         {% if can_save_workout and not editing_program_workout and can_delete_workout %}
                             hx-post="{{ url_for('workouts.delete_workout', workout_id=workout.id) }}" 
                             hx-vals='{"workout_id":"{{ workout.id }}"}' hx-target="#entities-container"
+                            hx-confirm="Are you sure you want to delete this workout?" 
                             hx-swap="innerHTML show:top" 
                         {% else %} 
                             disabled
@@ -99,32 +98,36 @@
                         <i class="bi bi-trash"></i> Delete
                     </button>
                     {% endif %}
-
-                    {% if not editing_program_workout and workout_type != 'workout_instance' %}
-                    <button class="btn btn-success"
-                        hx-post="{{ url_for('workouts.save_workout_copy', workout_id=workout.id) }}"
-                        hx-target="#entities-container" hx-swap="show:top"
-                        hx-prompt="Enter a name for the copy of '{{ workout.name }}':">
-                        <i class="bi bi-files"></i> Copy
+                    {% if workout_type != 'workout_instance' %}
+                    <button type="button" class="btn btn-primary"
+                        {% if can_analyze_workout %}
+                        hx-get="{{ url_for('program_analysis.report', workout_id=workout.id) }}"
+                        hx-target="#modals-here" hx-swap="innerHTML"
+                        title="Analyze the last saved workout; {{ 'save the program' if editing_program_workout else 'save the workout' }} first to include changes"
+                        {% else %}
+                        disabled title="{{ 'Save the program' if editing_program_workout else 'Save the workout' }} before analyzing it"
+                        {% endif %}>
+                        <i class="bi bi-bar-chart"></i> Analyze
                     </button>
                     {% endif %}
+
 
                     <button class="btn btn-secondary"
                         hx-post="{{ url_for('workouts.cancel_editing_workout', workout_id=workout.id) }}"
                         hx-vals='{"workout_id":"{{ workout.id }}"}' hx-target="#entities-container"
                         hx-swap="innerHTML show:top">
-                        <i class="bi bi-x-circle"></i> Cancel & Exit
+                        <i class="bi bi-x-circle"></i> Exit
                     </button>
                 </div>
             </div>
-            <button
+            <button class="btn btn-success"
                 type="button"
                 {# class="btn" #}
                 title="Add workouts"
                 hx-get="{{ url_for('workouts.workouts_listing_modal', target='results-area') }}" 
                 hx-target="#modals-here"
                 hx-swap="innerHTML">
-                <i class="bi bi-plus-lg">Add workout</i>
+                <i class="bi bi-plus-lg">Import workout</i>
             </button>            
             <div id="canvas" class="workout-builder-canvas" hx-get="{{ url_for('workouts.workout_dynamic_canvas', workout_id=workout.id) }}"
                 hx-trigger="load, refreshWorkoutCanvas from:body" hx-swap="innerHTML">

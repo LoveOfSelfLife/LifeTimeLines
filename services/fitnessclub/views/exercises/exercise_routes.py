@@ -133,6 +133,7 @@ def exercise_listing_base(context, entity_name, page, page_size, view, fields_to
         entity_add_route = '/exercises/new?'
         entity_action_route='/exercises/edit?'
 
+    add_multiple_as_alternatives = request.form.get('add_as_alternatives') or request.args.get('add_as_alternatives')
     multi_select_post_route = request.form.get('multi_select_post_route') or request.args.get('multi_select_post_route')
     multi_select_button_label = request.form.get('multi_select_button_label') or request.args.get('multi_select_button_label') or 'Add Selected'
     multi_select_button_icon = request.form.get('multi_select_button_icon') or request.args.get('multi_select_button_icon') or 'bi-plus-circle'
@@ -141,7 +142,9 @@ def exercise_listing_base(context, entity_name, page, page_size, view, fields_to
     if multi_select_post_route and preferred_section and 'preferred_section=' not in multi_select_post_route:
         separator = '&' if '?' in multi_select_post_route else '?'
         multi_select_post_route = f"{multi_select_post_route}{separator}preferred_section={preferred_section}"
-
+    if add_multiple_as_alternatives:
+        multi_select_post_route = f"{multi_select_post_route}&add_as_alternatives=true" if multi_select_post_route else None
+        
     entities_listing_route = f'/exercises/exercises-listing?entity_table={entity_name}'
     if allow_multi_select:
         entities_listing_route += '&allow_multi_select=true'

@@ -852,7 +852,21 @@ def _render_workout_exercise_history(context, workout, member_id, history_url, e
                               unit=unit, has_time=has_time, context=context)
 
 
-def _add_exercise_to_workout(workout, exercise, preferred_section=None):
+def _add_exercise_to_workout(workout, exercise, preferred_section=None, main_exercise_id=None):
+    # if main_exercise_id is provided, then we look in the preferred section for the exercise 
+    # that has the same id as the main_exercise_id, and we then add that exercise as an alternative to it
+
+    if main_exercise_id and preferred_section:
+        for section in workout[WORKOUT_SECTIONS]:
+            if section['name'] == preferred_section:
+                for ex in section['exercises']:
+                    if ex['id'] == main_exercise_id:
+                        ex.setdefault('alternatives', []).append({
+                            'id': exercise['id'],
+                            'parameters': get_initial_params_for_exercise()
+                        })
+                        return
+
     exid = exercise['id']
 
     if preferred_section:
@@ -945,6 +959,8 @@ def add_multiple_exercises(context=None, workout_id=None):
 
     selected_keys = request.form.getlist('selected_entity_keys')
     preferred_section = request.args.get('preferred_section') or request.form.get('preferred_section')
+
+    add_multiple_as_alternatives = request.form.get('add_as_alternatives') or request.args.get('add_as_alternatives')
     selected_keys = list(dict.fromkeys([key for key in selected_keys if key]))
 
     if not selected_keys:
@@ -954,21 +970,33 @@ def add_multiple_exercises(context=None, workout_id=None):
             "showMessage": {"target": "body", "value": "No exercises selected."}
         })
         return response
-
+    
     es = EntityStore()
     added_count = 0
-    for composite_key_str in selected_keys:
-        try:
-            composite_key = literal_eval(composite_key_str)
-        except (ValueError, SyntaxError):
-            continue
 
-        ex = es.get_item_by_composite_key(composite_key)
-        if not ex:
-            continue
+    # if add_multiple_as_alternatives is to 'true', then we check if there are more that 1 exercises selected,
+    # if only one exercise is selected, we can proceed normally
+    # if more than one exercise is selected, then we add the first exercise into the workout normally, but all subsequent exercises are added as alternatives
+    # to the one exercise that is added to the workout
+    if add_multiple_as_alternatives == 'true' and len(selected_keys) > 1:
+        # we add the first exercise normally, and the rest as alternatives
+        first = True
+        for composite_key_str in selected_keys:
+            if first:
+                main_exercise_id = _add_ex_to_workout(w, composite_key_str, preferred_section)
+                if main_exercise_id:
+                    added_count += 1
+                first = False
+            else:
+                # add as alternative to the first exercise
+                if _add_ex_to_workout(w, composite_key_str, preferred_section, main_exercise_id):
+                    added_count += 1
+        pass
+    else:
+        for composite_key_str in selected_keys:
 
-        _add_exercise_to_workout(w, ex, preferred_section=preferred_section)
-        added_count += 1
+            if _add_ex_to_workout(w, composite_key_str, preferred_section):
+                added_count += 1
 
     set_cache_value('current_workout', w)
     clear_selected_entity_keys(get_member_id_from_user_context(context))
@@ -979,6 +1007,19 @@ def add_multiple_exercises(context=None, workout_id=None):
         "showMessage": {"target": "body", "value": f"Added {added_count} exercise(s)."}
     })
     return response
+
+def _add_ex_to_workout(w, composite_key_str, preferred_section, main_exercise_id=None):
+    try:
+        composite_key = literal_eval(composite_key_str)
+    except (ValueError, SyntaxError):
+        return None
+    es = EntityStore()
+    ex = es.get_item_by_composite_key(composite_key)
+    if not ex:
+        return None
+
+    _add_exercise_to_workout(w, ex, preferred_section=preferred_section, main_exercise_id=main_exercise_id)
+    return ex['id']
 
 @bp.route('/builder/add-workouts', methods=['POST'])
 @auth.login_required
