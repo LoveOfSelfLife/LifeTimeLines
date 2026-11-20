@@ -250,102 +250,6 @@ def start_workout(context=None):
             context=context
         )
 
-@bp.route("/completed-workout-details-modal")
-@auth.login_required
-def completed_workout_details_modal(context=None):
-    """Modal showing completed workout details"""
-    try:
-        workout_instance_key = request.args.get('key', None)
-        if not workout_instance_key:
-            workout_instance_key = request.args.get('workout_instance_key')
-
-        if not workout_instance_key:
-            return hx_render_template(
-                template_string='<div class="alert alert-danger">No workout specified</div>',
-                context=context
-            )
-        
-        # Get workout instance
-        entity_store = EntityStore()
-        workout_key_parsed = eval(workout_instance_key) if isinstance(workout_instance_key, str) else workout_instance_key
-        workout_instance = entity_store.get_item_by_composite_key(workout_key_parsed)
-        
-        if not workout_instance:
-            return hx_render_template(
-                template_string='<div class="alert alert-danger">Workout not found</div>',
-                context=context
-            )
-
-        from views.workouts.workout_routes import (
-            extract_workout_parameters_for_workout,
-            get_exercises_from_workout,
-            get_workout_sections,
-        )
-
-        def _format_dt(dt_value):
-            if not dt_value:
-                return None
-            if isinstance(dt_value, datetime):
-                return dt_value.strftime('%b %d, %Y %I:%M %p')
-            try:
-                return datetime.fromisoformat(dt_value).strftime('%b %d, %Y %I:%M %p')
-            except (TypeError, ValueError):
-                return dt_value
-        
-        # Reuse the workout viewer parameter extraction for a read-only completed workout view.
-        workout_sections = get_workout_sections(workout_instance)
-        workout_exercises = get_exercises_from_workout(workout_instance)
-        exercises = {exercise.get('id'): exercise for exercise in workout_exercises}
-        exercise_parameters_map = extract_workout_parameters_for_workout(
-            workout_instance_key,
-            workout_instance,
-            exercises,
-            {},
-            ''
-        )
-
-        populated_sections = []
-        for section in workout_sections:
-            section_items = []
-            for item in section.get('exercises', []):
-                exercise = exercises.get(item.get('id'))
-                if exercise:
-                    section_items.append({
-                        'exercise': exercise,
-                        'param_list': exercise_parameters_map.get(section.get('name'), {}).get(exercise.get('id'), {}).get('param_list', [])
-                    })
-            if section_items:
-                populated_sections.append({
-                    'name': section.get('name'),
-                    'items': section_items
-                })
-
-        workout_name = workout_instance.get('workout_name') or workout_instance.get('name') or 'Completed Workout'
-
-        start_time = _format_dt(
-            workout_instance.get('start_datetime') or workout_instance.get('started_ts')
-        )
-        end_time = _format_dt(
-            workout_instance.get('end_datetime') or workout_instance.get('finished_ts')
-        )
-        
-        return hx_render_template(
-            template_file='home/modals/completed_workout_details_modal.html',
-            workout_instance=workout_instance,
-            workout_name=workout_name,
-            workout_sections=populated_sections,
-            start_time=start_time,
-            end_time=end_time,
-            context=context
-        )
-        
-    except Exception as e:
-        logger.error(f"Error loading completed workout details: {e}")
-        return hx_render_template(
-            template_string='<div class="alert alert-danger">Error loading workout details</div>',
-            context=context
-        )
-
 @bp.route("/reschedule-workout-modal") 
 @auth.login_required
 def reschedule_workout_modal(context=None):
@@ -508,6 +412,102 @@ def update_peek_button(context=None):
         context=context
     )
 
+
+@bp.route("/completed-workout-details-modal")
+@auth.login_required
+def completed_workout_details_modal(context=None):
+    """Modal showing completed workout details"""
+    try:
+        workout_instance_key = request.args.get('key', None)
+        if not workout_instance_key:
+            workout_instance_key = request.args.get('workout_instance_key')
+
+        if not workout_instance_key:
+            return hx_render_template(
+                template_string='<div class="alert alert-danger">No workout specified</div>',
+                context=context
+            )
+        
+        # Get workout instance
+        entity_store = EntityStore()
+        workout_key_parsed = eval(workout_instance_key) if isinstance(workout_instance_key, str) else workout_instance_key
+        workout_instance = entity_store.get_item_by_composite_key(workout_key_parsed)
+        
+        if not workout_instance:
+            return hx_render_template(
+                template_string='<div class="alert alert-danger">Workout not found</div>',
+                context=context
+            )
+
+        from views.workouts.workout_routes import (
+            extract_workout_parameters_for_workout,
+            get_exercises_from_workout,
+            get_workout_sections,
+        )
+
+        def _format_dt(dt_value):
+            if not dt_value:
+                return None
+            if isinstance(dt_value, datetime):
+                return dt_value.strftime('%b %d, %Y %I:%M %p')
+            try:
+                return datetime.fromisoformat(dt_value).strftime('%b %d, %Y %I:%M %p')
+            except (TypeError, ValueError):
+                return dt_value
+        
+        # Reuse the workout viewer parameter extraction for a read-only completed workout view.
+        workout_sections = get_workout_sections(workout_instance)
+        workout_exercises = get_exercises_from_workout(workout_instance)
+        exercises = {exercise.get('id'): exercise for exercise in workout_exercises}
+        exercise_parameters_map = extract_workout_parameters_for_workout(
+            workout_instance_key,
+            workout_instance,
+            exercises,
+            {},
+            ''
+        )
+
+        populated_sections = []
+        for section in workout_sections:
+            section_items = []
+            for item in section.get('exercises', []):
+                exercise = exercises.get(item.get('id'))
+                if exercise:
+                    section_items.append({
+                        'exercise': exercise,
+                        'param_list': exercise_parameters_map.get(section.get('name'), {}).get(exercise.get('id'), {}).get('param_list', [])
+                    })
+            if section_items:
+                populated_sections.append({
+                    'name': section.get('name'),
+                    'items': section_items
+                })
+
+        workout_name = workout_instance.get('workout_name') or workout_instance.get('name') or 'Completed Workout'
+
+        start_time = _format_dt(
+            workout_instance.get('start_datetime') or workout_instance.get('started_ts')
+        )
+        end_time = _format_dt(
+            workout_instance.get('end_datetime') or workout_instance.get('finished_ts')
+        )
+        
+        return hx_render_template(
+            template_file='home/modals/completed_workout_details_modal.html',
+            workout_instance=workout_instance,
+            workout_name=workout_name,
+            workout_sections=populated_sections,
+            start_time=start_time,
+            end_time=end_time,
+            context=context
+        )
+        
+    except Exception as e:
+        logger.error(f"Error loading completed workout details: {e}")
+        return hx_render_template(
+            template_string='<div class="alert alert-danger">Error loading workout details</div>',
+            context=context
+        )
 
 @bp.route("/workout-preview-modal")
 @auth.login_required
