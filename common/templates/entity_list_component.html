@@ -1,3 +1,4 @@
+<!-- entity_list_component.html -->
 <div id="{{ main_content_container }}">
     {% set allow_multi_select = allow_multi_select|default(false) %}
     {% set multi_select_checkbox_name = multi_select_checkbox_name|default('selected_entity_keys') %}
@@ -26,7 +27,7 @@
                         hx-post="{{ multi_select_post_route }}"
                         hx-target="#modals-here"
                         hx-swap="innerHTML"
-                        hx-include="[name='{{ multi_select_checkbox_name }}'], [name='search'], [name='view_{{ entity_name }}'], [name='favorites_only_{{ entity_name }}'], [name='preferred_section']"
+                        hx-include="[name^='facet_'], [name='{{ multi_select_checkbox_name }}'], [name='search'], [name='view_{{ entity_name }}'], [name='favorites_only_{{ entity_name }}'], [name='preferred_section']"
                         {% if multi_select_extra_vals %}
                         hx-vals='{{ multi_select_extra_vals|tojson }}'
                         {% endif %}>
@@ -51,14 +52,14 @@
                         hx-get="{{ entities_listing_route }}&page={{ page }}&filter={{ filter_terms }}&view=card&modal_mode={{ modal_mode }}"
                         hx-vals='{{ dict(args or {}, view="card")|tojson }}'
                         hx-target="#{{ results_target_container or 'results-area' }}"
-                        hx-include="[name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
+                                                hx-include="[name^='facet_'], [name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
                         <i class="bi bi-grid"></i>
                     </button>
                     <button type="button" class="btn btn-outline-primary {% if view == 'list' %}active{% endif %}" data-view="list"
                         hx-get="{{ entities_listing_route }}&page={{ page }}&filter={{ filter_terms }}&view=list&modal_mode={{ modal_mode }}"
                         hx-vals='{{ dict(args or {}, view="list")|tojson }}'
                         hx-target="#{{ results_target_container or 'results-area' }}"
-                        hx-include="[name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
+                                                hx-include="[name^='facet_'], [name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
                         <i class="bi bi-list"></i>  
                     </button>
                 </div>
@@ -85,7 +86,7 @@
                         hx-post="{{ entities_listing_route }}"
                         hx-target="#{{ results_target_container or 'results-area' }}"
                         hx-swap="innerHTML"
-                        hx-include="[name='view_{{ entity_name }}'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
+                        hx-include="[name^='facet_'], [name='view_{{ entity_name }}'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
                         {% if modal_mode %}
                         hx-vals='{ "modal_mode": {{ modal_mode|tojson }}}'
                         {% endif %}
@@ -106,7 +107,7 @@
                         hx-post="{{ entities_listing_route }}"
                         hx-target="#{{ results_target_container or 'results-area' }}"
                         hx-swap="innerHTML"
-                        hx-include="[name='search'], [name='view_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
+                        hx-include="[name^='facet_'], [name='search'], [name='view_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']"
                         {% if modal_mode %}
                         hx-vals='{"favorites_only": {% if favorites_active %}false{% else %}true{% endif %}, "modal_mode": {{ modal_mode|tojson }}}'
                         {% else %}
@@ -115,6 +116,15 @@
                         title="{% if favorites_active %}Show all items{% else %}Show favorites only{% endif %}">
                     <i class="bi {% if favorites_active %}bi-heart-fill{% else %}bi-heart{% endif %}"></i> 
                 </button>
+
+                {% if facet_groups is defined %}
+                {% import 'entity_facet_macros.html' as fm with context %}
+                <button type="button" class="btn btn-primary ms-2 text-nowrap" style="height: 38px;"
+                        data-bs-toggle="offcanvas" data-bs-target="#facet-offcanvas-{{ entity_name }}"
+                        aria-controls="facet-offcanvas-{{ entity_name }}">
+                    <i class="bi bi-funnel"></i> Filters {{ fm.badge() }}
+                </button>
+                {% endif %}
 
                 <!-- Hidden input to maintain state -->
                 <input type="hidden" id="favorites-only-state-{{ entity_name }}" name="favorites_only_{{ entity_name }}" value="{% if favorites_active %}true{% else %}false{% endif %}">
@@ -131,6 +141,9 @@
                 {% endif %}
 
             </div>
+            {% if facet_groups is defined %}
+                {% include 'entity_facet_panel.html' %}
+            {% endif %}
         </div>
         <!-- Results area that gets replaced -->
         <div id="{{ results_target_container or 'results-area' }}">
@@ -147,7 +160,7 @@
                 hx-vals='{{ dict(args, view=view)|tojson }}'
                 {% endif %}
                 hx-target="#{{ results_target_container or 'results-area' }}"
-                hx-include="[name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
+                                hx-include="[name^='facet_'], [name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
             <span aria-hidden="true">&laquo;</span>
             </a>
             </li>
@@ -161,7 +174,7 @@
                 hx-vals='{{ dict(args, view=view)|tojson }}'
                 {% endif %}
                 hx-target="#{{ results_target_container or 'results-area' }}"
-                hx-include="[name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
+                                hx-include="[name^='facet_'], [name='search'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']">
             <span aria-hidden="true">&raquo;</span>
             </a>
             </li>

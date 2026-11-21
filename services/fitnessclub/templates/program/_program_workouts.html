@@ -1,3 +1,4 @@
+<!-- _program_workouts.html -->
 <style>
   .program-section-card {
     border: 1px solid rgba(255, 255, 255, 0.18);
@@ -161,16 +162,16 @@
 </style>
 
 <div class="card mb-3 program-section-card">
-  <div class="card-header d-flex justify-content-between align-items-center">
+  <div class="card-header d-flex  align-items-center">
     <span>Workouts in this program:</span>
     <button
       type="button"
-      class="btn btn-link btn-sm p-0"
+      class="btn btn-success btn-sm p-2"
       title="Add workouts"
       hx-get="{{ url_for('program.workouts_listing_modal', program_id=program.id, target='results-area') }}"
       hx-target="#modals-here"
       hx-swap="innerHTML">
-      <i class="bi bi-plus-lg">Add workout</i>
+      <i class="bi bi-plus-lg"></i> Add workout
     </button>
   </div>
     <ul class="list-group list-group-flush workout-list"

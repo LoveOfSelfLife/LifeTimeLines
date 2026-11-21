@@ -49,9 +49,9 @@ def handler(context=None):
 
 ## Data Flow Patterns
 
-**Entity Filtering**: Use registry pattern in `common/fitness/active_fitness_registry.py`:
-- `get_fitnessclub_entity_filters_for_entity(entity_name)` 
-- `get_filtered_entities()` for consistent pagination/filtering
+**Entity Filtering**: Use `get_filtered_entities()` for consistent filtering and
+`get_fitnessclub_facets_for_entity(entity_name)` from
+`common/fitness/active_fitness_registry.py` for exercise facets.
 
 **Orchestration**: For multi-step workflows, use `OrchestrationExecutor` with JSON-defined steps and dynamic module loading
 

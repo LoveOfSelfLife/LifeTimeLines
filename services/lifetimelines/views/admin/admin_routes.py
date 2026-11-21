@@ -10,6 +10,8 @@ import datetime
 from flask import json, jsonify, make_response, redirect, render_template, request, session, abort
 from common.app_info import get_current_app_id
 from common.blueprint import create_blueprint
+from common.card_presentation import build_card_views
+from common.list_presentation import listing_fields
 from common.auth import auth
 from common.coach_team_entity import assign_coach_to_team, remove_coach_from_team
 from common.entities_getter import delete_entity, get_entities
@@ -17,7 +19,7 @@ from common.entity_store import EntityStore, get_entity_obj_from_entity_name
 from common.favorites_entity import toggle_entity_favorite
 from common.filter_funcs import get_entity_view_from_request, get_filter_terms_from_request
 from common.impersonation import get_impersonated_member_id, start_impersonation, stop_impersonation
-from common.member_entity import get_member_id_from_user_context, get_members_list
+from common.member_entity import MemberEntity, get_member_id_from_user_context, get_members_list
 from common.roles_service import get_member_role
 from common.team_entity import get_team_by_id, get_teams_list, save_team
 from common.template_renderer import hx_render_template
@@ -60,26 +62,7 @@ def members(context=None):
 
     view = get_entity_view_from_request('MemberTable')
 
-    fields_to_display = { 
-                      "listing_view": [ "name",
-                                               "short_name",
-                                               "email",
-                                               "role"
-                                            ],
-                        "card_view": [ "title",
-                                             "subtitle",
-                                             "image_url",
-                                             "description"
-                                           ],
-                        "field_mapping" :  { "name" : lambda e: e['name'] if 'name' in e else "",
-                                             "title" : lambda e: e['name'] if 'name' in e else "",
-                                              "subtitle" : lambda e: e['short_name'] if 'short_name' in e else "",
-                                              "short_name" : lambda e: e['short_name'] if 'short_name' in e else "",
-                                              "role" : lambda e: e['role'] if 'role' in e else "",
-                                              "image_url" : lambda e: e['image_url'] if 'image_url' in e else "",
-                                              "description" : lambda e: f"{e['email']} ({e.get('role', 'client')})" if 'email' in e else ""
-                                             },
-                    }
+    fields_to_display = listing_fields(MemberEntity.list_presentation)
     
     filter_terms = get_filter_terms_from_request('MemberTable')
     member_id = get_member_id_from_user_context(context)
@@ -91,6 +74,8 @@ def render_member_listing_template(context, entity_name, page, view, page_size, 
     start = (page - 1) * page_size
     end = start + page_size
     current = entities[start:end]
+    if view == 'card':
+        current = build_card_views(current, MemberEntity.card_presentation)
     if request.headers.get('HX-Target') == 'results-area':
         template_file_name = 'entity_results_partial.html'
     else:
@@ -99,6 +84,7 @@ def render_member_listing_template(context, entity_name, page, view, page_size, 
     # Set results_target_container based on request args
     target = request.args.get('target')
     results_target_container = target if target else 'results-area'
+    edit_route = f'/admin/edit?entity_table={entity_name}'
 
     return hx_render_template(
         template_file_name,
@@ -114,11 +100,18 @@ def render_member_listing_template(context, entity_name, page, view, page_size, 
         entity_add_route=None,
         entities_listing_route=f'/admin/members?entity_table={entity_name}',
         entity_view_route=None,
-        entity_action_route=f'/admin/edit?entity_table={entity_name}',
+        entity_action_route=edit_route,
         entity_action_icon='bi-pencil-square',
         entity_action_label='Edit',
         favorite_toggle_route='/favorites/toggle',
         results_target_container=results_target_container,
+        entity_card_view_html='entity_card_view.html',
+        card_actions=[{
+            'id': 'edit', 'enabled': True,
+            'url': edit_route,
+            'method': 'get', 'target': 'entities-container',
+            'icon': 'bi-pencil-square', 'label': 'Edit',
+        }],
         context=context
     )
 

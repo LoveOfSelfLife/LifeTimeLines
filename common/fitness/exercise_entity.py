@@ -1,5 +1,6 @@
 from hashlib import sha256
 from common.entity_store import EntityObject
+from common.facets import FacetDef
 from common.filter_funcs import get_filter_terms_from_request
 from common.template_renderer import hx_render_template
 from common.member_entity import get_member_id_from_user_context
@@ -7,6 +8,7 @@ from common.utils import convert_to_alphanumeric
 import json
 from common.fitness.exercise_schema import exercise_schema
 from common.fitness.exercise_schema import exercise_review_schema
+from common.fitness.exercise_card import exercise_equipment, exercise_image
 
 class ExerciseEntity (EntityObject):
     table_name="ExerciseTable"
@@ -27,6 +29,20 @@ class ExerciseEntity (EntityObject):
     key_field="id"
     partition_value="exercise"
     schema = exercise_schema
+    list_presentation = (
+        {"label": "name", "value": lambda entity: entity.get("name", "")},
+        {"label": "category", "value": lambda entity: entity.get("category")},
+    )
+    card_presentation = {
+        "title": lambda entity: entity.get("name", ""),
+        "image": exercise_image,
+        "fields": (
+            {"label": "PFC", "value": lambda entity: ", ".join(entity.get("physical_fitness_components", []))},
+            {"label": "Movements", "value": lambda entity: ", ".join(entity.get("movement_categories", []))},
+            {"label": "Equipment", "value": exercise_equipment}
+        ),
+        "actions": ("edit"),
+    }
 
     def __init__(self, d={}):
         super().__init__(d)
@@ -406,58 +422,26 @@ def exercise_was_reviewed(exercise):
             return True
     return False  # otherwise, the exercise does not have a review
 
-exercise_filters = [
-                    {
-                        "type" : "choice",
-                        "id" : "physical_fitness_components",
-                        "label" : "Physical Fitness Component",
-                        "shortlabel" : "Component",
-                        "options" : [
-                            { "label" : "Any", "value" : "" },
-                            { "label" : "Flexibility", "value" : "flexibility" },
-                            { "label" : "Mobility", "value" : "mobility" },
-                            { "label" : "Balance", "value" : "balance" },
-                            { "label" : "Core", "value" : "core" },
-                            { "label" : "Power", "value" : "power" },
-                            { "label" : "Strength", "value" : "strength" },
-                            { "label" : "Cardio", "value" : "cardio" },
-                            { "label" : "Endurance", "value" : "endurance" },
-                            { "label" : "Myofascia", "value" : "myofascia" }
-                        ]
-                    },
-                    {
-                        "type" : "choice",
-                        "id" : "muscle",
-                        "label" : "Muscle involved",
-                        "shortlabel" : "Muscle",
-                        "options" : [
-                            { "label" : "Any", "value" : "" },
-                            { "label" : "Abdominals", "value" : "abdominals" },
-                            { "label" : "Adductors", "value" : "adductors" },
-                            { "label" : "Abductors", "value" : "abductors" },                                    
-                            { "label" : "Biceps", "value" : "biceps" },
-                            { "label" : "Calves", "value" : "calves" },
-                            { "label" : "Chest", "value" : "chest" },
-                            { "label" : "Forearms", "value" : "forearms" },
-                            { "label" : "Glutes", "value" : "glutes" },
-                            { "label" : "Hamstrings", "value" : "hamstrings" },
-                            { "label" : "Lats", "value" : "lats" },
-                            { "label" : "Lower Back", "value" : "lower_back" },
-                            { "label" : "Middle Back", "value" : "middle_back" },
-                            { "label" : "Neck", "value" : "neck" },
-                            { "label" : "Quadriceps", "value" : "quadriceps" },
-                            { "label" : "Shoulders", "value" : "shoulders" },
-                            { "label" : "Traps", "value" : "traps" },
-                            { "label":  'Triceps', 'value': 'triceps' }
-                        ]
-                    },
-                    {
-                        "type" : "text",
-                        "id" : "text",
-                        "label" : "Filter Text",
-                        "shortlabel" : "Text"
-                    }
-                ]
+def _exercise_muscles(e):
+    return list(e.get("primaryMuscles") or []) + list(e.get("secondaryMuscles") or [])
+
+def _exercise_laterality(e):
+    return "uni-lateral" if e.get("is_unilateral") else "bi-lateral"
+
+def _exercise_equipment(e):
+    equipment_list = e.get("equipment_list") or []
+    return equipment_list if equipment_list else [e.get("equipment")]
+
+exercise_facets = [
+    FacetDef("muscles", "Muscles", _exercise_muscles),
+    FacetDef("movement_categories", "Movement Category", lambda e: e.get("movement_categories") or []),
+    FacetDef("physical_fitness_components", "Fitness Component", lambda e: e.get("physical_fitness_components") or []),
+    FacetDef("laterality", "Uni/Bi-lateral", _exercise_laterality,
+             value_label=lambda v: v.replace("_", "-").title().replace("Lateral", "lateral")),
+    FacetDef("setCompletionMeasure", "Set Completion", lambda e: e.get("setCompletionMeasure") or "reps"),
+    FacetDef("equipment", "Equipment", _exercise_equipment),
+    FacetDef("origin", "Origin", lambda e: e.get("origin")),
+]
 
 
 def render_exercise_popup_viewer_html(context, entity, can_edit=False, show_dismiss_btn=False, filter_terms=[]):

@@ -1,0 +1,108 @@
+<!-- entity_facet_panel.html -->
+{# Facet panel shell: chips row and responsive bottom sheet #}
+{% import 'entity_facet_macros.html' as fm with context %}
+<style>
+    .facet-offcanvas.offcanvas.offcanvas-bottom {
+        height: 80vh; max-height: 90vh; color: #fff;
+        background: linear-gradient(to right, #2c3e50, #4ca1af);
+        border-top: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 1rem 1rem 0 0;
+    }
+    @media (min-width: 992px) {
+        .facet-offcanvas.offcanvas.offcanvas-bottom { height: auto; max-height: 50vh; }
+    }
+    .facet-offcanvas .offcanvas-body { min-height: 0; }
+    .facet-offcanvas .offcanvas-title { color: #fff; font-weight: bold; }
+    .facet-offcanvas .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+    .facet-offcanvas details { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.3) !important; }
+    .facet-offcanvas .text-muted { color: rgba(255, 255, 255, 0.7) !important; }
+    .facet-offcanvas .facet-footer { background: transparent; border-color: rgba(255, 255, 255, 0.3) !important; }
+    .facet-offcanvas .btn-outline-secondary { color: #fff; border-color: rgba(255, 255, 255, 0.6); }
+</style>
+{{ fm.chips() }}
+<div class="offcanvas offcanvas-bottom facet-offcanvas" tabindex="-1" id="facet-offcanvas-{{ entity_name }}" aria-labelledby="facet-title-{{ entity_name }}">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="facet-title-{{ entity_name }}">Filters</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#facet-offcanvas-{{ entity_name }}" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body d-block">
+        {{ fm.groups() }}
+    </div>
+    <div class="facet-footer d-flex gap-2 p-3 border-top">
+        <button type="button" class="btn btn-outline-secondary facet-clear-all">Clear all</button>
+        {{ fm.show_button() }}
+    </div>
+</div>
+<script>
+{
+    if (window.__facetGroupHandlers) window.__facetGroupHandlers.abort();
+    window.__facetGroupHandlers = new AbortController();
+    const facetGroupHandlerOptions = { signal: window.__facetGroupHandlers.signal };
+    document.addEventListener('show.bs.offcanvas', function (e) {
+        const panel = e.target;
+        if (!panel.classList.contains('facet-offcanvas') || panel._facetGroupsInitialized) return;
+        const open = window.matchMedia('(min-width: 992px)').matches;
+        panel.querySelectorAll('.facet-groups details[data-facet-group]').forEach(group => { group.open = open; });
+        panel._facetGroupsInitialized = true;
+    }, facetGroupHandlerOptions);
+    document.addEventListener('htmx:oobBeforeSwap', function (e) {
+        const previous = e.detail.target;
+        if (!previous.classList.contains('facet-groups')) return;
+        const panel = previous.closest('.facet-offcanvas');
+        if (!panel || !panel._facetGroupsInitialized) return;
+        const next = e.detail.fragment.querySelector('.facet-groups');
+        if (!next) return;
+        const states = new Map(Array.from(previous.querySelectorAll('details[data-facet-group]'),
+            group => [group.dataset.facetGroup, group.open]));
+        const defaultOpen = window.matchMedia('(min-width: 992px)').matches;
+        next.querySelectorAll('details[data-facet-group]').forEach(group => {
+            group.open = states.has(group.dataset.facetGroup) ? states.get(group.dataset.facetGroup) : defaultOpen;
+        });
+    }, facetGroupHandlerOptions);
+}
+    if (!window.__facetHandlersInstalled) {
+        window.__facetHandlersInstalled = true;
+        const fire = (box) => box.dispatchEvent(new Event('change', { bubbles: true }));
+        // An ancestor with transform/backdrop-filter makes position:fixed relative to it,
+        // so the bottom sheet is attached to <body> while shown, or to the enclosing
+        // modal so it stacks above the modal and stays inside its focus trap.
+        document.addEventListener('show.bs.offcanvas', function (e) {
+            const el = e.target;
+            if (!el.classList.contains('facet-offcanvas')) return;
+            const host = el.closest('.modal') || document.body;
+            if (el.parentElement === host) return;
+            el._facetHome = { parent: el.parentElement, next: el.nextSibling };
+            host.appendChild(el);
+        });
+        document.addEventListener('hidden.bs.offcanvas', function (e) {
+            const el = e.target;
+            const home = el._facetHome;
+            if (!el.classList.contains('facet-offcanvas') || !home) return;
+            el._facetHome = null;
+            if (home.parent.isConnected) {
+                home.parent.insertBefore(el, home.next && home.next.parentNode === home.parent ? home.next : null);
+            } else {
+                el.remove();
+            }
+        });
+        document.addEventListener('click', function (e) {
+            const chip = e.target.closest('.facet-chip');
+            if (chip) {
+                const boxes = document.querySelectorAll('input[type=checkbox]');
+                for (const box of boxes) {
+                    if (box.name === chip.dataset.facetName && box.value === chip.dataset.facetValue) {
+                        box.checked = false;
+                        fire(box);
+                        break;
+                    }
+                }
+                return;
+            }
+            if (e.target.closest('.facet-clear-all')) {
+                const checked = Array.from(document.querySelectorAll("input[type=checkbox][name^='facet_']:checked"));
+                checked.forEach(b => { b.checked = false; });
+                if (checked.length) fire(checked[0]);
+            }
+        });
+    }
+</script>

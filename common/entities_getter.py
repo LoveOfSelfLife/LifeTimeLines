@@ -38,7 +38,7 @@ def get_entities(entity_name, fields_to_display, filter_term=None, partition_key
         entity_id = e.get_key_value()
 
         card_view_field_values = None
-        if fields_to_display['card_view']:
+        if fields_to_display.get('card_view'):
             field_mapping = fields_to_display.get('field_mapping', {})
             card_view_field_values = {}
             for field in fields_to_display['card_view']:

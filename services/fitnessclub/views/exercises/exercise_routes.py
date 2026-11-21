@@ -3,8 +3,9 @@ import json
 from urllib import response
 from flask import abort, make_response, redirect, render_template, request, session, url_for, jsonify
 from common.blueprint import create_blueprint
+from common.card_presentation import build_card_views
 from common.entity_store import EntityStore, get_entity_obj_from_entity_name
-from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_listing_fields_for_entity
+from common.list_presentation import listing_fields
 from common.entities_getter import resolve_selected_entity_keys, clear_selected_entity_keys
 from common.entities_getter import as_bool
 from common.entities_getter import MULTI_SELECT_SESSION_KEY
@@ -13,6 +14,7 @@ from common.fitness.exercise_entity import movement_category_definitions
 from common.filter_funcs import apply_favorites_preference, get_entity_view_from_request, get_filter_terms_from_request
 from common.filter_funcs import parse_listing_filter
 from common.entities_getter import get_entities
+from common.facets import build_facet_context
 from common.fitness.exercise_entity import EQUIPMENT, ExerciseEntity
 from common.template_renderer import hx_render_template
 from common.member_entity import get_member_id_from_user_context
@@ -69,10 +71,10 @@ def exercises_listing2(context, member_id, page=1, filter_terms=[], modal_mode=F
         entity_name, member_id=member_id, legacy_cache_key=f'view_preference_{member_id}'
     )
     
-    fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
+    fields_to_display = listing_fields(ExerciseEntity.list_presentation)
     
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
-
+    entities, facet_vars = build_facet_context(entity_name, entities, request.values)
     allow_multi_select = as_bool(request.form.get('allow_multi_select', None),
                                   as_bool(request.args.get('allow_multi_select', None), False))
     selected_entity_keys = resolve_selected_entity_keys(member_id, allow_multi_select=allow_multi_select)
@@ -107,10 +109,11 @@ def exercises_listing2(context, member_id, page=1, filter_terms=[], modal_mode=F
         allow_multi_select=allow_multi_select,
         selected_entity_keys=selected_entity_keys,
         modal_mode=modal_mode,
+        facet_vars=facet_vars,
     )
 
 
-def exercise_listing_base(context, entity_name, page, page_size, view, fields_to_display, filter_terms, entities, allow_multi_select=False, selected_entity_keys=None, modal_mode=False):
+def exercise_listing_base(context, entity_name, page, page_size, view, fields_to_display, filter_terms, entities, allow_multi_select=False, selected_entity_keys=None, modal_mode=False, facet_vars=None):
     total_pages = (len(entities) + page_size - 1) // page_size
     start = (page - 1) * page_size
     end = start + page_size
@@ -131,6 +134,10 @@ def exercise_listing_base(context, entity_name, page, page_size, view, fields_to
         entity_add_route = '/exercises/new?'
         entity_action_route='/exercises/edit?'
 
+    if view == 'card':
+        current = build_card_views(current, ExerciseEntity.card_presentation)
+
+    add_multiple_as_alternatives = request.form.get('add_as_alternatives') or request.args.get('add_as_alternatives')
     multi_select_post_route = request.form.get('multi_select_post_route') or request.args.get('multi_select_post_route')
     multi_select_button_label = request.form.get('multi_select_button_label') or request.args.get('multi_select_button_label') or 'Add Selected'
     multi_select_button_icon = request.form.get('multi_select_button_icon') or request.args.get('multi_select_button_icon') or 'bi-plus-circle'
@@ -139,7 +146,9 @@ def exercise_listing_base(context, entity_name, page, page_size, view, fields_to
     if multi_select_post_route and preferred_section and 'preferred_section=' not in multi_select_post_route:
         separator = '&' if '?' in multi_select_post_route else '?'
         multi_select_post_route = f"{multi_select_post_route}{separator}preferred_section={preferred_section}"
-
+    if add_multiple_as_alternatives:
+        multi_select_post_route = f"{multi_select_post_route}&add_as_alternatives=true" if multi_select_post_route else None
+        
     entities_listing_route = f'/exercises/exercises-listing?entity_table={entity_name}'
     if allow_multi_select:
         entities_listing_route += '&allow_multi_select=true'
@@ -171,7 +180,19 @@ def exercise_listing_base(context, entity_name, page, page_size, view, fields_to
         entity_action_label='Edit Exercise',
         favorite_toggle_route='/favorites/toggle',
         results_target_container=results_target_container,
-        entity_card_view_html='exercise_card_view.html'        
+        entity_card_view_html='entity_card_view.html',
+        card_actions=[{
+            'id': 'edit',
+            'enabled': bool(entity_action_route) and not allow_multi_select,
+            'url': entity_action_route,
+            'method': 'get',
+            'target': 'entities-container',
+            'icon': 'bi-pencil-square',
+            'label': 'Edit Exercise',
+            'button_label': 'Edit',
+        }],
+        facet_oob=(template_file_name == 'entity_results_partial.html'),
+        **(facet_vars or {})
     )
 
     if modal_mode:

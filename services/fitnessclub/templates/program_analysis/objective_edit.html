@@ -1,3 +1,4 @@
+<!-- objective_edit.html -->
 <div class="container-fluid" style="max-width: 1100px;">
   <h3><i class="bi bi-bullseye me-2"></i>{{ 'View' if read_only else ('Edit' if objective.id else 'New') }} objective</h3>
   {% if read_only %}<div class="alert alert-info">This objective can't be edited by you. Use <em>Copy</em> on the list to make your own version.</div>{% endif %}

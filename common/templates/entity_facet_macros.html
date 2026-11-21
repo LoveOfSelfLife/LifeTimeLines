@@ -1,0 +1,70 @@
+<!-- entity_facet_macros.html -->
+{# Facet panel fragments. Each macro can be rendered in place (oob=false) or as an out-of-band swap (oob=true). #}
+{% macro _include_selector() -%}
+[name^='facet_'], [name='search'], [name='view_{{ entity_name }}'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name|default('selected_entity_keys') }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']
+{%- endmacro %}
+
+{% macro badge(oob=false) -%}
+<span id="facet-badge-{{ entity_name }}" class="badge text-bg-primary {% if not facet_selected_total %}d-none{% endif %}"{% if oob %} hx-swap-oob="true"{% endif %}>{{ facet_selected_total }}</span>
+{%- endmacro %}
+
+{% macro result_count() -%}
+{{ facet_result_count }} result{{ '' if facet_result_count == 1 else 's' }}
+{%- endmacro %}
+
+{% macro chips(oob=false) -%}
+<div id="facet-chips-{{ entity_name }}" class="facet-chips d-flex gap-2 align-items-center mt-2"{% if oob %} hx-swap-oob="true"{% endif %}>
+    <span class="flex-shrink-0" role="status">{{ result_count() }}</span>
+    <div class="d-flex flex-nowrap overflow-auto gap-2 align-items-center" style="min-width: 0;">
+    {% for chip in facet_chips %}
+    <button type="button" class="btn btn-sm btn-primary rounded-pill flex-shrink-0 facet-chip"
+            data-facet-name="{{ facet_form_prefix }}{{ chip.key }}" data-facet-value="{{ chip.value }}"
+            title="Remove {{ chip.group }}: {{ chip.label }}">
+        {{ chip.label }} <i class="bi bi-x-lg ms-1"></i>
+    </button>
+    {% endfor %}
+    {% if facet_chips|length > 1 %}
+    <button type="button" class="btn btn-sm btn-link flex-shrink-0 facet-clear-all">Clear all</button>
+    {% endif %}
+    </div>
+</div>
+{%- endmacro %}
+
+{% macro groups(oob=false) -%}
+<div id="facet-groups-{{ entity_name }}" class="facet-groups row row-cols-1 row-cols-md-2 row-cols-xl-4 g-2"
+     hx-post="{{ entities_listing_route }}"
+     hx-trigger="change"
+     hx-target="#{{ results_target_container or 'results-area' }}"
+     hx-swap="innerHTML"
+     hx-include="{{ _include_selector() }}"
+     {% if modal_mode %}hx-vals='{ "modal_mode": {{ modal_mode|tojson }} }'{% endif %}
+     {% if oob %}hx-swap-oob="true"{% endif %}>
+    {% for g in facet_groups %}
+    <div class="col">
+        <details class="border rounded p-2 h-100" data-facet-group="{{ g.key }}">
+            <summary class="fw-semibold">{{ g.label }}{% if g.selected_count %} <span class="badge text-bg-primary">{{ g.selected_count }}</span>{% endif %}</summary>
+            <div class="mt-2 overflow-auto" style="max-height: 12rem;">
+                {% for v in g['values'] %}
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox"
+                           id="facet-{{ entity_name }}-{{ g.key }}-{{ loop.index }}"
+                           name="{{ facet_form_prefix }}{{ g.key }}" value="{{ v.value }}"
+                           {% if v.selected %}checked{% endif %}>
+                    <label class="form-check-label d-flex justify-content-between"
+                           for="facet-{{ entity_name }}-{{ g.key }}-{{ loop.index }}">
+                        <span>{{ v.label }}</span><span class="text-muted ms-2">{{ v.count }}</span>
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+        </details>
+    </div>
+    {% endfor %}
+</div>
+{%- endmacro %}
+
+{% macro show_button(oob=false) -%}
+<button id="facet-show-{{ entity_name }}" type="button" class="btn btn-primary flex-grow-1" data-bs-dismiss="offcanvas" data-bs-target="#facet-offcanvas-{{ entity_name }}"{% if oob %} hx-swap-oob="true"{% endif %}>
+    Show {{ result_count() }}
+</button>
+{%- endmacro %}

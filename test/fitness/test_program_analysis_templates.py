@@ -176,6 +176,7 @@ def test_workout_listing_actions_in_list_and_card(client, monkeypatch):
     monkeypatch.setattr(workout_routes, 'hx_render_template',
                         lambda template, **kwargs: flask.render_template('entity_results_partial.html', **kwargs))
     entity = {'key': ('w1', 'workout'), 'entity_id': 'w1', 'is_favorite': False,
+              'entity': {'name': 'Day A'},
               'field_values': ['Day A'], 'card_view_fields': {'title': 'Day A'}}
     with app.test_request_context('/workouts/workouts-listing'):
         for view in ('list', 'card'):
