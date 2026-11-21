@@ -30,6 +30,22 @@ class MemberEntity (EntityObject):
     key_field="id"
     partition_field="app"
     schema = member_schema
+    list_presentation = (
+        {"label": "name", "value": lambda entity: entity.get("name", "")},
+        {"label": "short_name", "value": lambda entity: entity.get("short_name", "")},
+        {"label": "email", "value": lambda entity: entity.get("email")},
+        {"label": "role", "value": lambda entity: entity.get("role", "")},
+    )
+    card_presentation = {
+        "title": lambda entity: entity.get("name", ""),
+        "image": lambda entity: entity.get("image_url"),
+        "fields": (
+            {"label": "Short name", "value": lambda entity: entity.get("short_name")},
+            {"label": "Email", "value": lambda entity: entity.get("email")},
+            {"label": "Role", "value": lambda entity: entity.get("role")},
+        ),
+        "actions": ("edit",),
+    }
 
     def __init__(self, d={}):
         super().__init__(d)
@@ -162,4 +178,3 @@ class MembershipRegistry:
             raise UnregisteredMemberException()
         member['admin'] = member.get('level', 0) >= 10
         return member
-

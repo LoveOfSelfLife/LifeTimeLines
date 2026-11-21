@@ -3,6 +3,7 @@ from flask import request
 
 from common.entity_store import EntityObject
 from common.entities_getter import get_entity
+from common.fitness.fitness_presentation import assigned_client_name, member_name, program_name, workout_date, workout_image
 from common.template_renderer import hx_render_template
 
 
@@ -25,6 +26,20 @@ class MemberWorkoutDefinitionEntity (EntityObject):
             ]
     key_field="id"
     partition_value="workout"
+    list_presentation = (
+        {"label": "name", "value": lambda entity: entity.get("name")},
+        {"label": "client", "value": assigned_client_name},
+        {"label": "program", "value": lambda entity: program_name(entity) if entity.get("member_program_id") else ""},
+    )
+    card_presentation = {
+        "title": lambda entity: entity.get("name", ""),
+        "image": workout_image,
+        "fields": (
+            {"label": "Client", "value": member_name},
+            {"label": "Program", "value": program_name},
+        ),
+        "actions": ("edit", "analyze", "import"),
+    }
 
     def __init__(self, d={}):
         super().__init__(d)
@@ -50,6 +65,20 @@ class MemberWorkoutInstanceEntity (EntityObject):
             ]
     key_field="id"
     partition_field="member_id"
+    list_presentation = (
+        {"label": "name", "value": lambda entity: entity.get("name")},
+        {"label": "date", "value": workout_date},
+        {"label": "program", "value": lambda entity: program_name(entity) if entity.get("member_program_id") else ""},
+    )
+    card_presentation = {
+        "title": lambda entity: entity.get("name", ""),
+        "image": workout_image,
+        "fields": (
+            {"label": "Date", "value": workout_date},
+            {"label": "Program", "value": program_name},
+        ),
+        "actions": ("edit",),
+    }
 
     def __init__(self, d={}):
         super().__init__(d)
@@ -147,5 +176,3 @@ def map_exercise_to_sections(ex):
 
     sections_list = list(set(sections_list))
     return sections_list
-
-

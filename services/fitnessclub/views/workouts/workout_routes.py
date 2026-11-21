@@ -4,7 +4,7 @@ from datetime import datetime
 from ast import literal_eval
 from flask import Blueprint, jsonify, make_response, render_template, request, current_app
 from common.entity_store import EntityStore, get_entity_obj_from_entity_name
-from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_listing_fields_for_entity
+from common.list_presentation import listing_fields
 from common.cacher import get_cache_value, set_cache_value, delete_from_cache
 from common.entities_getter import resolve_selected_workout_keys, clear_selected_workout_keys, clear_selected_entity_keys, delete_entity, get_entities, as_bool
 from common.entities_getter import filter_entities_by_member_role
@@ -36,6 +36,7 @@ import json
 from common.fitness.exercise_entity import ExerciseEntity, ExerciseReviewEntity
 
 from common.entities_getter import get_entities, get_entity, get_filtered_entities
+from common.card_presentation import build_card_views
 from common.fitness import exercise_analytics_db as analytics_db
 from common.fitness import exercise_analytics_queries as analytics_queries
 from common.fitness.exercise_history_analytics import workout_rows
@@ -94,7 +95,7 @@ def workouts_listing2(context=None, page=1, filter_terms=None):
     allow_multi_select = as_bool(request.form.get('allow_multi_select', None),
                                   as_bool(request.args.get('allow_multi_select', None), False))
     selected_entity_keys = resolve_selected_workout_keys(member_id, allow_multi_select=allow_multi_select)    
-    fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
+    fields_to_display = listing_fields(MemberWorkoutDefinitionEntity.list_presentation)
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
 
     entities = filter_entities_by_member_role(member_id, entities)
@@ -106,6 +107,8 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
     start = (page - 1) * page_size
     end = start + page_size
     current = entities[start:end]
+    if view == 'card':
+        current = build_card_views(current, MemberWorkoutDefinitionEntity.card_presentation)
     selected_entity_keys = selected_entity_keys or []
 
     if request.headers.get('HX-Target') == 'results-area':
@@ -133,6 +136,7 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
         entity_action_label='Edit Workout'
 
     entity_add_route = f"{url_for('workouts.builder_new')}?x=1" if not allow_multi_select else None
+    analyze_route = f"{url_for('program_analysis.report', scope='workout')}" if not modal_mode and not allow_multi_select else None
 
     template_data = dict(
         title="Workouts Library",
@@ -153,13 +157,25 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
         entity_action_route_target=entity_action_route_target,
         entity_action_icon=entity_action_icon,
         entity_action_label=entity_action_label,
-        entity_action2_route=f"{url_for('program_analysis.report', scope='workout')}" if not modal_mode and not allow_multi_select else None,
+        entity_action2_route=analyze_route,
         entity_action2_icon='bi-bar-chart',
         entity_action2_label='Analyze Workout',
         entity_action2_route_target='modals-here',
         favorite_toggle_route='/favorites/toggle',
         results_target_container=results_target_container,
-        entity_card_view_html='workout_card_view.html',
+        entity_card_view_html='entity_card_view.html',
+        card_actions=[
+            {
+                'id': 'edit', 'enabled': bool(entity_action_route) and not modal_mode,
+                'url': entity_action_route, 'method': 'get', 'target': 'entities-container',
+                'icon': 'bi-pencil-square', 'label': 'Edit Workout', 'button_label': 'Edit',
+            },
+            {
+                'id': 'analyze', 'enabled': bool(analyze_route),
+                'url': analyze_route, 'method': 'get', 'target': 'modals-here',
+                'icon': 'bi-bar-chart', 'label': 'Analyze Workout', 'button_label': 'Analyze',
+            },
+        ],
         allow_multi_select=allow_multi_select,
         selected_entity_keys=selected_entity_keys,
         multi_select_checkbox_name='selected_entity_keys',
@@ -1719,9 +1735,7 @@ def exercise_listing(context=None):
     )
  
     
-    fields_to_display  = get_fitnessclub_listing_fields_for_entity(entity_name)
-
-    fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
+    fields_to_display = listing_fields(ExerciseEntity.list_presentation)
     filter_terms = get_filter_terms_from_request(entity_name)
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
     
@@ -1729,6 +1743,9 @@ def exercise_listing(context=None):
     start = (page - 1) * page_size
     end = start + page_size
     current = entities[start:end]
+
+    if view == 'card':
+        current = build_card_views(current, ExerciseEntity.card_presentation)
 
     if not entity_name:
         return "No entity name provided", 404
@@ -1759,7 +1776,16 @@ def exercise_listing(context=None):
                               entity_action_label='Add Exercise',
                               results_target_container=target if target else 'results-area',
                               context=context,
-                              entity_card_view_html='exercise_card_view.html'                                      
+                              entity_card_view_html='entity_card_view.html',
+                              card_actions=[{
+                                  'id': 'add_to_workout',
+                                  'enabled': True,
+                                  'url': f'/workouts/builder/{workout_id}/add?entity_table={entity_name}',
+                                  'method': 'post',
+                                  'target': 'canvas',
+                                  'icon': 'bi-plus',
+                                  'label': 'Add Exercise',
+                              }]
                               )      
 
 ########################################
@@ -1778,7 +1804,7 @@ def workouts_listing_modal(context=None):
     page_size = 100
     target = request.args.get('target')
     view = get_entity_view_from_request(WORKOUT_ENTITY_NAME)
-    fields_to_display = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
+    fields_to_display = listing_fields(MemberWorkoutDefinitionEntity.list_presentation)
     filter_terms = get_filter_terms_from_request(WORKOUT_ENTITY_NAME)
     entities = get_entities(WORKOUT_ENTITY_NAME, fields_to_display, filter_terms, member_id=member_id)
     entities = filter_entities_by_member_role(member_id, entities)
@@ -2471,7 +2497,7 @@ def workouts_history_listing2(context=None, page=1, filter_terms=None):
     target = request.args.get('target', None)
     view = get_entity_view_from_request(entity_name)
     
-    fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
+    fields_to_display = listing_fields(MemberWorkoutInstanceEntity.list_presentation)
     sort_key_fn=get_sort_key_fn_for_entity(entity_name)
     entities = get_entities(entity_name, fields_to_display, filter_terms, partition_key=member_id, sort_key_fn=sort_key_fn, sort_ascending=False, member_id=member_id)
 
@@ -2485,6 +2511,8 @@ def workouts_history_listing_base(context, entity_name, page, target, view, fiel
     start = (page - 1) * page_size
     end = start + page_size
     current = entities[start:end]
+    if view == 'card':
+        current = build_card_views(current, MemberWorkoutInstanceEntity.card_presentation)
 
     if request.headers.get('HX-Target') == 'results-area':
         template_file_name = 'entity_results_partial.html'
@@ -2494,6 +2522,7 @@ def workouts_history_listing_base(context, entity_name, page, target, view, fiel
     # Set results_target_container based on target parameter
     results_target_container = target if target else 'results-area'
     target = target if target else 'results-area'
+    edit_route = f'/workouts/edit?entity_table={entity_name}'
     # displays workouts at the top level
     return hx_render_template(
         template_file_name,
@@ -2510,12 +2539,18 @@ def workouts_history_listing_base(context, entity_name, page, target, view, fiel
         entity_add_route=f"",
         entities_listing_route=f'/workouts/history?target={target}',
         entity_view_route=f"{url_for('home.completed_workout_details_modal')}?x=y",
-        entity_action_route=f'/workouts/edit?entity_table={entity_name}',
+        entity_action_route=edit_route,
         entity_action_icon='bi-pencil-square',  
         entity_action_label='Edit Workout',
         favorite_toggle_route='/favorites/toggle',
         results_target_container=results_target_container,
-        entity_card_view_html='workout_card_view.html',        
+        entity_card_view_html='entity_card_view.html',
+        card_actions=[{
+            'id': 'edit', 'enabled': True,
+            'url': edit_route,
+            'method': 'get', 'target': 'entities-container',
+            'icon': 'bi-pencil-square', 'label': 'Edit Workout', 'button_label': 'Edit',
+        }],
         modal_mode=False,
         context=context)
                 

@@ -8,6 +8,7 @@ from common.utils import convert_to_alphanumeric
 import json
 from common.fitness.exercise_schema import exercise_schema
 from common.fitness.exercise_schema import exercise_review_schema
+from common.fitness.exercise_card import exercise_equipment, exercise_image
 
 class ExerciseEntity (EntityObject):
     table_name="ExerciseTable"
@@ -28,6 +29,20 @@ class ExerciseEntity (EntityObject):
     key_field="id"
     partition_value="exercise"
     schema = exercise_schema
+    list_presentation = (
+        {"label": "name", "value": lambda entity: entity.get("name", "")},
+        {"label": "category", "value": lambda entity: entity.get("category")},
+    )
+    card_presentation = {
+        "title": lambda entity: entity.get("name", ""),
+        "image": exercise_image,
+        "fields": (
+            {"label": "PFC", "value": lambda entity: ", ".join(entity.get("physical_fitness_components", []))},
+            {"label": "Movements", "value": lambda entity: ", ".join(entity.get("movement_categories", []))},
+            {"label": "Equipment", "value": exercise_equipment}
+        ),
+        "actions": ("edit"),
+    }
 
     def __init__(self, d={}):
         super().__init__(d)
@@ -406,60 +421,6 @@ def exercise_was_reviewed(exercise):
         if "category" in review and review["category"] is not None:
             return True
     return False  # otherwise, the exercise does not have a review
-
-exercise_filters = [
-                    {
-                        "type" : "choice",
-                        "id" : "physical_fitness_components",
-                        "label" : "Physical Fitness Component",
-                        "shortlabel" : "Component",
-                        "options" : [
-                            { "label" : "Any", "value" : "" },
-                            { "label" : "Flexibility", "value" : "flexibility" },
-                            { "label" : "Mobility", "value" : "mobility" },
-                            { "label" : "Balance", "value" : "balance" },
-                            { "label" : "Core", "value" : "core" },
-                            { "label" : "Power", "value" : "power" },
-                            { "label" : "Strength", "value" : "strength" },
-                            { "label" : "Cardio", "value" : "cardio" },
-                            { "label" : "Endurance", "value" : "endurance" },
-                            { "label" : "Myofascia", "value" : "myofascia" }
-                        ]
-                    },
-                    {
-                        "type" : "choice",
-                        "id" : "muscle",
-                        "label" : "Muscle involved",
-                        "shortlabel" : "Muscle",
-                        "options" : [
-                            { "label" : "Any", "value" : "" },
-                            { "label" : "Abdominals", "value" : "abdominals" },
-                            { "label" : "Adductors", "value" : "adductors" },
-                            { "label" : "Abductors", "value" : "abductors" },                                    
-                            { "label" : "Biceps", "value" : "biceps" },
-                            { "label" : "Calves", "value" : "calves" },
-                            { "label" : "Chest", "value" : "chest" },
-                            { "label" : "Forearms", "value" : "forearms" },
-                            { "label" : "Glutes", "value" : "glutes" },
-                            { "label" : "Hamstrings", "value" : "hamstrings" },
-                            { "label" : "Lats", "value" : "lats" },
-                            { "label" : "Lower Back", "value" : "lower_back" },
-                            { "label" : "Middle Back", "value" : "middle_back" },
-                            { "label" : "Neck", "value" : "neck" },
-                            { "label" : "Quadriceps", "value" : "quadriceps" },
-                            { "label" : "Shoulders", "value" : "shoulders" },
-                            { "label" : "Traps", "value" : "traps" },
-                            { "label":  'Triceps', 'value': 'triceps' }
-                        ]
-                    },
-                    {
-                        "type" : "text",
-                        "id" : "text",
-                        "label" : "Filter Text",
-                        "shortlabel" : "Text"
-                    }
-                ]
-
 
 def _exercise_muscles(e):
     return list(e.get("primaryMuscles") or []) + list(e.get("secondaryMuscles") or [])

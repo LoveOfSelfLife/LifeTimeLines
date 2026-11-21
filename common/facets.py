@@ -121,7 +121,7 @@ def selected_chips(facet_defs, selection):
 
 def build_facet_context(entity_name, items_before_facets, form):
     """Return (items_after_facets, template_vars) or (items, {}) if facets are disabled."""
-    from common.fitness.active_fitness_registry import get_fitnessclub_facets_for_entity
+    from common.fitness.facets import get_fitnessclub_facets_for_entity
     facet_defs = get_fitnessclub_facets_for_entity(entity_name)
     if not facet_defs:
         return items_before_facets, {}

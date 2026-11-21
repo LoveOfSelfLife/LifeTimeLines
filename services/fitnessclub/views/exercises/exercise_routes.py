@@ -3,8 +3,9 @@ import json
 from urllib import response
 from flask import abort, make_response, redirect, render_template, request, session, url_for, jsonify
 from common.blueprint import create_blueprint
+from common.card_presentation import build_card_views
 from common.entity_store import EntityStore, get_entity_obj_from_entity_name
-from common.fitness.active_fitness_registry import get_fitnessclub_entity_filters_for_entity, get_fitnessclub_listing_fields_for_entity
+from common.list_presentation import listing_fields
 from common.entities_getter import resolve_selected_entity_keys, clear_selected_entity_keys
 from common.entities_getter import as_bool
 from common.entities_getter import MULTI_SELECT_SESSION_KEY
@@ -70,7 +71,7 @@ def exercises_listing2(context, member_id, page=1, filter_terms=[], modal_mode=F
         entity_name, member_id=member_id, legacy_cache_key=f'view_preference_{member_id}'
     )
     
-    fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
+    fields_to_display = listing_fields(ExerciseEntity.list_presentation)
     
     entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
     entities, facet_vars = build_facet_context(entity_name, entities, request.values)
@@ -133,6 +134,9 @@ def exercise_listing_base(context, entity_name, page, page_size, view, fields_to
         entity_add_route = '/exercises/new?'
         entity_action_route='/exercises/edit?'
 
+    if view == 'card':
+        current = build_card_views(current, ExerciseEntity.card_presentation)
+
     add_multiple_as_alternatives = request.form.get('add_as_alternatives') or request.args.get('add_as_alternatives')
     multi_select_post_route = request.form.get('multi_select_post_route') or request.args.get('multi_select_post_route')
     multi_select_button_label = request.form.get('multi_select_button_label') or request.args.get('multi_select_button_label') or 'Add Selected'
@@ -176,7 +180,17 @@ def exercise_listing_base(context, entity_name, page, page_size, view, fields_to
         entity_action_label='Edit Exercise',
         favorite_toggle_route='/favorites/toggle',
         results_target_container=results_target_container,
-        entity_card_view_html='exercise_card_view.html',
+        entity_card_view_html='entity_card_view.html',
+        card_actions=[{
+            'id': 'edit',
+            'enabled': bool(entity_action_route) and not allow_multi_select,
+            'url': entity_action_route,
+            'method': 'get',
+            'target': 'entities-container',
+            'icon': 'bi-pencil-square',
+            'label': 'Edit Exercise',
+            'button_label': 'Edit',
+        }],
         facet_oob=(template_file_name == 'entity_results_partial.html'),
         **(facet_vars or {})
     )

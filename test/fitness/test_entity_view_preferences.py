@@ -166,12 +166,10 @@ class TestListingRouteViewIntegration(unittest.TestCase):
         cache = {}
         with patch('common.filter_funcs.get_cache_value', side_effect=cache.get), \
              patch('common.filter_funcs.set_cache_value', side_effect=cache.__setitem__), \
-             patch.object(exercise_routes, 'get_fitnessclub_listing_fields_for_entity'), \
              patch.object(exercise_routes, 'get_entities', return_value=[]), \
              patch.object(exercise_routes, 'resolve_selected_entity_keys', return_value=[]), \
              patch.object(exercise_routes, 'exercise_listing_base', side_effect=selected_view), \
              patch.object(workout_routes, 'get_member_id_from_user_context', return_value='member'), \
-             patch.object(workout_routes, 'get_fitnessclub_listing_fields_for_entity'), \
              patch.object(workout_routes, 'get_entities', return_value=[]), \
              patch.object(workout_routes, 'get_entity_obj_from_entity_name'), \
              patch.object(workout_routes, 'hx_render_template', side_effect=lambda template, **kwargs: kwargs['view']), \
@@ -179,7 +177,6 @@ class TestListingRouteViewIntegration(unittest.TestCase):
              patch.object(workout_routes, 'filter_entities_by_member_role', side_effect=lambda member, entities: entities), \
              patch.object(workout_routes, 'workouts_listing_base', side_effect=selected_view), \
              patch.object(programs_routes, 'get_member_id_from_user_context', return_value='member'), \
-             patch.object(programs_routes, 'get_fitnessclub_listing_fields_for_entity'), \
              patch.object(programs_routes, 'get_entities', return_value=[]), \
              patch.object(programs_routes, 'filter_entities_by_member_role', side_effect=lambda member, entities: entities), \
              patch.object(programs_routes, 'program_listing_base', side_effect=selected_view):

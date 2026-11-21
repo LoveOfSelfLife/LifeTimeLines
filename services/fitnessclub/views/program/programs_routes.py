@@ -1,6 +1,7 @@
 import copy
 from flask import abort, make_response, render_template, request, session, url_for
 from common.blueprint import create_blueprint
+from common.card_presentation import build_card_views
 from common.app_info import get_current_app_id
 from common.template_renderer import hx_render_template
 from datetime import datetime, timezone
@@ -11,7 +12,7 @@ import uuid
 from flask import abort, current_app, make_response, redirect, render_template, request, session, url_for
 from common.entity_store import EntityObject, EntityStore
 from common.fitness import workout_entity
-from common.fitness.active_fitness_registry import get_fitnessclub_listing_fields_for_entity
+from common.list_presentation import listing_fields
 from common.cacher import delete_from_cache, get_cache_value, set_cache_value
 from common.entities_getter import as_bool, delete_entity, get_entity, get_entities, resolve_selected_entity_keys, resolve_selected_workout_keys, clear_selected_workout_keys
 from common.entities_getter import PROGRAM_MULTI_SELECT_SESSION_KEY
@@ -70,7 +71,7 @@ def programs_listing2(context=None):
         abort(401)
     view = get_entity_view_from_request(entity_name)
     
-    fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
+    fields_to_display = listing_fields(MemberProgramsEntity.list_presentation)
     filter_terms = get_filter_terms_from_request(entity_name)
 
     member_id = get_member_id_from_user_context(context)
@@ -91,6 +92,8 @@ def program_listing_base(context, entity_name, page, page_size, view, fields_to_
     start = (page - 1) * page_size
     end = start + page_size
     current = entities[start:end]
+    if view == 'card':
+        current = build_card_views(current, MemberProgramsEntity.card_presentation)
     if request.headers.get('HX-Target') == 'results-area':
         template_file_name = 'entity_results_partial.html'
     else:
@@ -99,6 +102,8 @@ def program_listing_base(context, entity_name, page, page_size, view, fields_to_
     # Set results_target_container based on request args
     target = request.args.get('target')
     results_target_container = target if target else 'results-area'
+    edit_route = f'/program/edit?entity_table={entity_name}'
+    analyze_route = f"{url_for('program_analysis.report')}?x=1"
     
     # displays workouts at the top level
     return hx_render_template(
@@ -116,16 +121,30 @@ def program_listing_base(context, entity_name, page, page_size, view, fields_to_
         total_pages=total_pages,
         entity_view_route=f'/program/viewer?entity_table={entity_name}',
         entities_listing_route=f'/program/programs-listing?entity_table={entity_name}',
-        entity_action_route=f'/program/edit?entity_table={entity_name}',
+        entity_action_route=edit_route,
         entity_action_icon='bi-pencil-square',  
         entity_action_label='Edit Program',
-        entity_action2_route=f"{url_for('program_analysis.report')}?x=1",
+        entity_action2_route=analyze_route,
         entity_action2_icon='bi-bar-chart',
         entity_action2_label='Analyze Program',
         entity_action2_route_target='modals-here',
         favorite_toggle_route='/favorites/toggle',
         results_target_container=results_target_container,
-        entity_card_view_html='program_card_view.html',
+        entity_card_view_html='entity_card_view.html',
+        card_actions=[
+            {
+                'id': 'edit', 'enabled': True,
+                'url': edit_route,
+                'method': 'get', 'target': 'entities-container',
+                'icon': 'bi-pencil-square', 'label': 'Edit Program', 'button_label': 'Edit',
+            },
+            {
+                'id': 'analyze', 'enabled': True,
+                'url': analyze_route,
+                'method': 'get', 'target': 'modals-here',
+                'icon': 'bi-bar-chart', 'label': 'Analyze Program', 'button_label': 'Analyze',
+            },
+        ],
         context=context)
 
 @bp.route('/viewer')
@@ -184,7 +203,7 @@ def workouts_listing(context=None):
         abort(401)
     view = get_entity_view_from_request(entity_name)
     
-    fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
+    fields_to_display = listing_fields(MemberWorkoutDefinitionEntity.list_presentation)
     filter_terms = get_filter_terms_from_request(entity_name)
 
             
@@ -245,7 +264,7 @@ def workouts_listing_modal(context=None):
     page_size = 100
     target = request.args.get('target')
     view = get_entity_view_from_request(WORKOUT_ENTITY_NAME)
-    fields_to_display = get_fitnessclub_listing_fields_for_entity(WORKOUT_ENTITY_NAME)
+    fields_to_display = listing_fields(MemberWorkoutDefinitionEntity.list_presentation)
     filter_terms = get_filter_terms_from_request(WORKOUT_ENTITY_NAME)
     entities = get_entities(WORKOUT_ENTITY_NAME, fields_to_display, filter_terms, member_id=member_id)
     entities = filter_entities_by_member_role(member_id, entities)
@@ -272,6 +291,8 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
     start = (page - 1) * page_size
     end = start + page_size
     current = entities[start:end]
+    if view == 'card':
+        current = build_card_views(current, MemberWorkoutDefinitionEntity.card_presentation)
     selected_entity_keys = selected_entity_keys or []
 
     if request.headers.get('HX-Target') == 'results-area':
@@ -314,7 +335,12 @@ def workouts_listing_base(context, entity_name, program_id, page, target, view, 
         entity_action_label='Import Workout',
         favorite_toggle_route='/favorites/toggle',
         results_target_container=results_target_container,
-        entity_card_view_html='workout_card_view.html',
+        entity_card_view_html='entity_card_view.html',
+        card_actions=[{
+            'id': 'import', 'enabled': bool(entity_action_route) and not modal_mode,
+            'url': entity_action_route, 'method': 'post', 'target': 'program-canvas',
+            'icon': 'bi-plus', 'label': 'Import Workout',
+        }],
         allow_multi_select=allow_multi_select,
         selected_entity_keys=selected_entity_keys,
         multi_select_checkbox_name='selected_entity_keys',

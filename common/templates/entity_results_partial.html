@@ -2,6 +2,7 @@
     .entity-action-spinner { visibility: hidden; }
     .entity-action-loading.htmx-request > .entity-action-spinner { visibility: visible; }
     .entity-action-loading.htmx-request > .entity-action-icon { visibility: hidden; }
+    .entity-action-loading.htmx-request > .entity-action-content { visibility: hidden; }
 </style>
 <input type="hidden" name="view_{{ entity_name }}" value="{{ view }}">
 {% set allow_multi_select = allow_multi_select|default(false) %}
