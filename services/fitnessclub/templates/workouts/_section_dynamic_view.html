@@ -5,7 +5,7 @@
   <div class="list-group-item workout-exercise-item">
     <div class="exercise-main d-flex align-items-start justify-content-between gap-3">
       <div class="exercise-content-column">
-        <h6 class="mb-1 fw-bold font-weight-bold exercise-name">
+        <h6 class="mb-1 fw-bold font-weight-bold exercise-name" onclick="toggleExerciseDetails('{{ ex.id }}', '{{allow_popups}}')">
           {{ ex.name }}
         </h6>
         {% if active_workout and workout_instance_key %}
