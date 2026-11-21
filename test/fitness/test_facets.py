@@ -62,6 +62,16 @@ class TestFacets(unittest.TestCase):
         self.assertNotIn("abdominals", muscles)
         self.assertIn("chest", muscles)
 
+    def test_facet_values_sorted_by_display_label_not_count(self):
+        labels = {"first": "zebra", "second": "Apple", "missing": "aardvark"}
+        facet = FacetDef("kind", "Kind", lambda entity: entity.get("kind"), labels.get)
+        items = [{"kind": "first"}, {"kind": "first"}, {"kind": "second"}]
+        values = compute_facet_counts(items, [facet], {"kind": ["missing"]})[0]["values"]
+        self.assertEqual(
+            [(value["label"], value["count"], value["selected"]) for value in values],
+            [("aardvark", 0, True), ("Apple", 1, False), ("zebra", 2, False)],
+        )
+
     def test_missing_fields_are_ignored(self):
         groups = {g["key"]: g for g in compute_facet_counts(EXERCISES, DEFS, {})}
         total_origin = sum(v["count"] for v in groups["origin"]["values"])

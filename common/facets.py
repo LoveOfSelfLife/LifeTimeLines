@@ -83,8 +83,8 @@ def apply_selection(items, facet_defs, selection):
 def compute_facet_counts(items, facet_defs, selection):
     """Return [{key, label, values: [{value, label, count, selected}]}].
 
-    Values with a zero count are omitted, except that currently selected values
-    are always kept so they can be unchecked.
+    Values are sorted by display label, ignoring case. Values with a zero count
+    are omitted, except that currently selected values are kept so they can be unchecked.
     """
     selection = selection or {}
     groups = []
@@ -104,7 +104,7 @@ def compute_facet_counts(items, facet_defs, selection):
             {"value": v, "label": f.display(v), "count": 0, "selected": True}
             for v in selected if v not in present
         )
-        values.sort(key=lambda v: (-v["count"], v["label"]))
+        values.sort(key=lambda v: (v["label"].casefold(), v["value"]))
         if values:
             groups.append({"key": f.key, "label": f.label, "values": values,
                            "selected_count": len(selected)})
