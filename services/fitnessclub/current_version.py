@@ -1,4 +1,4 @@
  # Version information
 VERSION_MAJOR = 2
-VERSION_MINOR = 5
+VERSION_MINOR = 6
 VERSION_PATCH = 0
