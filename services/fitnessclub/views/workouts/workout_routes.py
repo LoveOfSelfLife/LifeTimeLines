@@ -147,7 +147,7 @@ def workouts_listing_base(context, entity_name, page, target, view, fields_to_di
         total_pages=total_pages,
         entity_add_route=entity_add_route,
         entities_listing_route=entities_listing_route,
-        entity_view_route=f'/workouts/viewer/workout?entity_table={entity_name}',
+        entity_view_route=f'/home/workout-preview-modal?entity_table={entity_name}',
         entity_action_route=entity_action_route,
         entity_action_route_method=entity_action_route_method,
         entity_action_route_target=entity_action_route_target,
@@ -1799,118 +1799,6 @@ def workouts_listing_modal(context=None):
         modal_mode=True,
     )
 
-
-@bp.route('/builder/workouts-listing', methods=['GET', 'POST'])
-@auth.login_required
-def builder_workouts_listing(context=None):
-    entity_name = WORKOUT_ENTITY_NAME
-    workout_id = request.args.get('workout_id', None)    
-    page = int(request.args.get('page', 1))
-    target = request.args.get('target', None)    
-    member_id = get_member_id_from_user_context(context)
-    div_id = target
-
-    view = get_entity_view_from_request(entity_name)
-    
-    fields_to_display = get_fitnessclub_listing_fields_for_entity(entity_name)
-    filter_terms = get_filter_terms_from_request(entity_name)
-    entities = get_entities(entity_name, fields_to_display, filter_terms, member_id=member_id)
-
-    page_size = 100
-    total_pages = (len(entities) + page_size - 1) // page_size
-    start = (page - 1) * page_size
-    end = start + page_size
-    current = entities[start:end]
-
-    if request.headers.get('HX-Target') == 'results-area':
-        template_file_name = 'entity_results_partial.html'
-    else:
-        template_file_name = 'entity_list_component.html'
-
-    # displays workouts at the top level
-    return render_template(template_file_name,
-        entity_name=entity_name,
-        title="Workouts Library",
-        main_content_container= 'xyz',
-        fields_to_display=fields_to_display,
-        entities=current,
-        filter_terms=filter_terms,
-        args=request.args,
-        page=page,
-        view=view,
-        total_pages=total_pages,
-        entities_listing_route=f'/workouts/builder/workouts-listing?entity_table={entity_name}&target={target}&workout_id={workout_id}',
-        entity_view_route=f'/workouts/viewer/workout?entity_table={entity_name}',
-        entity_action_route=f'/workouts/builder/{workout_id}/add_workout?entity_table={entity_name}',
-        entity_action_route_method='post',
-        entity_action_route_target="canvas",                              
-        entity_action_icon='bi-plus',  
-        entity_action_label='Import Workout',
-        results_target_container=target if target else 'results-area',
-        entity_card_view_html='workout_card_view.html',
-        modal_mode=False,
-        context=context)
-
-
-# ── Workout View ────────────────────────────────────────────────
-
-@bp.route("/viewer/workout")
-@auth.login_required
-def view_workout(context=None):
-
-    workout_key_str = request.args.get('key', None)
-    is_modal = request.args.get('is_modal', 'false').lower() == 'true'
-
-    workout_composite_key = eval(workout_key_str) if workout_key_str else None
-    es = EntityStore()
-
-    workout = es.get_item_by_composite_key(workout_composite_key)
-
-
-
-    wrkout_exercises = get_exercises_from_workout(workout)
-    exercises = { ex.get('id', None): ex for ex in wrkout_exercises }
-
-    if not workout:
-        abort(404)
-    
-    # Get current workout state to see if there are any parameter overrides
-    current_workout_state = get_active_workout_state()
-    member_id = get_member_id_from_user_context(context)
-    current_parameters = {}
-    if current_workout_state:
-        current_parameters = get_exercise_parameters(member_id)
-    
-    # new: only use the cached value if it exists
-    last = get_last_section(member_id, workout_key_str)
-
-    workout_sections = workout[WORKOUT_SECTIONS]        
-
-    # if last section is not set, then we set the last section to be the first section of the workout that has more than one exercise in it
-    if not last:
-        for section in workout_sections:
-            if len(section.get('exercises', [])) > 0:
-                last = section.get('name', None)
-                break
-
-    last_exercise_indexes_by_section = {
-        section.get('name'): get_last_exercise_index(member_id, workout.get('id'), section.get('name'))
-        for section in workout_sections
-    }
-        
-    return render_template(
-        "workouts/popup_workout_view.html",
-        workout=workout,
-        workout_sections=workout_sections,
-        exercises=exercises,
-        current_parameters=current_parameters,
-        workout_definition_key=workout_key_str,
-        default_section=last,
-        last_exercise_indexes_by_section=last_exercise_indexes_by_section,
-        show_finish_button=False,
-        rs=rm_spaces,
-        is_modal=is_modal
-    )
 
 from common.entities_getter import get_entity
 

@@ -29,38 +29,6 @@ bp = create_blueprint('home', __name__)
 import logging
 logger = logging.getLogger(__name__)
 
-@bp.route("/scheduled-workouts")
-@auth.login_required  
-def scheduled_workouts_partial(context=None):
-    return scheduled_workouts_partial2(context)
-
-def scheduled_workouts_partial2(context=None):
-    """HTMX partial for scheduled workouts section"""
-    try:
-        member_id = get_member_id_from_user_context(context)
-        
-        # Get scheduled workouts data
-        home_service = HomePageDataService()
-        scheduled_data = home_service.get_scheduled_workouts_data(member_id, datetime.now(timezone.utc))
-        
-        # Get alternative workout options for select elements
-        current_program = get_members_current_active_program(member_id)
-        current_prog_workouts = get_program_workout_options(current_program)
-        
-        return hx_render_template(
-            template_file='home/scheduled_workouts_partial.html',
-            data=scheduled_data,
-            program_workouts=current_prog_workouts,
-            context=context
-        )
-        
-    except Exception as e:
-        logger.error(f"Error loading scheduled workouts: {e}")
-        return hx_render_template(
-            template_string='<div class="alert alert-danger">Error loading scheduled workouts</div>',
-            context=context
-        )
-
 @bp.route("/adhoc-workouts")
 @auth.login_required  
 def adhoc_workouts_partial(context=None):
@@ -247,75 +215,6 @@ def start_workout(context=None):
         logger.error(f"Error starting workout: {e}")
         return hx_render_template(
             template_string=f'<div class="alert alert-danger">Error starting workout: {str(e)}</div>',
-            context=context
-        )
-
-@bp.route("/reschedule-workout-modal") 
-@auth.login_required
-def reschedule_workout_modal(context=None):
-    member_id = get_member_id_from_user_context(context)
-    member_short_name = get_user_profile(member_id).get('short_name', None)
-
-
-    event_id = request.args.get('event_id')
-    event_date = request.args.get('date', None)
-    event_date_dt = datetime.strptime(event_date, '%Y-%m-%d %H:%M:%S%z') if event_date else None
-    event_time = request.args.get('time', None)    
-    event_time_dt = datetime.strptime(event_time, '%Y-%m-%d %H:%M:%S%z') if event_time else None
-    program_name = request.args.get('program_name', 'Current Program')
-    event = {
-            "id": event_id,
-            "date": event_date_dt.strftime('%Y-%m-%d') if event_date_dt else None,
-            "time": event_time_dt.strftime('%H:%M') if event_time_dt else None,
-            "member": member_short_name,
-            "member_id": member_id
-        }
-    return hx_render_template(
-        template_file='home/modals/reschedule_workout_modal.html',
-        event=event,
-        context=context
-    )
-
-@bp.route("/reschedule-workout", methods=['POST'])
-@auth.login_required
-def reschedule_workout(context=None):
-    """Process workout rescheduling"""
-    try:
-        member_id = get_member_id_from_user_context(context)
-        member_short_name = get_user_profile(member_id).get('short_name', None)
-        # This would integrate with calendar service to reschedule
-        # For now, return success message and refresh scheduled workouts
-        event_id = request.form.get('event_id')
-        new_date = request.form.get('new_date')
-        new_time = request.form.get('new_time')
-        reason = request.form.get('reason', '')
-
-        # TODO: we want to post a message to the member's activity feed about the reschedule 
-        # with the reason, and also log it in the workout history for that workout instance
-
-        if new_date and new_time:
-            # update the event in the back-end store
-            calendar_service = get_calendar_service()    
-            event_meta = f"#id={member_id}"            
-            calendar_service.update_workout_event(event_id, member_short_name=member_short_name, 
-                                                  event_date=new_date, event_time=new_time,
-                                                  location="YMCA", metadata=event_meta)
-            content = scheduled_workouts_partial2(context)  # get updated scheduled workouts partial
-            response = make_response(content, 200)
-            response.headers['HX-Trigger'] = json.dumps({
-                "contentChanged": { "target": "body" },
-                "showMessage": {
-                    "target": "body",
-                    "value": "event updated."
-                }
-            })
-            return response
-
-        
-    except Exception as e:
-        logger.error(f"Error rescheduling workout: {e}")
-        return hx_render_template(
-            template_string=f'<div class="alert alert-danger">Error rescheduling workout: {str(e)}</div>',
             context=context
         )
 
