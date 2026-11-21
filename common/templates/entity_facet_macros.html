@@ -1,3 +1,4 @@
+<!-- entity_facet_macros.html -->
 {# Facet panel fragments. Each macro can be rendered in place (oob=false) or as an out-of-band swap (oob=true). #}
 {% macro _include_selector() -%}
 [name^='facet_'], [name='search'], [name='view_{{ entity_name }}'], [name='favorites_only_{{ entity_name }}'], [name='{{ multi_select_checkbox_name|default('selected_entity_keys') }}'], [name='allow_multi_select'], [name='multi_select_post_route'], [name='preferred_section']
