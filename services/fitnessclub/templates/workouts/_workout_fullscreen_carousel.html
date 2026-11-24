@@ -1,0 +1,178 @@
+{% set selected = namespace(name=none, first=none, first_nonempty=none) %}
+{% for section in workout_sections %}
+  {% if selected.first is none %}{% set selected.first = section.name %}{% endif %}
+  {% if section.exercises and selected.first_nonempty is none %}{% set selected.first_nonempty = section.name %}{% endif %}
+  {% if section.name == default_section %}{% set selected.name = section.name %}{% endif %}
+{% endfor %}
+{% if selected.name is none %}{% set selected.name = selected.first_nonempty or selected.first %}{% endif %}
+
+<div class="workout-fullscreen-view">
+  <div class="workout-toolbar">
+    <div class="dropdown workout-section-menu">
+    <button class="btn btn-primary dropdown-toggle w-100 workout-section-toggle" type="button"
+      id="workoutSectionMenu" data-bs-toggle="dropdown" aria-expanded="false">
+      {{ selected.name.title() if selected.name else 'No exercises' }}
+    </button>
+    <div class="dropdown-menu w-100 workout-dropdown workout-section-dropdown p-3" aria-labelledby="workoutSectionMenu">
+      <h2 class="h5 mb-3">{{ workout.name }}</h2>
+      <div class="list-group" aria-label="Workout sections">
+        {% for section in workout_sections %}
+        <button type="button" class="list-group-item list-group-item-action workout-section-option{% if section.name == selected.name %} active{% endif %}"
+          data-section-index="{{ loop.index }}" data-section-label="{{ section.name.title() }}"
+          {% if section.name == selected.name %}aria-current="true"{% endif %}
+          hx-post="{{ url_for('workouts.set_last_section', workout_id=workout.id, section_name=section.name) }}"
+          hx-swap="none" hx-sync="closest .workout-fullscreen-view:queue last">
+          {{ section.name.title() }} ({{ section.exercises|length }})
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+    </div>
+    <div class="dropdown workout-controls-menu">
+      <button class="btn btn-primary workout-controls-toggle" type="button"
+        id="workoutControlsMenu" data-bs-toggle="dropdown" aria-expanded="false"
+        aria-label="Workout controls" title="Workout controls">
+        <i class="bi bi-gear" aria-hidden="true"></i>
+      </button>
+      <div class="dropdown-menu dropdown-menu-end workout-dropdown workout-controls-dropdown p-3" aria-labelledby="workoutControlsMenu">
+      <div class="form-check form-switch mb-2">
+        <input class="form-check-input" type="checkbox" role="switch" id="carouselViewSwitch" checked
+          hx-post="{{ url_for('workouts.toggle_carousel_view') }}" hx-target="#content" hx-swap="innerHTML">
+        <label class="form-check-label" for="carouselViewSwitch">Carousel View</label>
+      </div>
+      <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" role="switch" id="keepAwakeSwitch"
+          hx-post="{{ url_for('workouts.toggle_keep_awake') }}" hx-target="#content" hx-swap="innerHTML"
+          {% if keep_screen_awake %}checked{% endif %}>
+        <label class="form-check-label" for="keepAwakeSwitch">Keep Screen On</label>
+      </div>
+      <form hx-post="{{ finish_workout_url }}" hx-target="#content" hx-swap="innerHTML">
+        <input type="hidden" name="workout_id" value="{{ workout.id }}">
+        <input type="hidden" name="program_id" value="{{ program.id }}">
+        <input type="hidden" name="scheduled_workout_event_id" value="{{ scheduled_workout_event_id }}">
+        <input type="hidden" name="workout_instance_key" value="{{ workout_instance_key }}">
+        <input type="hidden" name="program_key" value="{{ program_key }}">
+        <div class="d-flex flex-wrap gap-2">
+          <button type="submit" class="btn btn-success">Finish Workout</button>
+          <button type="button" class="btn btn-danger" hx-post="{{ cancel_workout_url }}" hx-target="#content"
+            hx-confirm="Are you sure you want to cancel this workout?" hx-swap="innerHTML">Cancel Workout</button>
+        </div>
+      </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="workout-section-stage">
+    {% for section in workout_sections %}
+    <div class="workout-section-panel" data-section-index="{{ loop.index }}"
+      {% if section.name != selected.name %}hidden{% endif %}
+      hx-get="/workouts/dynamic_parameters_for_section_viewer/{{ workout.id }}/{{ section.name }}?workout_instance_key={{ workout_instance_key|string|urlencode }}&workout_definition_key={{ workout_definition_key|string|urlencode }}&active_workout={{ active_workout }}&purpose_of_parameter_edit={{ purpose_of_parameter_edit|string|urlencode }}&workout_view_preference=carousel&allow_on_the_fly_workout={{ allow_on_the_fly_workout }}"
+      hx-trigger="{% if section.name == selected.name %}load, {% endif %}workoutSectionRefresh" hx-swap="innerHTML">
+      Loading…
+    </div>
+    {% else %}
+    <div class="alert alert-secondary m-3">No exercises found in this workout.</div>
+    {% endfor %}
+  </div>
+</div>
+
+<style>
+  body:has(.workout-fullscreen-view) { overflow: hidden; }
+  .workout-fullscreen-view {
+    position: fixed;
+    inset: 0;
+    z-index: 1040;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    background: linear-gradient(to right, #2c3e50, #4ca1af);
+  }
+  .workout-toolbar { display: flex; flex: 0 0 auto; }
+  .workout-section-menu { flex: 1 1 auto; min-width: 0; }
+  .workout-controls-menu { flex: 0 0 auto; }
+  .workout-section-toggle { min-height: 3rem; border-radius: 0; font-size: 1.25rem; }
+  .workout-controls-toggle { width: 3.5rem; min-height: 3rem; border-radius: 0; font-size: 1.25rem; }
+  .workout-dropdown {
+    max-height: calc(100dvh - 3rem);
+    overflow-y: auto;
+    background: linear-gradient(to right, #2c3e50, #4ca1af);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  .workout-controls-dropdown { width: min(20rem, 100vw); }
+  .workout-section-option {
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+  .workout-section-option:hover, .workout-section-option:focus {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.25);
+  }
+  .workout-section-option.active { background: #0d6efd; border-color: #0d6efd; }
+  .workout-section-stage, .workout-section-panel:not([hidden]) {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .workout-section-stage { display: flex; overflow: hidden; }
+  .workout-section-panel:not([hidden]) { display: flex; flex-direction: column; min-width: 0; }
+  .workout-fullscreen-view .workout-carousel,
+  .workout-fullscreen-view .carousel-inner,
+  .workout-fullscreen-view .carousel-item,
+  .workout-fullscreen-view .workout-carousel-slide,
+  .workout-fullscreen-view .workout-carousel-card { height: 100%; }
+  .workout-fullscreen-view .workout-carousel-card { min-height: 0; }
+  .workout-fullscreen-view .workout-carousel-card .card-body { min-height: 0; overflow-y: auto; }
+  .workout-fullscreen-view .workout-carousel-media { min-height: 0; }
+</style>
+
+<script>
+  (function () {
+    const view = document.querySelector('.workout-fullscreen-view');
+    if (!view) return;
+    if (window.workoutSectionHandlers) window.workoutSectionHandlers.abort();
+    window.workoutSectionHandlers = new AbortController();
+    const options = { signal: window.workoutSectionHandlers.signal };
+    const handlers = window.workoutSectionHandlers;
+    const menuButton = view.querySelector('#workoutSectionMenu');
+    const currentPanel = () => view.querySelector('.workout-section-panel:not([hidden])');
+
+    view.querySelectorAll('.workout-dropdown').forEach(menu => {
+      menu.addEventListener('click', function (event) {
+        if (event.target.closest('button, input')) {
+          const toggle = document.getElementById(menu.getAttribute('aria-labelledby'));
+          bootstrap.Dropdown.getOrCreateInstance(toggle).hide();
+        }
+      });
+    });
+
+    view.addEventListener('htmx:afterRequest', function (event) {
+      const option = event.target.closest('.workout-section-option');
+      if (!option || !event.detail.successful) return;
+      view.querySelectorAll('.workout-section-panel').forEach(panel => {
+        panel.querySelectorAll('video').forEach(video => video.pause());
+        panel.hidden = panel.dataset.sectionIndex !== option.dataset.sectionIndex;
+      });
+      view.querySelectorAll('.workout-section-option').forEach(button => {
+        const selected = button === option;
+        button.classList.toggle('active', selected);
+        if (selected) button.setAttribute('aria-current', 'true');
+        else button.removeAttribute('aria-current');
+      });
+      menuButton.textContent = option.dataset.sectionLabel;
+      htmx.trigger(currentPanel(), 'workoutSectionRefresh');
+    });
+
+    ['exerciseSwapped', 'workoutChanged'].forEach(name => {
+      document.body.addEventListener(name, function () {
+        const panel = currentPanel();
+        if (panel) htmx.trigger(panel, 'workoutSectionRefresh');
+      }, options);
+    });
+    view.addEventListener('htmx:beforeCleanupElement', function (event) {
+      if (event.target === view) handlers.abort();
+    });
+  })();
+</script>
