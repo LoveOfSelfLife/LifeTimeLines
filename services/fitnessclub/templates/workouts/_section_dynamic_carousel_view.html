@@ -11,35 +11,58 @@
         {% set slide_id = carousel_id ~ '-slide-' ~ loop.index %}
         {% set is_active_index = has_default_index_match and loop.index0 == default_exercise_index %}
         <div id="{{ slide_id }}" data-exercise-index="{{ loop.index0 }}" class="carousel-item {% if is_active_index or (loop.first and not has_default_index_match) %}active{% endif %}">
-            <div class="p-3">
-                <div class="card">
-                    <div class="card-body position-relative">
+            <div class="workout-carousel-slide">
+                <div class="card workout-carousel-card">
+                    <div class="card-body position-relative d-flex flex-column">
                         <div class="position-absolute top-0 end-0 mt-3 me-3 small text-muted">
                             {{ loop.index }} of {{ section.exercises|length }}
                         </div>
-                        <h5 class="card-title mb-3">{{ ex.name }}</h5>
+                        <h5 class="card-title mb-2">{{ ex.name }}</h5>
+                        <div class="workout-carousel-parameters mb-3">
+                            {% set timer = namespace(has_timer=False, timer_value=None, timer_units=None) %}
+                            {% set param_ns = namespace(unit_param_id=None, param_list=[]) %}
+                            {% set param_ns.param_list = exercise_parameters %}
+                            {% include "workouts/_dynamic_parameter.html" %}
+
+                            {% if active_workout and timer.has_timer and timer.timer_value is not none %}
+                            {% set timer_duration = timer.timer_value %}
+                            {% set timer_unit = timer.timer_units or 'sec' %}
+                            <div class="timer-container ms-2 d-inline-block">
+                                <div class="timer-ring-wrapper" data-exercise-id="{{ ex.id }}" data-duration="{{ timer_duration }}" data-unit="{{ timer_unit }}"
+                                    onclick="startExerciseTimer('{{ ex.id }}')"
+                                    title="Start {{ timer_duration }} {{ timer_unit }} timer">
+                                    <svg class="timer-ring-svg" viewBox="0 0 44 44">
+                                        <circle class="timer-ring-bg" cx="22" cy="22" r="19"></circle>
+                                        <circle class="timer-ring-progress" cx="22" cy="22" r="19"></circle>
+                                    </svg>
+                                    <div class="timer-ring-content">
+                                        <i class="bi bi-stopwatch timer-ring-icon"></i>
+                                        <span class="timer-display" id="timer-{{ ex.id }}">{{ timer_duration }}{{ timer_unit[0] }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
                         {% if ex.is_unilateral %}
                         <div class="mb-1">
                             <span class="badge text-bg-secondary text-wrap text-start">{{ 'alternate each rep' if ex.is_alternating else 'do all on one side, then repeat on the other' }}</span>
                         </div>
                         {% endif %}
 
-                        <div class="mb-3 text-center">
+                        <div class="workout-carousel-media mb-3 text-center">
                             {% if ex.videos and ex.videos|length > 0 %}
                             <video controls playsinline preload="metadata" class="w-100 rounded"
-                                style="height: 280px; width: 100%; object-fit: contain; background-color: #000;">
+                                style="background-color: #000;">
                                 <source src="{{ ex.videos[0].url }}" type="video/mp4">
                                 Your browser does not support embedded video.
                             </video>
                             {% elif ex.gif %}
-                            <img src="{{ ex.gif }}" alt="{{ ex.name }}" class="img-fluid rounded"
-                                style="height: 280px; width: 100%; object-fit: contain;">
+                            <img src="{{ ex.gif }}" alt="{{ ex.name }}" class="img-fluid rounded">
                             {% elif ex.images and ex.images|length > 0 %}
-                            <img src="{{ ex.images[0].url }}" alt="{{ ex.name }}" class="img-fluid rounded"
-                                style="height: 280px; width: 100%; object-fit: contain;">
+                            <img src="{{ ex.images[0].url }}" alt="{{ ex.name }}" class="img-fluid rounded">
                             {% else %}
                             <img src="{{ url_for('static', filename='images/exercise.png') }}" alt="{{ ex.name }}"
-                                class="img-fluid rounded" style="height: 280px; width: 100%; object-fit: contain;">
+                                class="img-fluid rounded">
                             {% endif %}
                         </div>
 
@@ -81,34 +104,6 @@
                             {% endif %}
                         </div>
 
-                        <div id="parameters">
-                            {% set timer = namespace(has_timer=False, timer_value=None, timer_units=None) %}
-                            {% set param_ns = namespace(unit_param_id=None, param_list=[]) %}
-                            {% set param_ns.param_list = exercise_parameters %}
-                            {% include "workouts/_dynamic_parameter.html" %}
-
-                            <strong>
-                                {% if active_workout and timer.has_timer and timer.timer_value is not none %}
-                                {% set timer_duration = timer.timer_value %}
-                                {% set timer_unit = timer.timer_units or 'sec' %}
-                                <div class="timer-container ms-2 d-inline-block">
-                                    <div class="timer-ring-wrapper" data-exercise-id="{{ ex.id }}" data-duration="{{ timer_duration }}" data-unit="{{ timer_unit }}"
-                                        onclick="startExerciseTimer('{{ ex.id }}')"
-                                        title="Start {{ timer_duration }} {{ timer_unit }} timer">
-                                        <svg class="timer-ring-svg" viewBox="0 0 44 44">
-                                            <circle class="timer-ring-bg" cx="22" cy="22" r="19"></circle>
-                                            <circle class="timer-ring-progress" cx="22" cy="22" r="19"></circle>
-                                        </svg>
-                                        <div class="timer-ring-content">
-                                            <i class="bi bi-stopwatch timer-ring-icon"></i>
-                                            <span class="timer-display" id="timer-{{ ex.id }}">{{ timer_duration }}{{ timer_unit[0] }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endif %}
-                            </strong>
-                        </div>
-
                     </div>
                 </div>
             </div>
@@ -132,6 +127,15 @@
 </div>
 
 <style>
+    #content:has(> .workout-view-carousel) {
+        padding: 0.5rem;
+    }
+
+    .workout-view-carousel {
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+    }
+
     .workout-carousel {
         --carousel-control-size-desktop: 3.25rem;
         --carousel-control-size-mobile: 2.85rem;
@@ -140,14 +144,50 @@
         --carousel-control-ring: rgba(255, 255, 255, 0.9);
     }
 
-    .workout-carousel .card-title {
-        color: #000;
+    .workout-carousel-slide {
+        padding: 0.125rem;
     }
 
-    .workout-carousel #parameters strong,
-    .workout-carousel #parameters strong * {
+    .workout-carousel-card {
+        min-height: calc(100vh - 1.5rem);
+        min-height: calc(100dvh - 1.5rem);
+    }
+
+    .workout-carousel .card-title {
+        color: #000;
+        font-size: clamp(1.5rem, 2.5vw, 2rem);
+        padding-right: 4.5rem;
+        overflow-wrap: anywhere;
+    }
+
+    .workout-carousel .workout-carousel-parameters {
+        font-size: clamp(1.25rem, 2vw, 1.5rem);
+        overflow-wrap: anywhere;
+    }
+
+    .workout-carousel .workout-carousel-parameters > strong {
+        flex-wrap: wrap;
+    }
+
+    .workout-carousel .workout-carousel-parameters strong,
+    .workout-carousel .workout-carousel-parameters strong * {
         color: #000 !important;
         font-weight: 700;
+    }
+
+    .workout-carousel-media {
+        position: relative;
+        flex: 1 1 18rem;
+        min-height: 12rem;
+    }
+
+    .workout-carousel-media img,
+    .workout-carousel-media video {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
     }
 
     .workout-carousel .carousel-control-compact {
