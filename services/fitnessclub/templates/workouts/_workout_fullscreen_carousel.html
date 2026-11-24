@@ -138,6 +138,35 @@
     const handlers = window.workoutSectionHandlers;
     const menuButton = view.querySelector('#workoutSectionMenu');
     const currentPanel = () => view.querySelector('.workout-section-panel:not([hidden])');
+    const stage = view.querySelector('.workout-section-stage');
+    let touchStart = null;
+
+    stage.addEventListener('touchstart', function (event) {
+      touchStart = null;
+      if (event.touches.length !== 1 ||
+          event.target.closest('button, a, input, select, textarea, label, video, audio, [contenteditable], [hx-trigger="click"], .timer-ring-wrapper')) return;
+      for (let element = event.target; element && element !== stage; element = element.parentElement) {
+        const overflow = getComputedStyle(element).overflowY;
+        if ((overflow === 'auto' || overflow === 'scroll') && element.scrollHeight > element.clientHeight + 1) return;
+      }
+      touchStart = { x: event.touches[0].clientX, y: event.touches[0].clientY };
+    }, { passive: true });
+    stage.addEventListener('touchend', function (event) {
+      if (!touchStart || event.touches.length || event.changedTouches.length !== 1) {
+        touchStart = null;
+        return;
+      }
+      const dx = event.changedTouches[0].clientX - touchStart.x;
+      const dy = event.changedTouches[0].clientY - touchStart.y;
+      touchStart = null;
+      // Keep horizontal movement below Bootstrap's carousel swipe threshold.
+      if (Math.abs(dy) < 50 || Math.abs(dx) >= 30 || Math.abs(dy) < 1.5 * Math.abs(dx)) return;
+      const sections = Array.from(view.querySelectorAll('.workout-section-option'));
+      const index = sections.findIndex(section => section.classList.contains('active'));
+      const target = sections[index + (dy < 0 ? 1 : -1)];
+      if (index >= 0 && target) target.click();
+    }, { passive: true });
+    stage.addEventListener('touchcancel', function () { touchStart = null; }, { passive: true });
 
     view.querySelectorAll('.workout-dropdown').forEach(menu => {
       menu.addEventListener('click', function (event) {

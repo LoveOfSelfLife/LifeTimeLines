@@ -29,7 +29,7 @@
                               {% if app_metadata.brand.action.hx_target %} hx-target="{{ app_metadata.brand.action.hx_target }}" {% else %} hx-target="#content" {% endif %}
                               {% if app_metadata.brand.action.hx_swap %} hx-swap="{{ app_metadata.brand.action.hx_swap }}" {% else %} hx-swap="innerHTML" {% endif %}
       >
-        {{ app_metadata.brand.icon }} {{ app_metadata.brand.text }}{% if app_metadata.brand.show_version %} {{ version_info.short_version }}{% endif %}
+        {{ app_metadata.brand.icon }} {{ app_metadata.brand.text }}{% if app_metadata.brand.show_version %} {{ version_info.version }}{% endif %}
       </a>
       {% if app_metadata.member_badge.enabled and member and member.name %}
       <span class="{{ app_metadata.member_badge.class }}"
