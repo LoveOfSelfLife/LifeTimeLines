@@ -1,4 +1,7 @@
 <!-- workout_view.html -->
+{% if show_finish_button and workout_view_preference == 'carousel' %}
+  {% include "workouts/_workout_fullscreen_carousel.html" %}
+{% else %}
   <div class="{% if workout_view_preference == 'carousel' %}container-fluid workout-view-carousel{% else %}container{% endif %} py-3">
 
     <h2 class="mb-4 text-center">{{ workout.name }}</h2>
@@ -104,6 +107,7 @@
       {% endif %}
     
   </div>
+{% endif %}
 {% include "workouts/_section_dynamic_view.css" %}
 {% include "workouts/_section_dynamic_view.js" %}
 
