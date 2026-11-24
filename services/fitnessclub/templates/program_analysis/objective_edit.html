@@ -1,4 +1,19 @@
 <!-- objective_edit.html -->
+<style>
+  #rules-table .form-select,
+  #rules-table .form-select:focus {
+    background: #fff var(--bs-form-select-bg-img) no-repeat right .75rem center / 16px 12px !important;
+    border-color: #adb5bd !important;
+    color: #212529 !important;
+    -webkit-text-fill-color: #212529 !important;
+  }
+  #rules-table .form-select:disabled {
+    background-color: #e9ecef !important;
+  }
+  #rules-table .form-select option {
+    -webkit-text-fill-color: #fafafa !important;
+  }
+</style>
 <div class="container-fluid" style="max-width: 1100px;">
   <h3><i class="bi bi-bullseye me-2"></i>{{ 'View' if read_only else ('Edit' if objective.id else 'New') }} objective</h3>
   {% if read_only %}<div class="alert alert-info">This objective can't be edited by you. Use <em>Copy</em> on the list to make your own version.</div>{% endif %}

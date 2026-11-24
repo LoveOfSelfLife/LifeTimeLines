@@ -1,10 +1,9 @@
-{% set selected = namespace(name=none, first=none, first_nonempty=none) %}
-{% for section in workout_sections %}
+{% set selected = namespace(name=none, first=none) %}
+{% for section in workout_sections if section.exercises %}
   {% if selected.first is none %}{% set selected.first = section.name %}{% endif %}
-  {% if section.exercises and selected.first_nonempty is none %}{% set selected.first_nonempty = section.name %}{% endif %}
   {% if section.name == default_section %}{% set selected.name = section.name %}{% endif %}
 {% endfor %}
-{% if selected.name is none %}{% set selected.name = selected.first_nonempty or selected.first %}{% endif %}
+{% if selected.name is none %}{% set selected.name = selected.first %}{% endif %}
 
 <div class="workout-fullscreen-view">
   <div class="workout-toolbar">
@@ -16,7 +15,7 @@
     <div class="dropdown-menu w-100 workout-dropdown workout-section-dropdown p-3" aria-labelledby="workoutSectionMenu">
       <h2 class="h5 mb-3">{{ workout.name }}</h2>
       <div class="list-group" aria-label="Workout sections">
-        {% for section in workout_sections %}
+        {% for section in workout_sections if section.exercises %}
         <button type="button" class="list-group-item list-group-item-action workout-section-option{% if section.name == selected.name %} active{% endif %}"
           data-section-index="{{ loop.index }}" data-section-label="{{ section.name.title() }}"
           {% if section.name == selected.name %}aria-current="true"{% endif %}
@@ -63,7 +62,7 @@
   </div>
 
   <div class="workout-section-stage">
-    {% for section in workout_sections %}
+    {% for section in workout_sections if section.exercises %}
     <div class="workout-section-panel" data-section-index="{{ loop.index }}"
       {% if section.name != selected.name %}hidden{% endif %}
       hx-get="/workouts/dynamic_parameters_for_section_viewer/{{ workout.id }}/{{ section.name }}?workout_instance_key={{ workout_instance_key|string|urlencode }}&workout_definition_key={{ workout_definition_key|string|urlencode }}&active_workout={{ active_workout }}&purpose_of_parameter_edit={{ purpose_of_parameter_edit|string|urlencode }}&workout_view_preference=carousel&allow_on_the_fly_workout={{ allow_on_the_fly_workout }}"

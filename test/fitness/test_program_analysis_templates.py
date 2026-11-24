@@ -106,6 +106,21 @@ def test_objective_pages_render(client, monkeypatch):
     assert 'New objective' in client.get('/program_analysis/objectives').get_data(as_text=True)
 
 
+@pytest.mark.parametrize('objective_id', ['', '?id=obj_1', '?id=builtin-balanced'])
+def test_objective_rule_select_styles_render_for_editable_and_read_only(client, monkeypatch, objective_id):
+    from views.program_analysis import program_analysis_routes as routes
+    monkeypatch.setattr(routes, '_can_manage', lambda m: True)
+    monkeypatch.setattr(routes, '_can_edit', lambda m, o: True)
+    response = client.get('/program_analysis/objectives/edit' + objective_id)
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert '#rules-table .form-select:focus' in html
+    assert '#rules-table .form-select:disabled' in html
+    assert '-webkit-text-fill-color: #212529 !important' in html
+    assert 'var(--bs-form-select-bg-img)' in html
+    assert '#rules-table .form-select option' in html
+
+
 def test_workout_report_controls_and_exports(client):
     report = client.get('/program_analysis/report?workout_id=w1&objective_id=obj_1')
     html = report.get_data(as_text=True)
