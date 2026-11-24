@@ -1,5 +1,5 @@
 <!-- workout_view.html -->
-  <div class="container py-3">
+  <div class="{% if workout_view_preference == 'carousel' %}container-fluid workout-view-carousel{% else %}container{% endif %} py-3">
 
     <h2 class="mb-4 text-center">{{ workout.name }}</h2>
 
