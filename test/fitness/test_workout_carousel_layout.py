@@ -10,7 +10,7 @@ TEMPLATES = Path(__file__).resolve().parents[2] / "services" / "fitnessclub" / "
 
 
 @pytest.mark.parametrize("default_section,expected", [
-    ("Strength", "Strength"), ("Missing", "Warmup"), (None, "Warmup"),
+    ("Strength", "Strength"), ("Empty", "Warmup"), ("Missing", "Warmup"), (None, "Warmup"),
 ])
 def test_fullscreen_carousel_uses_current_or_first_nonempty_section(default_section, expected):
     app = Flask(__name__, template_folder=str(TEMPLATES))
@@ -38,7 +38,7 @@ def test_fullscreen_carousel_uses_current_or_first_nonempty_section(default_sect
     assert 'hx-post="/example/workouts.toggle_carousel_view"' in html
     assert 'hx-post="/example/workouts.toggle_keep_awake"' in html
     assert html.count("workout-section-option") >= 2
-    assert 'data-section-label="Empty"' in html
+    assert 'data-section-label="Empty"' not in html
 
     section_menu = html.split('aria-labelledby="workoutSectionMenu">', 1)[1].split(
         '<div class="dropdown workout-controls-menu">', 1
@@ -46,7 +46,7 @@ def test_fullscreen_carousel_uses_current_or_first_nonempty_section(default_sect
     controls_menu = html.split('aria-labelledby="workoutControlsMenu">', 1)[1].split(
         '<div class="workout-section-stage">', 1
     )[0]
-    assert section_menu.index("My Workout") < section_menu.index('data-section-label="Empty"')
+    assert section_menu.index("My Workout") < section_menu.index('data-section-label="Warmup"')
     assert 'id="carouselViewSwitch"' not in section_menu
     assert 'hx-post="/finish"' not in section_menu
     assert 'data-section-label=' not in controls_menu
@@ -67,10 +67,30 @@ def test_fullscreen_carousel_uses_current_or_first_nonempty_section(default_sect
 
     parser = PanelParser()
     parser.feed(html)
-    assert len(parser.urls) == 3
+    assert len(parser.urls) == 2
+    assert all("/Empty?" not in url for url in parser.urls)
     assert parse_qs(urlsplit(parser.urls[0]).query)["workout_instance_key"] == [
         "('w', 'member', 'WorkoutTable')"
     ]
+
+
+@pytest.mark.parametrize("sections", [[], [{"name": "Empty", "exercises": []}]])
+def test_fullscreen_carousel_handles_no_exercises(sections):
+    app = Flask(__name__, template_folder=str(TEMPLATES))
+    app.jinja_env.globals["url_for"] = lambda endpoint, **kwargs: "/example/" + endpoint
+    with app.test_request_context("/"):
+        html = render_template(
+            "workouts/workout_view.html", workout={"id": "w", "name": "My Workout"},
+            workout_sections=sections, default_section="Empty",
+            workout_view_preference="carousel", show_finish_button=True,
+            workout_instance_key="instance", program={"id": "p"},
+            finish_workout_url="/finish", cancel_workout_url="/cancel",
+            active_workout=True, rs=lambda value: value,
+        )
+    assert "No exercises found in this workout." in html
+    assert 'data-section-label="Empty"' not in html
+    assert 'class="workout-section-panel"' not in html
+    assert 'hx-post="/finish"' in html and 'hx-post="/cancel"' in html
 
 
 def test_accordion_view_remains_available():
