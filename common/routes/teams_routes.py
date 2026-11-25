@@ -40,6 +40,12 @@ def teams_listing(context=None):
 
 def teams_listing2(context=None, member_id=None, page=1, filter_terms=None):
     entity_name = TeamEntity.table_name
+    if not member_id:
+        member_id = get_member_id_from_user_context(context)
+        if not member_id:
+            abort(401)
+    if filter_terms is None:
+        filter_terms = get_filter_terms_from_request(entity_name)
     view = get_entity_view_from_request(TeamEntity.table_name)
     fields_to_display = listing_fields(TeamEntity.list_presentation)
     entities = get_entities(TeamEntity.table_name, fields_to_display, filter_terms, partition_key=get_current_app_id(), member_id=member_id)
@@ -121,12 +127,10 @@ def create_team(context=None):
         
         try:
             save_team(team_data)
-            # response = make_response(teams_listing2(context=context))
-            response = make_response('',200)
+            response = make_response(teams_listing2(context=context))
             response.headers['HX-Trigger'] = json.dumps({
                 "showMessage": {"value": f"Team '{team_data['name']}' created successfully", "target": "body"}
             })
-            response.headers['HX-Redirect'] = '/'
             return response
         except Exception as e:
             return hx_render_template('admin/create_team.html', 
