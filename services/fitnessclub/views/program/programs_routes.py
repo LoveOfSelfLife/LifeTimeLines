@@ -29,7 +29,7 @@ from common.fitness.workout_state import clear_active_workout_state, get_active_
 from common.fitness.exercise_alternatives import apply_recorded_swaps_to_definition
 from common.fitness.exercise_onthefly import apply_recorded_removals_to_definition, apply_recorded_additions_to_definition, apply_recorded_alternative_changes
 from common.fitness.edit_workout_object import bring_up_workouts_builder
-from common.roles_service import get_accessible_members_for_context, get_team_coaches_with_details, get_team_for_client, is_member_client, is_member_coach
+from common.roles_service import get_accessible_members_for_context
 from common.coach_team_entity import get_coachs_team_members
 from common.entities_getter import filter_entities_by_member_role
 bp = create_blueprint('program', __name__)
