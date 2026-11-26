@@ -10,13 +10,45 @@
                 <li class="breadcrumb-item active">{{ team.name }}</li>
             </ol>
         </nav>
-        <h2><i class="bi bi-people-fill"></i> Managing Team: {{ team.name }}</h2>
-        {% if team.location %}
-            <p class="text-muted"><i class="bi bi-geo-alt"></i> {{ team.location }}</p>
-        {% endif %}
-        {% if team.description %}
-            <p>{{ team.description }}</p>
-        {% endif %}
+        <h2 class="mb-3"><i class="bi bi-people-fill"></i> Managing Team</h2>
+        <div class="card">
+            <div class="card-body">
+                {% if error %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i> {{ error }}
+                </div>
+                {% endif %}
+                <form hx-post="/teams/{{ team.id }}/save" hx-target="#content" hx-swap="innerHTML">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Team Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name"
+                               value="{{ team.name or '' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="location" class="form-label">Location</label>
+                        <input type="text" class="form-control" id="location" name="location"
+                               value="{{ team.location or '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description"
+                                  rows="3">{{ team.description or '' }}</textarea>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <button type="button" class="btn btn-danger"
+                                hx-post="/teams/{{ team.id }}/delete"
+                                hx-target="#content"
+                                hx-swap="innerHTML"
+                                hx-confirm="Delete team '{{ team.name }}'? All members and coaches will be removed from the team. This cannot be undone.">
+                            <i class="bi bi-trash"></i> Delete Team
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Save
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 
     <div class="row">
@@ -70,7 +102,7 @@
                                   hx-confirm="Remove {{ member.name }} from this team?">
                                 <input type="hidden" name="member_id" value="{{ member.id }}">
                                 <button class="btn btn-outline-danger btn-sm" type="submit">
-                                    <i class="bi bi-person-dash"></i>
+                                    <i class="bi bi-trash"></i>
                                 </button>
                             </form>
                         </div>
@@ -134,7 +166,7 @@
                                   hx-confirm="Remove {{ coach.name }} from coaching this team?">
                                 <input type="hidden" name="coach_id" value="{{ coach.id }}">
                                 <button class="btn btn-outline-danger btn-sm" type="submit">
-                                    <i class="bi bi-person-dash"></i>
+                                    <i class="bi bi-trash"></i>
                                 </button>
                             </form>
                         </div>

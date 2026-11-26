@@ -8,7 +8,8 @@ from common.auth import auth
 from common.card_presentation import build_card_views
 from common.coach_team_entity import assign_coach_to_team, remove_coach_from_team
 
-from common.entities_getter import filter_entities_by_member_role, get_entities
+from common.entities_getter import delete_entity, filter_entities_by_member_role, get_entities
+from common.entity_store import EntityStore
 from common.filter_funcs import get_entity_view_from_request, get_filter_terms_from_request
 from common.list_presentation import listing_fields
 from common.member_entity import get_member_id_from_user_context, get_members_list
@@ -26,8 +27,7 @@ from common.coach_team_entity import remove_coach_from_team
 from common.utils import generate_id
 bp = create_blueprint('teams', __name__)
 
-@bp.route('/')
-@bp.route('/teams-listing', methods=['GET', 'POST'])
+@bp.route('/', methods=['GET', 'POST'])
 @auth.login_required
 def teams_listing(context=None):
     member_id = get_member_id_from_user_context(context)
@@ -66,7 +66,7 @@ def teams_listing2(context=None, member_id=None, page=1, filter_terms=None):
 
     # Set results_target_container based on target parameter
     results_target_container = target if target else 'results-area'
-    entities_listing_route = f'/teams?target={results_target_container}'
+    entities_listing_route = f"{url_for('teams.teams_listing')}?entity_table={entity_name}&target={results_target_container}"
 
     entity_action_route = f'/teams/edit?entity_table={entity_name}'
     entity_action_icon='bi-pencil-square'
@@ -90,7 +90,7 @@ def teams_listing2(context=None, member_id=None, page=1, filter_terms=None):
         total_pages=total_pages,
         entity_add_route=entity_add_route,
         entities_listing_route=entities_listing_route,
-        entity_view_route=None,
+        entity_view_route=f"{url_for('teams.view_team')}?entity_table={entity_name}",
         entity_action_route=entity_action_route,
         entity_action_route_method=entity_action_route_method,
         entity_action_route_target=entity_action_route_target,
@@ -141,24 +141,111 @@ def create_team(context=None):
     return hx_render_template('admin/create_team.html', context=context)
 
 
+@bp.route('/view')
+@auth.login_required
+def view_team(context=None):
+    """Read-only team view (name, location, description, coaches, members)"""
+    from common.entity_store import EntityStore
+    from common.member_entity import get_user_profile
+
+    team = EntityStore().get_item_by_composite_key(request.args.get('key'))
+    if not team:
+        return "Team not found", 404
+    team_id = team.get_key_value()
+
+    members = []
+    for mt in get_team_members(team_id):
+        profile = get_user_profile(mt['member_id'])
+        if profile:
+            members.append(profile)
+    coaches = []
+    for ct in get_team_coaches(team_id):
+        profile = get_user_profile(ct['coach_id'])
+        if profile:
+            coaches.append(profile)
+
+    return hx_render_template('team_view.html', team=team, members=members, coaches=coaches, context=context)
+
+
 @bp.route('/edit')
 @auth.login_required
 def edit_team(context=None):
-    team_id = request.args.get('key')
-    return manage_team2(team_id, context=context)
+    team_composite_key = request.args.get('key')
+    es = EntityStore()
+    team = es.get_item_by_composite_key(team_composite_key)
+    if not team:
+        return "Team not found", 404
+    return manage_team2(team.get_key_value(), context=context)
+
+@bp.route('/<team_id>/save', methods=['POST'])
+@auth.login_required
+def save_team_changes(team_id, context=None):
+    """Save edits to a team's name, location and description"""
+    team = get_team_by_id(team_id)
+    if not team:
+        return "Team not found", 404
+
+    name = (request.form.get('name') or '').strip()
+    if not name:
+        return hx_render_template('admin/manage_team.html', team=team, error='Team name is required',
+                                  **_team_membership_data(team_id), context=context)
+
+    team_data = dict(team)
+    team_data.update({
+        'name': name,
+        'location': request.form.get('location', ''),
+        'description': request.form.get('description', ''),
+    })
+
+    try:
+        save_team(team_data)
+    except Exception as e:
+        return hx_render_template('admin/manage_team.html', team=team, error=str(e),
+                                  **_team_membership_data(team_id), context=context)
+
+    response = make_response(teams_listing2(context=context))
+    response.headers['HX-Trigger'] = json.dumps({
+        "showMessage": {"value": f"Team '{name}' saved successfully", "target": "body"}
+    })
+    return response
+
+@bp.route('/<team_id>/delete', methods=['POST'])
+@auth.login_required
+def delete_team(team_id, context=None):
+    """Delete a team and remove all of its member and coach associations"""
+    team = get_team_by_id(team_id)
+    if not team:
+        return "Team not found", 404
+
+    for mt in get_team_members(team_id):
+        remove_member_from_team(mt['member_id'], team_id)
+    for ct in get_team_coaches(team_id):
+        remove_coach_from_team(ct['coach_id'], team_id)
+    delete_entity(team, partition_key=get_current_app_id())
+
+    response = make_response(teams_listing2(context=context))
+    response.headers['HX-Trigger'] = json.dumps({
+        "showMessage": {"value": f"Team '{team.get('name')}' deleted", "target": "body"}
+    })
+    return response
 
 @bp.route('/<team_id>/manage')
 @auth.login_required
 def manage_team(team_id, context=None):
     """Manage team members and coaches"""
+    # team_cmposite_key = get_team_by_id(team_id)
     return manage_team2(team_id, context=context)
 
 def manage_team2(team_id, context=None):
     """Manage team members and coaches"""
     team = get_team_by_id(team_id)
-    if not team:
-        return "Team not found", 404
+    return hx_render_template('admin/manage_team.html',
+                              team=team,
+                              **_team_membership_data(team_id),
+                              context=context)
 
+def _team_membership_data(team_id):
+    from common.member_entity import get_user_profile
     # Get current team members and coaches
     team_members = get_team_members(team_id)
     team_coaches = get_team_coaches(team_id)
@@ -166,7 +253,6 @@ def manage_team2(team_id, context=None):
     # Get member details for team members
     members_with_details = []
     for mt in team_members:
-        from common.member_entity import get_user_profile
         member = get_user_profile(mt['member_id'])
         if member:
             member_info = dict(member)
@@ -176,7 +262,6 @@ def manage_team2(team_id, context=None):
     # Get member details for team coaches
     coaches_with_details = []
     for ct in team_coaches:
-        from common.member_entity import get_user_profile
         coach = get_user_profile(ct['coach_id'])
         if coach:
             coach_info = dict(coach)
@@ -188,13 +273,10 @@ def manage_team2(team_id, context=None):
     available_members = [m for m in all_members if not any(tm['member_id'] == m['id'] for tm in team_members)]
     available_coaches = [m for m in all_members if get_member_role(m['id']) == 'coach' and not any(tc['coach_id'] == m['id'] for tc in team_coaches)]
     
-    return hx_render_template('admin/manage_team.html',
-                              team=team,
-                              team_members=members_with_details,
-                              team_coaches=coaches_with_details,
-                              available_members=available_members,
-                              available_coaches=available_coaches,
-                              context=context)
+    return dict(team_members=members_with_details,
+                team_coaches=coaches_with_details,
+                available_members=available_members,
+                available_coaches=available_coaches)
 
 @bp.route('/<team_id>/add_member', methods=['POST'])
 @auth.login_required
