@@ -716,6 +716,11 @@ footer {
   color: #060606;
 }
 
+.navbar .nav-link .bi,
+.navbar .navbar-brand .bi {
+  color: #fff;
+}
+
 .clickable-text {
   cursor: pointer;
   color: #007bff;

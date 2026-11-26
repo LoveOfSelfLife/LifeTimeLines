@@ -24,12 +24,6 @@ from common.roles_service import get_member_role
 from common.team_entity import get_team_by_id, get_teams_list, save_team
 from common.template_renderer import hx_render_template
 import os
-from common.coach_team_entity import get_team_coaches
-from common.member_team_entity import get_team_members, get_members_teams
-from common.member_team_entity import add_member_to_team
-from common.member_team_entity import remove_member_from_team
-from common.coach_team_entity import assign_coach_to_team
-from common.coach_team_entity import remove_coach_from_team
 from common.utils import generate_id
 bp = create_blueprint('admin', __name__)
 

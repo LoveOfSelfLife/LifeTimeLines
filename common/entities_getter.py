@@ -8,7 +8,8 @@ from common.entity_store import get_entity_obj_from_entity_name
 from common.cacher import get_cache_value, set_cache_value, delete_from_cache
 
 from common.coach_team_entity import get_coachs_team_members
-from common.roles_service import is_member_client, is_member_coach
+from common.member_team_entity import get_team_members
+from common.roles_service import get_primary_team_id_for_context, is_member_client, is_member_coach
 
 
 entity_store_cache_dict = {}
@@ -279,33 +280,24 @@ def get_entity(entity_name, key, partition_key=None, member_id=None):
 
 def filter_entities_by_member_role(member_id, entities):
     # if I'm a client, then I should only see entities that are assigned to me, or entities that I created. 
-    # If I'm a coach, then I should see entities that are assigned to me, or entities that I created, or entities that are assigned to my team members. 
+    # If I'm a coach, then I should see entities that are assigned to me, or entities that I created, or entities that are assigned to my team members, for the team I am currently coaching.
     # If I'm an admin, then I should see all entities.
     if is_member_client(member_id):
-        relevant_entities = [e for e in entities if e.get('entity', {}).get('assigned_to_member_id') == member_id or e.get('entity', {}).get('created_by') == member_id or e.get('entity', {}).get('member_id') == member_id]
-        entities = relevant_entities
+        members_entities = [e for e in entities if e.get('entity', {}).get('assigned_to_member_id') == member_id or e.get('entity', {}).get('created_by') == member_id or e.get('entity', {}).get('member_id') == member_id]
+        return members_entities
     elif is_member_an_admin(member_id):
         # admins can see all entities, so no filtering needed
-        pass
+        return entities
     elif is_member_coach(member_id):
-        relevant_entities = [e for e in entities if e.get('entity', {}).get('assigned_to_member_id') == member_id or e.get('entity', {}).get('created_by') == member_id or e.get('entity', {}).get('member_id') == member_id]
-
-        team_members = get_coachs_team_members(member_id)
+        team_members = get_team_members(get_primary_team_id_for_context())
         team_member_ids =  { tm.get('member_id') for tm in team_members if tm.get('member_id') }
-
+        team_member_ids.add(member_id)  # include the coach themselves as part of the team for context
         # relevant entity is any entity that was created by the team member, or was assigned to the team member
-        teams_entities = [e for e in entities if e.get('entity', {}).get('assigned_to_member_id') in team_member_ids or e.get('entity', {}).get('created_by') in team_member_ids or e.get('entity', {}).get('member_id') in team_member_ids]
-
-        entities = relevant_entities + teams_entities
+        teams_entities = {e for e in entities if e.get('entity', {}).get('assigned_to_member_id') in team_member_ids or e.get('entity', {}).get('created_by') in team_member_ids or e.get('entity', {}).get('member_id') in team_member_ids}
+        return list(teams_entities)
     else:
         # if the member is not a client, coach, or admin, then they should not see any entities.
-        entities = []
-
-    deduped_entities = {}
-    for entity in entities:
-        deduped_entities[entity.get('key')] = entity
-    entities = list(deduped_entities.values())
-    return entities
+        return []
 
 PROGRAM_MULTI_SELECT_SESSION_KEY = 'program_builder_selected_workout_keys'
 MULTI_SELECT_SESSION_KEY = 'exercise_modal_selected_keys'

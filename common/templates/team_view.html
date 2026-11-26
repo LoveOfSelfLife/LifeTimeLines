@@ -1,0 +1,80 @@
+<!-- team_view.html: read-only team modal content -->
+<div class="modal-dialog modal-lg modal-dialog-scrollable">
+  <div class="modal-content team-view-modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title">
+        <i class="bi bi-people-fill me-2"></i>{{ team.name }}
+      </h5>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="team-view-panel mb-3">
+        <div class="team-view-label">Location</div>
+        <div>{{ team.get('location') or '—' }}</div>
+        <div class="team-view-label mt-3">Description</div>
+        <div>{{ team.get('description') or '—' }}</div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="team-view-panel h-100">
+            <h6><i class="bi bi-person-badge me-2"></i>Coaches ({{ coaches|length }})</h6>
+            {% if coaches %}
+            <ul class="list-unstyled mb-0">
+              {% for coach in coaches %}
+              <li class="team-view-item">{{ coach.name }}</li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <div class="text-white-50">No coaches assigned</div>
+            {% endif %}
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="team-view-panel h-100">
+            <h6><i class="bi bi-people me-2"></i>Members ({{ members|length }})</h6>
+            {% if members %}
+            <ul class="list-unstyled mb-0">
+              {% for member in members %}
+              <li class="team-view-item">{{ member.name }}</li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <div class="text-white-50">No members on this team</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .team-view-modal-content {
+    background: linear-gradient(180deg, rgba(47, 74, 88, 0.98), rgba(29, 45, 55, 0.98));
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+  }
+  .team-view-panel {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 0.5rem;
+    padding: 1rem;
+  }
+  .team-view-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.6);
+  }
+  .team-view-item {
+    padding: 0.35rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .team-view-item:last-child { border-bottom: none; }
+</style>
