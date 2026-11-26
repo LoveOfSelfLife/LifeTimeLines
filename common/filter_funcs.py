@@ -171,7 +171,7 @@ def get_filter_terms_from_request(entity_table):
         filter_param = request.args.get('filter', '')
         # if filter_param is present and is a string, need to convert it to a python object
         # using ast.literal_eval
-        if filter_param and isinstance(filter_param, str) and filter_param.strip() is not 'None':
+        if filter_param and isinstance(filter_param, str) and filter_param.strip() != 'None':
             import ast
             filter_param = ast.literal_eval(filter_param)
 
