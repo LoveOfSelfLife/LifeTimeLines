@@ -56,7 +56,7 @@ def get_teams_managed_by_coach(coach_id):
             teams.append(team)
     return teams
 
-def get_team_for_client(client_id, current_app):
+def get_team_for_client(client_id, current_app=None):
     """Get the team that a client belongs to (clients can only be on one team)"""
     if not is_member_client(client_id):
         return None
@@ -67,7 +67,7 @@ def get_team_for_client(client_id, current_app):
         return get_team_by_id(member_teams[0]['team_id'])
     return None
 
-def get_team_members_with_details(team_id, current_app):
+def get_team_members_with_details(team_id, current_app=None):
     """Get all members of a team with their full member details"""
     member_teams = get_team_members(team_id, current_app)
     members_with_details = []
@@ -83,7 +83,7 @@ def get_team_members_with_details(team_id, current_app):
     
     return members_with_details
 
-def get_team_coaches_with_details(team_id):
+def get_team_coaches_with_details(team_id, current_app=None):
     """Get all coaches of a team with their full member details"""
     coach_teams = get_team_coaches(team_id)
     coaches_with_details = []
