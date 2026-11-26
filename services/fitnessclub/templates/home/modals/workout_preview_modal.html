@@ -13,6 +13,12 @@
       {% include 'home/modals/_workout_preview.html' %}
     </div>
     <div class="modal-footer">
+      {% if back_url and back_url.startswith('/') and not back_url.startswith('//') %}
+      <button type="button" class="btn btn-outline-light me-auto"
+              hx-get="{{ back_url }}" hx-target="#modals-here" hx-swap="innerHTML">
+        <i class="bi bi-arrow-left me-1 text-white"></i> Back to program
+      </button>
+      {% endif %}
       <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
     </div>
   </div>

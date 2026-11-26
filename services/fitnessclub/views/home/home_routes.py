@@ -464,6 +464,7 @@ def workout_preview_modal(context=None):
             template_file='home/modals/workout_preview_modal.html',
             workout_name=workout.get('name') or workout.get('workout_name') or 'Workout Preview',
             workout_sections=populated_sections,
+            back_url=request.args.get('back_url'),
             context=context
         )
     except Exception as e:
