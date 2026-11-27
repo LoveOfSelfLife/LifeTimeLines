@@ -85,7 +85,8 @@
                     {% if loop.index == 1 %}
                         {% if entity_view_route %}
                         <td>
-                            <a href="#"
+                            <a class="text-break"
+                                href="#"
                                 hx-get="{{ entity_view_route }}&key={{ entity.key }}"
                                 hx-target="#modals-here"
                                 hx-swap="innerHTML"
@@ -94,10 +95,10 @@
                             </a>
                         </td>
                         {% else %}
-                        <td>{{ value }}</td>
+                        <td class="text-break">{{ value }}</td>
                         {% endif %}
                     {% else %}
-                        <td>{{ value }}</td>
+                        <td class="text-break">{{ value }}</td>
                     {% endif %}
                     {% endfor %}
 
